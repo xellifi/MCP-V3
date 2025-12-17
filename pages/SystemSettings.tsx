@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { User, UserRole, AdminSettings as AdminSettingsType } from '../types';
 import { api } from '../services/api';
-import { Lock, Save, ShieldAlert, Eye, EyeOff, Server, ChevronDown, ChevronUp, Mail, List, MoveUp, MoveDown, Send, Banknote, Key } from 'lucide-react';
+import { Lock, Save, ShieldAlert, Eye, EyeOff, Server, ChevronDown, ChevronUp, Mail, List, MoveUp, MoveDown, Send, Banknote, Key, Copy, Check } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 
 interface SystemSettingsProps {
@@ -29,6 +29,42 @@ const DAYS_OF_WEEK = [
   { id: 5, label: 'Friday' },
   { id: 6, label: 'Saturday' },
 ];
+
+interface CopyButtonProps {
+  text: string;
+  label?: string;
+}
+
+const CopyButton: React.FC<CopyButtonProps> = ({ text, label }) => {
+  const [copied, setCopied] = useState(false);
+  const toast = useToast();
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      toast.success(label ? `${label} copied to clipboard!` : 'Copied to clipboard!');
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      toast.error('Failed to copy to clipboard');
+    }
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={handleCopy}
+      className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-lg bg-slate-700 hover:bg-blue-600 text-slate-300 hover:text-white transition-all duration-200 group"
+      title="Copy to clipboard"
+    >
+      {copied ? (
+        <Check className="w-4 h-4 text-green-400" />
+      ) : (
+        <Copy className="w-4 h-4 group-hover:scale-110 transition-transform" />
+      )}
+    </button>
+  );
+};
 
 interface CollapsibleCardProps {
   title: string;
@@ -282,13 +318,56 @@ const SystemSettings: React.FC<SystemSettingsProps> = ({ user }) => {
           </div>
 
           <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-slate-300 mb-2">Webhook URL (For Facebook)</label>
-            <div className="bg-slate-800 border border-slate-700 text-slate-300 px-4 py-2.5 rounded-lg font-mono text-sm flex items-center gap-2 overflow-x-auto">
-              <Server className="w-4 h-4 flex-shrink-0" />
-              <span>{webhookUrl}</span>
+            <label className="block text-sm font-medium text-slate-300 mb-2">
+              <span className="flex items-center gap-2">
+                <Server className="w-4 h-4" />
+                Webhook URL (For Facebook)
+              </span>
+            </label>
+            <div className="relative">
+              <div className="bg-slate-800 border border-slate-700 text-slate-300 px-4 py-2.5 pr-12 rounded-lg font-mono text-sm overflow-x-auto">
+                {webhookUrl}
+              </div>
+              <CopyButton text={webhookUrl} label="Webhook URL" />
             </div>
             <p className="mt-1 text-xs text-slate-400">
-              Set this URL in your Facebook App's Webhook settings. Ensure <code>VITE_APP_DOMAIN</code> is set in Vercel.
+              Add this URL to your Facebook App's <strong>Webhooks</strong> settings. Ensure the callback URL is set correctly.
+            </p>
+          </div>
+
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-slate-300 mb-2">
+              <span className="flex items-center gap-2">
+                <Lock className="w-4 h-4" />
+                OAuth Redirect URL (For Facebook)
+              </span>
+            </label>
+            <div className="relative">
+              <div className="bg-slate-800 border border-blue-700/50 text-slate-200 px-4 py-2.5 pr-12 rounded-lg font-mono text-sm overflow-x-auto shadow-inner">
+                {appDomain}/connections
+              </div>
+              <CopyButton text={`${appDomain}/connections`} label="OAuth Redirect URL" />
+            </div>
+            <p className="mt-1 text-xs text-slate-400">
+              Add this URL to your Facebook App's <strong>Valid OAuth Redirect URIs</strong> in Facebook Login settings.
+            </p>
+          </div>
+
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-slate-300 mb-2">
+              <span className="flex items-center gap-2">
+                <Server className="w-4 h-4" />
+                Application Domain URL
+              </span>
+            </label>
+            <div className="relative">
+              <div className="bg-slate-800 border border-slate-700 text-slate-200 px-4 py-2.5 pr-12 rounded-lg font-mono text-sm overflow-x-auto">
+                {appDomain}
+              </div>
+              <CopyButton text={appDomain} label="Domain URL" />
+            </div>
+            <p className="mt-1 text-xs text-slate-400">
+              Your application's base domain. Use this in Facebook App Settings for <strong>App Domains</strong>.
             </p>
           </div>
 
