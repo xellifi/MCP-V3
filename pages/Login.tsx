@@ -10,8 +10,8 @@ interface LoginProps {
 }
 
 const Login: React.FC<LoginProps> = ({ onLogin }) => {
-  const [email, setEmail] = useState('User@gmail.com');
-  const [password, setPassword] = useState('12345678');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const toast = useToast();
@@ -88,11 +88,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           </div>
         </form>
 
-        <div className="bg-slate-950/50 p-4 text-center text-xs text-slate-500 border-t border-slate-800">
-          <p className="font-semibold mb-1">Demo Accounts:</p>
-          <p>Admin: admin@mychatpilot.com / admin1</p>
-          <p>User: User@gmail.com / 12345678</p>
-        </div>
+
       </div>
     </div>
   );
