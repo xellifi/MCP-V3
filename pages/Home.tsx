@@ -12,17 +12,17 @@ const Home: React.FC = () => {
         <div className="flex items-center gap-2">
           <Bot className="w-8 h-8 text-blue-600" />
           <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 text-transparent bg-clip-text">
-            AutoChat
+            Mychat Pilot
           </span>
         </div>
         <div className="flex gap-4">
-          <button 
+          <button
             onClick={() => navigate('/login')}
             className="text-slate-600 font-medium hover:text-blue-600 transition-colors"
           >
             Log in
           </button>
-          <button 
+          <button
             onClick={() => navigate('/register')}
             className="bg-blue-600 text-white px-5 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors shadow-sm shadow-blue-200"
           >
@@ -44,17 +44,17 @@ const Home: React.FC = () => {
           Boost engagement on Facebook and Instagram with a visual flow builder, auto-replies, and scheduled content.
         </p>
         <div className="flex flex-col sm:flex-row gap-4">
-           <button 
-             onClick={() => navigate('/register')}
-             className="flex items-center justify-center gap-2 bg-blue-600 text-white px-8 py-3.5 rounded-xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 text-lg"
-           >
-             Start Free Trial <ArrowRight className="w-5 h-5" />
-           </button>
-           <button 
-             className="px-8 py-3.5 rounded-xl font-bold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 transition-colors text-lg"
-           >
-             View Demo
-           </button>
+          <button
+            onClick={() => navigate('/register')}
+            className="flex items-center justify-center gap-2 bg-blue-600 text-white px-8 py-3.5 rounded-xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 text-lg"
+          >
+            Start Free Trial <ArrowRight className="w-5 h-5" />
+          </button>
+          <button
+            className="px-8 py-3.5 rounded-xl font-bold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 transition-colors text-lg"
+          >
+            View Demo
+          </button>
         </div>
       </header>
 
@@ -92,10 +92,10 @@ const Home: React.FC = () => {
         <div className="flex items-center justify-center gap-2 mb-4">
           <Bot className="w-6 h-6 text-blue-500" />
           <span className="text-lg font-bold text-white">
-            AutoChat
+            Mychat Pilot
           </span>
         </div>
-        <p>&copy; {new Date().getFullYear()} AutoChat SaaS. All rights reserved.</p>
+        <p>&copy; {new Date().getFullYear()} Mychat Pilot. All rights reserved.</p>
       </footer>
     </div>
   );

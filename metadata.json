@@ -1,5 +1,5 @@
 {
-  "name": "AutoChat SaaS",
-  "description": "A multi-tenant SaaS platform for Facebook and Instagram automations, featuring a visual flow builder, scheduled posts, and auto-replies.",
+  "name": "Mychat Pilot",
+  "description": "A multi-tenant platform for Facebook and Instagram automations, featuring a visual flow builder, scheduled posts, and auto-replies.",
   "requestFramePermissions": []
 }

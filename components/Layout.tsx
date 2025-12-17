@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { 
-  LayoutDashboard, 
-  Workflow, 
-  MessageSquare, 
-  CalendarDays, 
-  Settings, 
-  Link as LinkIcon, 
-  LogOut, 
+import {
+  LayoutDashboard,
+  Workflow,
+  MessageSquare,
+  CalendarDays,
+  Settings,
+  Link as LinkIcon,
+  LogOut,
   Menu,
   X,
   User as UserIcon,
@@ -49,13 +49,13 @@ const ALL_NAV_ITEMS: Record<string, { icon: any, label: string }> = {
 
 const DEFAULT_ORDER = ['/', '/connections', '/connected-pages', '/subscribers', '/messages', '/flows', '/scheduled', '/settings', '/affiliates', '/support'];
 
-const Layout: React.FC<LayoutProps> = ({ 
-  children, 
-  user, 
-  workspaces, 
-  currentWorkspace, 
+const Layout: React.FC<LayoutProps> = ({
+  children,
+  user,
+  workspaces,
+  currentWorkspace,
   onWorkspaceChange,
-  onLogout 
+  onLogout
 }) => {
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [menuOrder, setMenuOrder] = useState<string[]>(DEFAULT_ORDER);
@@ -76,19 +76,19 @@ const Layout: React.FC<LayoutProps> = ({
         if (settings.menuSequence && settings.menuSequence.length > 0) {
           // Robustness: If the saved settings are old and missing new items (like connected-pages or affiliates), append them
           const savedOrder = settings.menuSequence;
-          
+
           // Remap old 'api-keys' to 'settings' if it exists
           const migratedOrder = savedOrder.map(item => item === '/api-keys' ? '/settings' : item);
-          
+
           const missingItems = DEFAULT_ORDER.filter(item => !migratedOrder.includes(item));
-          
+
           if (missingItems.length > 0) {
             setMenuOrder([...migratedOrder, ...missingItems]);
           } else {
             setMenuOrder(migratedOrder);
           }
         } else {
-           setMenuOrder(DEFAULT_ORDER);
+          setMenuOrder(DEFAULT_ORDER);
         }
       } catch (error) {
         console.error("Could not load menu settings, using default", error);
@@ -102,10 +102,9 @@ const Layout: React.FC<LayoutProps> = ({
     <NavLink
       to={to}
       className={({ isActive }) =>
-        `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors mb-1 ${
-          isActive 
-            ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/20' 
-            : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
+        `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors mb-1 ${isActive
+          ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/20'
+          : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
         }`
       }
       onClick={() => setSidebarOpen(false)}
@@ -119,24 +118,23 @@ const Layout: React.FC<LayoutProps> = ({
     <div className="h-screen bg-slate-950 flex overflow-hidden">
       {/* Mobile Sidebar Overlay */}
       {isSidebarOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-40 lg:hidden transition-opacity"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
       {/* Sidebar */}
-      <aside 
-        className={`fixed lg:static inset-y-0 left-0 z-50 w-72 bg-slate-900 border-r border-slate-800 transform transition-transform duration-300 ease-in-out lg:transform-none flex flex-col shadow-2xl lg:shadow-none ${
-          isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
+      <aside
+        className={`fixed lg:static inset-y-0 left-0 z-50 w-72 bg-slate-900 border-r border-slate-800 transform transition-transform duration-300 ease-in-out lg:transform-none flex flex-col shadow-2xl lg:shadow-none ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+          }`}
       >
         <div className="h-16 flex items-center px-6 border-b border-slate-800 flex-shrink-0">
           <Bot className="w-8 h-8 text-blue-500 mr-3" />
           <span className="text-xl font-bold bg-gradient-to-r from-blue-400 to-indigo-400 text-transparent bg-clip-text">
-            AutoChat
+            Mychat Pilot
           </span>
-          <button 
+          <button
             className="ml-auto lg:hidden text-slate-400 hover:text-slate-200"
             onClick={toggleSidebar}
           >
@@ -150,7 +148,7 @@ const Layout: React.FC<LayoutProps> = ({
             Workspace
           </label>
           <div className="relative">
-            <select 
+            <select
               className="w-full appearance-none bg-slate-950 border border-slate-800 text-slate-200 text-sm font-medium rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block p-3 pr-8 transition-shadow cursor-pointer hover:border-slate-700"
               value={currentWorkspace.id}
               onChange={(e) => onWorkspaceChange(e.target.value)}
@@ -170,24 +168,24 @@ const Layout: React.FC<LayoutProps> = ({
         <nav className="flex-1 px-4 space-y-1 overflow-y-auto py-2">
           {/* Dynamic Menu Items */}
           {menuOrder.map(path => {
-             // Handle the dashboard path specifically if needed, but here maps directly
-             let renderPath = path;
-             if (path === '/') renderPath = '/dashboard'; 
-             
-             // Hide affiliate menu if not enabled and user is not admin
-             if (path === '/affiliates' && !affiliateEnabled && !isAdminOrOwner) {
-                return null;
-             }
+            // Handle the dashboard path specifically if needed, but here maps directly
+            let renderPath = path;
+            if (path === '/') renderPath = '/dashboard';
 
-             // Hide User Settings page for Admins/Owners as requested
-             if (path === '/settings' && isAdminOrOwner) {
-                return null;
-             }
+            // Hide affiliate menu if not enabled and user is not admin
+            if (path === '/affiliates' && !affiliateEnabled && !isAdminOrOwner) {
+              return null;
+            }
 
-             const item = ALL_NAV_ITEMS[path] || ALL_NAV_ITEMS[renderPath];
-             if (!item) return null;
+            // Hide User Settings page for Admins/Owners as requested
+            if (path === '/settings' && isAdminOrOwner) {
+              return null;
+            }
 
-             return <NavItem key={path} to={renderPath} icon={item.icon} label={item.label} />;
+            const item = ALL_NAV_ITEMS[path] || ALL_NAV_ITEMS[renderPath];
+            if (!item) return null;
+
+            return <NavItem key={path} to={renderPath} icon={item.icon} label={item.label} />;
           })}
 
           {/* Admin / Owner Section */}
@@ -207,7 +205,7 @@ const Layout: React.FC<LayoutProps> = ({
           <div className="flex items-center gap-3 mb-3 px-2">
             <div className="relative">
               {user.avatarUrl ? (
-                 <img src={user.avatarUrl} alt={user.name} className="w-9 h-9 rounded-full border border-slate-700" />
+                <img src={user.avatarUrl} alt={user.name} className="w-9 h-9 rounded-full border border-slate-700" />
               ) : (
                 <div className="w-9 h-9 rounded-full bg-slate-800 flex items-center justify-center text-blue-500 border border-slate-700 shadow-sm">
                   <UserIcon className="w-5 h-5" />
@@ -219,7 +217,7 @@ const Layout: React.FC<LayoutProps> = ({
               <p className="text-xs text-slate-500 truncate">{user.email}</p>
             </div>
           </div>
-          <button 
+          <button
             onClick={onLogout}
             className="flex items-center gap-2 text-sm font-medium text-slate-400 hover:text-red-400 hover:bg-red-950/30 px-3 py-2 rounded-lg transition-colors w-full"
           >
@@ -234,7 +232,7 @@ const Layout: React.FC<LayoutProps> = ({
         {/* Mobile Header */}
         <header className="h-16 bg-slate-900 border-b border-slate-800 lg:hidden flex items-center px-4 justify-between flex-shrink-0 z-20 shadow-sm">
           <div className="flex items-center gap-3">
-            <button 
+            <button
               onClick={toggleSidebar}
               className="p-2 -ml-2 text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded-lg transition-colors"
             >
@@ -243,7 +241,7 @@ const Layout: React.FC<LayoutProps> = ({
             <span className="font-bold text-slate-200 truncate max-w-[200px]">{currentWorkspace.name}</span>
           </div>
           <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-blue-500 border border-slate-700">
-             <UserIcon className="w-5 h-5" />
+            <UserIcon className="w-5 h-5" />
           </div>
         </header>
 

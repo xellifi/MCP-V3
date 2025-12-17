@@ -42,7 +42,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             </div>
           </Link>
           <h2 className="text-2xl font-bold text-slate-100">Welcome back</h2>
-          <p className="text-slate-400 mt-2">Sign in to your AutoChat account</p>
+          <p className="text-slate-400 mt-2">Sign in to your Mychat Pilot account</p>
         </div>
 
         <form onSubmit={handleSubmit} className="p-8 space-y-4">
