@@ -17,10 +17,14 @@ import {
   Layers,
   Banknote,
   Sliders,
-  LifeBuoy
+  LifeBuoy,
+  Sun,
+  Moon,
+  ChevronDown
 } from 'lucide-react';
 import { User, Workspace, UserRole } from '../types';
 import { api } from '../services/api';
+import { useTheme } from '../context/ThemeContext';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -60,11 +64,25 @@ const Layout: React.FC<LayoutProps> = ({
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [menuOrder, setMenuOrder] = useState<string[]>(DEFAULT_ORDER);
   const [affiliateEnabled, setAffiliateEnabled] = useState(false);
+  const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const { theme, toggleTheme, isDark } = useTheme();
 
   const toggleSidebar = () => setSidebarOpen(!isSidebarOpen);
   const isAdminOrOwner = user.role === UserRole.ADMIN || user.role === UserRole.OWNER;
+
+  // Get current page title
+  const getCurrentPageTitle = () => {
+    const path = location.pathname;
+    if (path === '/dashboard' || path === '/') return 'Dashboard';
+    const item = ALL_NAV_ITEMS[path];
+    if (item) return item.label;
+    if (path.startsWith('/flows/')) return 'Flow Builder';
+    if (path === '/users') return 'Users';
+    if (path === '/system-settings') return 'System Settings';
+    return 'Mychat Pilot';
+  };
 
   useEffect(() => {
     // Fetch menu sequence settings
@@ -98,6 +116,19 @@ const Layout: React.FC<LayoutProps> = ({
     loadMenuSettings();
   }, []);
 
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (profileDropdownOpen) {
+        setProfileDropdownOpen(false);
+      }
+    };
+    if (profileDropdownOpen) {
+      document.addEventListener('click', handleClickOutside);
+    }
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [profileDropdownOpen]);
+
   const NavItem: React.FC<{ to: string, icon: any, label: string }> = ({ to, icon: Icon, label }) => (
     <NavLink
       to={to}
@@ -115,7 +146,7 @@ const Layout: React.FC<LayoutProps> = ({
   );
 
   return (
-    <div className="h-screen bg-slate-950 flex overflow-hidden">
+    <div className={`h-screen flex overflow-hidden ${isDark ? 'bg-slate-950' : 'bg-slate-100'}`}>
       {/* Mobile Sidebar Overlay */}
       {isSidebarOpen && (
         <div
@@ -200,53 +231,99 @@ const Layout: React.FC<LayoutProps> = ({
             </div>
           )}
         </nav>
-
-        <div className="p-4 border-t border-slate-800 bg-slate-900/50 flex-shrink-0">
-          <div className="flex items-center gap-3 mb-3 px-2">
-            <div className="relative">
-              {user.avatarUrl ? (
-                <img src={user.avatarUrl} alt={user.name} className="w-9 h-9 rounded-full border border-slate-700" />
-              ) : (
-                <div className="w-9 h-9 rounded-full bg-slate-800 flex items-center justify-center text-blue-500 border border-slate-700 shadow-sm">
-                  <UserIcon className="w-5 h-5" />
-                </div>
-              )}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-bold text-slate-200 truncate">{user.name}</p>
-              <p className="text-xs text-slate-500 truncate">{user.email}</p>
-            </div>
-          </div>
-          <button
-            onClick={onLogout}
-            className="flex items-center gap-2 text-sm font-medium text-slate-400 hover:text-red-400 hover:bg-red-950/30 px-3 py-2 rounded-lg transition-colors w-full"
-          >
-            <LogOut className="w-4 h-4" />
-            Sign Out
-          </button>
-        </div>
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col min-w-0 h-full bg-slate-950">
-        {/* Mobile Header */}
-        <header className="h-16 bg-slate-900 border-b border-slate-800 lg:hidden flex items-center px-4 justify-between flex-shrink-0 z-20 shadow-sm">
-          <div className="flex items-center gap-3">
+      <main className={`flex-1 flex flex-col min-w-0 h-full ${isDark ? 'bg-slate-950' : 'bg-slate-100'}`}>
+        {/* Desktop Header */}
+        <header className={`h-16 border-b flex items-center px-6 justify-between flex-shrink-0 z-20 ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'
+          }`}>
+          {/* Left side - Mobile menu + Page title */}
+          <div className="flex items-center gap-4">
             <button
               onClick={toggleSidebar}
-              className="p-2 -ml-2 text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded-lg transition-colors"
+              className={`p-2 -ml-2 lg:hidden rounded-lg transition-colors ${isDark ? 'text-slate-400 hover:text-slate-200 hover:bg-slate-800' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                }`}
             >
               <Menu className="w-6 h-6" />
             </button>
-            <span className="font-bold text-slate-200 truncate max-w-[200px]">{currentWorkspace.name}</span>
+            <h1 className={`text-xl font-bold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>
+              {getCurrentPageTitle()}
+            </h1>
           </div>
-          <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-blue-500 border border-slate-700">
-            <UserIcon className="w-5 h-5" />
+
+          {/* Right side - Theme toggle + Profile */}
+          <div className="flex items-center gap-3">
+            {/* Theme Toggle */}
+            <button
+              onClick={toggleTheme}
+              className={`p-2 rounded-lg transition-colors ${isDark
+                  ? 'text-slate-400 hover:text-yellow-400 hover:bg-slate-800'
+                  : 'text-slate-600 hover:text-amber-500 hover:bg-slate-100'
+                }`}
+              title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+            >
+              {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+            </button>
+
+            {/* Profile Dropdown */}
+            <div className="relative">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setProfileDropdownOpen(!profileDropdownOpen);
+                }}
+                className={`flex items-center gap-2 p-1.5 pr-3 rounded-lg transition-colors ${isDark
+                    ? 'hover:bg-slate-800 text-slate-200'
+                    : 'hover:bg-slate-100 text-slate-700'
+                  }`}
+              >
+                {user.avatarUrl ? (
+                  <img src={user.avatarUrl} alt={user.name} className="w-8 h-8 rounded-full border border-slate-700" />
+                ) : (
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-blue-500 ${isDark ? 'bg-slate-800 border border-slate-700' : 'bg-slate-200 border border-slate-300'
+                    }`}>
+                    <UserIcon className="w-4 h-4" />
+                  </div>
+                )}
+                <span className="hidden sm:block text-sm font-medium truncate max-w-[120px]">{user.name}</span>
+                <ChevronDown className="w-4 h-4 opacity-50" />
+              </button>
+
+              {/* Dropdown Menu */}
+              {profileDropdownOpen && (
+                <div className={`absolute right-0 top-full mt-2 w-64 rounded-xl shadow-xl border overflow-hidden z-50 ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'
+                  }`}>
+                  <div className={`p-4 border-b ${isDark ? 'border-slate-700' : 'border-slate-100'}`}>
+                    <p className={`font-bold ${isDark ? 'text-slate-100' : 'text-slate-900'}`}>{user.name}</p>
+                    <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{user.email}</p>
+                    <span className={`inline-block mt-2 text-xs font-medium px-2 py-0.5 rounded ${user.role === UserRole.ADMIN || user.role === UserRole.OWNER
+                        ? 'bg-purple-100 text-purple-700'
+                        : 'bg-blue-100 text-blue-700'
+                      }`}>
+                      {user.role}
+                    </span>
+                  </div>
+                  <div className="p-2">
+                    <button
+                      onClick={onLogout}
+                      className={`flex items-center gap-2 w-full px-3 py-2 text-sm font-medium rounded-lg transition-colors ${isDark
+                          ? 'text-red-400 hover:bg-red-950/30'
+                          : 'text-red-600 hover:bg-red-50'
+                        }`}
+                    >
+                      <LogOut className="w-4 h-4" />
+                      Sign Out
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </header>
 
         {/* Scrollable Content Area */}
-        <div className="flex-1 overflow-auto p-4 md:p-8 bg-slate-950 relative">
+        <div className={`flex-1 overflow-auto p-4 md:p-8 relative ${isDark ? 'bg-slate-950' : 'bg-slate-100'}`}>
           <div className="max-w-7xl mx-auto h-full flex flex-col">
             {children}
           </div>

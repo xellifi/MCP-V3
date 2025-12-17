@@ -4,23 +4,11 @@ import { api } from '../services/api';
 import { Banknote, Copy, Check, Users, TrendingUp, Clock, Trash2, Shield, DollarSign, Wallet, FileText, Download } from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from '../context/ToastContext';
+import { useTheme } from '../context/ThemeContext';
 
 interface AffiliatesProps {
     user: User;
 }
-
-const StatCard = ({ title, value, subtext, icon: Icon, color }: any) => (
-    <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex items-center gap-4">
-        <div className={`p-3 rounded-lg ${color}`}>
-            <Icon className="w-6 h-6 text-white" />
-        </div>
-        <div>
-            <p className="text-sm font-medium text-slate-500">{title}</p>
-            <h3 className="text-2xl font-bold text-slate-900">{value}</h3>
-            {subtext && <p className="text-xs text-slate-400 mt-1">{subtext}</p>}
-        </div>
-    </div>
-);
 
 const Affiliates: React.FC<AffiliatesProps> = ({ user }) => {
     const [stats, setStats] = useState<AffiliateStats | null>(null);
@@ -37,6 +25,7 @@ const Affiliates: React.FC<AffiliatesProps> = ({ user }) => {
     const [activeTab, setActiveTab] = useState<'REFERRALS' | 'WITHDRAWALS'>('REFERRALS');
 
     const toast = useToast();
+    const { isDark } = useTheme();
 
     const isAdmin = user.role === UserRole.ADMIN || user.role === UserRole.OWNER;
     const affiliateLink = `${window.location.origin}/register?ref=${user.affiliateCode || user.id}`;
@@ -82,115 +71,19 @@ const Affiliates: React.FC<AffiliatesProps> = ({ user }) => {
         setTimeout(() => setCopied(false), 2000);
     };
 
-    const generateInvoiceHtml = (request: WithdrawalRequest) => {
-        const currency = settings?.affiliateCurrency || 'USD';
-        const amountStr = new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(request.amount);
-
-        return `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <style>
-          body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; padding: 40px; color: #333; }
-          .header { display: flex; justify-content: space-between; border-bottom: 2px solid #eee; padding-bottom: 20px; margin-bottom: 30px; }
-          .logo { font-size: 24px; font-weight: bold; color: #2563eb; }
-          .invoice-title { font-size: 32px; color: #1e293b; margin: 0; }
-          .details-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-bottom: 40px; }
-          .box { background: #f8fafc; padding: 20px; border-radius: 8px; }
-          .label { font-size: 12px; color: #64748b; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px; }
-          .value { font-size: 16px; font-weight: 500; }
-          .amount-box { background: #ecfdf5; color: #065f46; text-align: right; }
-          .total-label { font-size: 14px; margin-bottom: 5px; }
-          .total-value { font-size: 36px; font-weight: bold; }
-          .footer { margin-top: 60px; padding-top: 20px; border-top: 1px solid #eee; font-size: 12px; color: #94a3b8; text-align: center; }
-        </style>
-      </head>
-      <body>
-        <div class="header">
-          <div class="logo">Mychat Pilot</div>
-          <div>
-            <h1 class="invoice-title">PAYOUT INVOICE</h1>
-            <p>#${request.id.toUpperCase()}</p>
-          </div>
-        </div>
-
-        <div class="details-grid">
-          <div class="box">
-            <div class="label">Billed To</div>
-            <div class="value">Mychat Pilot</div>
-            <div class="value">123 Tech Boulevard</div>
-            <div class="value">San Francisco, CA 94105</div>
-          </div>
-          <div class="box">
-            <div class="label">Payee (Affiliate)</div>
-            <div class="value">${request.userName}</div>
-            <div class="value">User ID: ${request.userId}</div>
-            <div class="value">Method: ${request.method}</div>
-          </div>
-        </div>
-
-        <div class="box amount-box">
-          <div class="total-label">Total Payout Amount</div>
-          <div class="total-value">${amountStr}</div>
-        </div>
-
-        <div style="margin-top: 30px;">
-          <table style="width: 100%; text-align: left; border-collapse: collapse;">
-            <thead>
-              <tr style="background: #f1f5f9;">
-                <th style="padding: 12px;">Description</th>
-                <th style="padding: 12px;">Date Requested</th>
-                <th style="padding: 12px;">Status</th>
-                <th style="padding: 12px; text-align: right;">Amount</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td style="padding: 12px; border-bottom: 1px solid #eee;">Affiliate Commission Payout</td>
-                <td style="padding: 12px; border-bottom: 1px solid #eee;">${format(new Date(request.requestedAt), 'MMM d, yyyy')}</td>
-                <td style="padding: 12px; border-bottom: 1px solid #eee;">${request.status}</td>
-                <td style="padding: 12px; border-bottom: 1px solid #eee; text-align: right;">${amountStr}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <div class="footer">
-          <p>This is a computer-generated document. No signature is required.</p>
-          <p>Processed on: ${request.processedAt ? format(new Date(request.processedAt), 'MMM d, yyyy') : 'Pending'}</p>
-        </div>
-      </body>
-      </html>
-    `;
-    };
-
-    const handleDownloadInvoice = (request: WithdrawalRequest) => {
-        const html = generateInvoiceHtml(request);
-        const blob = new Blob([html], { type: 'text/html' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `Invoice-${request.id}.html`; // In a real app this would be .pdf
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-        toast.success("Invoice downloaded.");
-    };
-
     const handleWithdraw = async () => {
         const minAmount = settings?.affiliateMinWithdrawal || 100;
         if (!stats || stats.unpaidEarnings < minAmount) return;
 
-        const confirmed = window.confirm(`Are you sure you want to withdraw $${stats.unpaidEarnings.toFixed(2)}? An invoice will be emailed to you.`);
+        const confirmed = window.confirm(`Are you sure you want to withdraw $${stats.unpaidEarnings.toFixed(2)}?`);
         if (!confirmed) return;
 
         setWithdrawing(true);
         try {
             await api.affiliate.requestWithdrawal(user.id, stats.unpaidEarnings);
-            toast.success("Withdrawal request submitted. Invoice sent to your email.");
+            toast.success("Withdrawal request submitted.");
             await loadData();
-            setActiveTab('WITHDRAWALS'); // Switch tab to show the new request
+            setActiveTab('WITHDRAWALS');
         } catch (e) {
             toast.error("Failed to request withdrawal.");
         } finally {
@@ -199,11 +92,10 @@ const Affiliates: React.FC<AffiliatesProps> = ({ user }) => {
     };
 
     const handleDeleteReferral = async (id: string) => {
-        if (!window.confirm("Are you sure you want to delete this referral record? This cannot be undone.")) return;
+        if (!window.confirm("Are you sure you want to delete this referral record?")) return;
         try {
             await api.affiliate.deleteReferral(id);
             toast.success("Referral record deleted.");
-            // Refresh admin list
             const allRefs = await api.affiliate.getAllReferrals();
             setAdminReferrals(allRefs);
         } catch (e) {
@@ -222,52 +114,75 @@ const Affiliates: React.FC<AffiliatesProps> = ({ user }) => {
         }
     };
 
-    if (loading && !stats) return <div className="p-8 text-center text-slate-500">Loading affiliate data...</div>;
+    if (loading && !stats) return (
+        <div className={`p-8 text-center ${isDark ? 'text-slate-500' : 'text-slate-600'}`}>
+            Loading affiliate data...
+        </div>
+    );
 
     if (settings && !settings.affiliateEnabled && !isAdmin) {
         return (
-            <div className="flex flex-col items-center justify-center h-96 text-slate-500">
-                <Banknote className="w-16 h-16 mb-4 text-slate-300" />
-                <h2 className="text-xl font-bold text-slate-900">Affiliate Program Unavailable</h2>
-                <p>The affiliate program is currently disabled by the administrator.</p>
+            <div className={`flex flex-col items-center justify-center h-96 ${isDark ? 'text-slate-500' : 'text-slate-600'}`}>
+                <Banknote className={`w-16 h-16 mb-4 ${isDark ? 'text-slate-700' : 'text-slate-300'}`} />
+                <h2 className={`text-xl font-bold ${isDark ? 'text-slate-200' : 'text-slate-900'}`}>Affiliate Program Unavailable</h2>
+                <p>The affiliate program is currently disabled.</p>
             </div>
         );
     }
 
     const currency = settings?.affiliateCurrency || 'USD';
     const formatCurrency = (amount: number) => {
-        return new Intl.NumberFormat('en-US', { style: 'currency', currency: currency }).format(amount);
+        return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(amount);
     };
 
-    // Logic for enabling withdrawal button
-    const currentDay = new Date().getDay(); // 0=Sun, 1=Mon...
+    const currentDay = new Date().getDay();
     const allowedDays = settings?.affiliateWithdrawalDays || [1];
     const isDayAllowed = allowedDays.includes(currentDay);
     const minWithdrawal = settings?.affiliateMinWithdrawal || 100;
     const isBalanceSufficient = (stats?.unpaidEarnings || 0) >= minWithdrawal;
     const canWithdraw = isBalanceSufficient && isDayAllowed;
-
     const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     const allowedDayNames = allowedDays.map(d => dayNames[d]).join(', ');
 
+    // Theme-aware classes
+    const cardBg = isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200';
+    const cardText = isDark ? 'text-slate-100' : 'text-slate-900';
+    const subText = isDark ? 'text-slate-400' : 'text-slate-600';
+    const tableBg = isDark ? 'bg-slate-800/50' : 'bg-slate-50';
+    const tableRowHover = isDark ? 'hover:bg-slate-700/50' : 'hover:bg-slate-50';
+    const borderColor = isDark ? 'border-slate-700' : 'border-slate-200';
+
+    const StatCard = ({ title, value, subtext, icon: Icon, color }: any) => (
+        <div className={`p-6 rounded-xl shadow-sm border flex items-center gap-4 ${cardBg}`}>
+            <div className={`p-3 rounded-lg ${color}`}>
+                <Icon className="w-6 h-6 text-white" />
+            </div>
+            <div>
+                <p className={`text-sm font-medium ${subText}`}>{title}</p>
+                <h3 className={`text-2xl font-bold ${cardText}`}>{value}</h3>
+                {subtext && <p className={`text-xs mt-1 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>{subtext}</p>}
+            </div>
+        </div>
+    );
+
     return (
         <div className="space-y-8">
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-900">Affiliate Program</h1>
-                    <p className="text-slate-500 mt-1">Earn {formatCurrency(settings?.affiliateCommission || 0)} for every new customer you refer.</p>
+                    <h1 className={`text-2xl font-bold ${cardText}`}>Affiliate Program</h1>
+                    <p className={subText}>Earn {formatCurrency(settings?.affiliateCommission || 0)} for every new customer you refer.</p>
                 </div>
                 {isAdmin && (
-                    <div className="bg-slate-100 p-1 rounded-lg flex text-sm font-medium">
+                    <div className={`p-1 rounded-lg flex text-sm font-medium ${isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>
                         <button
                             onClick={() => setViewMode('MY')}
-                            className={`px-3 py-1.5 rounded-md transition-colors ${viewMode === 'MY' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-900'}`}
+                            className={`px-3 py-1.5 rounded-md transition-colors ${viewMode === 'MY' ? (isDark ? 'bg-slate-700 text-slate-100' : 'bg-white text-slate-900 shadow-sm') : subText}`}
                         >
                             My Dashboard
                         </button>
                         <button
                             onClick={() => setViewMode('ALL')}
-                            className={`px-3 py-1.5 rounded-md transition-colors flex items-center gap-1 ${viewMode === 'ALL' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-900'}`}
+                            className={`px-3 py-1.5 rounded-md transition-colors flex items-center gap-1 ${viewMode === 'ALL' ? (isDark ? 'bg-slate-700 text-slate-100' : 'bg-white text-slate-900 shadow-sm') : subText}`}
                         >
                             <Shield className="w-3 h-3" /> Admin View
                         </button>
@@ -278,13 +193,13 @@ const Affiliates: React.FC<AffiliatesProps> = ({ user }) => {
             {viewMode === 'MY' ? (
                 <>
                     {/* Affiliate Link Card */}
-                    <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl p-8 text-white shadow-lg shadow-blue-200 relative overflow-hidden">
+                    <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl p-8 text-white shadow-lg relative overflow-hidden">
                         <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
                             <Banknote className="w-64 h-64 text-white" />
                         </div>
                         <div className="max-w-3xl relative z-10">
                             <h3 className="text-xl font-bold mb-2">Your Unique Referral Link</h3>
-                            <p className="text-blue-100 mb-6">Share this link with your friends and audience. When they sign up, you get paid.</p>
+                            <p className="text-blue-100 mb-6">Share this link with your friends. When they sign up, you get paid.</p>
 
                             <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm p-2 pl-4 rounded-lg border border-white/20">
                                 <code className="flex-1 font-mono text-sm truncate">{affiliateLink}</code>
@@ -301,53 +216,27 @@ const Affiliates: React.FC<AffiliatesProps> = ({ user }) => {
 
                     {/* Stats Grid */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                        <StatCard
-                            title="Available Balance"
-                            value={formatCurrency(stats?.unpaidEarnings || 0)}
-                            subtext={`Min: ${formatCurrency(minWithdrawal)}`}
-                            icon={Wallet}
-                            color="bg-emerald-500"
-                        />
-                        <StatCard
-                            title="Total Paid Out"
-                            value={formatCurrency((stats?.totalEarnings || 0) - (stats?.unpaidEarnings || 0))}
-                            icon={Banknote}
-                            color="bg-blue-500"
-                        />
-                        <StatCard
-                            title="Pending Commission"
-                            value={formatCurrency(stats?.pendingEarnings || 0)}
-                            subtext="Awaiting validation"
-                            icon={Clock}
-                            color="bg-amber-500"
-                        />
-                        <StatCard
-                            title="Total Referrals"
-                            value={stats?.referrals || 0}
-                            icon={Users}
-                            color="bg-indigo-500"
-                        />
+                        <StatCard title="Available Balance" value={formatCurrency(stats?.unpaidEarnings || 0)} subtext={`Min: ${formatCurrency(minWithdrawal)}`} icon={Wallet} color="bg-emerald-500" />
+                        <StatCard title="Total Paid Out" value={formatCurrency((stats?.totalEarnings || 0) - (stats?.unpaidEarnings || 0))} icon={Banknote} color="bg-blue-500" />
+                        <StatCard title="Pending Commission" value={formatCurrency(stats?.pendingEarnings || 0)} subtext="Awaiting validation" icon={Clock} color="bg-amber-500" />
+                        <StatCard title="Total Referrals" value={stats?.referrals || 0} icon={Users} color="bg-indigo-500" />
                     </div>
 
                     {/* Action Bar */}
-                    <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+                    <div className={`p-6 rounded-xl shadow-sm border ${cardBg}`}>
                         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                             <div>
-                                <h3 className="font-bold text-slate-900">Wallet Actions</h3>
-                                <div className="text-xs text-slate-500 mt-1 flex flex-col gap-1">
-                                    <p>Minimum withdrawal: <span className="font-semibold text-slate-700">{formatCurrency(minWithdrawal)}</span></p>
-                                    <p>Withdrawals available on: <span className="font-semibold text-slate-700">{allowedDayNames || 'None'}</span></p>
+                                <h3 className={`font-bold ${cardText}`}>Wallet Actions</h3>
+                                <div className={`text-xs mt-1 flex flex-col gap-1 ${subText}`}>
+                                    <p>Minimum withdrawal: <span className={`font-semibold ${cardText}`}>{formatCurrency(minWithdrawal)}</span></p>
+                                    <p>Withdrawals available on: <span className={`font-semibold ${cardText}`}>{allowedDayNames || 'None'}</span></p>
                                 </div>
                             </div>
                             <div className="flex flex-col items-end gap-2">
                                 <button
                                     onClick={handleWithdraw}
                                     disabled={!canWithdraw || withdrawing}
-                                    className={`flex items-center gap-2 px-6 py-2.5 rounded-lg font-bold transition-all shadow-sm ${canWithdraw
-                                            ? 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-emerald-200'
-                                            : 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                                        }`}
-                                    title={!isDayAllowed ? "Not available today" : !isBalanceSufficient ? "Insufficient balance" : ""}
+                                    className={`flex items-center gap-2 px-6 py-2.5 rounded-lg font-bold transition-all shadow-sm ${canWithdraw ? 'bg-emerald-600 text-white hover:bg-emerald-700' : (isDark ? 'bg-slate-700 text-slate-500' : 'bg-slate-100 text-slate-400')} cursor-${canWithdraw ? 'pointer' : 'not-allowed'}`}
                                 >
                                     {withdrawing ? 'Processing...' : 'Withdraw Funds'}
                                     {!withdrawing && <DollarSign className="w-4 h-4" />}
@@ -361,28 +250,28 @@ const Affiliates: React.FC<AffiliatesProps> = ({ user }) => {
                         </div>
                     </div>
 
+                    {/* Tabs & Tables */}
                     <div className="space-y-4">
-                        {/* Tabs */}
-                        <div className="flex gap-4 border-b border-slate-200">
+                        <div className={`flex gap-4 border-b ${borderColor}`}>
                             <button
                                 onClick={() => setActiveTab('REFERRALS')}
-                                className={`pb-3 text-sm font-medium transition-colors ${activeTab === 'REFERRALS' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-slate-500 hover:text-slate-800'}`}
+                                className={`pb-3 text-sm font-medium transition-colors ${activeTab === 'REFERRALS' ? 'text-blue-600 border-b-2 border-blue-600' : subText}`}
                             >
                                 Referrals History
                             </button>
                             <button
                                 onClick={() => setActiveTab('WITHDRAWALS')}
-                                className={`pb-3 text-sm font-medium transition-colors ${activeTab === 'WITHDRAWALS' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-slate-500 hover:text-slate-800'}`}
+                                className={`pb-3 text-sm font-medium transition-colors ${activeTab === 'WITHDRAWALS' ? 'text-blue-600 border-b-2 border-blue-600' : subText}`}
                             >
                                 Withdrawal Requests
                             </button>
                         </div>
 
                         {activeTab === 'REFERRALS' ? (
-                            <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+                            <div className={`rounded-xl shadow-sm border overflow-hidden ${cardBg}`}>
                                 <div className="overflow-x-auto">
                                     <table className="w-full text-left">
-                                        <thead className="bg-slate-50 text-slate-500 text-xs uppercase font-semibold">
+                                        <thead className={`text-xs uppercase font-semibold ${tableBg} ${subText}`}>
                                             <tr>
                                                 <th className="px-6 py-4">Referred User</th>
                                                 <th className="px-6 py-4">Date</th>
@@ -390,17 +279,14 @@ const Affiliates: React.FC<AffiliatesProps> = ({ user }) => {
                                                 <th className="px-6 py-4">Status</th>
                                             </tr>
                                         </thead>
-                                        <tbody className="divide-y divide-slate-100">
+                                        <tbody className={`divide-y ${borderColor}`}>
                                             {referrals.map(ref => (
-                                                <tr key={ref.id}>
-                                                    <td className="px-6 py-4 font-medium text-slate-900">{ref.referredUserName}</td>
-                                                    <td className="px-6 py-4 text-slate-500">{format(new Date(ref.createdAt), 'MMM d, yyyy')}</td>
-                                                    <td className="px-6 py-4 font-medium text-green-600">+{formatCurrency(ref.commission)}</td>
+                                                <tr key={ref.id} className={tableRowHover}>
+                                                    <td className={`px-6 py-4 font-medium ${cardText}`}>{ref.referredUserName}</td>
+                                                    <td className={`px-6 py-4 ${subText}`}>{format(new Date(ref.createdAt), 'MMM d, yyyy')}</td>
+                                                    <td className="px-6 py-4 font-medium text-green-500">+{formatCurrency(ref.commission)}</td>
                                                     <td className="px-6 py-4">
-                                                        <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${ref.status === 'PAID' || ref.status === 'APPROVED' ? 'bg-green-100 text-green-800' :
-                                                                ref.status === 'PENDING' ? 'bg-amber-100 text-amber-800' :
-                                                                    'bg-slate-100 text-slate-600'
-                                                            }`}>
+                                                        <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${ref.status === 'PAID' || ref.status === 'APPROVED' ? 'bg-green-100 text-green-800' : ref.status === 'PENDING' ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-600'}`}>
                                                             {ref.status}
                                                         </span>
                                                     </td>
@@ -408,7 +294,7 @@ const Affiliates: React.FC<AffiliatesProps> = ({ user }) => {
                                             ))}
                                             {referrals.length === 0 && (
                                                 <tr>
-                                                    <td colSpan={4} className="px-6 py-12 text-center text-slate-500">
+                                                    <td colSpan={4} className={`px-6 py-12 text-center ${subText}`}>
                                                         No referrals yet. Share your link to get started!
                                                     </td>
                                                 </tr>
@@ -418,10 +304,10 @@ const Affiliates: React.FC<AffiliatesProps> = ({ user }) => {
                                 </div>
                             </div>
                         ) : (
-                            <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+                            <div className={`rounded-xl shadow-sm border overflow-hidden ${cardBg}`}>
                                 <div className="overflow-x-auto">
                                     <table className="w-full text-left">
-                                        <thead className="bg-slate-50 text-slate-500 text-xs uppercase font-semibold">
+                                        <thead className={`text-xs uppercase font-semibold ${tableBg} ${subText}`}>
                                             <tr>
                                                 <th className="px-6 py-4">Request Date</th>
                                                 <th className="px-6 py-4">Amount</th>
@@ -429,33 +315,26 @@ const Affiliates: React.FC<AffiliatesProps> = ({ user }) => {
                                                 <th className="px-6 py-4 text-right">Invoice</th>
                                             </tr>
                                         </thead>
-                                        <tbody className="divide-y divide-slate-100">
+                                        <tbody className={`divide-y ${borderColor}`}>
                                             {withdrawals.map(w => (
-                                                <tr key={w.id}>
-                                                    <td className="px-6 py-4 text-slate-500">{format(new Date(w.requestedAt), 'MMM d, yyyy HH:mm')}</td>
-                                                    <td className="px-6 py-4 font-bold text-slate-900">{formatCurrency(w.amount)}</td>
+                                                <tr key={w.id} className={tableRowHover}>
+                                                    <td className={`px-6 py-4 ${subText}`}>{format(new Date(w.requestedAt), 'MMM d, yyyy HH:mm')}</td>
+                                                    <td className={`px-6 py-4 font-bold ${cardText}`}>{formatCurrency(w.amount)}</td>
                                                     <td className="px-6 py-4">
-                                                        <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${w.status === 'PAID' ? 'bg-green-100 text-green-800' :
-                                                                w.status === 'PENDING' ? 'bg-blue-100 text-blue-800' :
-                                                                    'bg-red-100 text-red-800'
-                                                            }`}>
+                                                        <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${w.status === 'PAID' ? 'bg-green-100 text-green-800' : w.status === 'PENDING' ? 'bg-blue-100 text-blue-800' : 'bg-red-100 text-red-800'}`}>
                                                             {w.status}
                                                         </span>
                                                     </td>
                                                     <td className="px-6 py-4 text-right">
-                                                        <button
-                                                            onClick={() => handleDownloadInvoice(w)}
-                                                            className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-800 hover:bg-blue-50 px-2 py-1 rounded transition-colors"
-                                                        >
-                                                            <Download className="w-3 h-3" />
-                                                            Download
+                                                        <button className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-800 px-2 py-1 rounded transition-colors">
+                                                            <Download className="w-3 h-3" /> Download
                                                         </button>
                                                     </td>
                                                 </tr>
                                             ))}
                                             {withdrawals.length === 0 && (
                                                 <tr>
-                                                    <td colSpan={4} className="px-6 py-12 text-center text-slate-500">
+                                                    <td colSpan={4} className={`px-6 py-12 text-center ${subText}`}>
                                                         No withdrawal history found.
                                                     </td>
                                                 </tr>
@@ -470,31 +349,30 @@ const Affiliates: React.FC<AffiliatesProps> = ({ user }) => {
             ) : (
                 /* Admin View */
                 <div className="space-y-6">
-                    {/* Tabs */}
-                    <div className="flex gap-4 border-b border-slate-200">
+                    <div className={`flex gap-4 border-b ${borderColor}`}>
                         <button
                             onClick={() => setActiveTab('REFERRALS')}
-                            className={`pb-3 text-sm font-medium transition-colors ${activeTab === 'REFERRALS' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-slate-500 hover:text-slate-800'}`}
+                            className={`pb-3 text-sm font-medium transition-colors ${activeTab === 'REFERRALS' ? 'text-blue-600 border-b-2 border-blue-600' : subText}`}
                         >
                             All Referrals
                         </button>
                         <button
                             onClick={() => setActiveTab('WITHDRAWALS')}
-                            className={`pb-3 text-sm font-medium transition-colors ${activeTab === 'WITHDRAWALS' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-slate-500 hover:text-slate-800'}`}
+                            className={`pb-3 text-sm font-medium transition-colors ${activeTab === 'WITHDRAWALS' ? 'text-blue-600 border-b-2 border-blue-600' : subText}`}
                         >
                             Withdrawal Requests ({adminWithdrawals.filter(w => w.status === 'PENDING').length})
                         </button>
                     </div>
 
                     {activeTab === 'REFERRALS' ? (
-                        <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
-                            <div className="p-4 border-b border-slate-100 flex justify-between items-center">
-                                <h3 className="font-bold text-slate-900">All Referrals</h3>
-                                <span className="text-xs bg-slate-100 text-slate-500 px-2 py-1 rounded">Total: {adminReferrals.length}</span>
+                        <div className={`rounded-xl shadow-sm border overflow-hidden ${cardBg}`}>
+                            <div className={`p-4 border-b ${borderColor} flex justify-between items-center`}>
+                                <h3 className={`font-bold ${cardText}`}>All Referrals</h3>
+                                <span className={`text-xs px-2 py-1 rounded ${isDark ? 'bg-slate-700 text-slate-400' : 'bg-slate-100 text-slate-500'}`}>Total: {adminReferrals.length}</span>
                             </div>
                             <div className="overflow-x-auto">
                                 <table className="w-full text-left">
-                                    <thead className="bg-slate-50 text-slate-500 text-xs uppercase font-semibold">
+                                    <thead className={`text-xs uppercase font-semibold ${tableBg} ${subText}`}>
                                         <tr>
                                             <th className="px-6 py-4">Referrer</th>
                                             <th className="px-6 py-4">Referred User</th>
@@ -504,21 +382,18 @@ const Affiliates: React.FC<AffiliatesProps> = ({ user }) => {
                                             <th className="px-6 py-4 text-right">Actions</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-slate-100">
+                                    <tbody className={`divide-y ${borderColor}`}>
                                         {adminReferrals.map(ref => (
-                                            <tr key={ref.id} className="hover:bg-slate-50">
-                                                <td className="px-6 py-4 text-slate-600 font-mono text-xs">{ref.referrerId}</td>
-                                                <td className="px-6 py-4 font-medium text-slate-900">
+                                            <tr key={ref.id} className={tableRowHover}>
+                                                <td className={`px-6 py-4 font-mono text-xs ${subText}`}>{ref.referrerId}</td>
+                                                <td className={`px-6 py-4 font-medium ${cardText}`}>
                                                     {ref.referredUserName}
-                                                    <div className="text-xs text-slate-400 font-normal">{ref.referredUserEmail}</div>
+                                                    <div className={`text-xs font-normal ${subText}`}>{ref.referredUserEmail}</div>
                                                 </td>
-                                                <td className="px-6 py-4 text-slate-500 text-sm">{format(new Date(ref.createdAt), 'MMM d, yyyy')}</td>
-                                                <td className="px-6 py-4 font-medium text-green-600">{formatCurrency(ref.commission)}</td>
+                                                <td className={`px-6 py-4 text-sm ${subText}`}>{format(new Date(ref.createdAt), 'MMM d, yyyy')}</td>
+                                                <td className="px-6 py-4 font-medium text-green-500">{formatCurrency(ref.commission)}</td>
                                                 <td className="px-6 py-4">
-                                                    <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${ref.status === 'PAID' ? 'bg-green-100 text-green-800' :
-                                                            ref.status === 'PENDING' ? 'bg-amber-100 text-amber-800' :
-                                                                'bg-slate-100 text-slate-600'
-                                                        }`}>
+                                                    <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${ref.status === 'PAID' ? 'bg-green-100 text-green-800' : ref.status === 'PENDING' ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-600'}`}>
                                                         {ref.status}
                                                     </span>
                                                 </td>
@@ -538,34 +413,31 @@ const Affiliates: React.FC<AffiliatesProps> = ({ user }) => {
                             </div>
                         </div>
                     ) : (
-                        <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
-                            <div className="p-4 border-b border-slate-100">
-                                <h3 className="font-bold text-slate-900">Withdrawal Requests</h3>
+                        <div className={`rounded-xl shadow-sm border overflow-hidden ${cardBg}`}>
+                            <div className={`p-4 border-b ${borderColor}`}>
+                                <h3 className={`font-bold ${cardText}`}>Withdrawal Requests</h3>
                             </div>
                             <div className="overflow-x-auto">
                                 <table className="w-full text-left">
-                                    <thead className="bg-slate-50 text-slate-500 text-xs uppercase font-semibold">
+                                    <thead className={`text-xs uppercase font-semibold ${tableBg} ${subText}`}>
                                         <tr>
                                             <th className="px-6 py-4">User</th>
                                             <th className="px-6 py-4">Amount</th>
-                                            <th className="px-6 py-4">Method Details</th>
+                                            <th className="px-6 py-4">Method</th>
                                             <th className="px-6 py-4">Requested</th>
                                             <th className="px-6 py-4">Status</th>
                                             <th className="px-6 py-4 text-right">Actions</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-slate-100">
+                                    <tbody className={`divide-y ${borderColor}`}>
                                         {adminWithdrawals.map(w => (
-                                            <tr key={w.id}>
-                                                <td className="px-6 py-4 font-medium text-slate-900">{w.userName}</td>
-                                                <td className="px-6 py-4 font-bold text-slate-900">{formatCurrency(w.amount)}</td>
-                                                <td className="px-6 py-4 text-sm text-slate-600 max-w-xs truncate" title={w.method}>{w.method}</td>
-                                                <td className="px-6 py-4 text-sm text-slate-500">{format(new Date(w.requestedAt), 'MMM d, yyyy')}</td>
+                                            <tr key={w.id} className={tableRowHover}>
+                                                <td className={`px-6 py-4 font-medium ${cardText}`}>{w.userName}</td>
+                                                <td className={`px-6 py-4 font-bold ${cardText}`}>{formatCurrency(w.amount)}</td>
+                                                <td className={`px-6 py-4 text-sm max-w-xs truncate ${subText}`}>{w.method}</td>
+                                                <td className={`px-6 py-4 text-sm ${subText}`}>{format(new Date(w.requestedAt), 'MMM d, yyyy')}</td>
                                                 <td className="px-6 py-4">
-                                                    <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${w.status === 'PAID' ? 'bg-green-100 text-green-800' :
-                                                            w.status === 'PENDING' ? 'bg-blue-100 text-blue-800' :
-                                                                'bg-red-100 text-red-800'
-                                                        }`}>
+                                                    <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${w.status === 'PAID' ? 'bg-green-100 text-green-800' : w.status === 'PENDING' ? 'bg-blue-100 text-blue-800' : 'bg-red-100 text-red-800'}`}>
                                                         {w.status}
                                                     </span>
                                                 </td>
@@ -586,25 +458,16 @@ const Affiliates: React.FC<AffiliatesProps> = ({ user }) => {
                                                             </button>
                                                         </div>
                                                     ) : (
-                                                        <div className="flex items-center justify-end gap-2">
-                                                            <button
-                                                                onClick={() => handleDownloadInvoice(w)}
-                                                                className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded"
-                                                                title="Download Invoice"
-                                                            >
-                                                                <Download className="w-4 h-4" />
-                                                            </button>
-                                                            {w.status === 'PAID' && (
-                                                                <span className="text-xs text-slate-400 italic">Processed {w.processedAt ? format(new Date(w.processedAt), 'MMM d') : ''}</span>
-                                                            )}
-                                                        </div>
+                                                        <span className={`text-xs italic ${subText}`}>
+                                                            Processed {w.processedAt ? format(new Date(w.processedAt), 'MMM d') : ''}
+                                                        </span>
                                                     )}
                                                 </td>
                                             </tr>
                                         ))}
                                         {adminWithdrawals.length === 0 && (
                                             <tr>
-                                                <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
+                                                <td colSpan={6} className={`px-6 py-12 text-center ${subText}`}>
                                                     No withdrawal requests found.
                                                 </td>
                                             </tr>

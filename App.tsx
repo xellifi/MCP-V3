@@ -4,6 +4,7 @@ import Layout from './components/Layout';
 import { api } from './services/api';
 import { User, Workspace } from './types';
 import { MOCK_WORKSPACES } from './constants';
+import { ThemeProvider } from './context/ThemeContext';
 
 // Pages
 import Home from './pages/Home';
@@ -101,57 +102,59 @@ const App: React.FC = () => {
   }
 
   return (
-    <Router>
-      <Routes>
-        {/* Public Routes */}
-        <Route path="/" element={<Home />} />
-        <Route path="/login" element={
-          !user ? <Login onLogin={handleLogin} /> : <Navigate to="/dashboard" replace />
-        } />
-        <Route path="/register" element={
-          !user ? <Register onLogin={handleLogin} /> : <Navigate to="/dashboard" replace />
-        } />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
+    <ThemeProvider>
+      <Router>
+        <Routes>
+          {/* Public Routes */}
+          <Route path="/" element={<Home />} />
+          <Route path="/login" element={
+            !user ? <Login onLogin={handleLogin} /> : <Navigate to="/dashboard" replace />
+          } />
+          <Route path="/register" element={
+            !user ? <Register onLogin={handleLogin} /> : <Navigate to="/dashboard" replace />
+          } />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
 
-        {/* Protected Routes */}
-        <Route path="*" element={
-          user && currentWorkspace ? (
-            <Layout
-              user={user}
-              workspaces={workspaces}
-              currentWorkspace={currentWorkspace}
-              onWorkspaceChange={handleWorkspaceChange}
-              onLogout={handleLogout}
-            >
-              <Routes>
-                <Route path="/dashboard" element={<Dashboard workspace={currentWorkspace} />} />
-                <Route path="/connections" element={<Connections workspace={currentWorkspace} />} />
-                <Route path="/connected-pages" element={<ConnectedPages workspace={currentWorkspace} />} />
-                <Route path="/subscribers" element={<Subscribers workspace={currentWorkspace} />} />
-                <Route path="/messages" element={<Inbox workspace={currentWorkspace} />} />
-                <Route path="/flows" element={<Flows workspace={currentWorkspace} />} />
-                <Route path="/flows/:id" element={<FlowBuilder workspace={currentWorkspace} />} />
-                <Route path="/scheduled" element={<ScheduledPosts workspace={currentWorkspace} />} />
-                <Route path="/settings" element={<Settings user={user} workspace={currentWorkspace} />} />
-                <Route path="/affiliates" element={<Affiliates user={user} />} />
-                <Route path="/support" element={<Support user={user} workspace={currentWorkspace} />} />
+          {/* Protected Routes */}
+          <Route path="*" element={
+            user && currentWorkspace ? (
+              <Layout
+                user={user}
+                workspaces={workspaces}
+                currentWorkspace={currentWorkspace}
+                onWorkspaceChange={handleWorkspaceChange}
+                onLogout={handleLogout}
+              >
+                <Routes>
+                  <Route path="/dashboard" element={<Dashboard workspace={currentWorkspace} />} />
+                  <Route path="/connections" element={<Connections workspace={currentWorkspace} />} />
+                  <Route path="/connected-pages" element={<ConnectedPages workspace={currentWorkspace} />} />
+                  <Route path="/subscribers" element={<Subscribers workspace={currentWorkspace} />} />
+                  <Route path="/messages" element={<Inbox workspace={currentWorkspace} />} />
+                  <Route path="/flows" element={<Flows workspace={currentWorkspace} />} />
+                  <Route path="/flows/:id" element={<FlowBuilder workspace={currentWorkspace} />} />
+                  <Route path="/scheduled" element={<ScheduledPosts workspace={currentWorkspace} />} />
+                  <Route path="/settings" element={<Settings user={user} workspace={currentWorkspace} />} />
+                  <Route path="/affiliates" element={<Affiliates user={user} />} />
+                  <Route path="/support" element={<Support user={user} workspace={currentWorkspace} />} />
 
-                {/* Admin Only Routes */}
-                <Route path="/users" element={<UsersPage user={user} />} />
-                <Route path="/system-settings" element={<SystemSettings user={user} />} />
+                  {/* Admin Only Routes */}
+                  <Route path="/users" element={<UsersPage user={user} />} />
+                  <Route path="/system-settings" element={<SystemSettings user={user} />} />
 
-                {/* Redirect root in app context to dashboard */}
-                <Route path="/" element={<Navigate to="/dashboard" replace />} />
-                {/* Redirect legacy route */}
-                <Route path="/api-keys" element={<Navigate to="/settings" replace />} />
-              </Routes>
-            </Layout>
-          ) : (
-            <Navigate to="/login" replace />
-          )
-        } />
-      </Routes>
-    </Router>
+                  {/* Redirect root in app context to dashboard */}
+                  <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                  {/* Redirect legacy route */}
+                  <Route path="/api-keys" element={<Navigate to="/settings" replace />} />
+                </Routes>
+              </Layout>
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          } />
+        </Routes>
+      </Router>
+    </ThemeProvider>
   );
 };
 
