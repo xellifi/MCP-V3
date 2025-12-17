@@ -1,0 +1,433 @@
+import React, { useEffect, useState, useRef } from 'react';
+import { Workspace, Conversation, Message, Subscriber } from '../types';
+import { api } from '../services/api';
+import { format } from 'date-fns';
+import { Search, Send, User, Facebook, Instagram, Image as ImageIcon, Smile, MoreVertical, MessageSquare, ArrowLeft, Paperclip, X, FileText, Video } from 'lucide-react';
+
+interface InboxProps {
+  workspace: Workspace;
+}
+
+const Inbox: React.FC<InboxProps> = ({ workspace }) => {
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [subscribers, setSubscribers] = useState<Record<string, Subscriber>>({});
+  const [loadingConversations, setLoadingConversations] = useState(true);
+  const [loadingMessages, setLoadingMessages] = useState(false);
+  const [inputText, setInputText] = useState('');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [filePreview, setFilePreview] = useState<string | null>(null);
+  
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    loadData();
+  }, [workspace.id]);
+
+  useEffect(() => {
+    if (selectedConversationId) {
+      loadMessages(selectedConversationId);
+      // Clear inputs when changing conversation
+      setInputText('');
+      clearFile();
+    } else {
+      setMessages([]);
+    }
+  }, [selectedConversationId]);
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  // Clean up object URL on unmount or file change
+  useEffect(() => {
+    return () => {
+      if (filePreview) URL.revokeObjectURL(filePreview);
+    };
+  }, [filePreview]);
+
+  const loadData = async () => {
+    setLoadingConversations(true);
+    const [convs, subs] = await Promise.all([
+      api.workspace.getConversations(workspace.id),
+      api.workspace.getSubscribers(workspace.id)
+    ]);
+    
+    // Create subscriber map for easy lookup
+    const subMap: Record<string, Subscriber> = {};
+    subs.forEach(s => subMap[s.id] = s);
+    
+    setConversations(convs);
+    setSubscribers(subMap);
+    setLoadingConversations(false);
+  };
+
+  const loadMessages = async (convId: string) => {
+    setLoadingMessages(true);
+    const msgs = await api.workspace.getMessages(convId);
+    setMessages(msgs);
+    setLoadingMessages(false);
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setSelectedFile(file);
+      
+      // Create preview for images AND videos
+      if (file.type.startsWith('image/') || file.type.startsWith('video/')) {
+        setFilePreview(URL.createObjectURL(file));
+      } else {
+        setFilePreview(null);
+      }
+    }
+  };
+
+  const clearFile = () => {
+    setSelectedFile(null);
+    setFilePreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const handleSendMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if ((!inputText.trim() && !selectedFile) || !selectedConversationId) return;
+
+    // Determine type for optimistic update
+    let type: Message['type'] = 'TEXT';
+    let attachmentUrl = undefined;
+    
+    if (selectedFile) {
+        if (selectedFile.type.startsWith('image/')) type = 'IMAGE';
+        else if (selectedFile.type.startsWith('video/')) type = 'VIDEO';
+        else type = 'FILE';
+        attachmentUrl = URL.createObjectURL(selectedFile);
+    }
+
+    const tempId = `temp-${Date.now()}`;
+    const newMessage: Message = {
+      id: tempId,
+      conversationId: selectedConversationId,
+      direction: 'OUTBOUND',
+      content: inputText,
+      type: type,
+      attachmentUrl: attachmentUrl,
+      fileName: selectedFile?.name,
+      createdAt: new Date().toISOString(),
+      status: 'SENT'
+    };
+
+    // Optimistic update
+    setMessages(prev => [...prev, newMessage]);
+    const fileToSend = selectedFile;
+    const textToSend = inputText;
+    
+    // Clear UI immediately
+    setInputText('');
+    clearFile();
+
+    try {
+      await api.workspace.sendMessage(selectedConversationId, textToSend, fileToSend || undefined);
+    } catch (error) {
+      console.error("Failed to send", error);
+    }
+  };
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const selectedConversation = conversations.find(c => c.id === selectedConversationId);
+  const selectedSubscriber = selectedConversation ? subscribers[selectedConversation.subscriberId] : null;
+
+  const renderAttachment = (msg: Message) => {
+    if (!msg.attachmentUrl) return null;
+
+    if (msg.type === 'IMAGE') {
+      return (
+        <img 
+          src={msg.attachmentUrl} 
+          alt="attachment" 
+          className="rounded-lg max-w-full md:max-w-sm mb-2 border border-slate-700/50"
+        />
+      );
+    } else if (msg.type === 'VIDEO') {
+        return (
+            <video 
+                src={msg.attachmentUrl} 
+                controls 
+                className="rounded-lg max-w-full md:max-w-sm mb-2 border border-slate-700/50 bg-black"
+            />
+        );
+    } else if (msg.type === 'FILE') {
+        return (
+            <div className={`flex items-center gap-3 p-3 rounded-lg mb-2 border ${msg.direction === 'OUTBOUND' ? 'bg-white/10 border-white/20' : 'bg-slate-800 border-slate-700'}`}>
+                <div className="p-2 bg-slate-700 rounded-lg shadow-sm">
+                    <FileText className="w-5 h-5 text-slate-300" />
+                </div>
+                <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{msg.fileName || 'Attachment'}</p>
+                    <a href={msg.attachmentUrl} download className={`text-xs hover:underline ${msg.direction === 'OUTBOUND' ? 'text-blue-100' : 'text-blue-400'}`}>
+                        Download
+                    </a>
+                </div>
+            </div>
+        );
+    }
+    return null;
+  };
+
+  return (
+    <div className="h-[calc(100dvh-6rem)] md:h-[calc(100vh-8rem)] bg-slate-900 rounded-xl shadow-lg border border-slate-800 flex overflow-hidden">
+      
+      {/* Sidebar List - Hidden on mobile if conversation selected */}
+      <div className={`
+        w-full md:w-80 lg:w-96 border-r border-slate-800 flex-col
+        ${selectedConversationId ? 'hidden md:flex' : 'flex'}
+      `}>
+        <div className="p-4 border-b border-slate-800 flex-shrink-0">
+          <h2 className="text-lg font-bold text-slate-100 mb-4 px-1">Inbox</h2>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+            <input 
+              type="text" 
+              placeholder="Search..." 
+              className="w-full pl-10 pr-4 py-2.5 bg-slate-950 border border-slate-800 rounded-lg text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all placeholder-slate-600"
+            />
+          </div>
+        </div>
+        
+        <div className="flex-1 overflow-y-auto">
+          {loadingConversations ? (
+             <div className="p-8 flex justify-center">
+               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+             </div>
+          ) : (
+            <div className="divide-y divide-slate-800">
+              {conversations.map(conv => {
+                const sub = subscribers[conv.subscriberId];
+                if (!sub) return null;
+                const isSelected = selectedConversationId === conv.id;
+                return (
+                  <button 
+                    key={conv.id}
+                    onClick={() => setSelectedConversationId(conv.id)}
+                    className={`w-full p-4 flex items-start gap-3 hover:bg-slate-800/50 transition-colors text-left ${isSelected ? 'bg-slate-800 border-l-2 border-blue-500' : ''}`}
+                  >
+                    <div className="relative flex-shrink-0">
+                      {sub.avatarUrl ? (
+                        <img src={sub.avatarUrl} alt={sub.name} className="w-12 h-12 rounded-full object-cover border border-slate-700" />
+                      ) : (
+                        <div className="w-12 h-12 rounded-full bg-slate-800 flex items-center justify-center text-slate-500">
+                          <User className="w-6 h-6" />
+                        </div>
+                      )}
+                      <div className={`absolute -bottom-1 -right-1 p-0.5 rounded-full bg-slate-900 border border-slate-800 shadow-sm ${
+                         conv.platform === 'FACEBOOK' ? 'text-blue-500' : 'text-pink-500'
+                      }`}>
+                         {conv.platform === 'FACEBOOK' ? <Facebook className="w-3 h-3" /> : <Instagram className="w-3 h-3" />}
+                      </div>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex justify-between items-baseline mb-1">
+                        <span className={`font-medium truncate ${isSelected ? 'text-blue-400' : 'text-slate-200'}`}>{sub.name}</span>
+                        <span className="text-xs text-slate-500 flex-shrink-0 ml-2">
+                          {format(new Date(conv.updatedAt), 'MMM d')}
+                        </span>
+                      </div>
+                      <p className={`text-sm truncate ${conv.unreadCount > 0 ? 'font-semibold text-slate-300' : 'text-slate-500'}`}>
+                        {conv.lastMessagePreview}
+                      </p>
+                    </div>
+                    {conv.unreadCount > 0 && (
+                      <div className="min-w-[1.25rem] h-5 rounded-full bg-blue-600 text-white text-xs font-bold flex items-center justify-center px-1.5 mt-1">
+                        {conv.unreadCount}
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+              {conversations.length === 0 && (
+                 <div className="p-8 text-center text-slate-500 flex flex-col items-center">
+                    <MessageSquare className="w-8 h-8 mb-2 opacity-20" />
+                    <p className="text-sm">No conversations found</p>
+                 </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Chat Area - Hidden on mobile if no conversation selected */}
+      <div className={`
+        flex-1 flex-col min-w-0 bg-slate-900
+        ${selectedConversationId ? 'flex' : 'hidden md:flex'}
+      `}>
+        {selectedConversationId ? (
+          <>
+            {/* Chat Header */}
+            <div className="h-16 px-4 md:px-6 border-b border-slate-800 flex items-center justify-between flex-shrink-0 bg-slate-900 z-10">
+              <div className="flex items-center gap-3 min-w-0">
+                <button 
+                  onClick={() => setSelectedConversationId(null)}
+                  className="md:hidden p-2 -ml-2 text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded-full"
+                >
+                  <ArrowLeft className="w-5 h-5" />
+                </button>
+                
+                {selectedSubscriber && (
+                  <div className="flex items-center gap-3 overflow-hidden">
+                    <div className="relative flex-shrink-0">
+                      {selectedSubscriber.avatarUrl ? (
+                        <img src={selectedSubscriber.avatarUrl} alt={selectedSubscriber.name} className="w-9 h-9 rounded-full object-cover border border-slate-700" />
+                      ) : (
+                        <div className="w-9 h-9 rounded-full bg-slate-800 flex items-center justify-center text-slate-500">
+                          <User className="w-5 h-5" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <h3 className="font-bold text-slate-100 truncate text-sm md:text-base">{selectedSubscriber.name}</h3>
+                      <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
+                         {selectedSubscriber.tags.map(tag => (
+                            <span key={tag} className="px-1.5 py-0.5 bg-slate-800 text-slate-400 text-[10px] uppercase tracking-wide rounded font-medium flex-shrink-0 border border-slate-700">
+                              {tag}
+                            </span>
+                         ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+              <button className="p-2 text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded-full transition-colors">
+                 <MoreVertical className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Messages */}
+            <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 bg-slate-950">
+              {loadingMessages ? (
+                 <div className="flex items-center justify-center h-full">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 opacity-20"></div>
+                 </div>
+              ) : (
+                <>
+                  {messages.map((msg, idx) => {
+                     const isOutbound = msg.direction === 'OUTBOUND';
+                     return (
+                       <div key={msg.id} className={`flex ${isOutbound ? 'justify-end' : 'justify-start'}`}>
+                          <div className={`max-w-[85%] md:max-w-[70%] rounded-2xl px-4 py-3 shadow-sm text-sm md:text-base ${
+                             isOutbound 
+                             ? 'bg-blue-600 text-white rounded-br-none' 
+                             : 'bg-slate-800 border border-slate-700 text-slate-200 rounded-bl-none'
+                          }`}>
+                            {renderAttachment(msg)}
+                            {msg.content && <p className="leading-relaxed whitespace-pre-wrap break-words">{msg.content}</p>}
+                            <div className={`text-[10px] mt-1 text-right opacity-70 ${isOutbound ? 'text-blue-100' : 'text-slate-500'}`}>
+                               {format(new Date(msg.createdAt), 'h:mm a')}
+                            </div>
+                          </div>
+                       </div>
+                     );
+                  })}
+                  <div ref={messagesEndRef} />
+                </>
+              )}
+            </div>
+
+            {/* Attachment Preview Area */}
+            {selectedFile && (
+                <div className="px-4 py-2 border-t border-slate-800 bg-slate-900 flex items-center gap-4">
+                    <div className="relative group">
+                        {filePreview ? (
+                            selectedFile.type.startsWith('video/') ? (
+                                 <video src={filePreview} className="h-20 w-auto rounded-lg border border-slate-700 object-cover" autoPlay muted loop />
+                            ) : (
+                                <img src={filePreview} alt="Preview" className="h-20 w-auto rounded-lg border border-slate-700 object-cover" />
+                            )
+                        ) : (
+                            <div className="h-16 w-16 bg-slate-800 rounded-lg border border-slate-700 flex items-center justify-center">
+                                <FileText className="w-8 h-8 text-slate-500" />
+                            </div>
+                        )}
+                        <button 
+                            onClick={clearFile}
+                            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-sm hover:bg-red-600 transition-colors"
+                        >
+                            <X className="w-3 h-3" />
+                        </button>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-slate-200 truncate">{selectedFile.name}</p>
+                        <p className="text-xs text-slate-500">{(selectedFile.size / 1024 / 1024).toFixed(2)} MB</p>
+                    </div>
+                </div>
+            )}
+
+            {/* Input */}
+            <div className="p-3 md:p-4 bg-slate-900 border-t border-slate-800 flex-shrink-0">
+               <form onSubmit={handleSendMessage} className="flex items-end gap-2 bg-slate-950 rounded-xl border border-slate-800 p-2 focus-within:ring-2 focus-within:ring-blue-900 focus-within:border-blue-700 transition-all">
+                  <div className="flex gap-1">
+                    <input 
+                        type="file" 
+                        ref={fileInputRef} 
+                        className="hidden" 
+                        onChange={handleFileSelect}
+                        // Accept commonly supported formats
+                        accept="image/*,video/*,application/pdf,.doc,.docx"
+                    />
+                    <button 
+                        type="button" 
+                        onClick={() => fileInputRef.current?.click()}
+                        className={`p-2 rounded-lg transition-colors ${selectedFile ? 'text-blue-500 bg-blue-900/20' : 'text-slate-400 hover:text-blue-500 hover:bg-slate-800'}`}
+                        title="Attach file"
+                    >
+                      <Paperclip className="w-5 h-5" />
+                    </button>
+                     <button type="button" className="p-2 text-slate-400 hover:text-amber-500 rounded-lg hover:bg-slate-800 transition-colors">
+                      <Smile className="w-5 h-5" />
+                    </button>
+                  </div>
+                  <textarea 
+                    value={inputText}
+                    onChange={e => setInputText(e.target.value)}
+                    onKeyDown={e => {
+                       if(e.key === 'Enter' && !e.shiftKey) {
+                         e.preventDefault();
+                         handleSendMessage(e);
+                       }
+                    }}
+                    placeholder={selectedFile ? "Add a caption..." : "Type a message..."}
+                    className="flex-1 bg-transparent border-none focus:ring-0 text-slate-200 placeholder:text-slate-600 resize-none py-2 max-h-32 text-sm leading-relaxed"
+                    rows={1}
+                    style={{minHeight: '2.5rem'}}
+                  />
+                  <button 
+                    type="submit" 
+                    disabled={!inputText.trim() && !selectedFile}
+                    className="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm mb-0.5"
+                  >
+                    <Send className="w-4 h-4" />
+                  </button>
+               </form>
+            </div>
+          </>
+        ) : (
+          <div className="flex-1 flex flex-col items-center justify-center bg-slate-950 text-slate-500 p-8 text-center">
+             <div className="w-16 h-16 bg-slate-900 rounded-full flex items-center justify-center mb-4 shadow-sm border border-slate-800">
+                <MessageSquare className="w-8 h-8 text-slate-700" />
+             </div>
+             <h3 className="text-slate-200 font-medium mb-1">Your Inbox</h3>
+             <p className="text-sm">Select a conversation from the list to start chatting</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default Inbox;
