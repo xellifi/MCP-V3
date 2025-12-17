@@ -23,7 +23,8 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       const user = await api.auth.login(email, password);
       await onLogin(user);  // Wait for workspaces to load
       toast.success(`Welcome back, ${user.name}!`);
-      navigate('/dashboard');  // Navigate to dashboard explicitly
+      // Navigation is handled by App.tsx conditional Route rendering
+      // after user and currentWorkspace are both set
     } catch (err: any) {
       console.error(err);
       toast.error('Invalid email or password. Please try again.');

@@ -24,7 +24,7 @@ const Register: React.FC<RegisterProps> = ({ onLogin }) => {
       const user = await api.auth.register(name, email, password);
       await onLogin(user);  // Wait for workspaces to load
       toast.success(`Welcome aboard, ${user.name}!`);
-      navigate('/dashboard');  // Navigate to dashboard explicitly
+      // Navigation handled by App.tsx Route conditional
     } catch (error) {
       console.error(error);
       toast.error('Registration failed. Please try again.');
