@@ -116,33 +116,40 @@ const Connections: React.FC<ConnectionsProps> = ({ workspace }) => {
                 };
 
                 try {
-                  // Use simple insert - let RLS handle permissions
+                  // Check if page already exists
                   const { supabase } = await import('../lib/supabase');
-                  const { data, error: pageError } = await supabase
+                  const { data: existingPage } = await supabase
                     .from('connected_pages')
-                    .insert(pagePayload)
-                    .select()
+                    .select('id')
+                    .eq('workspace_id', workspace.id)
+                    .eq('page_id', fbPage.id)
                     .single();
 
-                  if (pageError) {
-                    // If it's a duplicate, try to update instead
-                    if (pageError.code === '23505') {
-                      const { error: updateError } = await supabase
-                        .from('connected_pages')
-                        .update(pagePayload)
-                        .eq('page_id', fbPage.id)
-                        .eq('workspace_id', workspace.id);
+                  if (existingPage) {
+                    // Update existing page
+                    const { error: updateError } = await supabase
+                      .from('connected_pages')
+                      .update(pagePayload)
+                      .eq('id', existingPage.id);
 
-                      if (updateError) {
-                        console.error(`Error updating page ${fbPage.name}:`, updateError);
-                      } else {
-                        console.log(`Updated page: ${fbPage.name}`);
-                      }
+                    if (updateError) {
+                      console.error(`Error updating page ${fbPage.name}:`, updateError);
                     } else {
-                      console.error(`Error saving page ${fbPage.name}:`, pageError);
+                      console.log(`Updated page: ${fbPage.name}`);
                     }
                   } else {
-                    console.log(`Saved page: ${fbPage.name}`);
+                    // Insert new page
+                    const { data, error: pageError } = await supabase
+                      .from('connected_pages')
+                      .insert(pagePayload)
+                      .select()
+                      .single();
+
+                    if (pageError) {
+                      console.error(`Error saving page ${fbPage.name}:`, pageError);
+                    } else {
+                      console.log(`Saved page: ${fbPage.name}`);
+                    }
                   }
                 } catch (err) {
                   console.error(`Exception saving page ${fbPage.name}:`, err);
@@ -182,6 +189,27 @@ const Connections: React.FC<ConnectionsProps> = ({ workspace }) => {
     const data = await api.workspace.getConnections(workspace.id);
     setConnections(data);
     setLoading(false);
+  };
+
+  const handleDelete = async (connectionId: string, connectionName: string) => {
+    if (!confirm(`Are you sure you want to delete the connection for ${connectionName}?`)) {
+      return;
+    }
+
+    try {
+      await api.workspace.deleteConnection(connectionId);
+      toast.success(`Successfully deleted connection for ${connectionName}`);
+      await loadConnections();
+    } catch (error: any) {
+      console.error('Error deleting connection:', error);
+      toast.error(error.message || 'Failed to delete connection');
+    }
+  };
+
+  const handleRefresh = async () => {
+    toast.info('Refreshing connections...');
+    await loadConnections();
+    toast.success('Connections refreshed');
   };
 
   const handleConnect = async () => {
@@ -261,11 +289,17 @@ const Connections: React.FC<ConnectionsProps> = ({ workspace }) => {
               </div>
 
               <div className="flex gap-2">
-                <button className="flex-1 py-2 px-3 text-sm font-medium text-slate-300 bg-slate-700/50 hover:bg-slate-700 rounded-lg transition-colors flex items-center justify-center gap-2">
+                <button
+                  onClick={handleRefresh}
+                  className="flex-1 py-2 px-3 text-sm font-medium text-slate-300 bg-slate-700/50 hover:bg-slate-700 rounded-lg transition-colors flex items-center justify-center gap-2"
+                >
                   <RefreshCw className="w-4 h-4" />
                   Refresh
                 </button>
-                <button className="py-2 px-3 text-sm font-medium text-red-400 bg-red-900/30 hover:bg-red-900/50 rounded-lg transition-colors flex items-center justify-center">
+                <button
+                  onClick={() => handleDelete(connection.id, connection.name)}
+                  className="py-2 px-3 text-sm font-medium text-red-400 bg-red-900/30 hover:bg-red-900/50 rounded-lg transition-colors flex items-center justify-center"
+                >
                   <Trash2 className="w-4 h-4" />
                 </button>
               </div>

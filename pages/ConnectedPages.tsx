@@ -8,10 +8,13 @@ interface ConnectedPagesProps {
   workspace: Workspace;
 }
 
+type FilterType = 'active' | 'inactive' | 'all';
+
 const ConnectedPages: React.FC<ConnectedPagesProps> = ({ workspace }) => {
   const [pages, setPages] = useState<ConnectedPage[]>([]);
   const [loading, setLoading] = useState(true);
   const [toggling, setToggling] = useState<string | null>(null);
+  const [filter, setFilter] = useState<FilterType>('active');
   const toast = useToast();
 
   useEffect(() => {
@@ -73,6 +76,13 @@ const ConnectedPages: React.FC<ConnectedPagesProps> = ({ workspace }) => {
 
   if (loading) return <div className="p-8 text-center text-slate-500">Loading connected pages...</div>;
 
+  // Filter pages based on selected filter
+  const filteredPages = pages.filter(page => {
+    if (filter === 'active') return page.isAutomationEnabled;
+    if (filter === 'inactive') return !page.isAutomationEnabled;
+    return true; // 'all'
+  });
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -80,27 +90,48 @@ const ConnectedPages: React.FC<ConnectedPagesProps> = ({ workspace }) => {
           <h1 className="text-2xl font-bold text-slate-100">Pages</h1>
           <p className="text-slate-400 mt-1">Manage bot automations for your Facebook Pages and Instagram Accounts</p>
         </div>
-        <div className="flex gap-2">
-          <button
-            onClick={fetchPages}
-            disabled={loading}
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors shadow-lg shadow-blue-900/30 disabled:opacity-50"
-          >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-            Import Pages
-          </button>
-          <button
-            onClick={() => { loadPages(); toast.info("Refreshing page list..."); }}
-            className="flex items-center gap-2 bg-slate-800 border border-slate-700 text-slate-300 hover:bg-slate-700 px-4 py-2 rounded-lg font-medium transition-colors"
-          >
-            <RefreshCw className="w-4 h-4" />
-            Refresh List
-          </button>
-        </div>
+        <button
+          onClick={() => { loadPages(); toast.info("Refreshing page list..."); }}
+          className="flex items-center gap-2 bg-slate-800 border border-slate-700 text-slate-300 hover:bg-slate-700 px-4 py-2 rounded-lg font-medium transition-colors"
+        >
+          <RefreshCw className="w-4 h-4" />
+          Refresh List
+        </button>
+      </div>
+
+      {/* Filter Tabs */}
+      <div className="flex gap-2 border-b border-slate-700">
+        <button
+          onClick={() => setFilter('active')}
+          className={`px-4 py-2 font-medium transition-colors border-b-2 ${filter === 'active'
+            ? 'border-blue-500 text-blue-400'
+            : 'border-transparent text-slate-400 hover:text-slate-300'
+            }`}
+        >
+          Active ({pages.filter(p => p.isAutomationEnabled).length})
+        </button>
+        <button
+          onClick={() => setFilter('inactive')}
+          className={`px-4 py-2 font-medium transition-colors border-b-2 ${filter === 'inactive'
+            ? 'border-blue-500 text-blue-400'
+            : 'border-transparent text-slate-400 hover:text-slate-300'
+            }`}
+        >
+          Inactive ({pages.filter(p => !p.isAutomationEnabled).length})
+        </button>
+        <button
+          onClick={() => setFilter('all')}
+          className={`px-4 py-2 font-medium transition-colors border-b-2 ${filter === 'all'
+            ? 'border-blue-500 text-blue-400'
+            : 'border-transparent text-slate-400 hover:text-slate-300'
+            }`}
+        >
+          All ({pages.length})
+        </button>
       </div>
 
       <div className="grid grid-cols-1 gap-4">
-        {pages.map(page => (
+        {filteredPages.map(page => (
           <div key={page.id} className="bg-slate-800/50 rounded-xl shadow-lg border border-slate-700 overflow-hidden backdrop-blur-sm">
             <div className="p-6 flex flex-col md:flex-row items-center gap-6">
 
@@ -226,13 +257,21 @@ const ConnectedPages: React.FC<ConnectedPagesProps> = ({ workspace }) => {
           </div>
         ))}
 
-        {pages.length === 0 && (
+        {filteredPages.length === 0 && (
           <div className="py-16 text-center bg-slate-800/50 rounded-xl border-2 border-dashed border-slate-700">
             <div className="w-16 h-16 bg-blue-900/30 text-blue-400 rounded-full flex items-center justify-center mx-auto mb-4">
               <Bot className="w-8 h-8" />
             </div>
-            <h3 className="text-lg font-bold text-slate-100">No pages found</h3>
-            <p className="text-slate-400 max-w-sm mx-auto mt-2 mb-6">Go to Connections to link your Facebook Profile, then pages will appear here.</p>
+            <h3 className="text-lg font-bold text-slate-100">
+              {filter === 'active' && 'No active pages'}
+              {filter === 'inactive' && 'No inactive pages'}
+              {filter === 'all' && 'No pages found'}
+            </h3>
+            <p className="text-slate-400 max-w-sm mx-auto mt-2 mb-6">
+              {filter === 'active' && 'Enable automation on your pages to see them here.'}
+              {filter === 'inactive' && 'All your pages have automation enabled!'}
+              {filter === 'all' && 'Go to Connections to link your Facebook Profile, then pages will appear here.'}
+            </p>
           </div>
         )}
       </div>

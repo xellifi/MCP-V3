@@ -312,6 +312,36 @@ export const api = {
       return mapConnection(data);
     },
 
+    deleteConnection: async (connectionId: string): Promise<void> => {
+      // First check if any pages have automation enabled
+      const { data: pages } = await supabase
+        .from('connected_pages')
+        .select('id, name, is_automation_enabled')
+        .eq('workspace_id', (await supabase
+          .from('meta_connections')
+          .select('workspace_id')
+          .eq('id', connectionId)
+          .single()).data?.workspace_id || '');
+
+      const pagesWithAutomation = pages?.filter(p => p.is_automation_enabled) || [];
+
+      if (pagesWithAutomation.length > 0) {
+        const pageNames = pagesWithAutomation.map(p => p.name).join(', ');
+        throw new Error(`Cannot delete connection. Please disable automation for these pages first: ${pageNames}`);
+      }
+
+      // Delete the connection
+      const { error } = await supabase
+        .from('meta_connections')
+        .delete()
+        .eq('id', connectionId);
+
+      if (error) {
+        console.error('Error deleting connection:', error);
+        throw new Error(error.message || 'Failed to delete connection');
+      }
+    },
+
     fetchPagesFromFacebook: async (workspaceId: string): Promise<ConnectedPage[]> => {
       console.log('Fetching pages from Facebook for workspace:', workspaceId);
 
