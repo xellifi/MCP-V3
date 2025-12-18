@@ -339,6 +339,7 @@ export const api = {
 
         try {
           console.log(`Fetching pages for connection: ${connection.name}`);
+          console.log(`Using access token: ${connection.access_token.substring(0, 20)}...`);
 
           // Fetch pages from Facebook Graph API
           const pagesResponse = await fetch(
@@ -346,13 +347,19 @@ export const api = {
           );
           const pagesData = await pagesResponse.json();
 
+          console.log('Facebook API Response:', pagesData);
+
           if (pagesData.error) {
             console.error('Facebook API error:', pagesData.error);
+            console.error('Error message:', pagesData.error.message);
+            console.error('Error type:', pagesData.error.type);
+            console.error('Error code:', pagesData.error.code);
             continue;
           }
 
           if (!pagesData.data || pagesData.data.length === 0) {
             console.log(`No pages found for connection: ${connection.name}`);
+            console.log('Response data:', pagesData);
             continue;
           }
 
