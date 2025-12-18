@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Workspace, MetaConnection } from '../types';
 import { api } from '../services/api';
 import { Facebook, CheckCircle, Trash2, Plus, RefreshCw, UserCheck } from 'lucide-react';
+import { useToast } from '../context/ToastContext';
 
 interface ConnectionsProps {
   workspace: Workspace;
@@ -10,10 +11,61 @@ interface ConnectionsProps {
 const Connections: React.FC<ConnectionsProps> = ({ workspace }) => {
   const [connections, setConnections] = useState<MetaConnection[]>([]);
   const [loading, setLoading] = useState(true);
+  const toast = useToast();
 
   useEffect(() => {
     loadConnections();
+    handleOAuthCallback();
   }, [workspace.id]);
+
+  const handleOAuthCallback = async () => {
+    // Check if we have an OAuth code in the URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const code = urlParams.get('code');
+
+    if (code) {
+      setLoading(true);
+      try {
+        // Exchange code for access token
+        const settings = await api.admin.getSettings();
+        const redirectUri = `${window.location.origin}/connections`;
+
+        // Call Facebook Graph API to exchange code for access token
+        const tokenResponse = await fetch(`https://graph.facebook.com/v18.0/oauth/access_token?client_id=${settings.facebookAppId}&redirect_uri=${encodeURIComponent(redirectUri)}&client_secret=${settings.facebookAppSecret}&code=${code}`);
+        const tokenData = await tokenResponse.json();
+
+        if (tokenData.access_token) {
+          // Get user info from Facebook
+          const userResponse = await fetch(`https://graph.facebook.com/v18.0/me?fields=id,name,picture&access_token=${tokenData.access_token}`);
+          const userData = await userResponse.json();
+
+          // Save connection to database
+          await api.workspace.createConnection(workspace.id, {
+            platform: 'FACEBOOK',
+            name: userData.name,
+            externalId: userData.id,
+            imageUrl: userData.picture?.data?.url,
+            accessToken: tokenData.access_token
+          });
+
+          toast.success(`Successfully connected ${userData.name}!`);
+
+          // Clean up URL and reload connections
+          window.history.replaceState({}, document.title, '/connections');
+          await loadConnections();
+        } else {
+          throw new Error(tokenData.error?.message || 'Failed to get access token');
+        }
+      } catch (error: any) {
+        console.error('OAuth callback error:', error);
+        toast.error(`Failed to complete connection: ${error.message || 'Please try again.'}`);
+        setLoading(false);
+        window.history.replaceState({}, document.title, '/connections');
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
 
   const loadConnections = async () => {
     setLoading(true);
@@ -22,9 +74,27 @@ const Connections: React.FC<ConnectionsProps> = ({ workspace }) => {
     setLoading(false);
   };
 
-  const handleConnect = () => {
-    // In a real app, this would redirect to OAuth
-    alert(`Redirecting to Facebook OAuth...`);
+  const handleConnect = async () => {
+    try {
+      // Fetch Facebook App ID from admin settings
+      const settings = await api.admin.getSettings();
+
+      if (!settings.facebookAppId) {
+        toast.error('Facebook App ID is not configured. Please contact your administrator.');
+        return;
+      }
+
+      // Construct Facebook OAuth URL
+      const redirectUri = encodeURIComponent(`${window.location.origin}/connections`);
+      const scope = encodeURIComponent('pages_show_list,pages_read_engagement,pages_manage_metadata,pages_manage_posts,instagram_basic,instagram_manage_comments');
+      const facebookOAuthUrl = `https://www.facebook.com/v18.0/dialog/oauth?client_id=${settings.facebookAppId}&redirect_uri=${redirectUri}&scope=${scope}&response_type=code`;
+
+      // Redirect to Facebook OAuth
+      window.location.href = facebookOAuthUrl;
+    } catch (error) {
+      console.error('Error initiating Facebook OAuth:', error);
+      toast.error('Failed to connect. Please try again.');
+    }
   };
 
   if (loading) return <div className="p-8 text-center text-slate-500">Loading connections...</div>;

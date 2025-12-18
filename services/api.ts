@@ -250,6 +250,36 @@ export const api = {
       return data?.map(mapConnection) || [];
     },
 
+    createConnection: async (workspaceId: string, connectionData: {
+      platform: string;
+      name: string;
+      externalId: string;
+      imageUrl?: string;
+      accessToken: string;
+    }): Promise<MetaConnection> => {
+      const { data, error } = await supabase
+        .from('meta_connections')
+        .insert({
+          workspace_id: workspaceId,
+          platform: connectionData.platform,
+          name: connectionData.name,
+          external_id: connectionData.externalId,
+          image_url: connectionData.imageUrl,
+          status: 'ACTIVE',
+          access_token: connectionData.accessToken
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error creating connection:', error);
+        throw new Error('Failed to create connection');
+      }
+
+      return mapConnection(data);
+    },
+
+
     getConnectedPages: async (workspaceId: string): Promise<ConnectedPage[]> => {
       const { data, error } = await supabase
         .from('connected_pages')
