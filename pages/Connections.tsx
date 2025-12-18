@@ -95,23 +95,41 @@ const Connections: React.FC<ConnectionsProps> = ({ workspace }) => {
                   status: 'CONNECTED'
                 };
 
-                // Use upsert to handle duplicates
-                const { supabase } = await import('../lib/supabase');
-                const { error: pageError } = await supabase
-                  .from('connected_pages')
-                  .upsert(pagePayload, {
-                    onConflict: 'page_id,workspace_id',
-                    ignoreDuplicates: false
-                  });
+                try {
+                  // Use simple insert - let RLS handle permissions
+                  const { supabase } = await import('../lib/supabase');
+                  const { data, error: pageError } = await supabase
+                    .from('connected_pages')
+                    .insert(pagePayload)
+                    .select()
+                    .single();
 
-                if (pageError) {
-                  console.error(`Error saving page ${fbPage.name}:`, pageError);
-                } else {
-                  console.log(`Saved page: ${fbPage.name}`);
+                  if (pageError) {
+                    // If it's a duplicate, try to update instead
+                    if (pageError.code === '23505') {
+                      const { error: updateError } = await supabase
+                        .from('connected_pages')
+                        .update(pagePayload)
+                        .eq('page_id', fbPage.id)
+                        .eq('workspace_id', workspace.id);
+
+                      if (updateError) {
+                        console.error(`Error updating page ${fbPage.name}:`, updateError);
+                      } else {
+                        console.log(`Updated page: ${fbPage.name}`);
+                      }
+                    } else {
+                      console.error(`Error saving page ${fbPage.name}:`, pageError);
+                    }
+                  } else {
+                    console.log(`Saved page: ${fbPage.name}`);
+                  }
+                } catch (err) {
+                  console.error(`Exception saving page ${fbPage.name}:`, err);
                 }
               }
 
-              toast.success(`Successfully connected ${userData.name} and imported ${pagesData.data.length} page(s)!`);
+              toast.success(`Successfully connected ${userData.name} and imported ${pagesData.data.length} page(s)! Go to Pages tab to view them.`);
             } else {
               toast.success(`Successfully connected ${userData.name}!`);
             }
