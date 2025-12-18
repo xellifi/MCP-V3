@@ -1,8 +1,20 @@
 import React, { useEffect, useState } from 'react';
 import { User, UserRole, AdminSettings as AdminSettingsType } from '../types';
 import { api } from '../services/api';
-import { Lock, Save, ShieldAlert, Eye, EyeOff, Server, ChevronDown, ChevronUp, Mail, List, MoveUp, MoveDown, Send, Banknote, Key, Copy, Check } from 'lucide-react';
+import { Lock, Save, ShieldAlert, Eye, EyeOff, Server, ChevronDown, ChevronUp, Mail, List, MoveUp, MoveDown, Send, Banknote, Key, Copy, Check, RefreshCw } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
+
+// Utility function to generate a secure random token
+const generateSecureToken = (length: number = 32): string => {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
+  let token = '';
+  const randomValues = new Uint8Array(length);
+  crypto.getRandomValues(randomValues);
+  for (let i = 0; i < length; i++) {
+    token += chars[randomValues[i] % chars.length];
+  }
+  return token;
+};
 
 interface SystemSettingsProps {
   user: User;
@@ -184,6 +196,18 @@ const SystemSettings: React.FC<SystemSettingsProps> = ({ user }) => {
       if (data.affiliateMinWithdrawal === undefined) data.affiliateMinWithdrawal = 100;
       if (data.affiliateWithdrawalDays === undefined) data.affiliateWithdrawalDays = [1]; // Monday
 
+      // Auto-generate Facebook verify token if missing
+      if (!data.facebookVerifyToken || data.facebookVerifyToken.trim() === '') {
+        data.facebookVerifyToken = generateSecureToken(32);
+        // Auto-save the generated token
+        try {
+          await api.admin.saveSettings(data);
+          toast.success('Auto-generated Facebook verify token');
+        } catch (err) {
+          console.error('Failed to save auto-generated token:', err);
+        }
+      }
+
       setSettings(data);
     } catch (err) {
       toast.error("Failed to load settings.");
@@ -304,16 +328,45 @@ const SystemSettings: React.FC<SystemSettingsProps> = ({ user }) => {
           </div>
 
           <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-slate-300 mb-2">Webhook Verify Token</label>
-            <input
-              type="text"
-              value={settings.facebookVerifyToken}
-              onChange={e => setSettings({ ...settings, facebookVerifyToken: e.target.value })}
-              className="w-full bg-slate-950 border border-slate-700 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 outline-none text-slate-200 placeholder-slate-500 font-mono text-slate-300"
-              placeholder="random_secure_string"
-            />
+            <label className="block text-sm font-medium text-slate-300 mb-2">
+              <span className="flex items-center gap-2">
+                <Key className="w-4 h-4" />
+                Webhook Verify Token (Auto-Generated)
+              </span>
+            </label>
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <input
+                  type="text"
+                  value={settings.facebookVerifyToken}
+                  readOnly
+                  className="w-full bg-slate-800 border border-green-700/50 rounded-lg px-4 py-2.5 pr-12 focus:ring-2 focus:ring-green-500 outline-none text-slate-200 font-mono text-sm cursor-default select-all"
+                  placeholder="Generating..."
+                />
+                <CopyButton text={settings.facebookVerifyToken} label="Verify Token" />
+              </div>
+              <button
+                type="button"
+                onClick={async () => {
+                  const newToken = generateSecureToken(32);
+                  const updatedSettings = { ...settings, facebookVerifyToken: newToken };
+                  setSettings(updatedSettings);
+                  try {
+                    await api.admin.saveSettings(updatedSettings);
+                    toast.success('New verify token generated and saved!');
+                  } catch (err) {
+                    toast.error('Failed to save new token');
+                  }
+                }}
+                className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2.5 rounded-lg font-medium shadow-sm transition-all whitespace-nowrap group"
+                title="Generate a new random token"
+              >
+                <RefreshCw className="w-4 h-4 group-hover:rotate-180 transition-transform duration-500" />
+                Generate New
+              </button>
+            </div>
             <p className="mt-1 text-xs text-slate-400">
-              Create a long, random string. You will need to paste this into the Facebook Developer Portal.
+              This token is auto-generated for security. Simply <strong>copy and paste</strong> it into Facebook Developer Portal. Click "Generate New" if you need a fresh token.
             </p>
           </div>
 
