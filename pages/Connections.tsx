@@ -65,7 +65,60 @@ const Connections: React.FC<ConnectionsProps> = ({ workspace }) => {
           });
 
           console.log('Connection saved successfully!');
-          toast.success(`Successfully connected ${userData.name}!`);
+
+          // Auto-fetch pages immediately after connection
+          console.log('Auto-fetching Facebook pages...');
+          try {
+            const pagesResponse = await fetch(
+              `https://graph.facebook.com/v18.0/me/accounts?fields=id,name,access_token,picture,fan_count,instagram_business_account{id,username,profile_picture_url,followers_count}&access_token=${tokenData.access_token}`
+            );
+            const pagesData = await pagesResponse.json();
+
+            console.log('Pages API Response:', pagesData);
+
+            if (pagesData.data && pagesData.data.length > 0) {
+              console.log(`Found ${pagesData.data.length} pages, saving to database...`);
+
+              // Save each page directly using the access token we already have
+              for (const fbPage of pagesData.data) {
+                const pagePayload = {
+                  workspace_id: workspace.id,
+                  name: fbPage.name,
+                  page_id: fbPage.id,
+                  page_image_url: fbPage.picture?.data?.url || `https://ui-avatars.com/api/?name=${encodeURIComponent(fbPage.name)}&background=1877F2&color=fff`,
+                  page_followers: fbPage.fan_count || 0,
+                  page_access_token: fbPage.access_token,
+                  instagram_id: fbPage.instagram_business_account?.id || null,
+                  instagram_username: fbPage.instagram_business_account?.username || null,
+                  instagram_image_url: fbPage.instagram_business_account?.profile_picture_url || null,
+                  instagram_followers: fbPage.instagram_business_account?.followers_count || null,
+                  status: 'CONNECTED'
+                };
+
+                // Use upsert to handle duplicates
+                const { supabase } = await import('../lib/supabase');
+                const { error: pageError } = await supabase
+                  .from('connected_pages')
+                  .upsert(pagePayload, {
+                    onConflict: 'page_id,workspace_id',
+                    ignoreDuplicates: false
+                  });
+
+                if (pageError) {
+                  console.error(`Error saving page ${fbPage.name}:`, pageError);
+                } else {
+                  console.log(`Saved page: ${fbPage.name}`);
+                }
+              }
+
+              toast.success(`Successfully connected ${userData.name} and imported ${pagesData.data.length} page(s)!`);
+            } else {
+              toast.success(`Successfully connected ${userData.name}!`);
+            }
+          } catch (pageError) {
+            console.error('Error auto-fetching pages:', pageError);
+            toast.success(`Successfully connected ${userData.name}! (Pages will be synced later)`);
+          }
 
           // Clean up URL and reload connections
           window.history.replaceState({}, document.title, '/connections');
