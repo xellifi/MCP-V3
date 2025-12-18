@@ -64,7 +64,8 @@ const ConnectedPages: React.FC<ConnectedPagesProps> = ({ workspace }) => {
     }
   };
 
-  const formatFollowers = (num: number) => {
+  const formatFollowers = (num: number | null | undefined) => {
+    if (!num || num === 0) return '0';
     if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
     if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
     return num.toString();
@@ -109,7 +110,7 @@ const ConnectedPages: React.FC<ConnectedPagesProps> = ({ workspace }) => {
                 {/* Main Facebook Page Image - Z-20 to stay on top of IG if overlapping left-to-right */}
                 <div className="relative z-20">
                   <img
-                    src={page.pageImageUrl}
+                    src={page.pageImageUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(page.name)}&background=1877F2&color=fff`}
                     alt={page.name}
                     className="w-24 h-24 rounded-full border-4 border-slate-800 shadow-md object-cover bg-slate-700"
                   />

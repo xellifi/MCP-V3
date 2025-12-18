@@ -37,7 +37,7 @@ const mapConnectedPage = (row: any): ConnectedPage => ({
   name: row.name,
   pageId: row.page_id,
   pageImageUrl: row.page_image_url,
-  pageFollowers: row.page_followers,
+  pageFollowers: row.page_followers || 0,
   instagram: row.instagram_id ? {
     id: row.instagram_id,
     username: row.instagram_username,
