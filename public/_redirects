@@ -1,1 +1,6 @@
+# API webhook endpoint - must be first to take priority
+/api/webhooks/meta  /.netlify/functions/meta-webhook  200
+
+# SPA fallback - must be last
 /*    /index.html   200
+
