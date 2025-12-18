@@ -30,16 +30,32 @@ const Connections: React.FC<ConnectionsProps> = ({ workspace }) => {
         const settings = await api.admin.getSettings();
         const redirectUri = `${window.location.origin}/connections`;
 
+        console.log('Exchanging code for access token...');
         // Call Facebook Graph API to exchange code for access token
         const tokenResponse = await fetch(`https://graph.facebook.com/v18.0/oauth/access_token?client_id=${settings.facebookAppId}&redirect_uri=${encodeURIComponent(redirectUri)}&client_secret=${settings.facebookAppSecret}&code=${code}`);
         const tokenData = await tokenResponse.json();
+        console.log('Token response:', tokenData);
 
         if (tokenData.access_token) {
           // Get user info from Facebook
+          console.log('Fetching user info from Facebook...');
           const userResponse = await fetch(`https://graph.facebook.com/v18.0/me?fields=id,name,picture&access_token=${tokenData.access_token}`);
           const userData = await userResponse.json();
+          console.log('User data:', userData);
+
+          // Check authentication status before saving
+          const { data: { session } } = await (await import('../lib/supabase')).supabase.auth.getSession();
+          console.log('Current auth session:', session ? 'Authenticated' : 'Not authenticated');
+          console.log('User ID:', session?.user?.id);
 
           // Save connection to database
+          console.log('Saving connection to database...', {
+            workspaceId: workspace.id,
+            platform: 'FACEBOOK',
+            name: userData.name,
+            externalId: userData.id
+          });
+
           await api.workspace.createConnection(workspace.id, {
             platform: 'FACEBOOK',
             name: userData.name,
@@ -48,16 +64,19 @@ const Connections: React.FC<ConnectionsProps> = ({ workspace }) => {
             accessToken: tokenData.access_token
           });
 
+          console.log('Connection saved successfully!');
           toast.success(`Successfully connected ${userData.name}!`);
 
           // Clean up URL and reload connections
           window.history.replaceState({}, document.title, '/connections');
           await loadConnections();
         } else {
+          console.error('No access token in response:', tokenData);
           throw new Error(tokenData.error?.message || 'Failed to get access token');
         }
       } catch (error: any) {
         console.error('OAuth callback error:', error);
+        console.error('Error stack:', error.stack);
         toast.error(`Failed to complete connection: ${error.message || 'Please try again.'}`);
         setLoading(false);
         window.history.replaceState({}, document.title, '/connections');

@@ -257,6 +257,38 @@ export const api = {
       imageUrl?: string;
       accessToken: string;
     }): Promise<MetaConnection> => {
+      // First, check if a connection with this external_id already exists
+      const { data: existingConnection } = await supabase
+        .from('meta_connections')
+        .select('*')
+        .eq('workspace_id', workspaceId)
+        .eq('external_id', connectionData.externalId)
+        .single();
+
+      if (existingConnection) {
+        // Update existing connection
+        const { data, error } = await supabase
+          .from('meta_connections')
+          .update({
+            name: connectionData.name,
+            image_url: connectionData.imageUrl,
+            status: 'ACTIVE',
+            access_token: connectionData.accessToken
+          })
+          .eq('id', existingConnection.id)
+          .select()
+          .single();
+
+        if (error) {
+          console.error('Error updating connection:', error);
+          console.error('Error details:', JSON.stringify(error, null, 2));
+          throw new Error(error.message || 'Failed to update connection');
+        }
+
+        return mapConnection(data);
+      }
+
+      // Create new connection
       const { data, error } = await supabase
         .from('meta_connections')
         .insert({
@@ -273,7 +305,8 @@ export const api = {
 
       if (error) {
         console.error('Error creating connection:', error);
-        throw new Error('Failed to create connection');
+        console.error('Error details:', JSON.stringify(error, null, 2));
+        throw new Error(error.message || 'Failed to create connection');
       }
 
       return mapConnection(data);
@@ -599,14 +632,22 @@ export const api = {
         affiliate_withdrawal_days: settings.affiliateWithdrawalDays
       };
 
+      console.log('Attempting to save admin settings:', dbPayload);
+
       const { error } = await supabase
         .from('admin_settings')
         .upsert(dbPayload);
 
       if (error) {
         console.error("Supabase Save Error:", error);
+        console.error("Error details:", JSON.stringify(error, null, 2));
+        console.error("Error code:", error.code);
+        console.error("Error message:", error.message);
+        console.error("Error hint:", error.hint);
         throw new Error(error.message);
       }
+
+      console.log('Admin settings saved successfully!');
     },
 
     testEmail: async (to: string): Promise<void> => {

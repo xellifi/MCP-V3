@@ -219,10 +219,14 @@ const SystemSettings: React.FC<SystemSettingsProps> = ({ user }) => {
   const handleSaveSection = async (sectionName: string, setLoadingState: (v: boolean) => void) => {
     setLoadingState(true);
     try {
+      console.log(`Saving ${sectionName}...`, settings);
       await api.admin.saveSettings(settings);
+      console.log(`${sectionName} saved successfully!`);
       toast.success(`${sectionName} saved successfully`);
-    } catch (err) {
-      toast.error(`Failed to save ${sectionName}.`);
+    } catch (err: any) {
+      console.error(`Failed to save ${sectionName}:`, err);
+      console.error('Error details:', err.message, err.stack);
+      toast.error(`Failed to save ${sectionName}: ${err.message || 'Please try again'}`);
     } finally {
       setLoadingState(false);
     }
