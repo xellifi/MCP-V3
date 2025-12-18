@@ -26,6 +26,26 @@ const Connections: React.FC<ConnectionsProps> = ({ workspace }) => {
     if (code) {
       setLoading(true);
       try {
+        // CRITICAL: Ensure we have a valid Supabase session first
+        const { supabase } = await import('../lib/supabase');
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+        console.log('Checking Supabase session...', {
+          hasSession: !!session,
+          userId: session?.user?.id,
+          sessionError
+        });
+
+        if (!session) {
+          console.error('No active Supabase session found!');
+          toast.error('Please log in first before connecting Facebook.');
+          window.history.replaceState({}, document.title, '/connections');
+          setLoading(false);
+          return;
+        }
+
+        console.log('Session verified, user ID:', session.user.id);
+
         // Exchange code for access token
         const settings = await api.admin.getSettings();
         const redirectUri = `${window.location.origin}/connections`;
