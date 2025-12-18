@@ -323,10 +323,20 @@ export const api = {
         .eq('platform', 'FACEBOOK')
         .eq('status', 'ACTIVE');
 
-      if (connectionsError || !connections || connections.length === 0) {
-        console.log('No active Facebook connections found');
-        return [];
+      console.log('Connections query result:', { connections, connectionsError });
+      console.log('Number of connections found:', connections?.length || 0);
+
+      if (connectionsError) {
+        console.error('Error fetching connections:', connectionsError);
+        throw new Error(`Failed to fetch connections: ${connectionsError.message}`);
       }
+
+      if (!connections || connections.length === 0) {
+        console.log('No active Facebook connections found');
+        throw new Error('No Facebook connections found. Please connect your Facebook profile first.');
+      }
+
+      console.log('Found connections:', connections.map(c => ({ id: c.id, name: c.name, hasToken: !!c.access_token })));
 
       const allPages: ConnectedPage[] = [];
 
