@@ -30,6 +30,25 @@ const ConnectedPages: React.FC<ConnectedPagesProps> = ({ workspace }) => {
     }
   };
 
+  const fetchPages = async () => {
+    setLoading(true);
+    toast.info("Fetching pages from Facebook...");
+    try {
+      const fetchedPages = await api.workspace.fetchPagesFromFacebook(workspace.id);
+      if (fetchedPages.length > 0) {
+        setPages(fetchedPages);
+        toast.success(`Successfully imported ${fetchedPages.length} page(s) from Facebook!`);
+      } else {
+        toast.warning("No pages found. Make sure you have connected your Facebook profile first.");
+      }
+    } catch (error: any) {
+      console.error("Failed to fetch pages:", error);
+      toast.error(`Failed to fetch pages: ${error.message || 'Please try again'}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleToggleAutomation = async (pageId: string, currentState: boolean) => {
     setToggling(pageId);
     try {
@@ -60,13 +79,23 @@ const ConnectedPages: React.FC<ConnectedPagesProps> = ({ workspace }) => {
           <h1 className="text-2xl font-bold text-slate-100">Pages</h1>
           <p className="text-slate-400 mt-1">Manage bot automations for your Facebook Pages and Instagram Accounts</p>
         </div>
-        <button
-          onClick={() => { loadPages(); toast.info("Refreshing page list..."); }}
-          className="flex items-center gap-2 bg-slate-800 border border-slate-700 text-slate-300 hover:bg-slate-700 px-4 py-2 rounded-lg font-medium transition-colors"
-        >
-          <RefreshCw className="w-4 h-4" />
-          Refresh List
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={fetchPages}
+            disabled={loading}
+            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors shadow-lg shadow-blue-900/30 disabled:opacity-50"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            Import Pages
+          </button>
+          <button
+            onClick={() => { loadPages(); toast.info("Refreshing page list..."); }}
+            className="flex items-center gap-2 bg-slate-800 border border-slate-700 text-slate-300 hover:bg-slate-700 px-4 py-2 rounded-lg font-medium transition-colors"
+          >
+            <RefreshCw className="w-4 h-4" />
+            Refresh List
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-4">

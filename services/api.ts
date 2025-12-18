@@ -312,6 +312,111 @@ export const api = {
       return mapConnection(data);
     },
 
+    fetchPagesFromFacebook: async (workspaceId: string): Promise<ConnectedPage[]> => {
+      console.log('Fetching pages from Facebook for workspace:', workspaceId);
+
+      // Get all connections for this workspace
+      const { data: connections, error: connectionsError } = await supabase
+        .from('meta_connections')
+        .select('*')
+        .eq('workspace_id', workspaceId)
+        .eq('platform', 'FACEBOOK')
+        .eq('status', 'ACTIVE');
+
+      if (connectionsError || !connections || connections.length === 0) {
+        console.log('No active Facebook connections found');
+        return [];
+      }
+
+      const allPages: ConnectedPage[] = [];
+
+      // For each connection, fetch their pages
+      for (const connection of connections) {
+        if (!connection.access_token) {
+          console.warn(`Connection ${connection.id} has no access token`);
+          continue;
+        }
+
+        try {
+          console.log(`Fetching pages for connection: ${connection.name}`);
+
+          // Fetch pages from Facebook Graph API
+          const pagesResponse = await fetch(
+            `https://graph.facebook.com/v18.0/me/accounts?fields=id,name,access_token,picture,fan_count,instagram_business_account{id,username,profile_picture_url,followers_count}&access_token=${connection.access_token}`
+          );
+          const pagesData = await pagesResponse.json();
+
+          if (pagesData.error) {
+            console.error('Facebook API error:', pagesData.error);
+            continue;
+          }
+
+          if (!pagesData.data || pagesData.data.length === 0) {
+            console.log(`No pages found for connection: ${connection.name}`);
+            continue;
+          }
+
+          console.log(`Found ${pagesData.data.length} pages for ${connection.name}`);
+
+          // Save each page to database
+          for (const fbPage of pagesData.data) {
+            const pageData = {
+              workspace_id: workspaceId,
+              name: fbPage.name,
+              page_id: fbPage.id,
+              page_image_url: fbPage.picture?.data?.url || `https://ui-avatars.com/api/?name=${encodeURIComponent(fbPage.name)}&background=1877F2&color=fff`,
+              page_followers: fbPage.fan_count || 0,
+              page_access_token: fbPage.access_token,
+              instagram_id: fbPage.instagram_business_account?.id || null,
+              instagram_username: fbPage.instagram_business_account?.username || null,
+              instagram_image_url: fbPage.instagram_business_account?.profile_picture_url || null,
+              instagram_followers: fbPage.instagram_business_account?.followers_count || null,
+              status: 'CONNECTED'
+            };
+
+            // Check if page already exists
+            const { data: existingPage } = await supabase
+              .from('connected_pages')
+              .select('id')
+              .eq('workspace_id', workspaceId)
+              .eq('page_id', fbPage.id)
+              .single();
+
+            if (existingPage) {
+              // Update existing page
+              const { data: updatedPage, error: updateError } = await supabase
+                .from('connected_pages')
+                .update(pageData)
+                .eq('id', existingPage.id)
+                .select()
+                .single();
+
+              if (!updateError && updatedPage) {
+                allPages.push(mapConnectedPage(updatedPage));
+                console.log(`Updated page: ${fbPage.name}`);
+              }
+            } else {
+              // Insert new page
+              const { data: newPage, error: insertError } = await supabase
+                .from('connected_pages')
+                .insert(pageData)
+                .select()
+                .single();
+
+              if (!insertError && newPage) {
+                allPages.push(mapConnectedPage(newPage));
+                console.log(`Added new page: ${fbPage.name}`);
+              }
+            }
+          }
+        } catch (error) {
+          console.error(`Error fetching pages for connection ${connection.name}:`, error);
+        }
+      }
+
+      console.log(`Total pages fetched and saved: ${allPages.length}`);
+      return allPages;
+    },
 
     getConnectedPages: async (workspaceId: string): Promise<ConnectedPage[]> => {
       const { data, error } = await supabase
