@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import ReactFlow, {
   addEdge,
   Background,
@@ -8,7 +8,8 @@ import ReactFlow, {
   Node,
   useNodesState,
   useEdgesState,
-  MiniMap
+  MiniMap,
+  NodeMouseHandler
 } from 'reactflow';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Workspace } from '../types';
@@ -16,9 +17,18 @@ import { INITIAL_NODES, INITIAL_EDGES } from '../constants';
 import { Save, ArrowLeft, PlayCircle, Settings2, Sparkles, MessageSquare, Zap, GitBranch } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import { useTheme } from '../context/ThemeContext';
+import NodeConfigModal from '../components/NodeConfigModal';
+import TriggerNodeForm from '../components/TriggerNodeForm';
+import CommentReplyNodeForm from '../components/CommentReplyNodeForm';
+import SendMessageNodeForm from '../components/SendMessageNodeForm';
+import { api } from '../services/api';
 
 interface FlowBuilderProps {
   workspace: Workspace;
+}
+
+interface NodeConfig {
+  [nodeId: string]: any;
 }
 
 const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
@@ -31,36 +41,134 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
   const [edges, setEdges, onEdgesChange] = useEdgesState(INITIAL_EDGES);
   const [isSaving, setIsSaving] = useState(false);
 
+  // Node configuration state
+  const [selectedNode, setSelectedNode] = useState<Node | null>(null);
+  const [showConfigModal, setShowConfigModal] = useState(false);
+  const [nodeConfigs, setNodeConfigs] = useState<NodeConfig>({});
+  const [currentConfig, setCurrentConfig] = useState<any>({});
+
+  // User API keys for AI integration
+  const [userApiKeys, setUserApiKeys] = useState<any>({});
+
+  useEffect(() => {
+    // Load user's API keys from settings
+    loadUserApiKeys();
+  }, []);
+
+  const loadUserApiKeys = async () => {
+    try {
+      const settings = await api.integrations.get(workspace.ownerId);
+      setUserApiKeys({
+        openaiApiKey: settings.openaiApiKey,
+        geminiApiKey: settings.geminiApiKey
+      });
+    } catch (error) {
+      console.error('Error loading API keys:', error);
+    }
+  };
+
   const onConnect = useCallback((params: Connection) => setEdges((eds) => addEdge(params, eds)), [setEdges]);
+
+  const onNodeDoubleClick: NodeMouseHandler = useCallback((event, node) => {
+    console.log('Node double-clicked:', node);
+    setSelectedNode(node);
+    setCurrentConfig(nodeConfigs[node.id] || {});
+    setShowConfigModal(true);
+  }, [nodeConfigs]);
+
+  const handleSaveConfig = () => {
+    if (selectedNode) {
+      setNodeConfigs(prev => ({
+        ...prev,
+        [selectedNode.id]: currentConfig
+      }));
+      toast.success(`Configuration saved for ${selectedNode.data.label}`);
+      setShowConfigModal(false);
+      setSelectedNode(null);
+    }
+  };
+
+  const handleCloseModal = () => {
+    setShowConfigModal(false);
+    setSelectedNode(null);
+    setCurrentConfig({});
+  };
 
   const handleSave = async () => {
     setIsSaving(true);
-    // Simulate API call
-    await new Promise(r => setTimeout(r, 800));
-    setIsSaving(false);
-    toast.success("Flow saved successfully!");
+    try {
+      // TODO: Save flow with configurations to database
+      await new Promise(r => setTimeout(r, 800));
+      toast.success("Flow saved successfully!");
+    } catch (error) {
+      toast.error("Failed to save flow");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const addNode = (type: string, label: string) => {
-    const isDarkTheme = true; // Force dark theme for consistency in cosmic design
     const newNode: Node = {
       id: `${Date.now()}`,
       type: type === 'trigger' ? 'input' : type === 'action' ? 'default' : 'output',
-      data: { label: label },
+      data: { label: label, nodeType: type },
       position: { x: 250, y: nodes.length * 100 + 50 },
       style: {
-        background: 'rgba(30, 41, 59, 0.8)', // slate-800/80
+        background: 'rgba(30, 41, 59, 0.8)',
         backdropFilter: 'blur(12px)',
         border: type === 'trigger' ? '1px solid #10b981' : type === 'ai' ? '1px solid #6366f1' : type === 'condition' ? '1px solid #f59e0b' : '1px solid #94a3b8',
         color: '#f8fafc',
         width: 180,
         boxShadow: type === 'trigger' ? '0 0 15px rgba(16, 185, 129, 0.3)' : type === 'ai' ? '0 0 15px rgba(99, 102, 241, 0.3)' : type === 'condition' ? '0 0 15px rgba(245, 158, 11, 0.3)' : '0 4px 6px -1px rgba(0, 0, 0, 0.3)',
         borderRadius: '12px',
-        padding: '10px'
+        padding: '10px',
+        cursor: 'pointer'
       }
     };
     setNodes((nds) => nds.concat(newNode));
-    toast.info(`Added ${label} node`);
+    toast.info(`Added ${label} node - Double-click to configure`);
+  };
+
+  const renderConfigForm = () => {
+    if (!selectedNode) return null;
+
+    const nodeLabel = selectedNode.data.label as string;
+    const nodeType = selectedNode.data.nodeType as string;
+
+    // Determine which form to show based on node label
+    if (nodeLabel.includes('Comment') && nodeType === 'trigger') {
+      return (
+        <TriggerNodeForm
+          workspaceId={workspace.id}
+          initialConfig={currentConfig}
+          onChange={setCurrentConfig}
+        />
+      );
+    } else if (nodeLabel.includes('Comment') || nodeLabel.includes('Reply')) {
+      return (
+        <CommentReplyNodeForm
+          userId={workspace.ownerId}
+          initialConfig={currentConfig}
+          onChange={setCurrentConfig}
+          userApiKeys={userApiKeys}
+        />
+      );
+    } else if (nodeLabel.includes('Message') || nodeLabel.includes('Send')) {
+      return (
+        <SendMessageNodeForm
+          userId={workspace.ownerId}
+          initialConfig={currentConfig}
+          onChange={setCurrentConfig}
+          userApiKeys={userApiKeys}
+        />
+      );
+    }
+
+    return (
+      <div className="text-center py-8">
+        <p className="text-slate-400">Configuration form for this node type is coming soon.</p>
+      </div>
+    );
   };
 
   return (
@@ -82,7 +190,7 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
               {id?.startsWith('new') ? 'Untitled Flow' : 'Welcome Flow'}
               <span className="px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 text-xs font-normal border border-indigo-500/30">Draft</span>
             </h2>
-            <p className="text-xs text-slate-500">Last saved 2 mins ago</p>
+            <p className="text-xs text-slate-500">Double-click nodes to configure</p>
           </div>
         </div>
 
@@ -109,7 +217,6 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
       <div className="flex-1 flex overflow-hidden relative z-10">
         {/* Nodes Sidebar */}
         <div className="w-72 glass-panel border-r border-white/10 overflow-y-auto p-5 flex flex-col gap-8 z-20 shadow-2xl">
-
           <div>
             <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4">Triggers</h3>
             <div className="space-y-3">
@@ -149,15 +256,20 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
           <div>
             <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4">Actions</h3>
             <div className="space-y-3">
-              <button onClick={() => addNode('action', 'Send Message')} className="w-full flex items-center gap-3 p-3 bg-white/5 border border-white/10 rounded-xl hover:border-slate-400/50 hover:bg-slate-500/10 transition-all text-left group">
-                <div className="p-2.5 bg-slate-500/20 text-slate-300 rounded-lg group-hover:scale-110 transition-transform">
+              <button onClick={() => addNode('action', 'Comment Reply')} className="w-full flex items-center gap-3 p-3 bg-white/5 border border-white/10 rounded-xl hover:border-blue-400/50 hover:bg-blue-500/10 transition-all text-left group">
+                <div className="p-2.5 bg-blue-500/20 text-blue-300 rounded-lg group-hover:scale-110 transition-transform">
+                  <MessageSquare className="w-4 h-4" />
+                </div>
+                <span className="text-sm font-semibold text-slate-300 group-hover:text-white transition-colors">Comment Reply</span>
+              </button>
+              <button onClick={() => addNode('action', 'Send Message')} className="w-full flex items-center gap-3 p-3 bg-white/5 border border-white/10 rounded-xl hover:border-purple-400/50 hover:bg-purple-500/10 transition-all text-left group">
+                <div className="p-2.5 bg-purple-500/20 text-purple-300 rounded-lg group-hover:scale-110 transition-transform">
                   <Zap className="w-4 h-4" />
                 </div>
                 <span className="text-sm font-semibold text-slate-300 group-hover:text-white transition-colors">Send Message</span>
               </button>
             </div>
           </div>
-
         </div>
 
         {/* Canvas */}
@@ -168,6 +280,7 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}
+            onNodeDoubleClick={onNodeDoubleClick}
             fitView
             className="bg-slate-950 transition-colors"
           >
@@ -186,6 +299,19 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
           </ReactFlow>
         </div>
       </div>
+
+      {/* Configuration Modal */}
+      {selectedNode && (
+        <NodeConfigModal
+          isOpen={showConfigModal}
+          onClose={handleCloseModal}
+          nodeType={selectedNode.data.nodeType as string || 'node'}
+          nodeLabel={selectedNode.data.label as string}
+          onSave={handleSaveConfig}
+        >
+          {renderConfigForm()}
+        </NodeConfigModal>
+      )}
     </div>
   );
 };
