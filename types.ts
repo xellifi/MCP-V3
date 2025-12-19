@@ -36,7 +36,7 @@ export interface ConnectedPage {
   pageId: string;
   pageImageUrl: string;
   pageFollowers: number;
-  
+
   instagram?: {
     id: string;
     username: string;
@@ -68,6 +68,8 @@ export interface Conversation {
   lastMessagePreview: string;
   unreadCount: number;
   updatedAt: string;
+  externalId?: string; // Facebook PSID (Page-Scoped ID)
+  pageId?: string; // Facebook Page ID
 }
 
 export interface Message {
@@ -80,6 +82,8 @@ export interface Message {
   fileName?: string;
   createdAt: string;
   status: 'SENT' | 'DELIVERED' | 'READ' | 'FAILED';
+  externalId?: string; // Facebook message ID
+  senderId?: string; // Facebook sender PSID
 }
 
 export interface Flow {

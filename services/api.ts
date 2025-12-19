@@ -67,7 +67,9 @@ const mapConversation = (row: any): Conversation => ({
   platform: row.platform,
   lastMessagePreview: row.last_message_preview,
   unreadCount: row.unread_count,
-  updatedAt: row.updated_at
+  updatedAt: row.updated_at,
+  externalId: row.external_id,
+  pageId: row.page_id
 });
 
 const mapMessage = (row: any): Message => ({
@@ -79,7 +81,9 @@ const mapMessage = (row: any): Message => ({
   attachmentUrl: row.attachment_url,
   fileName: row.file_name,
   createdAt: row.created_at,
-  status: row.status
+  status: row.status,
+  externalId: row.external_id,
+  senderId: row.sender_id
 });
 
 const mapFlow = (row: any): Flow => ({
@@ -536,7 +540,235 @@ export const api = {
       return data?.map(mapMessage) || [];
     },
 
+    // Fetch conversations from Facebook Messenger and sync to database
+    fetchMessengerConversations: async (workspaceId: string): Promise<Conversation[]> => {
+      console.log('Fetching Messenger conversations for workspace:', workspaceId);
+
+      // Get all connected pages with access tokens
+      const { data: pages, error: pagesError } = await supabase
+        .from('connected_pages')
+        .select('*')
+        .eq('workspace_id', workspaceId)
+        .eq('status', 'CONNECTED');
+
+      if (pagesError || !pages || pages.length === 0) {
+        console.error('No connected pages found:', pagesError);
+        throw new Error('No connected pages found. Please connect a Facebook page first.');
+      }
+
+      const allConversations: Conversation[] = [];
+
+      // Fetch conversations for each page
+      for (const page of pages) {
+        if (!page.page_access_token) {
+          console.warn(`Page ${page.name} has no access token`);
+          continue;
+        }
+
+        try {
+          console.log(`Fetching conversations for page: ${page.name}`);
+
+          // Fetch conversations from Facebook Graph API
+          const conversationsResponse = await fetch(
+            `https://graph.facebook.com/v18.0/${page.page_id}/conversations?fields=id,participants,updated_time,messages.limit(1){message,from,created_time}&platform=messenger&access_token=${page.page_access_token}`
+          );
+          const conversationsData = await conversationsResponse.json();
+
+          if (conversationsData.error) {
+            console.error('Facebook API error:', conversationsData.error);
+            continue;
+          }
+
+          if (!conversationsData.data || conversationsData.data.length === 0) {
+            console.log(`No conversations found for page: ${page.name}`);
+            continue;
+          }
+
+          console.log(`Found ${conversationsData.data.length} conversations for ${page.name}`);
+
+          // Process each conversation
+          for (const fbConv of conversationsData.data) {
+            try {
+              // Get the participant (exclude the page itself)
+              const participant = fbConv.participants?.data?.find((p: any) => p.id !== page.page_id);
+              if (!participant) continue;
+
+              const psid = participant.id;
+              const lastMessage = fbConv.messages?.data?.[0];
+
+              // Create or update subscriber
+              let subscriber;
+              const { data: existingSubscriber } = await supabase
+                .from('subscribers')
+                .select('*')
+                .eq('workspace_id', workspaceId)
+                .eq('external_id', psid)
+                .single();
+
+              if (existingSubscriber) {
+                subscriber = existingSubscriber;
+              } else {
+                // Fetch user info from Facebook
+                const userInfoResponse = await fetch(
+                  `https://graph.facebook.com/v18.0/${psid}?fields=name,profile_pic&access_token=${page.page_access_token}`
+                );
+                const userInfo = await userInfoResponse.json();
+
+                const { data: newSubscriber } = await supabase
+                  .from('subscribers')
+                  .insert({
+                    workspace_id: workspaceId,
+                    name: userInfo.name || 'Unknown User',
+                    platform: 'FACEBOOK',
+                    external_id: psid,
+                    avatar_url: userInfo.profile_pic,
+                    status: 'SUBSCRIBED',
+                    last_active_at: fbConv.updated_time || new Date().toISOString()
+                  })
+                  .select()
+                  .single();
+
+                subscriber = newSubscriber;
+              }
+
+              if (!subscriber) continue;
+
+              // Create or update conversation
+              const conversationData = {
+                workspace_id: workspaceId,
+                subscriber_id: subscriber.id,
+                platform: 'FACEBOOK' as const,
+                external_id: fbConv.id,
+                page_id: page.page_id,
+                last_message_preview: lastMessage?.message?.substring(0, 100) || '',
+                unread_count: 0,
+                updated_at: fbConv.updated_time || new Date().toISOString()
+              };
+
+              const { data: existingConv } = await supabase
+                .from('conversations')
+                .select('*')
+                .eq('workspace_id', workspaceId)
+                .eq('external_id', fbConv.id)
+                .single();
+
+              let conversation;
+              if (existingConv) {
+                const { data: updatedConv } = await supabase
+                  .from('conversations')
+                  .update(conversationData)
+                  .eq('id', existingConv.id)
+                  .select()
+                  .single();
+                conversation = updatedConv;
+              } else {
+                const { data: newConv } = await supabase
+                  .from('conversations')
+                  .insert(conversationData)
+                  .select()
+                  .single();
+                conversation = newConv;
+              }
+
+              if (conversation) {
+                allConversations.push(mapConversation(conversation));
+              }
+            } catch (convError) {
+              console.error('Error processing conversation:', convError);
+            }
+          }
+        } catch (error) {
+          console.error(`Error fetching conversations for page ${page.name}:`, error);
+        }
+      }
+
+      console.log(`Total conversations synced: ${allConversations.length}`);
+      return allConversations;
+    },
+
+    // Fetch message history for a specific conversation from Facebook
+    fetchConversationMessages: async (conversationId: string): Promise<Message[]> => {
+      console.log('Fetching messages for conversation:', conversationId);
+
+      // Get conversation details
+      const { data: conversation } = await supabase
+        .from('conversations')
+        .select('*, connected_pages!inner(page_access_token)')
+        .eq('id', conversationId)
+        .single();
+
+      if (!conversation || !conversation.external_id) {
+        console.error('Conversation not found or missing external_id');
+        return [];
+      }
+
+      const pageAccessToken = (conversation as any).connected_pages?.page_access_token;
+      if (!pageAccessToken) {
+        console.error('No page access token found');
+        return [];
+      }
+
+      try {
+        // Fetch messages from Facebook Graph API
+        const messagesResponse = await fetch(
+          `https://graph.facebook.com/v18.0/${conversation.external_id}?fields=messages.limit(50){id,message,from,created_time,attachments}&access_token=${pageAccessToken}`
+        );
+        const messagesData = await messagesResponse.json();
+
+        if (messagesData.error) {
+          console.error('Facebook API error:', messagesData.error);
+          return [];
+        }
+
+        const fbMessages = messagesData.messages?.data || [];
+        console.log(`Found ${fbMessages.length} messages`);
+
+        // Save messages to database
+        for (const fbMsg of fbMessages.reverse()) {
+          const isFromPage = fbMsg.from?.id === conversation.page_id;
+
+          const messageData = {
+            conversation_id: conversationId,
+            external_id: fbMsg.id,
+            direction: isFromPage ? 'OUTBOUND' : 'INBOUND',
+            content: fbMsg.message || '',
+            type: fbMsg.attachments?.data?.[0]?.image_data ? 'IMAGE' : 'TEXT',
+            attachment_url: fbMsg.attachments?.data?.[0]?.image_data?.url,
+            sender_id: fbMsg.from?.id,
+            created_at: fbMsg.created_time,
+            status: 'DELIVERED'
+          };
+
+          // Check if message already exists
+          const { data: existingMsg } = await supabase
+            .from('messages')
+            .select('id')
+            .eq('external_id', fbMsg.id)
+            .single();
+
+          if (!existingMsg) {
+            await supabase
+              .from('messages')
+              .insert(messageData);
+          }
+        }
+
+        // Fetch all messages from database
+        return api.workspace.getMessages(conversationId);
+      } catch (error) {
+        console.error('Error fetching conversation messages:', error);
+        return [];
+      }
+    },
+
     sendMessage: async (conversationId: string, content: string, file?: File): Promise<Message> => {
+      // Get conversation details to check if it's a Facebook conversation
+      const { data: conversation } = await supabase
+        .from('conversations')
+        .select('*, connected_pages!inner(page_access_token, page_id)')
+        .eq('id', conversationId)
+        .single();
+
       let attachmentUrl = undefined;
       let type: Message['type'] = 'TEXT';
       let fileName = undefined;
@@ -561,7 +793,8 @@ export const api = {
         fileName = file.name;
       }
 
-      const { data, error } = await supabase
+      // Save message to database first
+      const { data: savedMessage, error } = await supabase
         .from('messages')
         .insert({
           conversation_id: conversationId,
@@ -580,6 +813,61 @@ export const api = {
         throw new Error('Failed to send message');
       }
 
+      // If it's a Facebook conversation, send via Facebook Send API
+      if (conversation?.external_id && conversation.platform === 'FACEBOOK') {
+        const pageAccessToken = (conversation as any).connected_pages?.page_access_token;
+        const recipientId = conversation.external_id.split('_')[1] || conversation.external_id;
+
+        if (pageAccessToken) {
+          try {
+            const messagePayload: any = {
+              recipient: { id: recipientId },
+              message: {}
+            };
+
+            if (attachmentUrl && type === 'IMAGE') {
+              messagePayload.message.attachment = {
+                type: 'image',
+                payload: { url: attachmentUrl, is_reusable: true }
+              };
+            } else if (content) {
+              messagePayload.message.text = content;
+            }
+
+            const sendResponse = await fetch(
+              `https://graph.facebook.com/v18.0/me/messages?access_token=${pageAccessToken}`,
+              {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(messagePayload)
+              }
+            );
+
+            const sendResult = await sendResponse.json();
+
+            if (sendResult.error) {
+              console.error('Facebook Send API error:', sendResult.error);
+              // Update message status to failed
+              await supabase
+                .from('messages')
+                .update({ status: 'FAILED' })
+                .eq('id', savedMessage.id);
+            } else {
+              // Update message with Facebook message ID
+              await supabase
+                .from('messages')
+                .update({
+                  external_id: sendResult.message_id,
+                  status: 'DELIVERED'
+                })
+                .eq('id', savedMessage.id);
+            }
+          } catch (fbError) {
+            console.error('Error sending via Facebook:', fbError);
+          }
+        }
+      }
+
       // Update conversation's last message preview
       await supabase
         .from('conversations')
@@ -589,8 +877,9 @@ export const api = {
         })
         .eq('id', conversationId);
 
-      return mapMessage(data);
+      return mapMessage(savedMessage);
     },
+
 
     getFlows: async (workspaceId: string): Promise<Flow[]> => {
       const { data, error } = await supabase
