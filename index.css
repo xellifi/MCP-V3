@@ -2,6 +2,25 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Custom scrollbar for page selector */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgb(15 23 42);
+  border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgb(51 65 85);
+  border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgb(71 85 105);
+}
+
 /* React Flow Custom Styles */
 .react-flow__node {
   border-radius: 0.5rem;

@@ -1,33 +1,34 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/Layout';
 import { api } from './services/api';
 import { User, Workspace } from './types';
 import { MOCK_WORKSPACES } from './constants';
 import { ThemeProvider } from './context/ThemeContext';
+import LoadingSpinner from './components/LoadingSpinner';
 
-// Pages
+// Public Pages - Load immediately (small, needed for initial render)
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import ForgotPassword from './pages/ForgotPassword';
 
-// App Pages
-import Dashboard from './pages/Dashboard';
-import Connections from './pages/Connections';
-import ConnectedPages from './pages/ConnectedPages';
-import Flows from './pages/Flows';
-import FlowBuilder from './pages/FlowBuilder';
-import ScheduledPosts from './pages/ScheduledPosts';
-import Subscribers from './pages/Subscribers';
-import Inbox from './pages/Inbox';
-import Settings from './pages/Settings';
-import Affiliates from './pages/Affiliates';
-import Support from './pages/Support';
+// App Pages - Lazy load (only load when route is accessed)
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Connections = lazy(() => import('./pages/Connections'));
+const ConnectedPages = lazy(() => import('./pages/ConnectedPages'));
+const Flows = lazy(() => import('./pages/Flows'));
+const FlowBuilder = lazy(() => import('./pages/FlowBuilder'));
+const ScheduledPosts = lazy(() => import('./pages/ScheduledPosts'));
+const Subscribers = lazy(() => import('./pages/Subscribers'));
+const Inbox = lazy(() => import('./pages/Inbox'));
+const Settings = lazy(() => import('./pages/Settings'));
+const Affiliates = lazy(() => import('./pages/Affiliates'));
+const Support = lazy(() => import('./pages/Support'));
 
-// Admin Pages
-import SystemSettings from './pages/SystemSettings';
-import UsersPage from './pages/Users';
+// Admin Pages - Lazy load (rarely accessed)
+const SystemSettings = lazy(() => import('./pages/SystemSettings'));
+const UsersPage = lazy(() => import('./pages/Users'));
 
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
