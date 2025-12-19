@@ -83,10 +83,23 @@ const App: React.FC = () => {
   };
 
   const handleLogout = async () => {
-    await api.auth.logout();
-    setUser(null);
-    setWorkspaces([]);
-    setCurrentWorkspace(null);
+    try {
+      await api.auth.logout();
+      setUser(null);
+      setWorkspaces([]);
+      setCurrentWorkspace(null);
+      // Clear any cached data
+      localStorage.clear();
+      sessionStorage.clear();
+      // Force full page reload to clear all state
+      window.location.href = '/login';
+    } catch (error) {
+      console.error('Logout failed:', error);
+      // Force logout even if API call fails
+      localStorage.clear();
+      sessionStorage.clear();
+      window.location.href = '/login';
+    }
   };
 
   const handleWorkspaceChange = (id: string) => {
@@ -108,12 +121,8 @@ const App: React.FC = () => {
         <Routes>
           {/* Public Routes */}
           <Route path="/" element={<Home />} />
-          <Route path="/login" element={
-            !user ? <Login onLogin={handleLogin} /> : <Navigate to="/dashboard" replace />
-          } />
-          <Route path="/register" element={
-            !user ? <Register onLogin={handleLogin} /> : <Navigate to="/dashboard" replace />
-          } />
+          <Route path="/login" element={<Login onLogin={handleLogin} />} />
+          <Route path="/register" element={<Register onLogin={handleLogin} />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
 
           {/* Protected Routes */}

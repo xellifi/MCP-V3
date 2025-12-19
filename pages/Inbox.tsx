@@ -23,6 +23,7 @@ const Inbox: React.FC<InboxProps> = ({ workspace }) => {
   const [inputText, setInputText] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [filePreview, setFilePreview] = useState<string | null>(null);
+  const [showPageDropdown, setShowPageDropdown] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -322,19 +323,81 @@ const Inbox: React.FC<InboxProps> = ({ workspace }) => {
               </div>
             ) : (
               <div className="relative">
-                <select
-                  value={selectedPageId || ''}
-                  onChange={(e) => setSelectedPageId(e.target.value || null)}
-                  className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-lg text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all appearance-none cursor-pointer"
+                <button
+                  onClick={() => setShowPageDropdown(!showPageDropdown)}
+                  className="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-lg text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all cursor-pointer flex items-center gap-2"
                 >
-                  <option value="">All Pages ({connectedPages.length})</option>
-                  {connectedPages.map(page => (
-                    <option key={page.id} value={page.pageId}>
-                      {page.name} ({page.pageFollowers?.toLocaleString() || 0} followers)
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
+                  {selectedPageId ? (
+                    <>
+                      {connectedPages.find(p => p.pageId === selectedPageId)?.pageImageUrl ? (
+                        <img
+                          src={connectedPages.find(p => p.pageId === selectedPageId)?.pageImageUrl}
+                          alt=""
+                          className="w-8 h-8 rounded-full object-cover"
+                        />
+                      ) : (
+                        <Facebook className="w-6 h-6 text-blue-500" />
+                      )}
+                      <span className="flex-1 text-left truncate">
+                        {connectedPages.find(p => p.pageId === selectedPageId)?.name}
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <Facebook className="w-6 h-6 text-blue-500" />
+                      <span className="flex-1 text-left">All Pages ({connectedPages.length})</span>
+                    </>
+                  )}
+                  <ChevronDown className={`w-4 h-4 text-slate-500 transition-transform ${showPageDropdown ? 'rotate-180' : ''}`} />
+                </button>
+
+                {showPageDropdown && (
+                  <div className="absolute z-50 w-full mt-1 bg-slate-900 border border-slate-800 rounded-lg shadow-xl max-h-64 overflow-y-auto custom-scrollbar">
+                    {/* All Pages Option */}
+                    <button
+                      onClick={() => {
+                        setSelectedPageId(null);
+                        setShowPageDropdown(false);
+                      }}
+                      className={`w-full px-3 py-2.5 text-left hover:bg-slate-800 transition-colors flex items-center gap-2 ${!selectedPageId ? 'bg-blue-600/20 text-blue-400' : 'text-slate-200'
+                        }`}
+                    >
+                      <Facebook className="w-6 h-6 text-blue-500 flex-shrink-0" />
+                      <span className="flex-1 text-sm">All Pages ({connectedPages.length})</span>
+                    </button>
+
+                    {/* Individual Pages */}
+                    {connectedPages.map(page => (
+                      <button
+                        key={page.id}
+                        onClick={() => {
+                          setSelectedPageId(page.pageId);
+                          setShowPageDropdown(false);
+                        }}
+                        className={`w-full px-3 py-2.5 text-left hover:bg-slate-800 transition-colors flex items-center gap-2 ${selectedPageId === page.pageId ? 'bg-blue-600/20 text-blue-400' : 'text-slate-200'
+                          }`}
+                      >
+                        {page.pageImageUrl ? (
+                          <img
+                            src={page.pageImageUrl}
+                            alt={page.name}
+                            className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                          />
+                        ) : (
+                          <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0">
+                            <span className="text-white text-xs font-bold">
+                              {page.name.charAt(0).toUpperCase()}
+                            </span>
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm truncate">{page.name}</div>
+                          <div className="text-xs text-slate-500">{page.pageFollowers?.toLocaleString() || 0} followers</div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </div>
