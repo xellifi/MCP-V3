@@ -32,18 +32,18 @@ const CollapsibleCard: React.FC<CollapsibleCardProps> = ({
   isDark
 }) => {
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-card dark:shadow-none border border-slate-200 dark:border-slate-800 overflow-hidden transition-all duration-300">
+    <div className="glass-panel rounded-2xl overflow-hidden transition-all duration-300">
       <div
-        className={`p-6 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between cursor-pointer transition-colors ${isOpen ? 'bg-slate-50 dark:bg-slate-800/50' : 'hover:bg-slate-50 dark:hover:bg-slate-800/20'}`}
+        className={`p-6 border-b border-white/10 flex items-center justify-between cursor-pointer transition-colors ${isOpen ? 'bg-white/10' : 'hover:bg-white/5'}`}
         onClick={onToggle}
       >
         <div className="flex items-center gap-4">
-          <div className={`p-3 rounded-xl shadow-sm ${colorClass}`}>
-            <Icon className="w-5 h-5" />
+          <div className={`p-3 rounded-xl shadow-lg shadow-indigo-500/10 ${colorClass}`}>
+            <Icon className="w-5 h-5 drop-shadow-glow" />
           </div>
           <div>
-            <h3 className="font-bold text-slate-900 dark:text-white text-lg">{title}</h3>
-            <p className="text-sm text-slate-500 dark:text-slate-400">{subtitle}</p>
+            <h3 className="font-bold text-white text-lg">{title}</h3>
+            <p className="text-sm text-slate-400">{subtitle}</p>
           </div>
         </div>
         <div className={`text-slate-400 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`}>
@@ -51,7 +51,7 @@ const CollapsibleCard: React.FC<CollapsibleCardProps> = ({
         </div>
       </div>
       <div className={`transition-all duration-300 ease-in-out ${isOpen ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0 overflow-hidden'}`}>
-        <div className="p-6 md:p-8">
+        <div className="p-6 md:p-8 bg-black/20">
           {children}
         </div>
       </div>
@@ -167,20 +167,20 @@ const Settings: React.FC<SettingsProps> = ({ user, workspace }) => {
   if (loading) {
     return (
       <div className="flex items-center justify-center p-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
       </div>
     );
   }
 
-  const inputClasses = "w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none transition-all placeholder-slate-400 dark:placeholder-slate-500";
-  const labelClasses = "block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2";
-  const buttonPrimary = "bg-primary-600 hover:bg-primary-700 active:bg-primary-800 text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-primary-500/20 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed";
+  const inputClasses = "w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all placeholder-slate-500";
+  const labelClasses = "block text-sm font-semibold text-slate-300 mb-2";
+  const buttonPrimary = "bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-indigo-500/20 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed border border-white/20";
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 pb-12 animate-fade-in">
       <div>
-        <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Settings</h1>
-        <p className="text-slate-500 dark:text-slate-400 mt-2 text-lg">Manage your account preferences, payouts, and workspace configurations.</p>
+        <h1 className="text-3xl font-bold text-white tracking-tight text-glow">Settings</h1>
+        <p className="text-slate-400 mt-2 text-lg">Manage your account preferences, payouts, and workspace configurations.</p>
       </div>
 
       {/* 1. Payout Settings (User specific) */}
@@ -188,7 +188,7 @@ const Settings: React.FC<SettingsProps> = ({ user, workspace }) => {
         title="Payout Accounts"
         subtitle="Configure where your affiliate commissions are sent"
         icon={CreditCard}
-        colorClass="bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400"
+        colorClass="bg-green-500/20 text-green-400 border border-green-500/30"
         isOpen={openSections.payout}
         onToggle={() => toggleSection('payout')}
         isDark={isDark}
@@ -197,27 +197,27 @@ const Settings: React.FC<SettingsProps> = ({ user, workspace }) => {
           <div>
             <label className={labelClasses}>Payout Method</label>
             <div className="flex gap-4">
-              <label className={`flex items-center gap-3 cursor-pointer border p-4 rounded-xl flex-1 transition-all ${payouts.method === 'PAYPAL' ? 'bg-primary-50 dark:bg-primary-900/10 border-primary-500 ring-1 ring-primary-500' : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'}`}>
+              <label className={`flex items-center gap-3 cursor-pointer border p-4 rounded-xl flex-1 transition-all ${payouts.method === 'PAYPAL' ? 'bg-indigo-500/20 border-indigo-500 ring-1 ring-indigo-500' : 'bg-white/5 border-white/10 hover:bg-white/10'}`}>
                 <input
                   type="radio"
                   name="payoutMethod"
                   value="PAYPAL"
                   checked={payouts.method === 'PAYPAL'}
                   onChange={() => setPayouts({ ...payouts, method: 'PAYPAL' })}
-                  className="text-primary-600 focus:ring-primary-500 h-4 w-4"
+                  className="text-indigo-500 focus:ring-indigo-500 h-4 w-4 bg-transparent border-white/20"
                 />
-                <span className="font-medium text-slate-900 dark:text-white">PayPal</span>
+                <span className="font-medium text-white">PayPal</span>
               </label>
-              <label className={`flex items-center gap-3 cursor-pointer border p-4 rounded-xl flex-1 transition-all ${payouts.method === 'BANK_TRANSFER' ? 'bg-primary-50 dark:bg-primary-900/10 border-primary-500 ring-1 ring-primary-500' : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'}`}>
+              <label className={`flex items-center gap-3 cursor-pointer border p-4 rounded-xl flex-1 transition-all ${payouts.method === 'BANK_TRANSFER' ? 'bg-indigo-500/20 border-indigo-500 ring-1 ring-indigo-500' : 'bg-white/5 border-white/10 hover:bg-white/10'}`}>
                 <input
                   type="radio"
                   name="payoutMethod"
                   value="BANK_TRANSFER"
                   checked={payouts.method === 'BANK_TRANSFER'}
                   onChange={() => setPayouts({ ...payouts, method: 'BANK_TRANSFER' })}
-                  className="text-primary-600 focus:ring-primary-500 h-4 w-4"
+                  className="text-indigo-500 focus:ring-indigo-500 h-4 w-4 bg-transparent border-white/20"
                 />
-                <span className="font-medium text-slate-900 dark:text-white">Bank Transfer</span>
+                <span className="font-medium text-white">Bank Transfer</span>
               </label>
             </div>
           </div>
@@ -276,7 +276,7 @@ const Settings: React.FC<SettingsProps> = ({ user, workspace }) => {
             </div>
           )}
 
-          <div className="flex justify-end pt-4 border-t border-slate-100 dark:border-slate-800">
+          <div className="flex justify-end pt-4 border-t border-white/10">
             <button
               type="submit"
               disabled={savingPayouts}
@@ -293,7 +293,7 @@ const Settings: React.FC<SettingsProps> = ({ user, workspace }) => {
         title="AI API Keys"
         subtitle="Configure OpenAI and Google Gemini keys for this workspace"
         icon={Bot}
-        colorClass="bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400"
+        colorClass="bg-indigo-500/20 text-indigo-400 border border-indigo-500/30"
         isOpen={openSections.apiKeys}
         onToggle={() => toggleSection('apiKeys')}
         isDark={isDark}
@@ -303,7 +303,7 @@ const Settings: React.FC<SettingsProps> = ({ user, workspace }) => {
             <label className={labelClasses}>OpenAI API Key</label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <Key className="h-5 w-5 text-slate-400" />
+                <Key className="h-5 w-5 text-slate-500" />
               </div>
               <input
                 type={showOpenAi ? "text" : "password"}
@@ -315,7 +315,7 @@ const Settings: React.FC<SettingsProps> = ({ user, workspace }) => {
               <button
                 type="button"
                 onClick={() => setShowOpenAi(!showOpenAi)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors"
               >
                 {showOpenAi ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
@@ -326,7 +326,7 @@ const Settings: React.FC<SettingsProps> = ({ user, workspace }) => {
             <label className={labelClasses}>Google Gemini API Key</label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <Key className="h-5 w-5 text-slate-400" />
+                <Key className="h-5 w-5 text-slate-500" />
               </div>
               <input
                 type={showGemini ? "text" : "password"}
@@ -338,14 +338,14 @@ const Settings: React.FC<SettingsProps> = ({ user, workspace }) => {
               <button
                 type="button"
                 onClick={() => setShowGemini(!showGemini)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors"
               >
                 {showGemini ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
             </div>
           </div>
 
-          <div className="flex justify-end pt-4 border-t border-slate-100 dark:border-slate-800">
+          <div className="flex justify-end pt-4 border-t border-white/10">
             <button
               type="submit"
               disabled={savingKeys}
@@ -362,13 +362,13 @@ const Settings: React.FC<SettingsProps> = ({ user, workspace }) => {
         title="Custom SMTP Settings"
         subtitle="Use your own email server for workspace notifications"
         icon={Mail}
-        colorClass="bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400"
+        colorClass="bg-amber-500/20 text-amber-400 border border-amber-500/30"
         isOpen={openSections.smtp}
         onToggle={() => toggleSection('smtp')}
         isDark={isDark}
       >
         <form onSubmit={handleSaveIntegrations} className="space-y-6">
-          <div className="bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-900/30 p-4 rounded-xl text-sm text-amber-800 dark:text-amber-400 mb-6 flex items-start gap-3">
+          <div className="bg-amber-500/10 border border-amber-500/20 p-4 rounded-xl text-sm text-amber-200 mb-6 flex items-start gap-3">
             <Server className="w-5 h-5 flex-shrink-0 mt-0.5" />
             <p>Override the system default email settings to send notifications from your own domain.</p>
           </div>
@@ -426,21 +426,21 @@ const Settings: React.FC<SettingsProps> = ({ user, workspace }) => {
             </div>
 
             {/* Test Email Section */}
-            <div className="md:col-span-2 pt-6 border-t border-slate-100 dark:border-slate-800">
-              <h4 className="text-sm font-bold text-slate-900 dark:text-white mb-3">Test Configuration</h4>
+            <div className="md:col-span-2 pt-6 border-t border-white/10">
+              <h4 className="text-sm font-bold text-white mb-3">Test Configuration</h4>
               <div className="flex gap-3">
                 <input
                   type="email"
                   value={testEmail}
                   onChange={e => setTestEmail(e.target.value)}
                   placeholder="Enter email to test..."
-                  className="flex-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none"
+                  className="flex-1 bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500/50 outline-none"
                 />
                 <button
                   type="button"
                   onClick={handleTestEmail}
                   disabled={!testEmail || sendingTest}
-                  className="flex items-center gap-2 bg-slate-900 dark:bg-slate-700 hover:bg-slate-800 dark:hover:bg-slate-600 text-white px-6 py-3 rounded-xl font-bold transition-colors disabled:opacity-50"
+                  className="flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white px-6 py-3 rounded-xl font-bold transition-colors disabled:opacity-50 border border-white/10"
                 >
                   {sendingTest ? (
                     <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -453,7 +453,7 @@ const Settings: React.FC<SettingsProps> = ({ user, workspace }) => {
             </div>
           </div>
 
-          <div className="flex justify-end pt-4 border-t border-slate-100 dark:border-slate-800">
+          <div className="flex justify-end pt-4 border-t border-white/10">
             <button
               type="submit"
               disabled={savingKeys}

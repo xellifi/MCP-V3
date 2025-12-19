@@ -61,6 +61,65 @@
   @apply bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg !important;
 }
 
-.react-flow__minimap-mask {
-  @apply fill-slate-200/50 dark:fill-slate-800/60 !important;
+/* Modern Vibrancy & Animations */
+@layer utilities {
+  .text-glow {
+    text-shadow: 0 0 20px rgba(99, 102, 241, 0.5);
+  }
+
+  .drop-shadow-glow {
+    filter: drop-shadow(0 0 15px rgba(99, 102, 241, 0.5));
+  }
+
+  .glass-panel {
+    @apply bg-white/10 dark:bg-slate-900/30 backdrop-blur-xl border border-white/20 dark:border-white/10 shadow-xl;
+  }
+
+  .glass-card {
+    @apply bg-white/5 backdrop-blur-md border border-white/10 shadow-lg hover:bg-white/10 transition-all duration-300;
+  }
+
+  .gradient-text {
+    background: linear-gradient(to right, #818cf8, #818cf8);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    color: transparent;
+  }
+}
+
+/* Animations */
+@keyframes blob {
+  0% {
+    transform: translate(0px, 0px) scale(1);
+  }
+
+  33% {
+    transform: translate(30px, -50px) scale(1.1);
+  }
+
+  66% {
+    transform: translate(-20px, 20px) scale(0.9);
+  }
+
+  100% {
+    transform: translate(0px, 0px) scale(1);
+  }
+}
+
+.animate-blob {
+  animation: blob 7s infinite;
+}
+
+.animation-delay-2000 {
+  animation-delay: 2s;
+}
+
+.animation-delay-4000 {
+  animation-delay: 4s;
+}
+
+/* Scrollbar refinement */
+::-webkit-scrollbar-thumb {
+  @apply bg-slate-200 dark:bg-slate-700/50 rounded-full hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors;
 }

@@ -72,12 +72,12 @@ const ConnectedPages: React.FC<ConnectedPagesProps> = ({ workspace }) => {
     <div className="space-y-8 animate-fade-in">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Pages</h1>
-          <p className="text-slate-500 dark:text-slate-400 mt-1">Manage bot automations for your Facebook Pages and Instagram Accounts</p>
+          <h1 className="text-4xl font-bold text-white tracking-tight mb-2">Pages</h1>
+          <p className="text-slate-400 text-lg">Manage bot automations for your Facebook Pages and Instagram Accounts</p>
         </div>
         <button
           onClick={() => { loadPages(); toast.info("Refreshing page list..."); }}
-          className="flex items-center gap-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 px-4 py-2.5 rounded-xl font-medium transition-colors shadow-sm"
+          className="flex items-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white px-5 py-2.5 rounded-xl font-medium transition-colors shadow-lg"
         >
           <RefreshCw className="w-4 h-4" />
           Refresh List
@@ -85,39 +85,39 @@ const ConnectedPages: React.FC<ConnectedPagesProps> = ({ workspace }) => {
       </div>
 
       {/* Filter Tabs */}
-      <div className="flex gap-2 border-b border-slate-200 dark:border-slate-800">
+      <div className="flex gap-2 border-b border-white/10">
         <button
           onClick={() => setFilter('active')}
-          className={`px-4 py-3 font-semibold transition-all border-b-2 hover:text-primary-600 dark:hover:text-primary-400 ${filter === 'active'
-            ? 'border-primary-500 text-primary-600 dark:text-primary-400'
-            : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
+          className={`px-4 py-3 font-semibold transition-all border-b-2 hover:text-indigo-400 ${filter === 'active'
+            ? 'border-indigo-500 text-indigo-400'
+            : 'border-transparent text-slate-500 hover:text-slate-300'
             }`}
         >
-          Active <span className="ml-1.5 px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-full text-xs">{pages.filter(p => p.isAutomationEnabled).length}</span>
+          Active <span className={`ml-1.5 px-2 py-0.5 rounded-full text-xs ${filter === 'active' ? 'bg-indigo-500/20 text-indigo-300' : 'bg-white/5 text-slate-500'}`}>{pages.filter(p => p.isAutomationEnabled).length}</span>
         </button>
         <button
           onClick={() => setFilter('inactive')}
-          className={`px-4 py-3 font-semibold transition-all border-b-2 hover:text-primary-600 dark:hover:text-primary-400 ${filter === 'inactive'
-            ? 'border-primary-500 text-primary-600 dark:text-primary-400'
-            : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
+          className={`px-4 py-3 font-semibold transition-all border-b-2 hover:text-indigo-400 ${filter === 'inactive'
+            ? 'border-indigo-500 text-indigo-400'
+            : 'border-transparent text-slate-500 hover:text-slate-300'
             }`}
         >
-          Inactive <span className="ml-1.5 px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-full text-xs">{pages.filter(p => !p.isAutomationEnabled).length}</span>
+          Inactive <span className={`ml-1.5 px-2 py-0.5 rounded-full text-xs ${filter === 'inactive' ? 'bg-indigo-500/20 text-indigo-300' : 'bg-white/5 text-slate-500'}`}>{pages.filter(p => !p.isAutomationEnabled).length}</span>
         </button>
         <button
           onClick={() => setFilter('all')}
-          className={`px-4 py-3 font-semibold transition-all border-b-2 hover:text-primary-600 dark:hover:text-primary-400 ${filter === 'all'
-            ? 'border-primary-500 text-primary-600 dark:text-primary-400'
-            : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
+          className={`px-4 py-3 font-semibold transition-all border-b-2 hover:text-indigo-400 ${filter === 'all'
+            ? 'border-indigo-500 text-indigo-400'
+            : 'border-transparent text-slate-500 hover:text-slate-300'
             }`}
         >
-          All <span className="ml-1.5 px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-full text-xs">{pages.length}</span>
+          All <span className={`ml-1.5 px-2 py-0.5 rounded-full text-xs ${filter === 'all' ? 'bg-indigo-500/20 text-indigo-300' : 'bg-white/5 text-slate-500'}`}>{pages.length}</span>
         </button>
       </div>
 
       <div className="grid grid-cols-1 gap-4">
         {filteredPages.map(page => (
-          <div key={page.id} className="bg-white dark:bg-slate-900 rounded-2xl shadow-card dark:shadow-none border border-slate-200 dark:border-slate-800 overflow-hidden group hover:border-slate-300 dark:hover:border-slate-700 transition-colors">
+          <div key={page.id} className="glass-panel rounded-2xl border border-white/10 overflow-hidden group hover:border-indigo-500/30 transition-all duration-300">
             <div className="p-6 flex flex-col md:flex-row items-center gap-6">
 
               {/* Overlapping Images Section */}
@@ -128,10 +128,10 @@ const ConnectedPages: React.FC<ConnectedPagesProps> = ({ workspace }) => {
                   <img
                     src={page.pageImageUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(page.name)}&background=1877F2&color=fff`}
                     alt={page.name}
-                    className="w-24 h-24 rounded-full border-4 border-white dark:border-slate-900 shadow-md object-cover bg-slate-100 dark:bg-slate-800"
+                    className="w-24 h-24 rounded-full border-4 border-slate-900 shadow-xl object-cover bg-slate-800"
                   />
                   {/* FB Badge */}
-                  <div className="absolute bottom-0 right-0 bg-white dark:bg-slate-900 rounded-full p-1 shadow-md z-30">
+                  <div className="absolute bottom-0 right-0 bg-slate-900 rounded-full p-1 shadow-md z-30 ring-2 ring-slate-900">
                     <div className="bg-[#1877F2] text-white rounded-full p-1.5 flex items-center justify-center">
                       <Facebook className="w-4 h-4 fill-current" />
                     </div>
@@ -144,10 +144,10 @@ const ConnectedPages: React.FC<ConnectedPagesProps> = ({ workspace }) => {
                     <img
                       src={page.instagram.imageUrl}
                       alt={page.instagram.username}
-                      className="w-24 h-24 rounded-full border-4 border-white dark:border-slate-900 shadow-md object-cover bg-slate-100 dark:bg-slate-800"
+                      className="w-24 h-24 rounded-full border-4 border-slate-900 shadow-xl object-cover bg-slate-800"
                     />
                     {/* IG Badge */}
-                    <div className="absolute bottom-0 right-0 bg-white dark:bg-slate-900 rounded-full p-1 shadow-md z-30">
+                    <div className="absolute bottom-0 right-0 bg-slate-900 rounded-full p-1 shadow-md z-30 ring-2 ring-slate-900">
                       <div className="bg-gradient-to-tr from-yellow-400 via-red-500 to-purple-500 text-white rounded-full p-1.5 flex items-center justify-center">
                         <Instagram className="w-4 h-4" />
                       </div>
@@ -159,33 +159,33 @@ const ConnectedPages: React.FC<ConnectedPagesProps> = ({ workspace }) => {
               {/* Info Section */}
               <div className="flex-1 text-center md:text-left min-w-0">
                 <div className="flex flex-col md:flex-row md:items-center gap-2 mb-1">
-                  <h3 className="text-xl font-bold text-slate-900 dark:text-white truncate">{page.name}</h3>
+                  <h3 className="text-xl font-bold text-white truncate">{page.name}</h3>
                   {page.instagram && (
-                    <span className="hidden md:inline text-slate-400 dark:text-slate-600 mx-1">|</span>
+                    <span className="hidden md:inline text-slate-600 mx-1">|</span>
                   )}
                   {page.instagram && (
-                    <span className="text-base font-medium text-slate-500 dark:text-slate-400 truncate">@{page.instagram.username}</span>
+                    <span className="text-base font-medium text-slate-400 truncate">@{page.instagram.username}</span>
                   )}
                 </div>
 
-                <div className="flex items-center justify-center md:justify-start gap-6 text-sm text-slate-500 dark:text-slate-400 mt-3">
+                <div className="flex items-center justify-center md:justify-start gap-6 text-sm text-slate-400 mt-3">
                   <div className="flex items-center gap-2" title="Facebook Followers">
-                    <div className="p-1.5 bg-slate-100 dark:bg-slate-800 rounded-full">
-                      <Users className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+                    <div className="p-1.5 bg-white/5 rounded-full">
+                      <Users className="w-4 h-4 text-slate-400" />
                     </div>
                     <div>
-                      <span className="font-bold text-slate-900 dark:text-slate-200">{formatFollowers(page.pageFollowers)}</span>
-                      <span className="text-xs ml-1 font-medium">followers</span>
+                      <span className="font-bold text-white">{formatFollowers(page.pageFollowers)}</span>
+                      <span className="text-xs ml-1 font-medium text-slate-500">followers</span>
                     </div>
                   </div>
                   {page.instagram && (
                     <div className="flex items-center gap-2" title="Instagram Followers">
-                      <div className="p-1.5 bg-slate-100 dark:bg-slate-800 rounded-full">
-                        <Users className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+                      <div className="p-1.5 bg-white/5 rounded-full">
+                        <Users className="w-4 h-4 text-slate-400" />
                       </div>
                       <div>
-                        <span className="font-bold text-slate-900 dark:text-slate-200">{formatFollowers(page.instagram.followers)}</span>
-                        <span className="text-xs ml-1 font-medium">followers</span>
+                        <span className="font-bold text-white">{formatFollowers(page.instagram.followers)}</span>
+                        <span className="text-xs ml-1 font-medium text-slate-500">followers</span>
                       </div>
                     </div>
                   )}
@@ -194,31 +194,31 @@ const ConnectedPages: React.FC<ConnectedPagesProps> = ({ workspace }) => {
 
               {/* Automation Toggle & Status */}
               <div className="flex flex-col items-center md:items-end gap-3 min-w-[200px]">
-                <div className="flex items-center gap-3 bg-slate-50 dark:bg-slate-800/50 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700">
-                  <span className={`text-sm font-semibold ${page.isAutomationEnabled ? 'text-primary-600 dark:text-primary-400' : 'text-slate-500 dark:text-slate-400'}`}>
+                <div className="flex items-center gap-3 bg-white/5 p-2.5 rounded-xl border border-white/5 shadow-inner">
+                  <span className={`text-sm font-semibold ${page.isAutomationEnabled ? 'text-indigo-400' : 'text-slate-500'}`}>
                     {page.isAutomationEnabled ? 'Automation On' : 'Automation Off'}
                   </span>
                   <button
                     onClick={() => handleToggleAutomation(page.id, page.isAutomationEnabled)}
                     disabled={toggling === page.id || page.status !== 'CONNECTED'}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 ${page.isAutomationEnabled ? 'bg-green-500' : 'bg-slate-300 dark:bg-slate-600'
-                      } ${page.status !== 'CONNECTED' ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-all focus:outline-none ring-2 ring-transparent focus:ring-indigo-500/50 ${page.isAutomationEnabled ? 'bg-gradient-to-r from-emerald-400 to-emerald-600 shadow-[0_0_10px_rgba(52,211,153,0.5)]' : 'bg-slate-700'
+                      } ${page.status !== 'CONNECTED' ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:scale-105 active:scale-95'}`}
                   >
                     <span
                       className={`${page.isAutomationEnabled ? 'translate-x-[22px]' : 'translate-x-0.5'
-                        } inline-block h-5 w-5 transform rounded-full bg-white transition-transform shadow-sm`}
+                        } inline-block h-5 w-5 transform rounded-full bg-white transition-transform shadow-md`}
                     />
                   </button>
                 </div>
 
                 <div className="flex items-center gap-2 mt-1">
                   {page.status === 'CONNECTED' ? (
-                    <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-green-600 dark:text-green-400">
+                    <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
                       <CheckCircle className="w-3.5 h-3.5" />
-                      Connection Active
+                      Active
                     </span>
                   ) : (
-                    <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-red-500 dark:text-red-400">
+                    <span className="inline-flex items-center gap-1.5 text-xs font-bold text-red-400 bg-red-500/10 px-2 py-0.5 rounded-full border border-red-500/20">
                       <AlertTriangle className="w-3.5 h-3.5" />
                       Disconnected
                     </span>
@@ -228,14 +228,14 @@ const ConnectedPages: React.FC<ConnectedPagesProps> = ({ workspace }) => {
 
             </div>
 
-            <div className="bg-slate-50 dark:bg-slate-900/50 px-6 py-3 border-t border-slate-200 dark:border-slate-800 flex justify-between items-center text-xs font-medium text-slate-500 dark:text-slate-500">
+            <div className="bg-white/5 px-6 py-3 border-t border-white/5 flex justify-between items-center text-xs font-medium text-slate-400">
               <div className="flex gap-4">
-                <span className="font-mono bg-white dark:bg-slate-800 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700">ID: {page.pageId}</span>
+                <span className="font-mono bg-black/20 px-2 py-0.5 rounded text-slate-500">ID: {page.pageId}</span>
               </div>
               <div className="flex gap-2">
-                <button className="flex items-center gap-1.5 hover:text-primary-600 transition-colors" title="View on Facebook">
-                  <ExternalLink className="w-3.5 h-3.5" />
+                <button className="flex items-center gap-1.5 hover:text-white transition-colors group/link" title="View on Facebook">
                   Open Page
+                  <ExternalLink className="w-3.5 h-3.5 group-hover/link:translate-x-0.5 group-hover/link:-translate-y-0.5 transition-transform" />
                 </button>
               </div>
             </div>
@@ -243,16 +243,16 @@ const ConnectedPages: React.FC<ConnectedPagesProps> = ({ workspace }) => {
         ))}
 
         {filteredPages.length === 0 && (
-          <div className="py-20 text-center bg-white dark:bg-slate-900 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-800">
-            <div className="w-20 h-20 bg-blue-50 dark:bg-blue-900/20 text-blue-500 dark:text-blue-400 rounded-full flex items-center justify-center mx-auto mb-6">
+          <div className="py-20 text-center glass-panel rounded-3xl border border-dashed border-white/10">
+            <div className="w-20 h-20 bg-indigo-500/10 text-indigo-400 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
               <Bot className="w-10 h-10" />
             </div>
-            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
+            <h3 className="text-xl font-bold text-white mb-2">
               {filter === 'active' && 'No active pages'}
               {filter === 'inactive' && 'No inactive pages'}
               {filter === 'all' && 'No pages found'}
             </h3>
-            <p className="text-slate-500 dark:text-slate-400 max-w-sm mx-auto mb-8">
+            <p className="text-slate-400 max-w-sm mx-auto mb-8">
               {filter === 'active' && 'Enable automation on your pages to see them here.'}
               {filter === 'inactive' && 'All your pages have automation enabled!'}
               {filter === 'all' && 'Go to Connections to link your Facebook Profile, then pages will appear here.'}

@@ -25,19 +25,22 @@ interface ChartData {
 }
 
 const StatCard = ({ title, value, icon: Icon, gradient, loading }: any) => (
-  <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border-2 border-slate-200 dark:border-slate-800 transition-all duration-200 hover:-translate-y-1 hover:border-primary-400 dark:hover:border-slate-700 group">
-    <div className="flex items-center justify-between mb-4">
-      <div className={`p-3 rounded-xl bg-gradient-to-br ${gradient} text-white group-hover:scale-110 transition-transform duration-200`}>
-        <Icon className="w-6 h-6" />
+  <div className="glass-panel p-6 rounded-2xl border border-white/10 transition-all duration-300 hover:-translate-y-1 hover:border-indigo-500/30 group relative overflow-hidden">
+    <div className={`absolute -inset-1 bg-gradient-to-br ${gradient} opacity-0 group-hover:opacity-10 transition-opacity duration-500 blur-xl`}></div>
+    <div className="relative z-10">
+      <div className="flex items-center justify-between mb-4">
+        <div className={`p-3 rounded-xl bg-gradient-to-br ${gradient} text-white shadow-lg group-hover:scale-110 transition-transform duration-300`}>
+          <Icon className="w-6 h-6" />
+        </div>
       </div>
-    </div>
-    <div>
-      <p className="text-sm font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide">{title}</p>
-      {loading ? (
-        <div className="h-8 w-24 bg-slate-100 dark:bg-slate-800 animate-pulse rounded mt-1"></div>
-      ) : (
-        <h3 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">{value.toLocaleString()}</h3>
-      )}
+      <div>
+        <p className="text-sm font-semibold text-slate-400 uppercase tracking-wide">{title}</p>
+        {loading ? (
+          <div className="h-8 w-24 bg-white/10 animate-pulse rounded mt-1"></div>
+        ) : (
+          <h3 className="text-3xl font-bold text-white tracking-tight mt-1">{value.toLocaleString()}</h3>
+        )}
+      </div>
     </div>
   </div>
 );
@@ -139,26 +142,30 @@ const Dashboard: React.FC<DashboardProps> = ({ workspace }) => {
   };
 
   return (
-    <div className="space-y-8 animate-fade-in">
+    <div className="space-y-8 animate-fade-in pb-12">
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Dashboard</h1>
-          <p className="text-slate-500 dark:text-slate-400 mt-1">
-            Overview for <span className="font-semibold text-primary-600 dark:text-primary-400">{workspace.name}</span>
+          <h1 className="text-4xl font-bold text-white tracking-tight mb-2">Dashboard</h1>
+          <p className="text-slate-400 text-lg">
+            Overview for <span className="font-semibold text-indigo-400">{workspace.name}</span>
           </p>
         </div>
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-sm text-sm font-medium text-slate-600 dark:text-slate-300">
-          <CalendarDays className="w-4 h-4 text-slate-400" />
+        <div className="glass-panel px-4 py-2 rounded-xl border border-white/10 flex items-center gap-3 text-sm font-medium text-slate-300">
+          <div className="p-1.5 bg-indigo-500/20 rounded-lg">
+            <CalendarDays className="w-4 h-4 text-indigo-400" />
+          </div>
           Last 7 Days
         </div>
       </div>
 
+      {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard
           title="Connected Pages"
           value={stats.connectedPages}
           icon={Facebook}
-          gradient="from-blue-500 to-blue-600"
+          gradient="from-blue-500 to-indigo-600"
           loading={loading}
         />
         <StatCard
@@ -172,7 +179,7 @@ const Dashboard: React.FC<DashboardProps> = ({ workspace }) => {
           title="Total Messages"
           value={stats.totalMessages}
           icon={Activity}
-          gradient="from-emerald-400 to-emerald-600"
+          gradient="from-emerald-400 to-teal-500"
           loading={loading}
         />
         <StatCard
@@ -184,65 +191,81 @@ const Dashboard: React.FC<DashboardProps> = ({ workspace }) => {
         />
       </div>
 
+      {/* Charts & Activity */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 bg-white dark:bg-slate-900 p-6 rounded-2xl border-2 border-slate-200 dark:border-slate-800">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-bold text-slate-900 dark:text-white">Engagement Overview</h3>
-            <button className="text-slate-400 hover:text-primary-600 dark:hover:text-primary-500 transition-colors">
+        {/* Main Chart */}
+        <div className="lg:col-span-2 glass-panel p-6 rounded-2xl border border-white/10">
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <h3 className="text-xl font-bold text-white">Engagement Overview</h3>
+              <p className="text-slate-400 text-sm mt-1">Message and conversation volume</p>
+            </div>
+            <button className="p-2 hover:bg-white/5 rounded-lg transition-colors text-slate-400 hover:text-white">
               <MoreHorizontal className="w-5 h-5" />
             </button>
           </div>
 
           {loading ? (
-            <div className="h-72 flex items-center justify-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"></div>
+            <div className="h-[350px] flex items-center justify-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
             </div>
           ) : (
-            <div className="h-72 w-full">
+            <div className="h-[350px] w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={chartData} barGap={8}>
+                  <defs>
+                    <linearGradient id="colorConv" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#818cf8" stopOpacity={0.8} />
+                      <stop offset="95%" stopColor="#818cf8" stopOpacity={0} />
+                    </linearGradient>
+                    <linearGradient id="colorMsg" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#c084fc" stopOpacity={0.8} />
+                      <stop offset="95%" stopColor="#c084fc" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
                   <CartesianGrid
                     strokeDasharray="3 3"
                     vertical={false}
-                    stroke={isDark ? '#334155' : '#e2e8f0'}
+                    stroke="#334155"
+                    opacity={0.5}
                   />
                   <XAxis
                     dataKey="name"
                     axisLine={false}
                     tickLine={false}
-                    tick={{ fill: isDark ? '#94a3b8' : '#64748b', fontSize: 12 }}
+                    tick={{ fill: '#94a3b8', fontSize: 12 }}
                     dy={10}
                   />
                   <YAxis
                     axisLine={false}
                     tickLine={false}
-                    tick={{ fill: isDark ? '#94a3b8' : '#64748b', fontSize: 12 }}
+                    tick={{ fill: '#94a3b8', fontSize: 12 }}
                   />
                   <Tooltip
-                    cursor={{ fill: isDark ? '#1e293b' : '#f1f5f9' }}
+                    cursor={{ fill: '#1e293b', opacity: 0.4 }}
                     contentStyle={{
-                      backgroundColor: isDark ? '#0f172a' : '#ffffff',
+                      backgroundColor: '#1e1b4b',
                       borderRadius: '12px',
-                      border: isDark ? '1px solid #334155' : '1px solid #e2e8f0',
-                      boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
-                      color: isDark ? '#f8fafc' : '#0f172a',
+                      border: '1px solid #4338ca',
+                      boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.5)',
+                      color: '#f8fafc',
                       padding: '12px'
                     }}
-                    itemStyle={{ color: isDark ? '#f8fafc' : '#0f172a' }}
+                    itemStyle={{ color: '#f8fafc' }}
                   />
                   <Bar
                     dataKey="conversations"
                     name="New Conversations"
-                    fill="#6366f1"
+                    fill="#818cf8"
                     radius={[4, 4, 0, 0]}
-                    maxBarSize={50}
+                    maxBarSize={40}
                   />
                   <Bar
                     dataKey="messages"
                     name="Messages"
-                    fill="#a5b4fc"
+                    fill="#c084fc"
                     radius={[4, 4, 0, 0]}
-                    maxBarSize={50}
+                    maxBarSize={40}
                   />
                 </BarChart>
               </ResponsiveContainer>
@@ -250,10 +273,11 @@ const Dashboard: React.FC<DashboardProps> = ({ workspace }) => {
           )}
         </div>
 
-        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border-2 border-slate-200 dark:border-slate-800 flex flex-col">
+        {/* Recent Activity */}
+        <div className="glass-panel p-6 rounded-2xl border border-white/10 flex flex-col h-full">
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-bold text-slate-900 dark:text-white">Recent Messages</h3>
-            <a href="/messages" className="text-sm font-medium text-primary-600 hover:text-primary-700 dark:text-primary-500 dark:hover:text-primary-600 flex items-center gap-1">
+            <h3 className="text-xl font-bold text-white">Recent Messages</h3>
+            <a href="/messages" className="text-sm font-medium text-indigo-400 hover:text-indigo-300 flex items-center gap-1 transition-colors">
               View All <ArrowRight className="w-4 h-4" />
             </a>
           </div>
@@ -262,54 +286,56 @@ const Dashboard: React.FC<DashboardProps> = ({ workspace }) => {
             <div className="space-y-4">
               {[1, 2, 3, 4, 5].map((i) => (
                 <div key={i} className="flex items-start space-x-3 pb-3">
-                  <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 animate-pulse"></div>
+                  <div className="w-10 h-10 rounded-full bg-white/10 animate-pulse"></div>
                   <div className="flex-1 space-y-2">
-                    <div className="h-4 bg-slate-100 dark:bg-slate-800 rounded animate-pulse w-3/4"></div>
-                    <div className="h-3 bg-slate-100 dark:bg-slate-800 rounded animate-pulse w-1/2"></div>
+                    <div className="h-4 bg-white/10 rounded animate-pulse w-3/4"></div>
+                    <div className="h-3 bg-white/10 rounded animate-pulse w-1/2"></div>
                   </div>
                 </div>
               ))}
             </div>
           ) : recentActivity.length > 0 ? (
-            <div className="flex-1 overflow-y-auto pr-1 custom-scrollbar space-y-4">
+            <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-2">
               {recentActivity.map((msg: any) => {
                 const subscriber = msg.conversations?.subscribers;
                 const timeAgo = msg.created_at ?
                   Math.floor((Date.now() - new Date(msg.created_at).getTime()) / 60000) : 0;
 
                 return (
-                  <div key={msg.id} className="flex items-start space-x-3 group cursor-default">
-                    {subscriber?.avatar_url ? (
-                      <img
-                        src={subscriber.avatar_url}
-                        alt={subscriber.name}
-                        className="w-10 h-10 rounded-full flex-shrink-0 object-cover border border-slate-100 dark:border-slate-700 shadow-sm"
-                      />
-                    ) : (
-                      <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex-shrink-0 flex items-center justify-center text-sm font-bold text-primary-600 dark:text-primary-400">
-                        {subscriber?.name?.charAt(0) || 'U'}
-                      </div>
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-baseline justify-between">
-                        <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">
-                          {subscriber?.name || 'Unknown'}
+                  <div key={msg.id} className="p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/10 transition-all group cursor-default">
+                    <div className="flex items-start space-x-3">
+                      {subscriber?.avatar_url ? (
+                        <img
+                          src={subscriber.avatar_url}
+                          alt={subscriber.name}
+                          className="w-10 h-10 rounded-full flex-shrink-0 object-cover border border-white/10"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 rounded-full bg-indigo-500/20 border border-indigo-500/30 flex-shrink-0 flex items-center justify-center text-sm font-bold text-indigo-400">
+                          {subscriber?.name?.charAt(0) || 'U'}
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-baseline justify-between mb-0.5">
+                          <p className="text-sm font-semibold text-white truncate group-hover:text-indigo-300 transition-colors">
+                            {subscriber?.name || 'Unknown'}
+                          </p>
+                          <span className="text-[10px] uppercase font-medium tracking-wider text-slate-500">
+                            {timeAgo < 1 ? 'Just now' : timeAgo < 60 ? `${timeAgo}m` : `${Math.floor(timeAgo / 60)}h`}
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-400 truncate line-clamp-1">
+                          {msg.content || 'Attachment'}
                         </p>
-                        <span className="text-xs text-slate-400 dark:text-slate-500">
-                          {timeAgo < 1 ? 'Just now' : timeAgo < 60 ? `${timeAgo}m` : `${Math.floor(timeAgo / 60)}h`}
-                        </span>
                       </div>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5 line-clamp-1">
-                        {msg.content || 'Attachment'}
-                      </p>
                     </div>
                   </div>
                 );
               })}
             </div>
           ) : (
-            <div className="flex-1 flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 py-8">
-              <div className="p-4 rounded-full bg-slate-50 dark:bg-slate-800/50 mb-3">
+            <div className="flex-1 flex flex-col items-center justify-center text-slate-500 py-8">
+              <div className="p-4 rounded-full bg-white/5 mb-3">
                 <MessageCircle className="w-8 h-8 opacity-50" />
               </div>
               <p className="text-sm font-medium">No recent activity</p>

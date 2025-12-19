@@ -145,14 +145,18 @@ const Layout: React.FC<LayoutProps> = ({
         to={to}
         className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 mb-1 font-medium group relative ${isActive
           ? 'bg-gradient-to-r from-primary-500 to-primary-600 text-white'
-          : 'text-slate-900 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-primary-600 dark:hover:text-primary-400'
+          : 'hover:bg-slate-100 dark:hover:bg-slate-800'
           }`}
+        style={{
+          color: isActive ? '#ffffff' : (isDark ? '#d1d5db' : '#0f172a'),
+          textDecoration: 'none'
+        }}
         onClick={() => setSidebarOpen(false)}
         title={isSidebarCollapsed ? label : ''}
       >
-        <Icon className="w-5 h-5 flex-shrink-0" />
+        <Icon className="w-5 h-5 flex-shrink-0" style={{ color: 'inherit' }} />
         {/* Show text on mobile (always) or desktop (when not collapsed) */}
-        <span className={`truncate ${isSidebarCollapsed ? 'hidden lg:hidden' : 'block'}`}>{label}</span>
+        <span className={`truncate ${isSidebarCollapsed ? 'hidden lg:hidden' : 'block'}`} style={{ color: 'inherit' }}>{label}</span>
         {/* Active Indicator Dot */}
         <div className={`ml-auto w-1.5 h-1.5 rounded-full bg-white transition-opacity ${isActive ? 'opacity-100' : 'opacity-0'} ${isSidebarCollapsed ? 'hidden lg:hidden' : 'block'}`} />
 
@@ -170,17 +174,24 @@ const Layout: React.FC<LayoutProps> = ({
   const sidebarWidth = isSidebarCollapsed ? 'w-[280px] lg:w-20' : 'w-[280px]';
 
   return (
-    <div className={`h-screen flex w-full overflow-hidden bg-slate-50 dark:bg-slate-950 transition-colors duration-200`}>
+    <div className={`h-screen flex w-full overflow-hidden bg-slate-50 dark:bg-slate-950 transition-colors duration-200 relative`}>
+      {/* Cosmic Background for Dashboard (Subtle) */}
+      <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none opacity-50 dark:opacity-100">
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-indigo-500/10 rounded-full blur-[120px]"></div>
+        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-purple-500/10 rounded-full blur-[120px]"></div>
+      </div>
+
       {/* Mobile Sidebar Overlay */}
       <div
-        className={`fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-40 lg:hidden transition-opacity duration-300 ${isSidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        className={`fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-40 lg:hidden transition-opacity duration-300 ${isSidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
           }`}
         onClick={() => setSidebarOpen(false)}
       />
 
       {/* Sidebar - Desktop & Mobile Drawer */}
       <aside
-        className={`fixed lg:static inset-y-0 left-0 z-50 ${sidebarWidth} flex flex-col transition-all duration-300 ease-in-out lg:transform-none bg-white dark:bg-slate-900 border-r border-slate-300 dark:border-slate-800 shadow-2xl lg:shadow-none ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        className={`fixed lg:static inset-y-0 left-0 z-50 ${sidebarWidth} flex flex-col transition-all duration-300 ease-in-out lg:transform-none 
+        bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-r border-slate-200 dark:border-slate-800 shadow-2xl lg:shadow-none ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
           }`}
       >
         {/* Brand Header */}
