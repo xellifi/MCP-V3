@@ -249,6 +249,7 @@ const Inbox: React.FC<InboxProps> = ({ workspace }) => {
       if (selectedFile.type.startsWith('image/')) type = 'IMAGE';
       else if (selectedFile.type.startsWith('video/')) type = 'VIDEO';
       else type = 'FILE';
+      // Use temporary blob URL for immediate preview
       attachmentUrl = URL.createObjectURL(selectedFile);
     }
 
@@ -275,9 +276,9 @@ const Inbox: React.FC<InboxProps> = ({ workspace }) => {
     clearFile();
 
     try {
-      await api.workspace.sendMessage(selectedConversationId, textToSend, fileToSend || undefined);
-      // Update to DELIVERED after successful send
-      setMessages(prev => prev.map(m => m.id === tempId ? { ...m, status: 'DELIVERED' } : m));
+      const sentMessage = await api.workspace.sendMessage(selectedConversationId, textToSend, fileToSend || undefined);
+      // Update with actual message from database (includes real Supabase URL)
+      setMessages(prev => prev.map(m => m.id === tempId ? sentMessage : m));
     } catch (error) {
       console.error("Failed to send", error);
       // Update to FAILED on error
@@ -632,14 +633,22 @@ const Inbox: React.FC<InboxProps> = ({ workspace }) => {
                       <div key={msg.id} className={`flex ${isOutbound ? 'justify-end' : 'justify-start'}`}>
                         <div className={`max-w-[70%] ${isOutbound ? 'ml-auto' : 'mr-auto'}`}>
                           <div className={`rounded-2xl px-4 py-2 ${isOutbound
-                            ? 'bg-blue-600 text-white rounded-br-sm'
-                            : 'bg-slate-800 text-slate-100 rounded-bl-sm'
+                              ? 'bg-blue-600 text-white rounded-br-sm'
+                              : 'bg-slate-800 text-slate-100 rounded-bl-sm'
                             }`}>
                             {msg.type === 'IMAGE' && msg.attachmentUrl && (
-                              <img src={msg.attachmentUrl} alt="Attachment" className="rounded-lg mb-2 max-w-full" />
+                              <img
+                                src={msg.attachmentUrl}
+                                alt="Attachment"
+                                className="rounded-lg mb-2 max-w-full max-h-96 object-contain"
+                                onError={(e) => {
+                                  console.error('Image load error:', msg.attachmentUrl);
+                                  e.currentTarget.style.display = 'none';
+                                }}
+                              />
                             )}
                             {msg.type === 'VIDEO' && msg.attachmentUrl && (
-                              <video src={msg.attachmentUrl} controls className="rounded-lg mb-2 max-w-full" />
+                              <video src={msg.attachmentUrl} controls className="rounded-lg mb-2 max-w-full max-h-96" />
                             )}
                             {msg.type === 'FILE' && msg.attachmentUrl && (
                               <a href={msg.attachmentUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 mb-2">

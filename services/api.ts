@@ -543,17 +543,7 @@ export const api = {
         throw new Error(error.message);
       }
 
-      return (data || []).map(msg => ({
-        id: msg.id,
-        conversationId: msg.conversation_id,
-        content: msg.content || '',
-        direction: msg.direction as 'INBOUND' | 'OUTBOUND',
-        platform: msg.platform as 'FACEBOOK' | 'INSTAGRAM',
-        status: msg.status as 'SENT' | 'DELIVERED' | 'READ' | 'FAILED',
-        createdAt: msg.created_at,
-        attachmentUrl: msg.attachment_url,
-        attachmentType: msg.attachment_type as 'IMAGE' | 'VIDEO' | 'AUDIO' | 'FILE' | undefined,
-      }));
+      return (data || []).map(mapMessage);
     },
 
     deleteConversation: async (conversationId: string): Promise<void> => {
@@ -848,15 +838,23 @@ export const api = {
       if (file) {
         // Upload to Supabase Storage
         const uploadFileName = `${Date.now()}-${file.name.replace(/\s/g, '_')}`;
+        console.log('Uploading file to Supabase:', uploadFileName, 'Size:', file.size, 'Type:', file.type);
+
         const { data, error } = await supabase.storage
           .from('attachments')
           .upload(uploadFileName, file);
 
-        if (!error && data) {
+        if (error) {
+          console.error('Supabase storage upload error:', error);
+          throw new Error(`Failed to upload attachment: ${error.message}`);
+        }
+
+        if (data) {
           const { data: publicUrlData } = supabase.storage
             .from('attachments')
             .getPublicUrl(uploadFileName);
           attachmentUrl = publicUrlData.publicUrl;
+          console.log('File uploaded successfully, public URL:', attachmentUrl);
         }
 
         if (file.type.startsWith('image/')) type = 'IMAGE';
@@ -959,7 +957,14 @@ export const api = {
         })
         .eq('id', conversationId);
 
-      return mapMessage(savedMessage);
+      // Fetch the updated message to get the latest status and attachment_url
+      const { data: updatedMessage } = await supabase
+        .from('messages')
+        .select('*')
+        .eq('id', savedMessage.id)
+        .single();
+
+      return mapMessage(updatedMessage || savedMessage);
     },
 
 
