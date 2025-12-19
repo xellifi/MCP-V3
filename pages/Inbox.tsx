@@ -315,112 +315,26 @@ const Inbox: React.FC<InboxProps> = ({ workspace }) => {
 
           {/* Page Selector */}
           <div className="mb-3">
-            <label className="block text-xs font-medium text-slate-400 mb-2">Select Page</label>
+            <label className="block text-xs font-medium text-slate-400 mb-1.5">Filter by Page</label>
             {loadingPages ? (
-              <div className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-lg text-sm text-slate-500 flex items-center justify-center">
+              <div className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-lg text-sm text-slate-500 flex items-center justify-center">
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
               </div>
             ) : (
-              <div className="space-y-2 max-h-64 overflow-y-auto custom-scrollbar">
-                {/* All Pages Option */}
-                <button
-                  onClick={() => setSelectedPageId(null)}
-                  className={`w-full p-3 rounded-lg border transition-all duration-200 ${selectedPageId === null
-                      ? 'bg-blue-600/20 border-blue-500 shadow-lg shadow-blue-500/20'
-                      : 'bg-slate-950 border-slate-800 hover:border-slate-700 hover:bg-slate-900'
-                    }`}
+              <div className="relative">
+                <select
+                  value={selectedPageId || ''}
+                  onChange={(e) => setSelectedPageId(e.target.value || null)}
+                  className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-lg text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all appearance-none cursor-pointer"
                 >
-                  <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${selectedPageId === null ? 'bg-blue-600' : 'bg-slate-800'
-                      }`}>
-                      <Facebook className="w-5 h-5 text-white" />
-                    </div>
-                    <div className="flex-1 text-left">
-                      <p className={`font-medium text-sm ${selectedPageId === null ? 'text-blue-400' : 'text-slate-200'
-                        }`}>
-                        All Pages
-                      </p>
-                      <p className="text-xs text-slate-500">
-                        {connectedPages.length} {connectedPages.length === 1 ? 'page' : 'pages'} with automation
-                      </p>
-                    </div>
-                    {selectedPageId === null && (
-                      <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
-                    )}
-                  </div>
-                </button>
-
-                {/* Individual Pages */}
-                {connectedPages.map(page => (
-                  <button
-                    key={page.id}
-                    onClick={() => setSelectedPageId(page.pageId)}
-                    className={`w-full p-3 rounded-lg border transition-all duration-200 ${selectedPageId === page.pageId
-                        ? 'bg-blue-600/20 border-blue-500 shadow-lg shadow-blue-500/20'
-                        : 'bg-slate-950 border-slate-800 hover:border-slate-700 hover:bg-slate-900'
-                      }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      {/* Page Logo */}
-                      <div className="relative flex-shrink-0">
-                        {page.pageImageUrl ? (
-                          <img
-                            src={page.pageImageUrl}
-                            alt={page.name}
-                            className="w-10 h-10 rounded-full object-cover border-2 border-slate-700"
-                          />
-                        ) : (
-                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center border-2 border-slate-700">
-                            <span className="text-white font-bold text-sm">
-                              {page.name.charAt(0).toUpperCase()}
-                            </span>
-                          </div>
-                        )}
-                        {selectedPageId === page.pageId && (
-                          <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-blue-500 rounded-full border-2 border-slate-950 animate-pulse"></div>
-                        )}
-                      </div>
-
-                      {/* Page Info */}
-                      <div className="flex-1 text-left min-w-0">
-                        <p className={`font-medium text-sm truncate ${selectedPageId === page.pageId ? 'text-blue-400' : 'text-slate-200'
-                          }`}>
-                          {page.name}
-                        </p>
-                        <div className="flex items-center gap-2 text-xs text-slate-500">
-                          <span>{page.pageFollowers?.toLocaleString() || 0} followers</span>
-                          {page.instagram && (
-                            <>
-                              <span>•</span>
-                              <Instagram className="w-3 h-3" />
-                              <span>{page.instagram.followers?.toLocaleString() || 0}</span>
-                            </>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Selection indicator */}
-                      {selectedPageId === page.pageId && (
-                        <div className="flex-shrink-0">
-                          <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center">
-                            <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                            </svg>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </button>
-                ))}
-
-                {/* No pages message */}
-                {connectedPages.length === 0 && (
-                  <div className="text-center py-8 text-slate-500">
-                    <Facebook className="w-8 h-8 mx-auto mb-2 opacity-20" />
-                    <p className="text-sm">No pages with automation enabled</p>
-                    <p className="text-xs mt-1">Enable automation on your pages first</p>
-                  </div>
-                )}
+                  <option value="">All Pages ({connectedPages.length})</option>
+                  {connectedPages.map(page => (
+                    <option key={page.id} value={page.pageId}>
+                      {page.name} ({page.pageFollowers?.toLocaleString() || 0} followers)
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
               </div>
             )}
           </div>
@@ -446,6 +360,10 @@ const Inbox: React.FC<InboxProps> = ({ workspace }) => {
                 const sub = subscribers[conv.subscriberId];
                 if (!sub) return null;
                 const isSelected = selectedConversationId === conv.id;
+
+                // Find the page for this conversation to show badge
+                const conversationPage = connectedPages.find(p => p.pageId === conv.pageId);
+
                 return (
                   <button
                     key={conv.id}
