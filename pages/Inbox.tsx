@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Workspace, Conversation, Message, Subscriber } from '../types';
+import { Workspace, Conversation, Message, Subscriber, ConnectedPage } from '../types';
 import { api } from '../services/api';
 import { format } from 'date-fns';
-import { Search, Send, User, Facebook, Instagram, Image as ImageIcon, Smile, MoreVertical, MessageSquare, ArrowLeft, Paperclip, X, FileText, Video, RefreshCw } from 'lucide-react';
+import { Search, Send, User, Facebook, Instagram, Image as ImageIcon, Smile, MoreVertical, MessageSquare, ArrowLeft, Paperclip, X, FileText, Video, RefreshCw, ChevronDown } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 interface InboxProps {
@@ -14,8 +14,11 @@ const Inbox: React.FC<InboxProps> = ({ workspace }) => {
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [subscribers, setSubscribers] = useState<Record<string, Subscriber>>({});
+  const [connectedPages, setConnectedPages] = useState<ConnectedPage[]>([]);
+  const [selectedPageId, setSelectedPageId] = useState<string | null>(null);
   const [loadingConversations, setLoadingConversations] = useState(true);
   const [loadingMessages, setLoadingMessages] = useState(false);
+  const [loadingPages, setLoadingPages] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [inputText, setInputText] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -90,6 +93,13 @@ const Inbox: React.FC<InboxProps> = ({ workspace }) => {
     scrollToBottom();
   }, [messages]);
 
+  // Reload conversations when selected page changes
+  useEffect(() => {
+    if (!loadingPages) {
+      loadConversations();
+    }
+  }, [selectedPageId]);
+
   // Clean up object URL on unmount or file change
   useEffect(() => {
     return () => {
@@ -98,30 +108,48 @@ const Inbox: React.FC<InboxProps> = ({ workspace }) => {
   }, [filePreview]);
 
   const loadData = async () => {
-    await loadConversations();
+    await Promise.all([loadPages(), loadConversations()]);
+  };
+
+  const loadPages = async () => {
+    setLoadingPages(true);
+    try {
+      const pages = await api.workspace.getConnectedPages(workspace.id);
+      // Filter only pages with automation enabled
+      const automatedPages = pages.filter(p => p.isAutomationEnabled);
+      setConnectedPages(automatedPages);
+    } catch (error) {
+      console.error('Error loading pages:', error);
+    } finally {
+      setLoadingPages(false);
+    }
   };
 
   const loadConversations = async () => {
     setLoadingConversations(true);
-    const [convs, subs] = await Promise.all([
-      api.workspace.getConversations(workspace.id),
-      api.workspace.getSubscribers(workspace.id)
-    ]);
+    try {
+      // Fetch conversations, optionally filtered by page
+      const convs = await api.workspace.getConversations(workspace.id, selectedPageId || undefined);
+      const subs = await api.workspace.getSubscribers(workspace.id);
 
-    // Create subscriber map for easy lookup
-    const subMap: Record<string, Subscriber> = {};
-    subs.forEach(s => subMap[s.id] = s);
+      // Create subscriber map for easy lookup
+      const subMap: Record<string, Subscriber> = {};
+      subs.forEach(s => subMap[s.id] = s);
 
-    setConversations(convs);
-    setSubscribers(subMap);
-    setLoadingConversations(false);
+      setConversations(convs);
+      setSubscribers(subMap);
+    } catch (error) {
+      console.error('Error loading conversations:', error);
+    } finally {
+      setLoadingConversations(false);
+    }
   };
 
   const syncMessages = async () => {
     setSyncing(true);
     try {
-      // Fetch conversations from Facebook
-      await api.workspace.fetchMessengerConversations(workspace.id);
+      // Fetch conversations from Facebook, optionally filtered by page
+      await api.workspace.fetchMessengerConversations(workspace.id, selectedPageId || undefined);
       // Reload conversations from database
       await loadConversations();
     } catch (error: any) {
@@ -284,6 +312,33 @@ const Inbox: React.FC<InboxProps> = ({ workspace }) => {
               {syncing ? 'Syncing...' : 'Sync'}
             </button>
           </div>
+
+          {/* Page Selector */}
+          <div className="mb-3">
+            <label className="block text-xs font-medium text-slate-400 mb-1.5">Filter by Page</label>
+            {loadingPages ? (
+              <div className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-lg text-sm text-slate-500 flex items-center justify-center">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+              </div>
+            ) : (
+              <div className="relative">
+                <select
+                  value={selectedPageId || ''}
+                  onChange={(e) => setSelectedPageId(e.target.value || null)}
+                  className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-lg text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all appearance-none cursor-pointer"
+                >
+                  <option value="">All Pages ({connectedPages.length})</option>
+                  {connectedPages.map(page => (
+                    <option key={page.id} value={page.pageId}>
+                      {page.name}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
+              </div>
+            )}
+          </div>
+
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
             <input

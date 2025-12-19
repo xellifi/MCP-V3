@@ -510,12 +510,18 @@ export const api = {
       return data?.map(mapSubscriber) || [];
     },
 
-    getConversations: async (workspaceId: string): Promise<Conversation[]> => {
-      const { data, error } = await supabase
+    getConversations: async (workspaceId: string, pageId?: string): Promise<Conversation[]> => {
+      let query = supabase
         .from('conversations')
         .select('*')
-        .eq('workspace_id', workspaceId)
-        .order('updated_at', { ascending: false });
+        .eq('workspace_id', workspaceId);
+
+      // Filter by specific page if provided
+      if (pageId) {
+        query = query.eq('page_id', pageId);
+      }
+
+      const { data, error } = await query.order('updated_at', { ascending: false });
 
       if (error) {
         console.error('Error fetching conversations:', error);
@@ -541,15 +547,22 @@ export const api = {
     },
 
     // Fetch conversations from Facebook Messenger and sync to database
-    fetchMessengerConversations: async (workspaceId: string): Promise<Conversation[]> => {
-      console.log('Fetching Messenger conversations for workspace:', workspaceId);
+    fetchMessengerConversations: async (workspaceId: string, pageId?: string): Promise<Conversation[]> => {
+      console.log('Fetching Messenger conversations for workspace:', workspaceId, pageId ? `page: ${pageId}` : 'all pages');
 
       // Get all connected pages with access tokens
-      const { data: pages, error: pagesError } = await supabase
+      let query = supabase
         .from('connected_pages')
         .select('*')
         .eq('workspace_id', workspaceId)
         .eq('status', 'CONNECTED');
+
+      // Filter by specific page if provided
+      if (pageId) {
+        query = query.eq('page_id', pageId);
+      }
+
+      const { data: pages, error: pagesError } = await query;
 
       if (pagesError || !pages || pages.length === 0) {
         console.error('No connected pages found:', pagesError);
