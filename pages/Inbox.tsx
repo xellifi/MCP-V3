@@ -378,6 +378,21 @@ const Inbox: React.FC<InboxProps> = ({ workspace }) => {
                           <User className="w-6 h-6" />
                         </div>
                       )}
+                      {/* Page Badge - Show only when "All Pages" is selected */}
+                      {!selectedPageId && conversationPage && (
+                        <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-slate-950 border border-slate-700 flex items-center justify-center overflow-hidden" title={conversationPage.name}>
+                          {conversationPage.pageImageUrl ? (
+                            <img
+                              src={conversationPage.pageImageUrl}
+                              alt={conversationPage.name}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <Facebook className="w-3 h-3 text-blue-500" />
+                          )}
+                        </div>
+                      )}
+                      {/* Platform Badge */}
                       <div className={`absolute -bottom-1 -right-1 p-0.5 rounded-full bg-slate-900 border border-slate-800 shadow-sm ${conv.platform === 'FACEBOOK' ? 'text-blue-500' : 'text-pink-500'
                         }`}>
                         {conv.platform === 'FACEBOOK' ? <Facebook className="w-3 h-3" /> : <Instagram className="w-3 h-3" />}
