@@ -1,6 +1,6 @@
 import { supabase } from '../lib/supabase';
 import { MOCK_AUTH_DB, MOCK_WORKSPACES } from '../constants';
-import { User, Workspace, MetaConnection, ConnectedPage, Flow, ScheduledPost, AdminSettings, Subscriber, Conversation, Message, UserRole, IntegrationSettings, Referral, AffiliateStats, PayoutSettings, WithdrawalRequest, SupportTicket, TicketMessage } from '../types';
+import { User, Workspace, MetaConnection, ConnectedPage, Flow, ScheduledPost, AdminSettings, Subscriber, Conversation, Message, UserRole, IntegrationSettings, Referral, AffiliateStats, PayoutSettings, WithdrawalRequest, SupportTicket, TicketMessage, Reaction, ReactionType } from '../types';
 
 // Simulating async API calls (for fallback/demo)
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));

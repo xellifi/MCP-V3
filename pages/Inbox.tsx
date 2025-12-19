@@ -1,9 +1,11 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Workspace, Conversation, Message, Subscriber, ConnectedPage } from '../types';
+import { Workspace, Conversation, Message, Subscriber, ConnectedPage, Reaction, ReactionType } from '../types';
 import { api } from '../services/api';
 import { format } from 'date-fns';
 import { Search, Send, User, Facebook, Instagram, Image as ImageIcon, Smile, MoreVertical, MessageSquare, ArrowLeft, Paperclip, X, FileText, Video, RefreshCw, ChevronDown } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { ReactionPicker } from '../components/ReactionPicker';
+import { ReactionDisplay } from '../components/ReactionDisplay';
 
 interface InboxProps {
   workspace: Workspace;
@@ -25,6 +27,8 @@ const Inbox: React.FC<InboxProps> = ({ workspace }) => {
   const [filePreview, setFilePreview] = useState<string | null>(null);
   const [showPageDropdown, setShowPageDropdown] = useState(false);
   const [showConversationMenu, setShowConversationMenu] = useState(false);
+  const [messageReactions, setMessageReactions] = useState<Record<string, Reaction[]>>({});
+  const [hoveredMessageId, setHoveredMessageId] = useState<string | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -633,8 +637,8 @@ const Inbox: React.FC<InboxProps> = ({ workspace }) => {
                       <div key={msg.id} className={`flex ${isOutbound ? 'justify-end' : 'justify-start'}`}>
                         <div className={`max-w-[70%] ${isOutbound ? 'ml-auto' : 'mr-auto'}`}>
                           <div className={`rounded-2xl px-4 py-2 ${isOutbound
-                              ? 'bg-blue-600 text-white rounded-br-sm'
-                              : 'bg-slate-800 text-slate-100 rounded-bl-sm'
+                            ? 'bg-blue-600 text-white rounded-br-sm'
+                            : 'bg-slate-800 text-slate-100 rounded-bl-sm'
                             }`}>
                             {msg.type === 'IMAGE' && msg.attachmentUrl && (
                               <img

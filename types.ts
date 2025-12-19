@@ -86,6 +86,17 @@ export interface Message {
   senderId?: string; // Facebook sender PSID
 }
 
+export type ReactionType = 'LOVE' | 'HAHA' | 'WOW' | 'SAD' | 'ANGRY' | 'LIKE';
+
+export interface Reaction {
+  id: string;
+  messageId: string;
+  userId: string;
+  reaction: ReactionType;
+  createdAt: string;
+}
+
+
 export interface Flow {
   id: string;
   workspaceId: string;
