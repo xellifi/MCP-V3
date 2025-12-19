@@ -127,6 +127,25 @@ const Inbox: React.FC<InboxProps> = ({ workspace }) => {
     }
   };
 
+  const handleSync = async () => {
+    if (!selectedConversationId) return;
+
+    setSyncing(true);
+    try {
+      // Fetch latest messages from Facebook for this conversation
+      const conv = conversations.find(c => c.id === selectedConversationId);
+      if (conv?.externalId && conv?.platform === 'FACEBOOK') {
+        await api.workspace.fetchConversationMessages(selectedConversationId);
+        // Reload messages after sync
+        await loadMessages(selectedConversationId);
+      }
+    } catch (error) {
+      console.error('Error syncing messages:', error);
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   const loadConversations = async () => {
     setLoadingConversations(true);
     try {
@@ -246,8 +265,8 @@ const Inbox: React.FC<InboxProps> = ({ workspace }) => {
       status: 'SENT'
     };
 
-    // Optimistic update
-    setMessages(prev => [...prev, newMessage]);
+    // Optimistic update with SENT status (will show as sending)
+    setMessages(prev => [...prev, { ...newMessage, status: 'SENT' }]);
     const fileToSend = selectedFile;
     const textToSend = inputText;
 
@@ -257,8 +276,29 @@ const Inbox: React.FC<InboxProps> = ({ workspace }) => {
 
     try {
       await api.workspace.sendMessage(selectedConversationId, textToSend, fileToSend || undefined);
+      // Update to DELIVERED after successful send
+      setMessages(prev => prev.map(m => m.id === tempId ? { ...m, status: 'DELIVERED' } : m));
     } catch (error) {
       console.error("Failed to send", error);
+      // Update to FAILED on error
+      setMessages(prev => prev.map(m => m.id === tempId ? { ...m, status: 'FAILED' } : m));
+    }
+  };
+
+  const handleRetryMessage = async (message: Message) => {
+    if (!selectedConversationId) return;
+
+    // Update status to SENT (sending)
+    setMessages(prev => prev.map(m => m.id === message.id ? { ...m, status: 'SENT' } : m));
+
+    try {
+      await api.workspace.sendMessage(selectedConversationId, message.content, undefined);
+      // Update to DELIVERED after successful send
+      setMessages(prev => prev.map(m => m.id === message.id ? { ...m, status: 'DELIVERED' } : m));
+    } catch (error) {
+      console.error("Failed to retry", error);
+      // Update back to FAILED on error
+      setMessages(prev => prev.map(m => m.id === message.id ? { ...m, status: 'FAILED' } : m));
     }
   };
 
@@ -546,25 +586,35 @@ const Inbox: React.FC<InboxProps> = ({ workspace }) => {
                   </div>
                 )}
               </div>
-              <div className="relative">
+              <div className="flex items-center gap-2">
                 <button
-                  onClick={() => setShowConversationMenu(!showConversationMenu)}
-                  className="p-2 text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded-full transition-colors"
+                  onClick={handleSync}
+                  disabled={syncing}
+                  className="p-2 text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded-full transition-colors disabled:opacity-50"
+                  title="Sync messages from Facebook"
                 >
-                  <MoreVertical className="w-5 h-5" />
+                  <RefreshCw className={`w-5 h-5 ${syncing ? 'animate-spin' : ''}`} />
                 </button>
+                <div className="relative">
+                  <button
+                    onClick={() => setShowConversationMenu(!showConversationMenu)}
+                    className="p-2 text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded-full transition-colors"
+                  >
+                    <MoreVertical className="w-5 h-5" />
+                  </button>
 
-                {showConversationMenu && (
-                  <div className="absolute right-0 mt-2 w-48 bg-slate-900 border border-slate-800 rounded-lg shadow-xl z-50">
-                    <button
-                      onClick={handleDeleteConversation}
-                      className="w-full px-4 py-2.5 text-left text-red-400 hover:bg-slate-800 transition-colors flex items-center gap-2 rounded-lg"
-                    >
-                      <X className="w-4 h-4" />
-                      <span className="text-sm">Delete Conversation</span>
-                    </button>
-                  </div>
-                )}
+                  {showConversationMenu && (
+                    <div className="absolute right-0 mt-2 w-48 bg-slate-900 border border-slate-800 rounded-lg shadow-xl z-50">
+                      <button
+                        onClick={handleDeleteConversation}
+                        className="w-full px-4 py-2.5 text-left text-red-400 hover:bg-slate-800 transition-colors flex items-center gap-2 rounded-lg"
+                      >
+                        <X className="w-4 h-4" />
+                        <span className="text-sm">Delete Conversation</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -580,14 +630,55 @@ const Inbox: React.FC<InboxProps> = ({ workspace }) => {
                     const isOutbound = msg.direction === 'OUTBOUND';
                     return (
                       <div key={msg.id} className={`flex ${isOutbound ? 'justify-end' : 'justify-start'}`}>
-                        <div className={`max-w-[85%] md:max-w-[70%] rounded-2xl px-4 py-3 shadow-sm text-sm md:text-base ${isOutbound
-                          ? 'bg-blue-600 text-white rounded-br-none'
-                          : 'bg-slate-800 border border-slate-700 text-slate-200 rounded-bl-none'
-                          }`}>
-                          {renderAttachment(msg)}
-                          {msg.content && <p className="leading-relaxed whitespace-pre-wrap break-words">{msg.content}</p>}
-                          <div className={`text-[10px] mt-1 text-right opacity-70 ${isOutbound ? 'text-blue-100' : 'text-slate-500'}`}>
-                            {format(new Date(msg.createdAt), 'h:mm a')}
+                        <div className={`max-w-[70%] ${isOutbound ? 'ml-auto' : 'mr-auto'}`}>
+                          <div className={`rounded-2xl px-4 py-2 ${isOutbound
+                            ? 'bg-blue-600 text-white rounded-br-sm'
+                            : 'bg-slate-800 text-slate-100 rounded-bl-sm'
+                            }`}>
+                            {msg.type === 'IMAGE' && msg.attachmentUrl && (
+                              <img src={msg.attachmentUrl} alt="Attachment" className="rounded-lg mb-2 max-w-full" />
+                            )}
+                            {msg.type === 'VIDEO' && msg.attachmentUrl && (
+                              <video src={msg.attachmentUrl} controls className="rounded-lg mb-2 max-w-full" />
+                            )}
+                            {msg.type === 'FILE' && msg.attachmentUrl && (
+                              <a href={msg.attachmentUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 mb-2">
+                                <FileText className="w-4 h-4" />
+                                <span className="text-sm underline">{msg.fileName || 'Download File'}</span>
+                              </a>
+                            )}
+                            {msg.content && <p className="whitespace-pre-wrap break-words">{msg.content}</p>}
+                          </div>
+                          <div className={`flex items-center gap-2 mt-1 ${isOutbound ? 'justify-end' : 'justify-start'
+                            }`}>
+                            {isOutbound && (
+                              <>
+                                {msg.status === 'SENT' && (
+                                  <span className="text-xs text-slate-500">Sending...</span>
+                                )}
+                                {msg.status === 'DELIVERED' && (
+                                  <span className="text-xs text-slate-500">
+                                    Sent {format(new Date(msg.createdAt), 'h:mm a')}
+                                  </span>
+                                )}
+                                {msg.status === 'FAILED' && (
+                                  <>
+                                    <span className="text-xs text-red-400">Failed</span>
+                                    <button
+                                      onClick={() => handleRetryMessage(msg)}
+                                      className="text-xs text-blue-400 hover:text-blue-300 underline"
+                                    >
+                                      Retry
+                                    </button>
+                                  </>
+                                )}
+                              </>
+                            )}
+                            {!isOutbound && (
+                              <span className="text-xs text-slate-500">
+                                {format(new Date(msg.createdAt), 'h:mm a')}
+                              </span>
+                            )}
                           </div>
                         </div>
                       </div>
