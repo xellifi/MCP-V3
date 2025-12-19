@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { KeyRound, ArrowRight, ArrowLeft } from 'lucide-react';
+import { KeyRound, ArrowRight, ArrowLeft, Mail } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const ForgotPassword: React.FC = () => {
@@ -13,53 +13,63 @@ const ForgotPassword: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden">
-        <div className="p-8 pb-0 text-center">
-          <div className="w-12 h-12 bg-amber-500 rounded-xl flex items-center justify-center mx-auto mb-4 text-white shadow-lg shadow-amber-200">
-            <KeyRound className="w-7 h-7" />
-          </div>
-          <h2 className="text-2xl font-bold text-slate-900">Reset Password</h2>
-          <p className="text-slate-500 mt-2">Enter your email to receive recovery instructions</p>
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col items-center justify-center p-4 transition-colors duration-300">
+      <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl shadow-xl dark:shadow-none border border-slate-200 dark:border-slate-800 overflow-hidden animate-in fade-in zoom-in duration-300">
+        <div className="p-8 pb-4 text-center">
+          <Link to="/" className="inline-block hover:scale-105 transition-transform duration-200">
+            <div className="w-14 h-14 bg-gradient-to-tr from-amber-500 to-orange-500 rounded-2xl flex items-center justify-center mx-auto mb-6 text-white shadow-lg shadow-amber-500/30">
+              <KeyRound className="w-7 h-7" />
+            </div>
+          </Link>
+          <h2 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Reset Password</h2>
+          <p className="text-slate-500 dark:text-slate-400 mt-2 text-lg">Enter your email to receive recovery instructions</p>
         </div>
 
         {!submitted ? (
-          <form onSubmit={handleSubmit} className="p-8 space-y-4">
+          <form onSubmit={handleSubmit} className="p-8 space-y-6">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Email Address</label>
-              <input 
-                type="email" 
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                className="w-full border border-slate-200 rounded-lg px-4 py-3 focus:ring-2 focus:ring-amber-500 outline-none transition-all"
-                required
-              />
+              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Email Address</label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <Mail className="h-5 w-5 text-slate-400" />
+                </div>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl pl-12 pr-4 py-3.5 focus:ring-2 focus:ring-amber-500 outline-none transition-all text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500"
+                  placeholder="name@company.com"
+                  required
+                />
+              </div>
             </div>
-            
-            <button 
-              type="submit" 
-              className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 rounded-lg transition-all flex items-center justify-center gap-2"
+
+            <button
+              type="submit"
+              className="w-full bg-slate-900 dark:bg-slate-700 hover:bg-slate-800 dark:hover:bg-slate-600 text-white font-bold py-4 rounded-xl shadow-lg shadow-slate-900/10 dark:shadow-none transition-all flex items-center justify-center gap-2 active:scale-95"
             >
               Send Reset Link
             </button>
 
-            <div className="text-center mt-6">
-              <Link to="/login" className="text-slate-600 hover:text-slate-800 text-sm font-medium flex items-center justify-center gap-1">
-                 <ArrowLeft className="w-4 h-4" /> Back to Login
+            <div className="text-center pt-2">
+              <Link to="/login" className="inline-flex items-center gap-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white font-medium transition-colors">
+                <ArrowLeft className="w-4 h-4" /> Back to Login
               </Link>
             </div>
           </form>
         ) : (
-          <div className="p-8 text-center space-y-4">
-            <div className="p-4 bg-green-50 text-green-700 rounded-lg text-sm">
-                If an account exists for <strong>{email}</strong>, we have sent a password reset link to it.
+          <div className="p-8 text-center space-y-6">
+            <div className="p-5 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 rounded-xl text-sm border border-green-100 dark:border-green-900/30">
+              If an account exists for <strong className="font-bold">{email}</strong>, we have sent a password reset link to it.
             </div>
-            <Link to="/login" className="inline-flex items-center text-blue-600 font-medium hover:underline">
-                Return to Login
+            <Link to="/login" className="inline-flex items-center text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 font-bold hover:underline transition-colors">
+              Return to Login
             </Link>
           </div>
         )}
       </div>
+
+      <p className="mt-8 text-slate-400 text-sm">&copy; {new Date().getFullYear()} Mychat Pilot. All rights reserved.</p>
     </div>
   );
 };

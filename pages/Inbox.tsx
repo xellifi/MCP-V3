@@ -1,11 +1,10 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Workspace, Conversation, Message, Subscriber, ConnectedPage, Reaction, ReactionType } from '../types';
+import { Workspace, Conversation, Message, Subscriber, ConnectedPage } from '../types';
 import { api } from '../services/api';
 import { format } from 'date-fns';
 import { Search, Send, User, Facebook, Instagram, Image as ImageIcon, Smile, MoreVertical, MessageSquare, ArrowLeft, Paperclip, X, FileText, Video, RefreshCw, ChevronDown } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { ReactionPicker } from '../components/ReactionPicker';
-import { ReactionDisplay } from '../components/ReactionDisplay';
+
 
 interface InboxProps {
   workspace: Workspace;
@@ -27,8 +26,7 @@ const Inbox: React.FC<InboxProps> = ({ workspace }) => {
   const [filePreview, setFilePreview] = useState<string | null>(null);
   const [showPageDropdown, setShowPageDropdown] = useState(false);
   const [showConversationMenu, setShowConversationMenu] = useState(false);
-  const [messageReactions, setMessageReactions] = useState<Record<string, Reaction[]>>({});
-  const [hoveredMessageId, setHoveredMessageId] = useState<string | null>(null);
+
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -314,77 +312,39 @@ const Inbox: React.FC<InboxProps> = ({ workspace }) => {
   const selectedConversation = conversations.find(c => c.id === selectedConversationId);
   const selectedSubscriber = selectedConversation ? subscribers[selectedConversation.subscriberId] : null;
 
-  const renderAttachment = (msg: Message) => {
-    if (!msg.attachmentUrl) return null;
-
-    if (msg.type === 'IMAGE') {
-      return (
-        <img
-          src={msg.attachmentUrl}
-          alt="attachment"
-          className="rounded-lg max-w-full md:max-w-sm mb-2 border border-slate-700/50"
-        />
-      );
-    } else if (msg.type === 'VIDEO') {
-      return (
-        <video
-          src={msg.attachmentUrl}
-          controls
-          className="rounded-lg max-w-full md:max-w-sm mb-2 border border-slate-700/50 bg-black"
-        />
-      );
-    } else if (msg.type === 'FILE') {
-      return (
-        <div className={`flex items-center gap-3 p-3 rounded-lg mb-2 border ${msg.direction === 'OUTBOUND' ? 'bg-white/10 border-white/20' : 'bg-slate-800 border-slate-700'}`}>
-          <div className="p-2 bg-slate-700 rounded-lg shadow-sm">
-            <FileText className="w-5 h-5 text-slate-300" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium truncate">{msg.fileName || 'Attachment'}</p>
-            <a href={msg.attachmentUrl} download className={`text-xs hover:underline ${msg.direction === 'OUTBOUND' ? 'text-blue-100' : 'text-blue-400'}`}>
-              Download
-            </a>
-          </div>
-        </div>
-      );
-    }
-    return null;
-  };
-
   return (
-    <div className="h-[calc(100dvh-6rem)] md:h-[calc(100vh-8rem)] bg-slate-900 rounded-xl shadow-lg border border-slate-800 flex overflow-hidden">
+    <div className="h-[calc(100dvh-6rem)] md:h-[calc(100vh-8rem)] bg-white dark:bg-slate-900 rounded-2xl border-2 border-slate-200 dark:border-slate-800 flex overflow-hidden animate-fade-in">
 
       {/* Sidebar List - Hidden on mobile if conversation selected */}
       <div className={`
-        w-full md:w-80 lg:w-96 border-r border-slate-800 flex-col
+        w-full md:w-80 lg:w-96 border-r border-slate-300 dark:border-slate-800 flex-col
         ${selectedConversationId ? 'hidden md:flex' : 'flex'}
       `}>
-        <div className="p-4 border-b border-slate-800 flex-shrink-0">
+        <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex-shrink-0">
           <div className="flex items-center justify-between mb-4 px-1">
-            <h2 className="text-lg font-bold text-slate-100">Inbox</h2>
+            <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">Inbox</h2>
             <button
               onClick={syncMessages}
               disabled={syncing}
-              className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 disabled:opacity-50 text-white text-sm rounded-lg transition-colors"
+              className="flex items-center gap-2 px-3 py-1.5 bg-primary-500 hover:bg-primary-600 disabled:bg-primary-300 disabled:opacity-50 text-white text-sm rounded-lg transition-colors shadow-sm"
               title="Sync messages from Facebook"
             >
-              <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-3.5 h-3.5 ${syncing ? 'animate-spin' : ''}`} />
               {syncing ? 'Syncing...' : 'Sync'}
             </button>
           </div>
 
           {/* Page Selector */}
           <div className="mb-3">
-            <label className="block text-xs font-medium text-slate-400 mb-1.5">Filter by Page</label>
             {loadingPages ? (
-              <div className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-lg text-sm text-slate-500 flex items-center justify-center">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+              <div className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm text-slate-500 flex items-center justify-center">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-500"></div>
               </div>
             ) : (
               <div className="relative">
                 <button
                   onClick={() => setShowPageDropdown(!showPageDropdown)}
-                  className="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-lg text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all cursor-pointer flex items-center gap-2"
+                  className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all cursor-pointer flex items-center gap-2 hover:bg-slate-100 dark:hover:bg-slate-900"
                 >
                   {selectedPageId ? (
                     <>
@@ -397,32 +357,36 @@ const Inbox: React.FC<InboxProps> = ({ workspace }) => {
                       ) : (
                         <Facebook className="w-6 h-6 text-blue-500" />
                       )}
-                      <span className="flex-1 text-left truncate">
+                      <span className="flex-1 text-left truncate font-medium">
                         {connectedPages.find(p => p.pageId === selectedPageId)?.name}
                       </span>
                     </>
                   ) : (
                     <>
-                      <Facebook className="w-6 h-6 text-blue-500" />
-                      <span className="flex-1 text-left">All Pages ({connectedPages.length})</span>
+                      <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400">
+                        <Facebook className="w-5 h-5" />
+                      </div>
+                      <span className="flex-1 text-left font-medium">All Pages ({connectedPages.length})</span>
                     </>
                   )}
                   <ChevronDown className={`w-4 h-4 text-slate-500 transition-transform ${showPageDropdown ? 'rotate-180' : ''}`} />
                 </button>
 
                 {showPageDropdown && (
-                  <div className="absolute z-50 w-full mt-1 bg-slate-900 border border-slate-800 rounded-lg shadow-xl max-h-64 overflow-y-auto custom-scrollbar">
+                  <div className="absolute z-50 w-full mt-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl max-h-64 overflow-y-auto custom-scrollbar">
                     {/* All Pages Option */}
                     <button
                       onClick={() => {
                         setSelectedPageId(null);
                         setShowPageDropdown(false);
                       }}
-                      className={`w-full px-3 py-2.5 text-left hover:bg-slate-800 transition-colors flex items-center gap-2 ${!selectedPageId ? 'bg-blue-600/20 text-blue-400' : 'text-slate-200'
+                      className={`w-full px-3 py-2.5 text-left hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex items-center gap-2 ${!selectedPageId ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400' : 'text-slate-700 dark:text-slate-200'
                         }`}
                     >
-                      <Facebook className="w-6 h-6 text-blue-500 flex-shrink-0" />
-                      <span className="flex-1 text-sm">All Pages ({connectedPages.length})</span>
+                      <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400">
+                        <Facebook className="w-5 h-5" />
+                      </div>
+                      <span className="flex-1 text-sm font-medium">All Pages ({connectedPages.length})</span>
                     </button>
 
                     {/* Individual Pages */}
@@ -433,7 +397,7 @@ const Inbox: React.FC<InboxProps> = ({ workspace }) => {
                           setSelectedPageId(page.pageId);
                           setShowPageDropdown(false);
                         }}
-                        className={`w-full px-3 py-2.5 text-left hover:bg-slate-800 transition-colors flex items-center gap-2 ${selectedPageId === page.pageId ? 'bg-blue-600/20 text-blue-400' : 'text-slate-200'
+                        className={`w-full px-3 py-2.5 text-left hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex items-center gap-2 ${selectedPageId === page.pageId ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400' : 'text-slate-700 dark:text-slate-200'
                           }`}
                       >
                         {page.pageImageUrl ? (
@@ -450,7 +414,7 @@ const Inbox: React.FC<InboxProps> = ({ workspace }) => {
                           </div>
                         )}
                         <div className="flex-1 min-w-0">
-                          <div className="text-sm truncate">{page.name}</div>
+                          <div className="text-sm font-medium truncate">{page.name}</div>
                           <div className="text-xs text-slate-500">{page.pageFollowers?.toLocaleString() || 0} followers</div>
                         </div>
                       </button>
@@ -461,23 +425,23 @@ const Inbox: React.FC<InboxProps> = ({ workspace }) => {
             )}
           </div>
 
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+          <div className="relative group">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-primary-500 transition-colors" />
             <input
               type="text"
-              placeholder="Search..."
-              className="w-full pl-10 pr-4 py-2.5 bg-slate-950 border border-slate-800 rounded-lg text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all placeholder-slate-600"
+              placeholder="Search conversations..."
+              className="w-full pl-10 pr-4 py-2 bg-slate-100 dark:bg-slate-950/50 border border-transparent focus:border-primary-500 focus:bg-white dark:focus:bg-slate-950 rounded-xl text-sm text-slate-900 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-all placeholder-slate-500"
             />
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto custom-scrollbar">
           {loadingConversations ? (
             <div className="p-8 flex justify-center">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"></div>
             </div>
           ) : (
-            <div className="divide-y divide-slate-800">
+            <div className="divide-y divide-slate-100 dark:divide-slate-800">
               {conversations.map(conv => {
                 const sub = subscribers[conv.subscriberId];
                 if (!sub) return null;
@@ -490,19 +454,21 @@ const Inbox: React.FC<InboxProps> = ({ workspace }) => {
                   <button
                     key={conv.id}
                     onClick={() => setSelectedConversationId(conv.id)}
-                    className={`w-full p-4 flex items-start gap-3 hover:bg-slate-800/50 transition-colors text-left ${isSelected ? 'bg-slate-800 border-l-2 border-blue-500' : ''}`}
+                    className={`w-full p-4 flex items-start gap-3 transition-all duration-200 text-left border-l-[3px] ${isSelected
+                      ? 'bg-primary-50/50 dark:bg-primary-900/10 border-primary-500'
+                      : 'border-transparent hover:bg-slate-50 dark:hover:bg-slate-800/50'}`}
                   >
                     <div className="relative flex-shrink-0">
                       {sub.avatarUrl ? (
-                        <img src={sub.avatarUrl} alt={sub.name} className="w-12 h-12 rounded-full object-cover border border-slate-700" />
+                        <img src={sub.avatarUrl} alt={sub.name} className="w-12 h-12 rounded-full object-cover border border-slate-200 dark:border-slate-700 shadow-sm" />
                       ) : (
-                        <div className="w-12 h-12 rounded-full bg-slate-800 flex items-center justify-center text-slate-500">
+                        <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400">
                           <User className="w-6 h-6" />
                         </div>
                       )}
                       {/* Page Badge - Show only when "All Pages" is selected */}
                       {!selectedPageId && conversationPage && (
-                        <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-slate-950 border border-slate-700 flex items-center justify-center overflow-hidden" title={conversationPage.name}>
+                        <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 flex items-center justify-center overflow-hidden shadow-sm" title={conversationPage.name}>
                           {conversationPage.pageImageUrl ? (
                             <img
                               src={conversationPage.pageImageUrl}
@@ -515,24 +481,24 @@ const Inbox: React.FC<InboxProps> = ({ workspace }) => {
                         </div>
                       )}
                       {/* Platform Badge */}
-                      <div className={`absolute -bottom-1 -right-1 p-0.5 rounded-full bg-slate-900 border border-slate-800 shadow-sm ${conv.platform === 'FACEBOOK' ? 'text-blue-500' : 'text-pink-500'
+                      <div className={`absolute -bottom-1 -right-1 p-0.5 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-sm ${conv.platform === 'FACEBOOK' ? 'text-blue-500' : 'text-pink-500'
                         }`}>
                         {conv.platform === 'FACEBOOK' ? <Facebook className="w-3 h-3" /> : <Instagram className="w-3 h-3" />}
                       </div>
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex justify-between items-baseline mb-1">
-                        <span className={`font-medium truncate ${isSelected ? 'text-blue-400' : 'text-slate-200'}`}>{sub.name}</span>
-                        <span className="text-xs text-slate-500 flex-shrink-0 ml-2">
+                        <span className={`font-semibold truncate ${isSelected ? 'text-primary-700 dark:text-primary-400' : 'text-slate-900 dark:text-slate-100'}`}>{sub.name}</span>
+                        <span className="text-xs text-slate-400 dark:text-slate-500 flex-shrink-0 ml-2 font-medium">
                           {format(new Date(conv.updatedAt), 'MMM d')}
                         </span>
                       </div>
-                      <p className={`text-sm truncate ${conv.unreadCount > 0 ? 'font-semibold text-slate-300' : 'text-slate-500'}`}>
+                      <p className={`text-sm truncate ${conv.unreadCount > 0 ? 'font-semibold text-slate-900 dark:text-white' : 'text-slate-500 dark:text-slate-400'}`}>
                         {conv.lastMessagePreview}
                       </p>
                     </div>
                     {conv.unreadCount > 0 && (
-                      <div className="min-w-[1.25rem] h-5 rounded-full bg-blue-600 text-white text-xs font-bold flex items-center justify-center px-1.5 mt-1">
+                      <div className="min-w-[1.25rem] h-5 rounded-full bg-primary-500 text-white text-xs font-bold flex items-center justify-center px-1.5 mt-1 shadow-sm shadow-primary-500/30">
                         {conv.unreadCount}
                       </div>
                     )}
@@ -540,9 +506,12 @@ const Inbox: React.FC<InboxProps> = ({ workspace }) => {
                 );
               })}
               {conversations.length === 0 && (
-                <div className="p-8 text-center text-slate-500 flex flex-col items-center">
-                  <MessageSquare className="w-8 h-8 mb-2 opacity-20" />
-                  <p className="text-sm">No conversations found</p>
+                <div className="p-12 text-center text-slate-400 dark:text-slate-500 flex flex-col items-center">
+                  <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-800/50 flex items-center justify-center mb-4">
+                    <MessageSquare className="w-8 h-8 opacity-40" />
+                  </div>
+                  <h3 className="text-slate-900 dark:text-white font-medium mb-1">No conversations</h3>
+                  <p className="text-sm">When you receive messages, they will appear here.</p>
                 </div>
               )}
             </div>
@@ -552,17 +521,17 @@ const Inbox: React.FC<InboxProps> = ({ workspace }) => {
 
       {/* Chat Area - Hidden on mobile if no conversation selected */}
       <div className={`
-        flex-1 flex-col min-w-0 bg-slate-900
+        flex-1 flex-col min-w-0 bg-slate-50 dark:bg-slate-950
         ${selectedConversationId ? 'flex' : 'hidden md:flex'}
       `}>
         {selectedConversationId ? (
           <>
             {/* Chat Header */}
-            <div className="h-16 px-4 md:px-6 border-b border-slate-800 flex items-center justify-between flex-shrink-0 bg-slate-900 z-10">
+            <div className="h-16 px-4 md:px-6 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between flex-shrink-0 bg-white dark:bg-slate-900 z-10 shadow-sm relative">
               <div className="flex items-center gap-3 min-w-0">
                 <button
                   onClick={() => setSelectedConversationId(null)}
-                  className="md:hidden p-2 -ml-2 text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded-full"
+                  className="md:hidden p-2 -ml-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors"
                 >
                   <ArrowLeft className="w-5 h-5" />
                 </button>
@@ -571,18 +540,19 @@ const Inbox: React.FC<InboxProps> = ({ workspace }) => {
                   <div className="flex items-center gap-3 overflow-hidden">
                     <div className="relative flex-shrink-0">
                       {selectedSubscriber.avatarUrl ? (
-                        <img src={selectedSubscriber.avatarUrl} alt={selectedSubscriber.name} className="w-9 h-9 rounded-full object-cover border border-slate-700" />
+                        <img src={selectedSubscriber.avatarUrl} alt={selectedSubscriber.name} className="w-10 h-10 rounded-full object-cover border border-slate-200 dark:border-slate-700 shadow-sm" />
                       ) : (
-                        <div className="w-9 h-9 rounded-full bg-slate-800 flex items-center justify-center text-slate-500">
+                        <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400">
                           <User className="w-5 h-5" />
                         </div>
                       )}
+
                     </div>
                     <div className="min-w-0">
-                      <h3 className="font-bold text-slate-100 truncate text-sm md:text-base">{selectedSubscriber.name}</h3>
+                      <h3 className="font-bold text-slate-900 dark:text-slate-100 truncate text-sm md:text-base">{selectedSubscriber.name}</h3>
                       <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
                         {selectedSubscriber.tags.map(tag => (
-                          <span key={tag} className="px-1.5 py-0.5 bg-slate-800 text-slate-400 text-[10px] uppercase tracking-wide rounded font-medium flex-shrink-0 border border-slate-700">
+                          <span key={tag} className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 text-[10px] uppercase tracking-wide rounded font-semibold flex-shrink-0 border border-slate-200 dark:border-slate-700">
                             {tag}
                           </span>
                         ))}
@@ -592,30 +562,25 @@ const Inbox: React.FC<InboxProps> = ({ workspace }) => {
                 )}
               </div>
               <div className="flex items-center gap-2">
-                <button
-                  onClick={handleSync}
-                  disabled={syncing}
-                  className="p-2 text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded-full transition-colors disabled:opacity-50"
-                  title="Sync messages from Facebook"
-                >
-                  <RefreshCw className={`w-5 h-5 ${syncing ? 'animate-spin' : ''}`} />
-                </button>
                 <div className="relative">
                   <button
                     onClick={() => setShowConversationMenu(!showConversationMenu)}
-                    className="p-2 text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded-full transition-colors"
+                    className="p-2 text-slate-400 hover:text-primary-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors"
                   >
                     <MoreVertical className="w-5 h-5" />
                   </button>
 
                   {showConversationMenu && (
-                    <div className="absolute right-0 mt-2 w-48 bg-slate-900 border border-slate-800 rounded-lg shadow-xl z-50">
+                    <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl z-50 overflow-hidden ring-1 ring-black/5 animate-fade-in origin-top-right">
+                      <div className="p-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50">
+                        <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Options</p>
+                      </div>
                       <button
                         onClick={handleDeleteConversation}
-                        className="w-full px-4 py-2.5 text-left text-red-400 hover:bg-slate-800 transition-colors flex items-center gap-2 rounded-lg"
+                        className="w-full px-4 py-3 text-left text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors flex items-center gap-3"
                       >
                         <X className="w-4 h-4" />
-                        <span className="text-sm">Delete Conversation</span>
+                        <span className="text-sm font-medium">Delete Conversation</span>
                       </button>
                     </div>
                   )}
@@ -624,10 +589,10 @@ const Inbox: React.FC<InboxProps> = ({ workspace }) => {
             </div>
 
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 bg-slate-950">
+            <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 bg-slate-50 dark:bg-slate-950">
               {loadingMessages ? (
                 <div className="flex items-center justify-center h-full">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 opacity-20"></div>
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500 opacity-50"></div>
                 </div>
               ) : (
                 <>
@@ -635,16 +600,25 @@ const Inbox: React.FC<InboxProps> = ({ workspace }) => {
                     const isOutbound = msg.direction === 'OUTBOUND';
                     return (
                       <div key={msg.id} className={`flex ${isOutbound ? 'justify-end' : 'justify-start'}`}>
-                        <div className={`max-w-[70%] ${isOutbound ? 'ml-auto' : 'mr-auto'}`}>
-                          <div className={`rounded-2xl px-4 py-2 ${isOutbound
-                            ? 'bg-blue-600 text-white rounded-br-sm'
-                            : 'bg-slate-800 text-slate-100 rounded-bl-sm'
+                        {!isOutbound && (
+                          <div className="flex-shrink-0 mr-2 mt-auto">
+                            {selectedSubscriber?.avatarUrl ? (
+                              <img src={selectedSubscriber.avatarUrl} alt="" className="w-6 h-6 rounded-full object-cover" />
+                            ) : (
+                              <div className="w-6 h-6 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-slate-400 text-[10px]"><User className="w-3 h-3" /></div>
+                            )}
+                          </div>
+                        )}
+                        <div className={`max-w-[75%] md:max-w-[65%] leading-relaxed ${isOutbound ? 'ml-auto' : 'mr-auto'}`}>
+                          <div className={`px-4 py-2.5 shadow-sm text-sm md:text-[15px] ${isOutbound
+                            ? 'bg-primary-600 dark:bg-primary-600 text-white rounded-2xl rounded-tr-sm'
+                            : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-100 border border-slate-200 dark:border-slate-700 rounded-2xl rounded-tl-sm'
                             }`}>
                             {msg.type === 'IMAGE' && msg.attachmentUrl && (
                               <img
                                 src={msg.attachmentUrl}
                                 alt="Attachment"
-                                className="rounded-lg mb-2 max-w-full max-h-96 object-contain"
+                                className="rounded-lg mb-2 max-w-full max-h-96 object-contain bg-black/5 dark:bg-black/20"
                                 onError={(e) => {
                                   console.error('Image load error:', msg.attachmentUrl);
                                   e.currentTarget.style.display = 'none';
@@ -652,34 +626,36 @@ const Inbox: React.FC<InboxProps> = ({ workspace }) => {
                               />
                             )}
                             {msg.type === 'VIDEO' && msg.attachmentUrl && (
-                              <video src={msg.attachmentUrl} controls className="rounded-lg mb-2 max-w-full max-h-96" />
+                              <video src={msg.attachmentUrl} controls className="rounded-lg mb-2 max-w-full max-h-96 bg-black" />
                             )}
                             {msg.type === 'FILE' && msg.attachmentUrl && (
-                              <a href={msg.attachmentUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 mb-2">
-                                <FileText className="w-4 h-4" />
-                                <span className="text-sm underline">{msg.fileName || 'Download File'}</span>
+                              <a href={msg.attachmentUrl} target="_blank" rel="noopener noreferrer" className={`flex items-center gap-3 p-3 rounded-lg mb-2 border ${isOutbound ? 'bg-white/10 border-white/20' : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700'}`}>
+                                <FileText className="w-5 h-5 opacity-80" />
+                                <div className="min-w-0 flex-1">
+                                  <span className="text-sm font-medium underline line-clamp-1 break-all">{msg.fileName || 'Download File'}</span>
+                                </div>
                               </a>
                             )}
                             {msg.content && <p className="whitespace-pre-wrap break-words">{msg.content}</p>}
                           </div>
-                          <div className={`flex items-center gap-2 mt-1 ${isOutbound ? 'justify-end' : 'justify-start'
+                          <div className={`flex items-center gap-2 mt-1 px-1 ${isOutbound ? 'justify-end' : 'justify-start'
                             }`}>
                             {isOutbound && (
                               <>
                                 {msg.status === 'SENT' && (
-                                  <span className="text-xs text-slate-500">Sending...</span>
+                                  <span className="text-[11px] text-slate-400 dark:text-slate-500 font-medium">Sending...</span>
                                 )}
                                 {msg.status === 'DELIVERED' && (
-                                  <span className="text-xs text-slate-500">
-                                    Sent {format(new Date(msg.createdAt), 'h:mm a')}
+                                  <span className="text-[11px] text-slate-400 dark:text-slate-500 font-medium">
+                                    {format(new Date(msg.createdAt), 'h:mm a')}
                                   </span>
                                 )}
                                 {msg.status === 'FAILED' && (
                                   <>
-                                    <span className="text-xs text-red-400">Failed</span>
+                                    <span className="text-[11px] text-red-500 font-medium">Failed</span>
                                     <button
                                       onClick={() => handleRetryMessage(msg)}
-                                      className="text-xs text-blue-400 hover:text-blue-300 underline"
+                                      className="text-[11px] text-primary-500 hover:underline font-medium ml-1"
                                     >
                                       Retry
                                     </button>
@@ -688,7 +664,7 @@ const Inbox: React.FC<InboxProps> = ({ workspace }) => {
                               </>
                             )}
                             {!isOutbound && (
-                              <span className="text-xs text-slate-500">
+                              <span className="text-[11px] text-slate-400 dark:text-slate-500 font-medium">
                                 {format(new Date(msg.createdAt), 'h:mm a')}
                               </span>
                             )}
@@ -704,88 +680,98 @@ const Inbox: React.FC<InboxProps> = ({ workspace }) => {
 
             {/* Attachment Preview Area */}
             {selectedFile && (
-              <div className="px-4 py-2 border-t border-slate-800 bg-slate-900 flex items-center gap-4">
+              <div className="px-4 py-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 flex items-center gap-4">
                 <div className="relative group">
                   {filePreview ? (
                     selectedFile.type.startsWith('video/') ? (
-                      <video src={filePreview} className="h-20 w-auto rounded-lg border border-slate-700 object-cover" autoPlay muted loop />
+                      <video src={filePreview} className="h-20 w-auto rounded-lg border border-slate-200 dark:border-slate-700 object-cover shadow-sm" autoPlay muted loop />
                     ) : (
-                      <img src={filePreview} alt="Preview" className="h-20 w-auto rounded-lg border border-slate-700 object-cover" />
+                      <img src={filePreview} alt="Preview" className="h-20 w-auto rounded-lg border border-slate-200 dark:border-slate-700 object-cover shadow-sm" />
                     )
                   ) : (
-                    <div className="h-16 w-16 bg-slate-800 rounded-lg border border-slate-700 flex items-center justify-center">
-                      <FileText className="w-8 h-8 text-slate-500" />
+                    <div className="h-20 w-20 bg-slate-100 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center justify-center">
+                      <FileText className="w-8 h-8 text-slate-400" />
                     </div>
                   )}
                   <button
                     onClick={clearFile}
-                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-sm hover:bg-red-600 transition-colors"
+                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-md hover:bg-red-600 transition-colors transform hover:scale-110"
                   >
                     <X className="w-3 h-3" />
                   </button>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-slate-200 truncate">{selectedFile.name}</p>
+                  <p className="text-sm font-medium text-slate-900 dark:text-slate-200 truncate">{selectedFile.name}</p>
                   <p className="text-xs text-slate-500">{(selectedFile.size / 1024 / 1024).toFixed(2)} MB</p>
                 </div>
               </div>
             )}
 
             {/* Input */}
-            <div className="p-3 md:p-4 bg-slate-900 border-t border-slate-800 flex-shrink-0">
-              <form onSubmit={handleSendMessage} className="flex items-end gap-2 bg-slate-950 rounded-xl border border-slate-800 p-2 focus-within:ring-2 focus-within:ring-blue-900 focus-within:border-blue-700 transition-all">
-                <div className="flex gap-1">
+            <div className="p-4 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 flex-shrink-0">
+              <form onSubmit={handleSendMessage} className="flex items-end gap-2 p-1 relative">
+                <div className="flex gap-2 mb-2">
                   <input
                     type="file"
                     ref={fileInputRef}
                     className="hidden"
                     onChange={handleFileSelect}
-                    // Accept commonly supported formats
                     accept="image/*,video/*,application/pdf,.doc,.docx"
                   />
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    className={`p-2 rounded-lg transition-colors ${selectedFile ? 'text-blue-500 bg-blue-900/20' : 'text-slate-400 hover:text-blue-500 hover:bg-slate-800'}`}
+                    className={`p-2.5 rounded-full transition-colors ${selectedFile
+                      ? 'text-primary-600 bg-primary-50 dark:bg-primary-900/20'
+                      : 'text-slate-400 hover:text-primary-600 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
                     title="Attach file"
                   >
                     <Paperclip className="w-5 h-5" />
                   </button>
-                  <button type="button" className="p-2 text-slate-400 hover:text-amber-500 rounded-lg hover:bg-slate-800 transition-colors">
+                  <button type="button" className="p-2.5 text-slate-400 hover:text-amber-500 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
                     <Smile className="w-5 h-5" />
                   </button>
                 </div>
-                <textarea
-                  value={inputText}
-                  onChange={e => setInputText(e.target.value)}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault();
-                      handleSendMessage(e);
-                    }
-                  }}
-                  placeholder={selectedFile ? "Add a caption..." : "Type a message..."}
-                  className="flex-1 bg-transparent border-none focus:ring-0 text-slate-200 placeholder:text-slate-600 resize-none py-2 max-h-32 text-sm leading-relaxed"
-                  rows={1}
-                  style={{ minHeight: '2.5rem' }}
-                />
-                <button
-                  type="submit"
-                  disabled={!inputText.trim() && !selectedFile}
-                  className="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm mb-0.5"
-                >
-                  <Send className="w-4 h-4" />
-                </button>
+
+                <div className="flex-1 bg-slate-100 dark:bg-slate-800/50 rounded-2xl flex items-center border border-transparent focus-within:border-primary-500/50 focus-within:bg-white dark:focus-within:bg-slate-800 focus-within:ring-2 focus-within:ring-primary-500/20 transition-all">
+                  <textarea
+                    value={inputText}
+                    onChange={e => setInputText(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        handleSendMessage(e);
+                      }
+                    }}
+                    placeholder={selectedFile ? "Add a caption..." : "Type a message..."}
+                    className="flex-1 bg-transparent border-none focus:ring-0 text-slate-900 dark:text-slate-200 placeholder:text-slate-500 resize-none py-3 px-4 max-h-32 text-sm leading-relaxed"
+                    rows={1}
+                    style={{ minHeight: '3rem' }}
+                  />
+                </div>
+
+                <div className="mb-1">
+                  <button
+                    type="submit"
+                    disabled={!inputText.trim() && !selectedFile}
+                    className="p-3 bg-primary-600 text-white rounded-full hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md shadow-primary-600/20 hover:shadow-lg hover:shadow-primary-600/30 active:scale-95"
+                  >
+                    <Send className="w-5 h-5 ml-0.5" />
+                  </button>
+                </div>
               </form>
             </div>
           </>
         ) : (
-          <div className="flex-1 flex flex-col items-center justify-center bg-slate-950 text-slate-500 p-8 text-center">
-            <div className="w-16 h-16 bg-slate-900 rounded-full flex items-center justify-center mb-4 shadow-sm border border-slate-800">
-              <MessageSquare className="w-8 h-8 text-slate-700" />
+          <div className="flex-1 flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-950 text-slate-500 p-8 text-center animate-fade-in">
+            <div className="w-20 h-20 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center justify-center mb-6 shadow-card dark:shadow-none rotate-3 hover:rotate-6 transition-transform duration-300">
+              <div className="absolute inset-0 bg-gradient-to-tr from-primary-500/10 to-transparent rounded-full" />
+              <MessageSquare className="w-10 h-10 text-primary-500" />
             </div>
-            <h3 className="text-slate-200 font-medium mb-1">Your Inbox</h3>
-            <p className="text-sm">Select a conversation from the list to start chatting</p>
+            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Your Inbox</h3>
+            <p className="text-slate-500 dark:text-slate-400 max-w-xs mx-auto leading-relaxed">
+              Select a conversation from the sidebar to start chatting with your subscribers.
+            </p>
           </div>
         )}
       </div>

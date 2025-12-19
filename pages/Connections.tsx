@@ -235,18 +235,22 @@ const Connections: React.FC<ConnectionsProps> = ({ workspace }) => {
     }
   };
 
-  if (loading) return <div className="p-8 text-center text-slate-500">Loading connections...</div>;
+  if (loading) return (
+    <div className="flex items-center justify-center p-12">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"></div>
+    </div>
+  );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-100">Connections</h1>
-          <p className="text-slate-400 mt-1">Connect your personal social media profiles to manage pages.</p>
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Connections</h1>
+          <p className="text-slate-500 dark:text-slate-400 mt-1">Connect your personal social media profiles to manage pages.</p>
         </div>
         <button
           onClick={handleConnect}
-          className="flex items-center gap-2 bg-[#1877F2] hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg font-medium transition-colors shadow-lg shadow-blue-900/30"
+          className="flex items-center gap-2 bg-[#1877F2] hover:bg-blue-600 active:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-medium transition-all shadow-lg shadow-blue-500/30 hover:shadow-blue-500/40"
         >
           <Plus className="w-5 h-5" />
           Add Account
@@ -255,50 +259,51 @@ const Connections: React.FC<ConnectionsProps> = ({ workspace }) => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {connections.map(connection => (
-          <div key={connection.id} className="bg-slate-800/50 rounded-xl shadow-lg border border-slate-700 overflow-hidden backdrop-blur-sm">
+          <div key={connection.id} className="bg-white dark:bg-slate-900 rounded-2xl shadow-card dark:shadow-none border border-slate-200 dark:border-slate-800 overflow-hidden group hover:border-slate-300 dark:hover:border-slate-700 transition-colors">
             <div className="p-6">
-              <div className="flex items-center gap-4 mb-4">
+              <div className="flex items-center gap-4 mb-5">
                 <div className="relative">
                   {connection.imageUrl ? (
-                    <img src={connection.imageUrl} alt={connection.name} className="w-14 h-14 rounded-full border border-slate-600" />
+                    <img src={connection.imageUrl} alt={connection.name} className="w-16 h-16 rounded-full border border-slate-200 dark:border-slate-700 object-cover" />
                   ) : (
-                    <div className="w-14 h-14 bg-slate-700 rounded-full flex items-center justify-center text-slate-400">
-                      <UserCheck className="w-6 h-6" />
+                    <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center text-slate-400 dark:text-slate-500">
+                      <UserCheck className="w-7 h-7" />
                     </div>
                   )}
-                  <div className="absolute -bottom-1 -right-1 bg-slate-800 rounded-full p-0.5">
-                    <div className="bg-[#1877F2] text-white rounded-full p-1">
-                      <Facebook className="w-3 h-3" />
+                  <div className="absolute -bottom-1 -right-1 bg-white dark:bg-slate-900 rounded-full p-1 shadow-sm">
+                    <div className="bg-[#1877F2] text-white rounded-full p-1.5 flex items-center justify-center">
+                      <Facebook className="w-3.5 h-3.5" />
                     </div>
                   </div>
                 </div>
-                <div>
-                  <h3 className="font-bold text-slate-100 line-clamp-1">{connection.name}</h3>
-                  <p className="text-xs text-slate-500 font-mono">ID: {connection.externalId}</p>
+                <div className="min-w-0">
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-white line-clamp-1">{connection.name}</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-mono mt-0.5 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded inline-block">ID: {connection.externalId}</p>
                 </div>
               </div>
 
               <div className="flex items-center gap-2 mb-6">
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-green-900/30 text-green-400 border border-green-800">
-                  <CheckCircle className="w-3 h-3" />
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-900/50">
+                  <CheckCircle className="w-3.5 h-3.5" />
                   Connected
                 </span>
-                <span className="text-xs text-slate-500">
+                <span className="text-xs text-slate-500 dark:text-slate-400 ml-auto">
                   via Graph API
                 </span>
               </div>
 
-              <div className="flex gap-2">
+              <div className="flex gap-3">
                 <button
                   onClick={handleRefresh}
-                  className="flex-1 py-2 px-3 text-sm font-medium text-slate-300 bg-slate-700/50 hover:bg-slate-700 rounded-lg transition-colors flex items-center justify-center gap-2"
+                  className="flex-1 py-2.5 px-4 text-sm font-semibold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl transition-colors flex items-center justify-center gap-2"
                 >
                   <RefreshCw className="w-4 h-4" />
                   Refresh
                 </button>
                 <button
                   onClick={() => handleDelete(connection.id, connection.name)}
-                  className="py-2 px-3 text-sm font-medium text-red-400 bg-red-900/30 hover:bg-red-900/50 rounded-lg transition-colors flex items-center justify-center"
+                  className="py-2.5 px-4 text-sm font-semibold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40 rounded-xl transition-colors flex items-center justify-center"
+                  title="Remove Connection"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
@@ -308,15 +313,15 @@ const Connections: React.FC<ConnectionsProps> = ({ workspace }) => {
         ))}
 
         {connections.length === 0 && (
-          <div className="col-span-full py-16 text-center bg-slate-800/50 rounded-xl border-2 border-dashed border-slate-700">
-            <div className="w-16 h-16 bg-blue-900/30 text-blue-400 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Facebook className="w-8 h-8" />
+          <div className="col-span-full py-16 text-center bg-white dark:bg-slate-900 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-800">
+            <div className="w-20 h-20 bg-blue-50 dark:bg-blue-900/20 text-blue-500 dark:text-blue-400 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Facebook className="w-10 h-10" />
             </div>
-            <h3 className="text-lg font-bold text-slate-100">No accounts connected</h3>
-            <p className="text-slate-400 max-w-sm mx-auto mt-2 mb-6">Connect your personal Facebook profile to start importing your business pages.</p>
+            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">No accounts connected</h3>
+            <p className="text-slate-500 dark:text-slate-400 max-w-md mx-auto mb-8">Connect your personal Facebook profile to start importing your business pages and automations.</p>
             <button
               onClick={handleConnect}
-              className="bg-[#1877F2] hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors shadow-lg shadow-blue-900/30"
+              className="bg-[#1877F2] hover:bg-blue-600 text-white px-8 py-3 rounded-xl font-bold transition-transform active:scale-95 shadow-lg shadow-blue-500/20"
             >
               Connect Profile
             </button>

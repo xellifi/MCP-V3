@@ -50,86 +50,95 @@ const ApiKeys: React.FC<ApiKeysProps> = ({ workspace }) => {
   };
 
   if (loading) {
-      return <div className="p-8 text-center text-slate-500">Loading settings...</div>;
+    return (
+      <div className="flex items-center justify-center p-12">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"></div>
+      </div>
+    );
   }
 
+  const inputClasses = "w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none transition-all placeholder-slate-400 dark:placeholder-slate-500 font-mono text-sm";
+  const labelClasses = "block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2";
+
   return (
-    <div className="max-w-3xl mx-auto space-y-8">
+    <div className="max-w-3xl mx-auto space-y-8 pb-12 animate-fade-in">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">API Keys</h1>
-        <p className="text-slate-500 mt-1">Configure AI provider keys for this workspace ({workspace.name}).</p>
+        <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">API Keys</h1>
+        <p className="text-slate-500 dark:text-slate-400 mt-2 text-lg">Configure AI provider keys for this workspace ({workspace.name}).</p>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
-        <div className="p-6 border-b border-slate-100 bg-slate-50 flex items-center gap-3">
-          <div className="p-2 bg-indigo-100 text-indigo-600 rounded-lg">
-            <Bot className="w-5 h-5" />
+      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-card dark:shadow-none border border-slate-200 dark:border-slate-800 overflow-hidden">
+        <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex items-center gap-4 bg-slate-50/50 dark:bg-slate-950/50">
+          <div className="p-3 bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400 rounded-xl shadow-sm">
+            <Bot className="w-6 h-6" />
           </div>
           <div>
-            <h3 className="font-bold text-slate-900">AI Providers</h3>
-            <p className="text-xs text-slate-500">These keys allow your automation flows to use AI agents.</p>
+            <h3 className="font-bold text-slate-900 dark:text-white text-lg">AI Providers</h3>
+            <p className="text-sm text-slate-500 dark:text-slate-400">These keys allow your automation flows to use AI agents.</p>
           </div>
         </div>
 
-        <form onSubmit={handleSave} className="p-6 space-y-6">
-          
+        <form onSubmit={handleSave} className="p-8 space-y-8">
+
           {/* OpenAI */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">OpenAI API Key</label>
+            <label className={labelClasses}>OpenAI API Key</label>
             <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Key className="h-4 w-4 text-slate-400" />
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                <Key className="h-5 w-5 text-slate-400" />
               </div>
-              <input 
+              <input
                 type={showOpenAi ? "text" : "password"}
                 value={settings.openaiApiKey}
-                onChange={e => setSettings({...settings, openaiApiKey: e.target.value})}
-                className="w-full border border-slate-200 rounded-lg pl-10 pr-10 py-2.5 focus:ring-2 focus:ring-blue-500 outline-none font-mono"
+                onChange={e => setSettings({ ...settings, openaiApiKey: e.target.value })}
+                className={`${inputClasses} pl-12 pr-12`}
                 placeholder="sk-..."
               />
-              <button 
+              <button
                 type="button"
                 onClick={() => setShowOpenAi(!showOpenAi)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+                tabIndex={-1}
               >
-                {showOpenAi ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                {showOpenAi ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
             </div>
-            <p className="mt-1 text-xs text-slate-400">Used for GPT-4 and GPT-3.5 Turbo models.</p>
+            <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">Used for GPT-4 and GPT-3.5 Turbo models.</p>
           </div>
 
           {/* Gemini */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">Google Gemini API Key</label>
+            <label className={labelClasses}>Google Gemini API Key</label>
             <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Key className="h-4 w-4 text-slate-400" />
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                <Key className="h-5 w-5 text-slate-400" />
               </div>
-              <input 
+              <input
                 type={showGemini ? "text" : "password"}
                 value={settings.geminiApiKey}
-                onChange={e => setSettings({...settings, geminiApiKey: e.target.value})}
-                className="w-full border border-slate-200 rounded-lg pl-10 pr-10 py-2.5 focus:ring-2 focus:ring-blue-500 outline-none font-mono"
+                onChange={e => setSettings({ ...settings, geminiApiKey: e.target.value })}
+                className={`${inputClasses} pl-12 pr-12`}
                 placeholder="AIza..."
               />
-              <button 
+              <button
                 type="button"
                 onClick={() => setShowGemini(!showGemini)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+                tabIndex={-1}
               >
-                {showGemini ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                {showGemini ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
             </div>
-             <p className="mt-1 text-xs text-slate-400">Used for Gemini Pro and Flash models.</p>
+            <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">Used for Gemini Pro and Flash models.</p>
           </div>
 
-          <div className="pt-4 border-t border-slate-100 flex justify-end">
-            <button 
-              type="submit" 
+          <div className="pt-6 border-t border-slate-100 dark:border-slate-800 flex justify-end">
+            <button
+              type="submit"
               disabled={saving}
-              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg font-medium shadow-sm shadow-blue-200 transition-all disabled:opacity-50"
+              className="flex items-center gap-2 bg-primary-600 hover:bg-primary-700 text-white px-8 py-3 rounded-xl font-bold shadow-lg shadow-primary-500/20 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <Save className="w-4 h-4" />
+              <Save className="w-5 h-5" />
               {saving ? 'Saving...' : 'Save Keys'}
             </button>
           </div>

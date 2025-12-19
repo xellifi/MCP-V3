@@ -27,14 +27,6 @@ const Support: React.FC<SupportProps> = ({ user, workspace }) => {
     const { isDark } = useTheme();
     const isAdmin = user.role === UserRole.ADMIN || user.role === UserRole.OWNER;
 
-    // Theme-aware classes
-    const cardBg = isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200';
-    const cardText = isDark ? 'text-slate-100' : 'text-slate-900';
-    const subText = isDark ? 'text-slate-400' : 'text-slate-600';
-    const borderColor = isDark ? 'border-slate-700' : 'border-slate-200';
-    const inputBg = isDark ? 'bg-slate-900 border-slate-700 text-slate-100' : 'bg-white border-slate-200 text-slate-900';
-    const headerBg = isDark ? 'bg-slate-900' : 'bg-slate-50';
-
     useEffect(() => {
         loadTickets();
     }, [workspace.id, isAdmin]);
@@ -104,26 +96,33 @@ const Support: React.FC<SupportProps> = ({ user, workspace }) => {
 
     const getStatusColor = (status: string) => {
         switch (status) {
-            case 'OPEN': return 'bg-blue-100 text-blue-700';
-            case 'IN_PROGRESS': return 'bg-amber-100 text-amber-700';
-            case 'RESOLVED': return 'bg-green-100 text-green-700';
-            case 'CLOSED': return isDark ? 'bg-slate-700 text-slate-300' : 'bg-slate-100 text-slate-700';
-            default: return isDark ? 'bg-slate-700 text-slate-300' : 'bg-slate-100 text-slate-700';
+            case 'OPEN': return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400';
+            case 'IN_PROGRESS': return 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400';
+            case 'RESOLVED': return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400';
+            case 'CLOSED': return 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400';
+            default: return 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400';
         }
     };
 
+    // Semantic colors
+    const cardBg = 'bg-white dark:bg-slate-900';
+    const borderColor = 'border-slate-200 dark:border-slate-800';
+    const cardText = 'text-slate-900 dark:text-white';
+    const subText = 'text-slate-500 dark:text-slate-400';
+
     return (
-        <div className="h-[calc(100vh-8rem)] flex gap-6">
+        <div className="h-[calc(100vh-8rem)] flex gap-6 animate-fade-in">
             {/* Ticket List */}
-            <div className={`flex-col rounded-xl shadow-sm border w-full md:w-1/3 overflow-hidden ${cardBg} ${selectedTicket ? 'hidden md:flex' : 'flex'}`}>
-                <div className={`p-4 border-b flex justify-between items-center ${borderColor} ${headerBg}`}>
+            <div className={`flex-col rounded-2xl shadow-card dark:shadow-none border ${borderColor} w-full md:w-1/3 overflow-hidden ${cardBg} ${selectedTicket ? 'hidden md:flex' : 'flex'}`}>
+                <div className={`p-4 border-b flex justify-between items-center ${borderColor} bg-slate-50/50 dark:bg-slate-900/50`}>
                     <h2 className={`font-bold ${cardText}`}>Support Tickets</h2>
                     {!isAdmin && (
                         <button
                             onClick={() => setIsModalOpen(true)}
-                            className="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
+                            className="p-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors shadow-sm"
+                            title="New Ticket"
                         >
-                            <Plus className="w-4 h-4" />
+                            <Plus className="w-5 h-5" />
                         </button>
                     )}
                 </div>
@@ -133,148 +132,161 @@ const Support: React.FC<SupportProps> = ({ user, workspace }) => {
                         <button
                             key={ticket.id}
                             onClick={() => setSelectedTicket(ticket)}
-                            className={`w-full text-left p-4 rounded-lg border transition-all ${selectedTicket?.id === ticket.id
-                                ? 'border-blue-500 bg-blue-500/10 shadow-md ring-1 ring-blue-500'
-                                : `${borderColor} ${isDark ? 'hover:bg-slate-700' : 'hover:bg-slate-50'}`
+                            className={`w-full text-left p-4 rounded-xl border transition-all ${selectedTicket?.id === ticket.id
+                                ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/10 shadow-sm ring-1 ring-primary-500'
+                                : `border-transparent hover:bg-slate-50 dark:hover:bg-slate-800 border-b-slate-100 dark:border-b-slate-800/50`
                                 }`}
                         >
-                            <div className="flex justify-between items-start mb-1">
-                                <span className={`text-xs font-bold px-2 py-0.5 rounded ${getStatusColor(ticket.status)}`}>
-                                    {ticket.status}
+                            <div className="flex justify-between items-start mb-2">
+                                <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full ${getStatusColor(ticket.status)}`}>
+                                    {ticket.status.replace('_', ' ')}
                                 </span>
                                 <span className={`text-xs ${subText}`}>{format(new Date(ticket.lastUpdateAt), 'MMM d')}</span>
                             </div>
                             <h3 className={`font-semibold mb-1 line-clamp-1 ${cardText}`}>{ticket.subject}</h3>
-                            <p className={`text-sm line-clamp-2 ${subText}`}>
+                            <p className={`text-sm line-clamp-2 ${subText} opacity-80`}>
                                 {ticket.messages[ticket.messages.length - 1]?.content}
                             </p>
                         </button>
                     ))}
                     {tickets.length === 0 && !loading && (
-                        <div className={`p-8 text-center ${subText}`}>
-                            <MessageCircle className={`w-12 h-12 mx-auto mb-2 opacity-20 ${isDark ? 'text-slate-600' : 'text-slate-300'}`} />
+                        <div className={`py-12 text-center ${subText}`}>
+                            <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <MessageCircle className="w-8 h-8 text-slate-300 dark:text-slate-600" />
+                            </div>
                             <p>No tickets found.</p>
+                        </div>
+                    )}
+                    {loading && (
+                        <div className="flex justify-center p-8">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"></div>
                         </div>
                     )}
                 </div>
             </div>
 
             {/* Ticket Detail / Chat */}
-            <div className={`flex-1 rounded-xl shadow-sm border flex-col overflow-hidden ${cardBg} ${selectedTicket ? 'flex' : 'hidden md:flex'}`}>
+            <div className={`flex-1 rounded-2xl shadow-card dark:shadow-none border ${borderColor} flex-col overflow-hidden ${cardBg} ${selectedTicket ? 'flex' : 'hidden md:flex'}`}>
                 {selectedTicket ? (
                     <>
-                        <div className={`p-4 border-b flex items-center justify-between ${borderColor} ${headerBg}`}>
+                        <div className={`p-4 border-b flex items-center justify-between ${borderColor} bg-slate-50/50 dark:bg-slate-900/50`}>
                             <div className="flex items-center gap-3">
-                                <button className={`md:hidden p-1 ${subText}`} onClick={() => setSelectedTicket(null)}>
+                                <button
+                                    className={`md:hidden p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors ${subText}`}
+                                    onClick={() => setSelectedTicket(null)}
+                                >
                                     <X className="w-5 h-5" />
                                 </button>
                                 <div>
-                                    <h2 className={`font-bold ${cardText}`}>{selectedTicket.subject}</h2>
-                                    <p className={`text-xs ${subText}`}>Ticket ID: {selectedTicket.id}</p>
+                                    <h2 className={`font-bold ${cardText} text-lg line-clamp-1`}>{selectedTicket.subject}</h2>
+                                    <p className={`text-xs ${subText} font-mono mt-0.5`}>ID: {selectedTicket.id}</p>
                                 </div>
                             </div>
-                            <span className={`text-xs ${subText}`}>Priority: {selectedTicket.priority}</span>
+                            <span className={`text-xs font-medium px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 ${subText}`}>Priority: {selectedTicket.priority}</span>
                         </div>
 
-                        <div className={`flex-1 overflow-y-auto p-4 space-y-4 ${isDark ? 'bg-slate-900/50' : 'bg-slate-50/50'}`}>
+                        <div className={`flex-1 overflow-y-auto p-6 space-y-6 ${isDark ? 'bg-slate-950' : 'bg-slate-50'}`}>
                             {selectedTicket.messages.map(msg => {
                                 const isMe = msg.senderId === user.id;
                                 const isSupport = msg.isAdmin;
 
                                 return (
                                     <div key={msg.id} className={`flex gap-3 ${isMe ? 'flex-row-reverse' : ''}`}>
-                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${isSupport ? 'bg-indigo-100 text-indigo-600' : (isDark ? 'bg-slate-700 text-slate-400' : 'bg-slate-200 text-slate-600')
+                                        <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 shadow-sm ${isSupport ? 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400' : (isDark ? 'bg-slate-800 text-slate-400' : 'bg-white text-slate-500 border border-slate-200')
                                             }`}>
-                                            {isSupport ? <Shield className="w-4 h-4" /> : <UserIcon className="w-4 h-4" />}
+                                            {isSupport ? <Shield className="w-5 h-5" /> : <UserIcon className="w-5 h-5" />}
                                         </div>
-                                        <div className={`max-w-[80%] rounded-xl p-3 shadow-sm ${isMe
-                                            ? 'bg-blue-600 text-white rounded-tr-none'
-                                            : `${isDark ? 'bg-slate-800 border border-slate-700 text-slate-200' : 'bg-white border border-slate-100 text-slate-800'} rounded-tl-none`
+                                        <div className={`max-w-[80%] rounded-2xl p-4 shadow-sm ${isMe
+                                            ? 'bg-primary-600 text-white rounded-tr-sm'
+                                            : `bg-white dark:bg-slate-900 border ${borderColor} text-slate-700 dark:text-slate-200 rounded-tl-sm`
                                             }`}>
-                                            <div className="text-xs font-bold mb-1 opacity-80">{msg.senderName}</div>
-                                            <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
-                                            <div className="text-[10px] mt-1 text-right opacity-60">
-                                                {format(new Date(msg.createdAt), 'h:mm a')}
+                                            <div className="flex items-baseline justify-between gap-4 mb-1">
+                                                <span className={`text-xs font-bold opacity-80 ${isMe ? 'text-white' : ''}`}>{msg.senderName}</span>
+                                                <span className={`text-[10px] opacity-60 ${isMe ? 'text-white' : ''}`}>
+                                                    {format(new Date(msg.createdAt), 'h:mm a')}
+                                                </span>
                                             </div>
+                                            <p className="text-sm whitespace-pre-wrap leading-relaxed">{msg.content}</p>
                                         </div>
                                     </div>
                                 );
                             })}
                         </div>
 
-                        <div className={`p-4 border-t ${borderColor} ${isDark ? 'bg-slate-800' : 'bg-white'}`}>
+                        <div className={`p-4 border-t ${borderColor} ${cardBg} relative z-10`}>
                             <form onSubmit={handleReply} className="flex gap-2">
                                 <input
                                     type="text"
                                     value={replyText}
                                     onChange={e => setReplyText(e.target.value)}
                                     placeholder="Type your reply..."
-                                    className={`flex-1 border rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none ${inputBg}`}
+                                    className={`flex-1 border ${borderColor} rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary-500 outline-none bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 transition-all`}
                                 />
                                 <button
                                     type="submit"
                                     disabled={!replyText.trim()}
-                                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
+                                    className="bg-primary-600 hover:bg-primary-700 active:bg-primary-800 text-white px-5 py-3 rounded-xl font-bold transition-all shadow-md shadow-primary-500/20 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100"
                                 >
-                                    <Send className="w-4 h-4" />
+                                    <Send className="w-5 h-5" />
                                 </button>
                             </form>
                         </div>
                     </>
                 ) : (
                     <div className={`flex-1 flex flex-col items-center justify-center ${subText}`}>
-                        <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-4 ${isDark ? 'bg-slate-800' : 'bg-slate-50'}`}>
-                            <MessageCircle className={`w-8 h-8 ${isDark ? 'text-slate-600' : 'text-slate-300'}`} />
+                        <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-4 ${isDark ? 'bg-slate-800' : 'bg-slate-50'}`}>
+                            <MessageCircle className={`w-10 h-10 ${isDark ? 'text-slate-600' : 'text-slate-300'}`} />
                         </div>
-                        <p>Select a ticket to view details</p>
+                        <h3 className={`text-lg font-semibold ${cardText} mb-2`}>No conversation selected</h3>
+                        <p className="max-w-xs text-center">Select a ticket from the sidebar to view details or start a new conversation.</p>
                     </div>
                 )}
             </div>
 
             {/* Create Ticket Modal */}
             {isModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-                    <div className={`rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200 ${isDark ? 'bg-slate-800' : 'bg-white'}`}>
-                        <div className={`p-4 border-b flex justify-between items-center ${borderColor}`}>
-                            <h3 className={`font-bold ${cardText}`}>New Support Ticket</h3>
-                            <button onClick={() => setIsModalOpen(false)} className={subText}>
-                                <X className="w-5 h-5" />
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+                    <div className={`rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200 border ${borderColor} ${cardBg}`}>
+                        <div className={`p-5 border-b flex justify-between items-center ${borderColor}`}>
+                            <h3 className={`font-bold ${cardText} text-lg`}>New Support Ticket</h3>
+                            <button onClick={() => setIsModalOpen(false)} className={`${subText} hover:text-slate-700 dark:hover:text-slate-200 transition-colors`}>
+                                <X className="w-6 h-6" />
                             </button>
                         </div>
-                        <form onSubmit={handleCreateTicket} className="p-4 space-y-4">
+                        <form onSubmit={handleCreateTicket} className="p-6 space-y-5">
                             <div>
-                                <label className={`block text-sm font-medium mb-1 ${subText}`}>Subject</label>
+                                <label className={`block text-sm font-semibold mb-2 ${subText}`}>Subject</label>
                                 <input
                                     type="text"
                                     value={newSubject}
                                     onChange={e => setNewSubject(e.target.value)}
-                                    className={`w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none ${inputBg}`}
+                                    className={`w-full border ${borderColor} rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary-500 outline-none bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500`}
                                     placeholder="e.g. Connection Error"
                                     required
                                 />
                             </div>
                             <div>
-                                <label className={`block text-sm font-medium mb-1 ${subText}`}>Message</label>
+                                <label className={`block text-sm font-semibold mb-2 ${subText}`}>Message</label>
                                 <textarea
                                     value={newMessage}
                                     onChange={e => setNewMessage(e.target.value)}
-                                    className={`w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none h-32 resize-none ${inputBg}`}
-                                    placeholder="Describe your issue..."
+                                    className={`w-full border ${borderColor} rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary-500 outline-none h-32 resize-none bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500`}
+                                    placeholder="Describe your issue detailedly..."
                                     required
                                 />
                             </div>
-                            <div className="flex justify-end gap-2 pt-2">
+                            <div className="flex justify-end gap-3 pt-2">
                                 <button
                                     type="button"
                                     onClick={() => setIsModalOpen(false)}
-                                    className={`px-4 py-2 rounded-lg font-medium ${isDark ? 'text-slate-400 hover:bg-slate-700' : 'text-slate-600 hover:bg-slate-100'}`}
+                                    className={`px-5 py-2.5 rounded-xl font-medium transition-colors ${isDark ? 'text-slate-300 hover:bg-slate-800' : 'text-slate-600 hover:bg-slate-100'}`}
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     type="submit"
                                     disabled={creating}
-                                    className="px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-lg font-medium shadow-sm disabled:opacity-50"
+                                    className="px-5 py-2.5 bg-primary-600 text-white hover:bg-primary-700 active:bg-primary-800 rounded-xl font-bold shadow-lg shadow-primary-500/20 transition-all active:scale-95 disabled:opacity-50"
                                 >
                                     {creating ? 'Creating...' : 'Create Ticket'}
                                 </button>

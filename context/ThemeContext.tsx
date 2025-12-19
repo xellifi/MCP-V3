@@ -12,17 +12,39 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const [theme, setTheme] = useState<Theme>(() => {
+        // Check localStorage first
         const stored = localStorage.getItem('theme');
-        return (stored as Theme) || 'dark';
+        if (stored === 'dark' || stored === 'light') {
+            return stored as Theme;
+        }
+
+        // Fall back to system preference
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            return 'dark';
+        }
+
+        // Default to light mode
+        return 'light';
     });
 
     useEffect(() => {
+        // Save to localStorage
         localStorage.setItem('theme', theme);
-        // Apply theme class to document root
+
+        // Apply theme class to document root immediately
+        const root = document.documentElement;
+
         if (theme === 'dark') {
-            document.documentElement.classList.add('dark');
+            root.classList.add('dark');
         } else {
-            document.documentElement.classList.remove('dark');
+            root.classList.remove('dark');
+        }
+
+        // Add transition class after initial render to prevent flash
+        if (!root.classList.contains('theme-transition')) {
+            setTimeout(() => {
+                root.classList.add('theme-transition');
+            }, 100);
         }
     }, [theme]);
 
