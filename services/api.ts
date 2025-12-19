@@ -540,10 +540,44 @@ export const api = {
 
       if (error) {
         console.error('Error fetching messages:', error);
-        return [];
+        throw new Error(error.message);
       }
 
-      return data?.map(mapMessage) || [];
+      return (data || []).map(msg => ({
+        id: msg.id,
+        conversationId: msg.conversation_id,
+        content: msg.content || '',
+        direction: msg.direction as 'INBOUND' | 'OUTBOUND',
+        platform: msg.platform as 'FACEBOOK' | 'INSTAGRAM',
+        status: msg.status as 'SENT' | 'DELIVERED' | 'READ' | 'FAILED',
+        createdAt: msg.created_at,
+        attachmentUrl: msg.attachment_url,
+        attachmentType: msg.attachment_type as 'IMAGE' | 'VIDEO' | 'AUDIO' | 'FILE' | undefined,
+      }));
+    },
+
+    deleteConversation: async (conversationId: string): Promise<void> => {
+      // Delete messages first (due to foreign key constraint)
+      const { error: messagesError } = await supabase
+        .from('messages')
+        .delete()
+        .eq('conversation_id', conversationId);
+
+      if (messagesError) {
+        console.error('Error deleting messages:', messagesError);
+        throw new Error(messagesError.message || 'Failed to delete messages');
+      }
+
+      // Then delete the conversation
+      const { error: conversationError } = await supabase
+        .from('conversations')
+        .delete()
+        .eq('id', conversationId);
+
+      if (conversationError) {
+        console.error('Error deleting conversation:', conversationError);
+        throw new Error(conversationError.message || 'Failed to delete conversation');
+      }
     },
 
     // Fetch conversations from Facebook Messenger and sync to database
@@ -704,22 +738,30 @@ export const api = {
       console.log('Fetching messages for conversation:', conversationId);
 
       // Get conversation details
-      const { data: conversation } = await supabase
+      const { data: conversation, error: convError } = await supabase
         .from('conversations')
-        .select('*, connected_pages!inner(page_access_token)')
+        .select('*')
         .eq('id', conversationId)
         .single();
 
-      if (!conversation || !conversation.external_id) {
-        console.error('Conversation not found or missing external_id');
+      if (convError || !conversation || !conversation.external_id) {
+        console.error('Conversation not found or missing external_id:', convError);
         return [];
       }
 
-      const pageAccessToken = (conversation as any).connected_pages?.page_access_token;
-      if (!pageAccessToken) {
-        console.error('No page access token found');
+      // Get page access token from connected_pages
+      const { data: page, error: pageError } = await supabase
+        .from('connected_pages')
+        .select('page_access_token')
+        .eq('page_id', conversation.page_id)
+        .single();
+
+      if (pageError || !page?.page_access_token) {
+        console.error('No page access token found:', pageError);
         return [];
       }
+
+      const pageAccessToken = page.page_access_token;
 
       try {
         // Fetch messages from Facebook Graph API
@@ -775,12 +817,29 @@ export const api = {
     },
 
     sendMessage: async (conversationId: string, content: string, file?: File): Promise<Message> => {
-      // Get conversation details to check if it's a Facebook conversation
-      const { data: conversation } = await supabase
+      // Get conversation details
+      const { data: conversation, error: convError } = await supabase
         .from('conversations')
-        .select('*, connected_pages!inner(page_access_token, page_id)')
+        .select('*')
         .eq('id', conversationId)
         .single();
+
+      if (convError || !conversation) {
+        console.error('Conversation not found:', convError);
+        throw new Error('Conversation not found');
+      }
+
+      // Get page access token if it's a Facebook conversation
+      let pageAccessToken = null;
+      if (conversation.platform === 'FACEBOOK' && conversation.page_id) {
+        const { data: page } = await supabase
+          .from('connected_pages')
+          .select('page_access_token')
+          .eq('page_id', conversation.page_id)
+          .single();
+
+        pageAccessToken = page?.page_access_token;
+      }
 
       let attachmentUrl = undefined;
       let type: Message['type'] = 'TEXT';
@@ -816,7 +875,8 @@ export const api = {
           type,
           attachment_url: attachmentUrl,
           file_name: fileName,
-          status: 'SENT'
+          status: 'SENT',
+          platform: conversation.platform
         })
         .select()
         .single();
@@ -827,57 +887,66 @@ export const api = {
       }
 
       // If it's a Facebook conversation, send via Facebook Send API
-      if (conversation?.external_id && conversation.platform === 'FACEBOOK') {
-        const pageAccessToken = (conversation as any).connected_pages?.page_access_token;
-        const recipientId = conversation.external_id.split('_')[1] || conversation.external_id;
+      if (conversation?.external_id && conversation.platform === 'FACEBOOK' && pageAccessToken) {
+        // Get the subscriber's external_id (Facebook PSID) from subscribers table
+        const { data: subscriber } = await supabase
+          .from('subscribers')
+          .select('external_id')
+          .eq('id', conversation.subscriber_id)
+          .single();
 
-        if (pageAccessToken) {
-          try {
-            const messagePayload: any = {
-              recipient: { id: recipientId },
-              message: {}
+        if (!subscriber?.external_id) {
+          console.error('No subscriber external_id found for conversation');
+          return mapMessage(savedMessage);
+        }
+
+        const recipientId = subscriber.external_id;
+
+        try {
+          const messagePayload: any = {
+            recipient: { id: recipientId },
+            message: {}
+          };
+
+          if (attachmentUrl && type === 'IMAGE') {
+            messagePayload.message.attachment = {
+              type: 'image',
+              payload: { url: attachmentUrl, is_reusable: true }
             };
-
-            if (attachmentUrl && type === 'IMAGE') {
-              messagePayload.message.attachment = {
-                type: 'image',
-                payload: { url: attachmentUrl, is_reusable: true }
-              };
-            } else if (content) {
-              messagePayload.message.text = content;
-            }
-
-            const sendResponse = await fetch(
-              `https://graph.facebook.com/v18.0/me/messages?access_token=${pageAccessToken}`,
-              {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(messagePayload)
-              }
-            );
-
-            const sendResult = await sendResponse.json();
-
-            if (sendResult.error) {
-              console.error('Facebook Send API error:', sendResult.error);
-              // Update message status to failed
-              await supabase
-                .from('messages')
-                .update({ status: 'FAILED' })
-                .eq('id', savedMessage.id);
-            } else {
-              // Update message with Facebook message ID
-              await supabase
-                .from('messages')
-                .update({
-                  external_id: sendResult.message_id,
-                  status: 'DELIVERED'
-                })
-                .eq('id', savedMessage.id);
-            }
-          } catch (fbError) {
-            console.error('Error sending via Facebook:', fbError);
+          } else if (content) {
+            messagePayload.message.text = content;
           }
+
+          const sendResponse = await fetch(
+            `https://graph.facebook.com/v18.0/me/messages?access_token=${pageAccessToken}`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(messagePayload)
+            }
+          );
+
+          const sendResult = await sendResponse.json();
+
+          if (sendResult.error) {
+            console.error('Facebook Send API error:', sendResult.error);
+            // Update message status to failed
+            await supabase
+              .from('messages')
+              .update({ status: 'FAILED' })
+              .eq('id', savedMessage.id);
+          } else {
+            // Update message with Facebook message ID
+            await supabase
+              .from('messages')
+              .update({
+                external_id: sendResult.message_id,
+                status: 'DELIVERED'
+              })
+              .eq('id', savedMessage.id);
+          }
+        } catch (fbError) {
+          console.error('Error sending via Facebook:', fbError);
         }
       }
 

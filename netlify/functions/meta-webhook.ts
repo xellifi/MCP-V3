@@ -277,6 +277,7 @@ async function processMessagingEvent(event: any, pageId: string) {
                 direction: 'INBOUND',
                 content: messageText,
                 type: messageType,
+                platform: 'FACEBOOK',
                 attachment_url: attachmentUrl,
                 sender_id: senderId,
                 created_at: timestamp,

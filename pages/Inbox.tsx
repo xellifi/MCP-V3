@@ -24,6 +24,7 @@ const Inbox: React.FC<InboxProps> = ({ workspace }) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [filePreview, setFilePreview] = useState<string | null>(null);
   const [showPageDropdown, setShowPageDropdown] = useState(false);
+  const [showConversationMenu, setShowConversationMenu] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -164,21 +165,34 @@ const Inbox: React.FC<InboxProps> = ({ workspace }) => {
   const loadMessages = async (convId: string) => {
     setLoadingMessages(true);
     try {
-      // First, try to fetch messages from Facebook if it's a Facebook conversation
-      const conv = conversations.find(c => c.id === convId);
-      if (conv?.externalId && conv?.platform === 'FACEBOOK') {
-        await api.workspace.fetchConversationMessages(convId);
-      }
-      // Then load messages from database
+      // Load messages from database only (much faster)
+      // Facebook sync happens via Sync button or real-time subscriptions
       const msgs = await api.workspace.getMessages(convId);
       setMessages(msgs);
     } catch (error) {
       console.error('Error loading messages:', error);
-      // Fallback to just loading from database
-      const msgs = await api.workspace.getMessages(convId);
-      setMessages(msgs);
+      setMessages([]);
     } finally {
       setLoadingMessages(false);
+    }
+  };
+
+  const handleDeleteConversation = async () => {
+    if (!selectedConversationId) return;
+
+    const confirmed = window.confirm('Are you sure you want to delete this conversation? This action cannot be undone.');
+    if (!confirmed) return;
+
+    try {
+      await api.workspace.deleteConversation(selectedConversationId);
+      // Remove from local state
+      setConversations(prev => prev.filter(c => c.id !== selectedConversationId));
+      setSelectedConversationId(null);
+      setMessages([]);
+      setShowConversationMenu(false);
+    } catch (error) {
+      console.error('Error deleting conversation:', error);
+      alert('Failed to delete conversation');
     }
   };
 
@@ -532,9 +546,26 @@ const Inbox: React.FC<InboxProps> = ({ workspace }) => {
                   </div>
                 )}
               </div>
-              <button className="p-2 text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded-full transition-colors">
-                <MoreVertical className="w-5 h-5" />
-              </button>
+              <div className="relative">
+                <button
+                  onClick={() => setShowConversationMenu(!showConversationMenu)}
+                  className="p-2 text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded-full transition-colors"
+                >
+                  <MoreVertical className="w-5 h-5" />
+                </button>
+
+                {showConversationMenu && (
+                  <div className="absolute right-0 mt-2 w-48 bg-slate-900 border border-slate-800 rounded-lg shadow-xl z-50">
+                    <button
+                      onClick={handleDeleteConversation}
+                      className="w-full px-4 py-2.5 text-left text-red-400 hover:bg-slate-800 transition-colors flex items-center gap-2 rounded-lg"
+                    >
+                      <X className="w-4 h-4" />
+                      <span className="text-sm">Delete Conversation</span>
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Messages */}
