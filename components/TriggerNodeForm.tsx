@@ -88,17 +88,42 @@ const TriggerNodeForm: React.FC<TriggerNodeFormProps> = ({
                 <label className="block text-sm font-semibold text-slate-300 mb-2">
                     Select Facebook Page
                 </label>
-                <select
-                    value={selectedPageId}
-                    onChange={(e) => setSelectedPageId(e.target.value)}
-                    className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all appearance-none bg-slate-900"
-                >
+                <div className="space-y-2">
                     {pages.map((page) => (
-                        <option key={page.id} value={page.id}>
-                            {page.name} ({page.pageFollowers?.toLocaleString() || 0} followers)
-                        </option>
+                        <button
+                            key={page.id}
+                            onClick={() => setSelectedPageId(page.id)}
+                            className={`w-full flex items-center gap-3 p-3 rounded-xl border transition-all ${selectedPageId === page.id
+                                    ? 'bg-indigo-500/20 border-indigo-500/50 ring-2 ring-indigo-500/30'
+                                    : 'bg-black/20 border-white/10 hover:border-indigo-500/30 hover:bg-white/5'
+                                }`}
+                        >
+                            {/* Page Logo */}
+                            <img
+                                src={page.pageImageUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(page.name)}&background=1877F2&color=fff`}
+                                alt={page.name}
+                                className="w-10 h-10 rounded-lg object-cover"
+                            />
+
+                            {/* Page Info */}
+                            <div className="flex-1 text-left">
+                                <h4 className="text-white font-semibold text-sm">{page.name}</h4>
+                                <p className="text-slate-400 text-xs">
+                                    {page.pageFollowers?.toLocaleString() || 0} followers
+                                </p>
+                            </div>
+
+                            {/* Selected Indicator */}
+                            {selectedPageId === page.id && (
+                                <div className="w-5 h-5 bg-indigo-500 rounded-full flex items-center justify-center">
+                                    <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                    </svg>
+                                </div>
+                            )}
+                        </button>
                     ))}
-                </select>
+                </div>
                 <p className="mt-2 text-xs text-slate-400">
                     Only pages with automation enabled are shown
                 </p>
