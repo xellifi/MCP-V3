@@ -18,9 +18,9 @@ const CustomTriggerNode: React.FC<NodeProps> = ({ data, selected }) => {
     };
 
     return (
-        <div className={`relative group ${selected ? 'ring-2 ring-green-400' : ''}`}>
+        <div className="relative group">
             {/* Node Container */}
-            <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-2xl p-4 shadow-xl hover:shadow-2xl transition-all min-w-[180px]">
+            <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-2xl p-4 shadow-xl hover:shadow-2xl transition-all min-w-[180px] border-2 border-green-400/50">
                 {/* Icon */}
                 <div className="flex items-center gap-3 mb-2">
                     <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">

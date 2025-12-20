@@ -1040,6 +1040,21 @@ export const api = {
       return data?.map(mapFlow) || [];
     },
 
+    getFlow: async (flowId: string): Promise<Flow | null> => {
+      const { data, error } = await supabase
+        .from('flows')
+        .select('*')
+        .eq('id', flowId)
+        .single();
+
+      if (error) {
+        console.error('Error fetching flow:', error);
+        return null;
+      }
+
+      return data ? mapFlow(data) : null;
+    },
+
     createFlow: async (workspaceId: string, name: string): Promise<Flow> => {
       const { data, error } = await supabase
         .from('flows')
@@ -1069,6 +1084,7 @@ export const api = {
           status: updates.status,
           nodes: updates.nodes,
           edges: updates.edges,
+          configurations: (updates as any).configurations, // Node configurations
           updated_at: new Date().toISOString()
         })
         .eq('id', flowId);

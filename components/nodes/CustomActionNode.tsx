@@ -22,21 +22,21 @@ const CustomActionNode: React.FC<NodeProps> = ({ data, selected }) => {
         if (data.actionType === 'message') {
             return {
                 gradient: 'from-purple-500 to-purple-600',
-                ring: 'ring-purple-400'
+                border: 'border-purple-400/50'
             };
         }
         return {
             gradient: 'from-cyan-500 to-teal-600',
-            ring: 'ring-cyan-400'
+            border: 'border-cyan-400/50'
         };
     };
 
     const colors = getColorScheme();
 
     return (
-        <div className={`relative group ${selected ? `ring-2 ${colors.ring}` : ''}`}>
+        <div className="relative group">
             {/* Node Container */}
-            <div className={`bg-gradient-to-br ${colors.gradient} rounded-2xl p-4 shadow-xl hover:shadow-2xl transition-all min-w-[200px]`}>
+            <div className={`bg-gradient-to-br ${colors.gradient} rounded-2xl p-4 shadow-xl hover:shadow-2xl transition-all min-w-[200px] border-2 ${colors.border}`}>
                 {/* Header */}
                 <div className="flex items-center gap-3 mb-3">
                     <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">

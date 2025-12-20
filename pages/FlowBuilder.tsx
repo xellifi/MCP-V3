@@ -57,6 +57,15 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [showMobileNodeGrid, setShowMobileNodeGrid] = useState(false);
 
+  // Save dialog state
+  const [showNameDialog, setShowNameDialog] = useState(false);
+  const [flowName, setFlowName] = useState('');
+
+  // Inline name editing state
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [editedName, setEditedName] = useState('');
+  const [currentFlowName, setCurrentFlowName] = useState('Untitled Flow');
+
   // Node configuration state
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
   const [showConfigModal, setShowConfigModal] = useState(false);
@@ -74,7 +83,67 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
     // Check if mobile
     const isMobile = window.innerWidth < 768;
     setSidebarCollapsed(isMobile);
-  }, []);
+
+    // Load flow data if editing existing flow
+    if (id && !id.startsWith('new')) {
+      loadFlowData();
+    }
+  }, [id]);
+
+  const loadFlowData = async () => {
+    if (!id || id.startsWith('new')) return;
+
+    try {
+      console.log('Loading flow data for ID:', id);
+      const flow = await api.workspace.getFlow(id);
+
+      if (flow) {
+        console.log('Flow loaded:', flow);
+
+        // Set flow name
+        setCurrentFlowName(flow.name);
+
+        // First, restore configurations
+        const savedConfigs = (flow as any).configurations || {};
+        setNodeConfigs(savedConfigs);
+        console.log('Restored configurations:', savedConfigs);
+
+        // Restore nodes with their configurations applied
+        if (flow.nodes && Array.isArray(flow.nodes)) {
+          const restoredNodes = flow.nodes.map((node: any) => {
+            // Get saved configuration for this node
+            const nodeConfig = savedConfigs[node.id] || {};
+
+            return {
+              ...node,
+              data: {
+                ...node.data,
+                // Merge saved configuration into node data
+                ...nodeConfig,
+                // Ensure handlers are attached
+                onConfigure: () => handleConfigureNode(node),
+                onDelete: () => handleDeleteNode(node.id)
+              }
+            };
+          });
+          setNodes(restoredNodes);
+          console.log('Restored nodes with configs:', restoredNodes);
+        }
+
+        // Restore edges
+        if (flow.edges && Array.isArray(flow.edges)) {
+          setEdges(flow.edges);
+          console.log('Restored edges:', flow.edges);
+        }
+      } else {
+        console.warn('Flow not found:', id);
+        toast.error('Flow not found');
+      }
+    } catch (error) {
+      console.error('Error loading flow:', error);
+      toast.error('Failed to load flow');
+    }
+  };
 
   const loadUserApiKeys = async () => {
     try {
@@ -164,14 +233,129 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
   };
 
   const handleSave = async () => {
+    console.log('handleSave called, id:', id);
+    console.log('Is new flow?', !id || id.startsWith('new'));
+
+    // If new flow, prompt for name
+    if (!id || id.startsWith('new')) {
+      console.log('Opening name dialog for new flow');
+      setShowNameDialog(true);
+      return;
+    }
+
+    // Update existing flow
+    console.log('Saving existing flow');
+    await saveFlow(id);
+  };
+
+  const saveFlow = async (flowId: string, flowName?: string) => {
     setIsSaving(true);
     try {
-      await new Promise(r => setTimeout(r, 800));
-      toast.success("Flow saved successfully!");
-    } catch (error) {
-      toast.error("Failed to save flow");
+      console.log('Saving flow:', { flowId, flowName, nodesCount: nodes.length, edgesCount: edges.length });
+
+      // Prepare flow data
+      const flowData = {
+        name: flowName || 'Untitled Flow',
+        nodes: nodes.map(node => ({
+          id: node.id,
+          type: node.type,
+          position: node.position,
+          data: node.data
+        })),
+        edges: edges.map(edge => ({
+          id: edge.id,
+          source: edge.source,
+          target: edge.target,
+          type: edge.type,
+          animated: edge.animated
+        })),
+        configurations: nodeConfigs,
+        status: 'ACTIVE' as const
+      };
+
+      console.log('Flow data prepared:', flowData);
+
+      if (flowId.startsWith('new')) {
+        // Create new flow
+        console.log('Creating new flow...');
+        const newFlow = await api.workspace.createFlow(workspace.id, flowData.name);
+        console.log('New flow created:', newFlow);
+
+        await api.workspace.updateFlow(newFlow.id, flowData);
+        console.log('Flow updated with data');
+
+        // Navigate to the new flow
+        navigate(`/flows/${newFlow.id}`);
+        toast.success(`Flow "${flowData.name}" created successfully!`);
+      } else {
+        // Update existing flow
+        console.log('Updating existing flow:', flowId);
+        await api.workspace.updateFlow(flowId, flowData);
+        console.log('Flow updated successfully');
+        toast.success("Flow saved successfully!");
+      }
+    } catch (error: any) {
+      console.error('Error saving flow:', error);
+      console.error('Error details:', {
+        message: error.message,
+        stack: error.stack,
+        error: error
+      });
+      toast.error(error.message || "Failed to save flow");
     } finally {
       setIsSaving(false);
+      setShowNameDialog(false);
+      setFlowName('');
+    }
+  };
+
+  const handleSaveWithName = () => {
+    if (!flowName.trim()) {
+      toast.error('Please enter a flow name');
+      return;
+    }
+    saveFlow(id || 'new', flowName);
+  };
+
+  const handleNameDoubleClick = () => {
+    setEditedName(currentFlowName);
+    setIsEditingName(true);
+  };
+
+  const handleNameSave = async () => {
+    if (!editedName.trim()) {
+      toast.error('Flow name cannot be empty');
+      setEditedName(currentFlowName);
+      setIsEditingName(false);
+      return;
+    }
+
+    if (editedName === currentFlowName) {
+      setIsEditingName(false);
+      return;
+    }
+
+    try {
+      if (id && !id.startsWith('new')) {
+        await api.workspace.updateFlow(id, { name: editedName });
+        setCurrentFlowName(editedName);
+        toast.success('Flow name updated');
+      }
+    } catch (error) {
+      console.error('Error updating flow name:', error);
+      toast.error('Failed to update flow name');
+      setEditedName(currentFlowName);
+    } finally {
+      setIsEditingName(false);
+    }
+  };
+
+  const handleNameKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleNameSave();
+    } else if (e.key === 'Escape') {
+      setEditedName(currentFlowName);
+      setIsEditingName(false);
     }
   };
 
@@ -274,10 +458,27 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
           </button>
 
           <div>
-            <h2 className="font-bold text-white flex items-center gap-2 text-base md:text-lg">
-              {id?.startsWith('new') ? 'Untitled Flow' : 'Welcome Flow'}
-              <span className="px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 text-xs font-normal border border-indigo-500/30">Draft</span>
-            </h2>
+            {isEditingName ? (
+              <input
+                type="text"
+                value={editedName}
+                onChange={(e) => setEditedName(e.target.value)}
+                onBlur={handleNameSave}
+                onKeyDown={handleNameKeyPress}
+                className="font-bold text-white bg-white/10 border border-indigo-500/50 rounded-lg px-3 py-1 text-base md:text-lg outline-none focus:ring-2 focus:ring-indigo-500/50"
+                autoFocus
+                style={{ minWidth: '200px' }}
+              />
+            ) : (
+              <h2
+                className="font-bold text-white flex items-center gap-2 text-base md:text-lg cursor-pointer hover:text-indigo-300 transition-colors"
+                onDoubleClick={handleNameDoubleClick}
+                title="Double-click to edit"
+              >
+                {currentFlowName}
+                <span className="px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 text-xs font-normal border border-indigo-500/30">Draft</span>
+              </h2>
+            )}
             <p className="text-xs text-slate-500 hidden md:block">Double-click nodes to configure</p>
           </div>
         </div>
@@ -397,6 +598,12 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
               animated: true,
               style: { stroke: '#64748b', strokeWidth: 2 }
             }}
+            minZoom={0.1}
+            maxZoom={1.5}
+            zoomOnScroll={true}
+            zoomOnPinch={true}
+            panOnScroll={false}
+            panOnDrag={true}
           >
             <Background color="#1e293b" gap={20} />
             <Controls className="bg-slate-800/80 backdrop-blur-sm border-slate-700 fill-slate-300 stroke-slate-300 shadow-xl rounded-lg" />
@@ -486,6 +693,52 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
         >
           {renderConfigForm()}
         </NodeConfigModal>
+      )}
+
+      {/* Flow Name Dialog */}
+      {showNameDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/80 backdrop-blur-md"
+            onClick={() => setShowNameDialog(false)}
+          />
+
+          {/* Dialog */}
+          <div className="relative glass-panel border border-white/10 rounded-2xl w-full max-w-md p-6 shadow-2xl animate-fade-in">
+            <h2 className="text-xl font-bold text-white text-glow mb-2">Save Flow</h2>
+            <p className="text-sm text-slate-400 mb-6">Enter a name for your automation flow</p>
+
+            <input
+              type="text"
+              value={flowName}
+              onChange={(e) => setFlowName(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && handleSaveWithName()}
+              placeholder="e.g., Welcome Message Flow"
+              className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all placeholder-slate-500 mb-6"
+              autoFocus
+            />
+
+            <div className="flex items-center justify-end gap-3">
+              <button
+                onClick={() => {
+                  setShowNameDialog(false);
+                  setFlowName('');
+                }}
+                className="px-5 py-2.5 text-sm font-medium text-slate-300 hover:bg-white/5 rounded-xl border border-white/10 hover:border-white/20 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveWithName}
+                disabled={!flowName.trim() || isSaving}
+                className="px-5 py-2.5 text-sm font-bold bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white rounded-xl shadow-lg shadow-indigo-500/20 transition-all active:scale-95 border border-white/20 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSaving ? 'Saving...' : 'Save Flow'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
