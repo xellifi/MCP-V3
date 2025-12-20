@@ -468,12 +468,13 @@ async function executeActionNode(node: any, config: any, context: any) {
         const messageTemplate = config.messageTemplate || config.template || '';
         const dmMessage = replaceVariables(messageTemplate);
 
-        console.log(`Send Message node - dmMessage: ${dmMessage}, hasToken: ${!!context.pageAccessToken}, sendDM: ${config.sendDM}, config:`, JSON.stringify(config));
+        console.log(`Send Message node - dmMessage: ${dmMessage}, hasToken: ${!!context.pageAccessToken}, config:`, JSON.stringify(config));
 
-        if (dmMessage && context.pageAccessToken && config.sendDM) {
+        // If this is a Send Message node, send the DM (don't require sendDM flag)
+        if (dmMessage && context.pageAccessToken) {
             await sendDirectMessage(context.commenterId, dmMessage, context.pageAccessToken);
         } else {
-            console.log(`Skipping DM - dmMessage: ${!!dmMessage}, pageAccessToken: ${!!context.pageAccessToken}, sendDM: ${config.sendDM}`);
+            console.log(`Skipping DM - dmMessage: ${!!dmMessage}, pageAccessToken: ${!!context.pageAccessToken}`);
         }
     } else {
         console.log(`Unknown action node type: ${node.data?.label}`);
