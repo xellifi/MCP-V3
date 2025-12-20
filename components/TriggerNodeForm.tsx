@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ConnectedPage } from '../types';
 import { api } from '../services/api';
-import { AlertCircle, CheckCircle2 } from 'lucide-react';
+import { AlertCircle, CheckCircle2, ChevronDown } from 'lucide-react';
 
 interface TriggerNodeFormProps {
     workspaceId: string;
@@ -22,7 +22,9 @@ const TriggerNodeForm: React.FC<TriggerNodeFormProps> = ({
     const [loading, setLoading] = useState(true);
     const [selectedPageId, setSelectedPageId] = useState(initialConfig?.pageId || '');
     const [enableCommentReply, setEnableCommentReply] = useState(initialConfig?.enableCommentReply ?? true);
-    const [enableSendMessage, setEnableSendMessage] = useState(initialConfig?.enableSendMessage ?? false);
+    const [enableSendMessage, setEnableSendMessage] = useState(initialConfig?.enableSendMessage ?? true);
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const dropdownRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         loadPages();
@@ -35,6 +37,17 @@ const TriggerNodeForm: React.FC<TriggerNodeFormProps> = ({
             enableSendMessage
         });
     }, [selectedPageId, enableCommentReply, enableSendMessage]);
+
+    // Close dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+                setIsDropdownOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
     const loadPages = async () => {
         try {
@@ -81,6 +94,8 @@ const TriggerNodeForm: React.FC<TriggerNodeFormProps> = ({
         );
     }
 
+    const selectedPage = pages.find(p => p.id === selectedPageId);
+
     return (
         <div className="space-y-6">
             {/* Page Selection */}
@@ -88,41 +103,65 @@ const TriggerNodeForm: React.FC<TriggerNodeFormProps> = ({
                 <label className="block text-sm font-semibold text-slate-300 mb-2">
                     Select Facebook Page
                 </label>
-                <div className="space-y-2">
-                    {pages.map((page) => (
-                        <button
-                            key={page.id}
-                            onClick={() => setSelectedPageId(page.id)}
-                            className={`w-full flex items-center gap-3 p-3 rounded-xl border transition-all ${selectedPageId === page.id
-                                    ? 'bg-indigo-500/20 border-indigo-500/50 ring-2 ring-indigo-500/30'
-                                    : 'bg-black/20 border-white/10 hover:border-indigo-500/30 hover:bg-white/5'
-                                }`}
-                        >
-                            {/* Page Logo */}
-                            <img
-                                src={page.pageImageUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(page.name)}&background=1877F2&color=fff`}
-                                alt={page.name}
-                                className="w-10 h-10 rounded-lg object-cover"
-                            />
-
-                            {/* Page Info */}
-                            <div className="flex-1 text-left">
-                                <h4 className="text-white font-semibold text-sm">{page.name}</h4>
-                                <p className="text-slate-400 text-xs">
-                                    {page.pageFollowers?.toLocaleString() || 0} followers
-                                </p>
-                            </div>
-
-                            {/* Selected Indicator */}
-                            {selectedPageId === page.id && (
-                                <div className="w-5 h-5 bg-indigo-500 rounded-full flex items-center justify-center">
-                                    <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                                    </svg>
+                <div className="relative" ref={dropdownRef}>
+                    {/* Custom Dropdown Trigger */}
+                    <button
+                        type="button"
+                        onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                        className="w-full flex items-center gap-3 bg-black/20 border border-white/10 text-white rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-transparent transition-all cursor-pointer hover:border-indigo-500/30"
+                    >
+                        {selectedPage ? (
+                            <>
+                                <img
+                                    src={selectedPage.pageImageUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(selectedPage.name)}&background=1877F2&color=fff`}
+                                    alt={selectedPage.name}
+                                    className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                                />
+                                <div className="flex-1 text-left">
+                                    <div className="text-white font-medium">{selectedPage.name}</div>
+                                    <div className="text-xs text-slate-400">{selectedPage.pageFollowers?.toLocaleString() || 0} followers</div>
                                 </div>
-                            )}
-                        </button>
-                    ))}
+                            </>
+                        ) : (
+                            <span className="text-slate-400">Choose a page...</span>
+                        )}
+                        <ChevronDown className={`w-5 h-5 text-slate-400 ml-auto transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
+                    </button>
+
+                    {/* Custom Dropdown Menu */}
+                    {isDropdownOpen && (
+                        <div className="absolute z-50 w-full mt-2 bg-slate-800 border border-white/10 rounded-xl shadow-2xl max-h-64 overflow-y-auto">
+                            {pages.map((page) => (
+                                <button
+                                    key={page.id}
+                                    type="button"
+                                    onClick={() => {
+                                        setSelectedPageId(page.id);
+                                        setIsDropdownOpen(false);
+                                    }}
+                                    className={`w-full flex items-center gap-3 p-3 hover:bg-white/5 transition-colors ${selectedPageId === page.id ? 'bg-indigo-500/20' : ''
+                                        }`}
+                                >
+                                    <img
+                                        src={page.pageImageUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(page.name)}&background=1877F2&color=fff`}
+                                        alt={page.name}
+                                        className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                                    />
+                                    <div className="flex-1 text-left">
+                                        <div className="text-white font-medium text-sm">{page.name}</div>
+                                        <div className="text-xs text-slate-400">{page.pageFollowers?.toLocaleString() || 0} followers</div>
+                                    </div>
+                                    {selectedPageId === page.id && (
+                                        <div className="w-5 h-5 bg-indigo-500 rounded-full flex items-center justify-center flex-shrink-0">
+                                            <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                            </svg>
+                                        </div>
+                                    )}
+                                </button>
+                            ))}
+                        </div>
+                    )}
                 </div>
                 <p className="mt-2 text-xs text-slate-400">
                     Only pages with automation enabled are shown
