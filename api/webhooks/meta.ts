@@ -339,6 +339,7 @@ async function processCommentEvent(value: any, pageId: string) {
         await executeFlowsForComment({
             workspaceId,
             pageId,
+            pageDbId: (page as any).id, // Database UUID for trigger matching
             commentId,
             postId,
             message: message || '',
@@ -354,7 +355,7 @@ async function processCommentEvent(value: any, pageId: string) {
 
 // Execute flows that match the comment trigger
 async function executeFlowsForComment(context: any) {
-    const { workspaceId, pageId } = context;
+    const { workspaceId, pageId, pageDbId } = context;
 
     const { data: flows, error } = await supabase
         .from('flows')
@@ -386,8 +387,9 @@ async function executeFlowsForComment(context: any) {
 
             const triggerConfig = configurations[triggerNode.id] || {};
 
-            if (triggerConfig.pageId !== pageId) {
-                console.log(`Flow ${flow.id} trigger not configured for page ${pageId}`);
+            // Compare against database UUID, not Facebook Page ID
+            if (triggerConfig.pageId !== pageDbId) {
+                console.log(`Flow ${flow.id} trigger not configured for page ${pageId} (DB ID: ${pageDbId}, Expected: ${triggerConfig.pageId})`);
                 continue;
             }
 
