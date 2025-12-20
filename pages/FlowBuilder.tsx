@@ -65,6 +65,7 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
   const [isEditingName, setIsEditingName] = useState(false);
   const [editedName, setEditedName] = useState('');
   const [currentFlowName, setCurrentFlowName] = useState('Untitled Flow');
+  const [flowStatus, setFlowStatus] = useState<'ACTIVE' | 'DRAFT'>('DRAFT');
 
   // Node configuration state
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
@@ -100,8 +101,9 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
       if (flow) {
         console.log('Flow loaded:', flow);
 
-        // Set flow name
+        // Set flow name and status
         setCurrentFlowName(flow.name);
+        setFlowStatus(flow.status as 'ACTIVE' | 'DRAFT');
 
         // First, restore configurations
         const savedConfigs = (flow as any).configurations || {};
@@ -287,8 +289,9 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
         await api.workspace.updateFlow(newFlow.id, flowData);
         console.log('Flow updated with data');
 
-        // Update current flow name
+        // Update current flow name and status
         setCurrentFlowName(flowData.name);
+        setFlowStatus('ACTIVE');
 
         // Navigate to the new flow
         navigate(`/flows/${newFlow.id}`);
@@ -299,8 +302,9 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
         await api.workspace.updateFlow(flowId, flowData);
         console.log('Flow updated successfully');
 
-        // Update current flow name
+        // Update current flow name and status
         setCurrentFlowName(flowData.name);
+        setFlowStatus('ACTIVE');
 
         toast.success(`Flow "${flowData.name}" published successfully!`);
       }
@@ -486,7 +490,12 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
                 title="Double-click to edit"
               >
                 {currentFlowName}
-                <span className="px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 text-xs font-normal border border-indigo-500/30">Draft</span>
+                <span className={`px-2 py-0.5 rounded-full text-xs font-normal border ${flowStatus === 'ACTIVE'
+                  ? 'bg-green-500/20 text-green-300 border-green-500/30'
+                  : 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30'
+                  }`}>
+                  {flowStatus === 'ACTIVE' ? 'Active' : 'Draft'}
+                </span>
               </h2>
             )}
             <p className="text-xs text-slate-500 hidden md:block">{currentFlowName}</p>
