@@ -93,7 +93,8 @@ const mapFlow = (row: any): Flow => ({
   status: row.status,
   updatedAt: row.updated_at,
   nodes: row.nodes || [],
-  edges: row.edges || []
+  edges: row.edges || [],
+  configurations: row.configurations || {}
 });
 
 const mapScheduledPost = (row: any): ScheduledPost => ({

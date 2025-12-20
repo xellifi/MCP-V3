@@ -105,6 +105,7 @@ export interface Flow {
   updatedAt: string;
   nodes: any[]; // simplified for demo
   edges: any[];
+  configurations?: { [nodeId: string]: any }; // Node configurations
 }
 
 export interface ScheduledPost {
