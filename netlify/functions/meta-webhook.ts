@@ -480,7 +480,7 @@ async function executeFlow(flow: any, configurations: any, context: any) {
 
     while (currentNodeId && !visited.has(currentNodeId)) {
         visited.add(currentNodeId);
-        const node = nodeMap.get(currentNodeId);
+        const node = nodeMap.get(currentNodeId) as any;
         if (node && node.type !== 'triggerNode') {
             executionOrder.push(node);
         }
