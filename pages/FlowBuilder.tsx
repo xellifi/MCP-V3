@@ -489,7 +489,7 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
                 <span className="px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 text-xs font-normal border border-indigo-500/30">Draft</span>
               </h2>
             )}
-            <p className="text-xs text-slate-500 hidden md:block">Double-click nodes to configure</p>
+            <p className="text-xs text-slate-500 hidden md:block">{currentFlowName}</p>
           </div>
         </div>
 
