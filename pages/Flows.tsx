@@ -104,7 +104,7 @@ const Flows: React.FC<FlowsProps> = ({ workspace }) => {
                     {format(new Date(flow.updatedAt), 'MMM d, yyyy HH:mm')}
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex justify-end gap-2">
                       <button
                         onClick={() => navigate(`/flows/${flow.id}`)}
                         className="p-2 text-slate-400 hover:text-indigo-400 hover:bg-white/5 rounded-lg transition-colors border border-transparent hover:border-white/10"
