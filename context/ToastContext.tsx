@@ -58,24 +58,35 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             key={toast.id}
             className={`
               pointer-events-auto flex items-start gap-3 p-4 rounded-lg shadow-lg border-l-4 transition-all animate-in slide-in-from-right-full fade-in duration-300
-              ${toast.type === 'success' ? 'bg-white border-green-500 text-slate-800' : ''}
-              ${toast.type === 'error' ? 'bg-white border-red-500 text-slate-800' : ''}
-              ${toast.type === 'info' ? 'bg-white border-blue-500 text-slate-800' : ''}
-              ${toast.type === 'warning' ? 'bg-white border-amber-500 text-slate-800' : ''}
+              ${toast.type === 'success' ? 'bg-green-500 border-green-600 text-white' : ''}
+              ${toast.type === 'error' ? 'bg-red-500 border-red-600 text-white' : ''}
+              ${toast.type === 'info' ? 'bg-blue-500 border-blue-600 text-white' : ''}
+              ${toast.type === 'warning' ? 'bg-amber-500 border-amber-600 text-white' : ''}
             `}
+            style={{
+              backgroundColor: toast.type === 'success' ? '#22c55e' :
+                toast.type === 'error' ? '#ef4444' :
+                  toast.type === 'info' ? '#3b82f6' :
+                    toast.type === 'warning' ? '#f59e0b' : undefined,
+              borderLeftColor: toast.type === 'success' ? '#16a34a' :
+                toast.type === 'error' ? '#dc2626' :
+                  toast.type === 'info' ? '#2563eb' :
+                    toast.type === 'warning' ? '#d97706' : undefined,
+              color: '#ffffff'
+            }}
           >
             <div className="flex-shrink-0 mt-0.5">
-              {toast.type === 'success' && <CheckCircle className="w-5 h-5 text-green-500" />}
-              {toast.type === 'error' && <AlertCircle className="w-5 h-5 text-red-500" />}
-              {toast.type === 'info' && <Info className="w-5 h-5 text-blue-500" />}
-              {toast.type === 'warning' && <AlertTriangle className="w-5 h-5 text-amber-500" />}
+              {toast.type === 'success' && <CheckCircle className="w-5 h-5 text-white" />}
+              {toast.type === 'error' && <AlertCircle className="w-5 h-5 text-white" />}
+              {toast.type === 'info' && <Info className="w-5 h-5 text-white" />}
+              {toast.type === 'warning' && <AlertTriangle className="w-5 h-5 text-white" />}
             </div>
             <div className="flex-1 text-sm font-medium leading-relaxed">
               {toast.message}
             </div>
             <button
               onClick={() => removeToast(toast.id)}
-              className="flex-shrink-0 text-slate-400 hover:text-slate-600 transition-colors"
+              className="flex-shrink-0 text-white/70 hover:text-white transition-colors"
             >
               <X className="w-4 h-4" />
             </button>
