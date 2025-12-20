@@ -236,16 +236,19 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
     console.log('handleSave called, id:', id);
     console.log('Is new flow?', !id || id.startsWith('new'));
 
-    // If new flow, prompt for name
-    if (!id || id.startsWith('new')) {
+    // Always show name dialog for both new and existing flows
+    // Pre-populate with current name for existing flows
+    if (id && !id.startsWith('new')) {
+      // Existing flow - pre-fill with current name
+      console.log('Opening name dialog for existing flow with name:', currentFlowName);
+      setFlowName(currentFlowName);
+    } else {
+      // New flow - start with empty name
       console.log('Opening name dialog for new flow');
-      setShowNameDialog(true);
-      return;
+      setFlowName('');
     }
 
-    // Update existing flow
-    console.log('Saving existing flow');
-    await saveFlow(id);
+    setShowNameDialog(true);
   };
 
   const saveFlow = async (flowId: string, flowName?: string) => {
@@ -284,15 +287,22 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
         await api.workspace.updateFlow(newFlow.id, flowData);
         console.log('Flow updated with data');
 
+        // Update current flow name
+        setCurrentFlowName(flowData.name);
+
         // Navigate to the new flow
         navigate(`/flows/${newFlow.id}`);
-        toast.success(`Flow "${flowData.name}" created successfully!`);
+        toast.success(`Flow "${flowData.name}" published successfully!`);
       } else {
         // Update existing flow
         console.log('Updating existing flow:', flowId);
         await api.workspace.updateFlow(flowId, flowData);
         console.log('Flow updated successfully');
-        toast.success("Flow saved successfully!");
+
+        // Update current flow name
+        setCurrentFlowName(flowData.name);
+
+        toast.success(`Flow "${flowData.name}" published successfully!`);
       }
     } catch (error: any) {
       console.error('Error saving flow:', error);
