@@ -457,16 +457,26 @@ async function executeActionNode(node: any, config: any, context: any) {
         const replyTemplate = config.replyTemplate || config.template || '';
         const replyMessage = replaceVariables(replyTemplate);
 
+        console.log(`Comment Reply node - replyMessage: ${replyMessage}, hasToken: ${!!context.pageAccessToken}`);
+
         if (replyMessage && context.pageAccessToken) {
             await replyToComment(context.commentId, replyMessage, context.pageAccessToken);
+        } else {
+            console.log(`Skipping comment reply - missing replyMessage or pageAccessToken`);
         }
     } else if (node.data?.label?.includes('Send') && node.data?.label?.includes('Message')) {
         const messageTemplate = config.messageTemplate || config.template || '';
         const dmMessage = replaceVariables(messageTemplate);
 
+        console.log(`Send Message node - dmMessage: ${dmMessage}, hasToken: ${!!context.pageAccessToken}, sendDM: ${config.sendDM}, config:`, JSON.stringify(config));
+
         if (dmMessage && context.pageAccessToken && config.sendDM) {
             await sendDirectMessage(context.commenterId, dmMessage, context.pageAccessToken);
+        } else {
+            console.log(`Skipping DM - dmMessage: ${!!dmMessage}, pageAccessToken: ${!!context.pageAccessToken}, sendDM: ${config.sendDM}`);
         }
+    } else {
+        console.log(`Unknown action node type: ${node.data?.label}`);
     }
 }
 
