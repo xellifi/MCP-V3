@@ -281,6 +281,17 @@ async function processCommentEvent(value: any, pageId: string) {
     const createdTime = value.created_time ? new Date(parseInt(value.created_time) * 1000).toISOString() : new Date().toISOString();
     const parentCommentId = value.parent_id || null;
 
+    console.log('\n========== NEW COMMENT EVENT ==========');
+    console.log('Comment ID:', commentId);
+    console.log('Post ID:', postId);
+    console.log('Message:', message);
+    console.log('Commenter ID:', commenterId, '(type:', typeof commenterId, ')');
+    console.log('Commenter Name:', commenterName);
+    console.log('Page ID:', pageId, '(type:', typeof pageId, ')');
+    console.log('Parent Comment ID:', parentCommentId);
+    console.log('Is Reply?:', !!parentCommentId);
+    console.log('========================================\n');
+
     if (!commentId || !postId || !commenterId) {
         console.error('Missing required comment data');
         return;
@@ -290,10 +301,17 @@ async function processCommentEvent(value: any, pageId: string) {
     const commenterIdStr = String(commenterId);
     const pageIdStr = String(pageId);
 
+    console.log(`🔍 Checking if comment is from page itself:`);
+    console.log(`   Commenter ID (string): "${commenterIdStr}"`);
+    console.log(`   Page ID (string): "${pageIdStr}"`);
+    console.log(`   Match: ${commenterIdStr === pageIdStr}`);
+
     if (commenterIdStr === pageIdStr) {
-        console.log(`Ignoring comment from page itself (PageID: ${pageId}, CommenterID: ${commenterId})`);
+        console.log(`✓ IGNORING - This is the page's own comment/reply (preventing infinite loop)`);
         return;
     }
+
+    console.log(`✓ PROCEEDING - This is a user comment, not from the page`);
 
     console.log(`Processing comment from user ${commenterId} (${commenterName})`);
 
@@ -348,6 +366,21 @@ async function processCommentEvent(value: any, pageId: string) {
 
     console.log('Comment saved successfully:', commentId);
 
+    // Check if we've already processed this comment (prevent duplicate replies)
+    // This is a safety check in case the webhook fires multiple times
+    const { data: commentData } = await supabase
+        .from('comments')
+        .select('id, processed')
+        .eq('comment_id', commentId)
+        .single();
+
+    if (commentData && commentData.processed) {
+        console.log(`✓ SKIPPING - Comment ${commentId} already processed (replied to)`);
+        return;
+    }
+
+    console.log(`✓ Comment ${commentId} not yet processed, proceeding with automation`);
+
     // Trigger flow execution
     console.log(`\n========== TRIGGERING FLOW EXECUTION ==========`);
     try {
@@ -364,6 +397,14 @@ async function processCommentEvent(value: any, pageId: string) {
             pageAccessToken: (page as any).page_access_token
         });
         console.log(`========== FLOW EXECUTION COMPLETE ==========\n`);
+
+        // Mark comment as processed to prevent duplicate replies
+        await supabase
+            .from('comments')
+            .update({ processed: true })
+            .eq('comment_id', commentId);
+
+        console.log(`✓ Comment ${commentId} marked as processed`);
     } catch (error) {
         console.error('Error executing flows for comment:', error);
     }
