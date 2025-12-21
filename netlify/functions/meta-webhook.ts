@@ -583,6 +583,7 @@ async function sendDirectMessage(userId: string, message: string, pageAccessToke
                 body: JSON.stringify({
                     recipient: { id: userId },
                     message: { text: message },
+                    messaging_type: 'RESPONSE',
                     access_token: pageAccessToken
                 })
             }
