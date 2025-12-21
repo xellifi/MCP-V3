@@ -406,6 +406,11 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
     const nodeLabel = selectedNode.data.label as string;
     const nodeType = selectedNode.data.nodeType as string;
 
+    console.log('[FlowBuilder.renderConfigForm] Rendering form for:', nodeLabel);
+    console.log('[FlowBuilder.renderConfigForm] currentConfig:', currentConfig);
+    console.log('[FlowBuilder.renderConfigForm] selectedNode.id:', selectedNode.id);
+    console.log('[FlowBuilder.renderConfigForm] nodeConfigs[selectedNode.id]:', nodeConfigs[selectedNode.id]);
+
     if (nodeLabel.includes('Comment') && nodeType === 'triggerNode') {
       return (
         <TriggerNodeForm

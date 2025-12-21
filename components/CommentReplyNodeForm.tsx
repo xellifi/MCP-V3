@@ -27,9 +27,21 @@ const CommentReplyNodeForm: React.FC<CommentReplyNodeFormProps> = ({
     const [aiProvider, setAiProvider] = useState(initialConfig?.aiProvider || 'openai');
     const [aiPrompt, setAiPrompt] = useState(initialConfig?.aiPrompt || 'Generate a friendly and helpful reply to this comment');
 
+    // Debug: Log initial config on mount
+    useEffect(() => {
+        console.log('[CommentReplyNodeForm] Component mounted with initialConfig:', initialConfig);
+    }, []);
+
     // Sync form state when initialConfig changes (when modal reopens with saved config)
     useEffect(() => {
+        console.log('[CommentReplyNodeForm] initialConfig changed:', initialConfig);
         if (initialConfig) {
+            console.log('[CommentReplyNodeForm] Updating form state with:', {
+                replyTemplate: initialConfig.replyTemplate,
+                useAI: initialConfig.useAI,
+                aiProvider: initialConfig.aiProvider,
+                aiPrompt: initialConfig.aiPrompt
+            });
             setReplyTemplate(initialConfig.replyTemplate || '');
             setUseAI(initialConfig.useAI ?? false);
             setAiProvider(initialConfig.aiProvider || 'openai');

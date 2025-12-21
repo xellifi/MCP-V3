@@ -30,9 +30,20 @@ const TriggerNodeForm: React.FC<TriggerNodeFormProps> = ({
         loadPages();
     }, [workspaceId]);
 
+    // Debug: Log initial config on mount
+    useEffect(() => {
+        console.log('[TriggerNodeForm] Component mounted with initialConfig:', initialConfig);
+    }, []);
+
     // Sync form state when initialConfig changes (when modal reopens with saved config)
     useEffect(() => {
+        console.log('[TriggerNodeForm] initialConfig changed:', initialConfig);
         if (initialConfig) {
+            console.log('[TriggerNodeForm] Updating form state with:', {
+                pageId: initialConfig.pageId,
+                enableCommentReply: initialConfig.enableCommentReply,
+                enableSendMessage: initialConfig.enableSendMessage
+            });
             setSelectedPageId(initialConfig.pageId || '');
             setEnableCommentReply(initialConfig.enableCommentReply ?? true);
             setEnableSendMessage(initialConfig.enableSendMessage ?? true);
