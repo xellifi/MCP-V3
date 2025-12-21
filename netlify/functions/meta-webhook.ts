@@ -334,6 +334,12 @@ async function processCommentEvent(value: any, pageId: string) {
         return;
     }
 
+    // Ignore comments made by the page itself to prevent infinite loops
+    if (commenterId === pageId) {
+        console.log('Ignoring comment from page itself:', pageId);
+        return;
+    }
+
     // Get the page details and workspace
     const { data: page } = await supabase
         .from('connected_pages')
