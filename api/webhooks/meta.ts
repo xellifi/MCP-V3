@@ -8,6 +8,14 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 export default async function handler(req: VercelRequest, res: VercelResponse) {
     const { method, query, body } = req;
 
+    // Log EVERY request that hits this endpoint
+    console.log('========== WEBHOOK REQUEST RECEIVED ==========');
+    console.log('Method:', method);
+    console.log('Query:', JSON.stringify(query));
+    console.log('Body:', JSON.stringify(body));
+    console.log('Headers:', JSON.stringify(req.headers));
+    console.log('==============================================');
+
     // Handle GET request for webhook verification
     if (method === 'GET') {
         return handleVerification(query, res);
