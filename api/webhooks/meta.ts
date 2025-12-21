@@ -343,7 +343,7 @@ async function executeAction(
     }
 
     // Send DM Action
-    if (label.includes('Send') && label.includes('Message')) {
+    if ((label.includes('Send') && label.includes('Message')) || label.includes('Messenger')) {
         const template = config.messageTemplate || config.template || '';
         console.log(`    📝 Template: "${template}"`);
 
