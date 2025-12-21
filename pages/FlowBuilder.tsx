@@ -194,8 +194,13 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
   }, [setNodes, setEdges, toast]);
 
   const handleConfigureNode = useCallback((node: Node) => {
+    const savedConfig = nodeConfigs[node.id] || {};
+    console.log('Opening config modal for node:', node.id);
+    console.log('Saved config:', savedConfig);
+    console.log('Node data:', node.data);
+
     setSelectedNode(node);
-    setCurrentConfig(nodeConfigs[node.id] || {});
+    setCurrentConfig(savedConfig);
     setShowConfigModal(true);
   }, [nodeConfigs]);
 

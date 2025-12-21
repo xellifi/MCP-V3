@@ -27,6 +27,16 @@ const SendMessageNodeForm: React.FC<SendMessageNodeFormProps> = ({
     const [aiProvider, setAiProvider] = useState(initialConfig?.aiProvider || 'openai');
     const [aiPrompt, setAiPrompt] = useState(initialConfig?.aiPrompt || 'Generate a friendly direct message to send to the commenter');
 
+    // Sync form state when initialConfig changes (when modal reopens with saved config)
+    useEffect(() => {
+        if (initialConfig) {
+            setMessageTemplate(initialConfig.messageTemplate || '');
+            setUseAI(initialConfig.useAI ?? false);
+            setAiProvider(initialConfig.aiProvider || 'openai');
+            setAiPrompt(initialConfig.aiPrompt || 'Generate a friendly direct message to send to the commenter');
+        }
+    }, [initialConfig]);
+
     useEffect(() => {
         onChange({
             messageTemplate,
