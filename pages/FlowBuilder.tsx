@@ -95,11 +95,12 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
     if (!id || id.startsWith('new')) return;
 
     try {
-      console.log('Loading flow data for ID:', id);
+      console.log('[FlowBuilder.loadFlowData] Loading flow data for ID:', id);
       const flow = await api.workspace.getFlow(id);
 
       if (flow) {
-        console.log('Flow loaded:', flow);
+        console.log('[FlowBuilder.loadFlowData] Flow loaded:', flow);
+        console.log('[FlowBuilder.loadFlowData] Flow configurations:', (flow as any).configurations);
 
         // Set flow name and status
         setCurrentFlowName(flow.name);
@@ -107,14 +108,16 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
 
         // First, restore configurations
         const savedConfigs = (flow as any).configurations || {};
+        console.log('[FlowBuilder.loadFlowData] Setting nodeConfigs to:', savedConfigs);
+        console.log('[FlowBuilder.loadFlowData] savedConfigs keys:', Object.keys(savedConfigs));
         setNodeConfigs(savedConfigs);
-        console.log('Restored configurations:', savedConfigs);
 
         // Restore nodes with their configurations applied
         if (flow.nodes && Array.isArray(flow.nodes)) {
           const restoredNodes = flow.nodes.map((node: any) => {
             // Get saved configuration for this node
             const nodeConfig = savedConfigs[node.id] || {};
+            console.log(`[FlowBuilder.loadFlowData] Node ${node.id} config:`, nodeConfig);
 
             return {
               ...node,
@@ -129,20 +132,20 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
             };
           });
           setNodes(restoredNodes);
-          console.log('Restored nodes with configs:', restoredNodes);
+          console.log('[FlowBuilder.loadFlowData] Restored nodes with configs:', restoredNodes);
         }
 
         // Restore edges
         if (flow.edges && Array.isArray(flow.edges)) {
           setEdges(flow.edges);
-          console.log('Restored edges:', flow.edges);
+          console.log('[FlowBuilder.loadFlowData] Restored edges:', flow.edges);
         }
       } else {
-        console.warn('Flow not found:', id);
+        console.warn('[FlowBuilder.loadFlowData] Flow not found:', id);
         toast.error('Flow not found');
       }
     } catch (error) {
-      console.error('Error loading flow:', error);
+      console.error('[FlowBuilder.loadFlowData] Error loading flow:', error);
       toast.error('Failed to load flow');
     }
   };
