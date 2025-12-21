@@ -412,7 +412,7 @@ async function replyToComment(
     }
 }
 
-// Send a direct message
+// Send a direct message (private reply to comment)
 async function sendDirectMessage(
     userId: string,
     message: string,
@@ -421,36 +421,48 @@ async function sendDirectMessage(
     flowId: string,
     commentId: string
 ) {
-    console.log(`    📤 Sending DM: "${message}"`);
+    console.log(`    📤 Sending Private Reply (DM): "${message}"`);
+    console.log(`    📤 Comment ID: ${commentId}`);
+    console.log(`    📤 User ID: ${userId}`);
 
     try {
+        // IMPORTANT: To send a private reply to a comment, use comment_id in recipient
+        // This creates a private conversation in Messenger linked to the comment
+        const requestBody = {
+            recipient: { comment_id: commentId }, // Use comment_id, not user id
+            message: { text: message },
+            access_token: pageAccessToken
+        };
+
+        console.log(`    📤 Request body:`, JSON.stringify(requestBody, null, 2));
+
         const response = await fetch(
             `https://graph.facebook.com/v18.0/${pageId}/messages`,
             {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    recipient: { id: userId },
-                    message: { text: message },
-                    messaging_type: 'RESPONSE',
-                    access_token: pageAccessToken
-                })
+                body: JSON.stringify(requestBody)
             }
         );
 
         const result = await response.json();
+        console.log(`    📤 Facebook API response:`, JSON.stringify(result, null, 2));
 
         if (result.error) {
             console.error('    ✗ Facebook API error:', result.error.message);
+            console.error('    ✗ Error code:', result.error.code);
+            console.error('    ✗ Error type:', result.error.type);
             console.error('    ✗ Full error response:', JSON.stringify(result.error, null, 2));
             await logAction(commentId, flowId, 'dm_sent', false, result.error.message, result);
         } else {
-            console.log('    ✓ DM sent successfully!');
-            console.log('    ✓ Facebook response:', JSON.stringify(result, null, 2));
+            console.log('    ✓ Private reply (DM) sent successfully!');
+            console.log('    ✓ Message ID:', result.message_id);
+            console.log('    ✓ Recipient ID:', result.recipient_id);
             await logAction(commentId, flowId, 'dm_sent', true, null, result);
         }
     } catch (error: any) {
-        console.error('    ✗ Exception:', error.message);
+        console.error('    ✗ Exception sending private reply:', error.message);
+        console.error('    ✗ Stack:', error.stack);
         await logAction(commentId, flowId, 'dm_sent', false, error.message, null);
     }
 }
