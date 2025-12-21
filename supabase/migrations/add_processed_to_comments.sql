@@ -1,6 +1,11 @@
 -- Add processed column to comments table to track which comments have been replied to
 -- This prevents duplicate replies even if webhook fires multiple times
 
+-- First, add unique constraint on comment_id to prevent race conditions
+ALTER TABLE comments 
+ADD CONSTRAINT comments_comment_id_unique UNIQUE (comment_id);
+
+-- Add processed column
 ALTER TABLE comments 
 ADD COLUMN IF NOT EXISTS processed BOOLEAN DEFAULT FALSE;
 
