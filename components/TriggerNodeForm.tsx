@@ -21,8 +21,8 @@ const TriggerNodeForm: React.FC<TriggerNodeFormProps> = ({
     const [pages, setPages] = useState<ConnectedPage[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedPageId, setSelectedPageId] = useState(initialConfig?.pageId || '');
-    const [enableCommentReply, setEnableCommentReply] = useState(initialConfig?.enableCommentReply ?? true);
-    const [enableSendMessage, setEnableSendMessage] = useState(initialConfig?.enableSendMessage ?? true);
+    const [enableCommentReply, setEnableCommentReply] = useState(initialConfig?.enableCommentReply !== undefined ? initialConfig.enableCommentReply : true);
+    const [enableSendMessage, setEnableSendMessage] = useState(initialConfig?.enableSendMessage !== undefined ? initialConfig.enableSendMessage : true);
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -45,8 +45,10 @@ const TriggerNodeForm: React.FC<TriggerNodeFormProps> = ({
                 enableSendMessage: initialConfig.enableSendMessage
             });
             setSelectedPageId(initialConfig.pageId || '');
-            setEnableCommentReply(initialConfig.enableCommentReply ?? true);
-            setEnableSendMessage(initialConfig.enableSendMessage ?? true);
+            // Only default to true if the value is explicitly undefined (not saved yet)
+            // If it's false, keep it false
+            setEnableCommentReply(initialConfig.enableCommentReply !== undefined ? initialConfig.enableCommentReply : true);
+            setEnableSendMessage(initialConfig.enableSendMessage !== undefined ? initialConfig.enableSendMessage : true);
         }
     }, [initialConfig]);
 
