@@ -75,10 +75,15 @@ async function handleWebhookEvent(eventData: any, res: VercelResponse) {
 // Process a single comment event
 async function processComment(value: any, pageId: string) {
     console.log('\n--- Processing Comment ---');
+    console.log('Raw value object:', JSON.stringify(value, null, 2));
+
+    // Log what we're checking
+    console.log(`Checking: value.item = "${value.item}" (expected: "comment")`);
+    console.log(`Checking: value.verb = "${value.verb}" (expected: "add")`);
 
     // Only process new comments
     if (value.item !== 'comment' || value.verb !== 'add') {
-        console.log('⊘ Skipping: Not a new comment');
+        console.log(`⊘ Skipping: Not a new comment (item=${value.item}, verb=${value.verb})`);
         return;
     }
 
