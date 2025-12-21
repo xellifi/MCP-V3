@@ -329,18 +329,34 @@ async function processCommentEvent(value: any, pageId: string) {
     const createdTime = value.created_time ? new Date(parseInt(value.created_time) * 1000).toISOString() : new Date().toISOString();
     const parentCommentId = value.parent_id || null;
 
+    console.log('Extracted comment data:', {
+        commentId,
+        postId,
+        commenterId,
+        commenterName,
+        pageId,
+        commenterIdType: typeof commenterId,
+        pageIdType: typeof pageId
+    });
+
     if (!commentId || !postId || !commenterId) {
         console.error('Missing required comment data');
         return;
     }
 
     // Ignore comments made by the page itself to prevent infinite loops
-    if (commenterId === pageId) {
-        console.log(`Ignoring comment from page itself: PageID ${pageId} matches CommenterID ${commenterId}`);
+    // Convert both to strings for comparison to handle type mismatches
+    const commenterIdStr = String(commenterId);
+    const pageIdStr = String(pageId);
+
+    console.log(`Comparing IDs: CommenterID="${commenterIdStr}" vs PageID="${pageIdStr}" - Match: ${commenterIdStr === pageIdStr}`);
+
+    if (commenterIdStr === pageIdStr) {
+        console.log(`✓ Ignoring comment from page itself (preventing infinite loop)`);
         return;
     }
 
-    console.log(`Processing comment from user ${commenterId} on page ${pageId}`);
+    console.log(`✓ Processing comment from user ${commenterId} (${commenterName}) on page ${pageId}`);
 
     // Get the page details and workspace
     const { data: page } = await supabase
@@ -513,7 +529,8 @@ async function executeFlow(flow: any, configurations: any, context: any) {
 
 // Execute a single action node
 async function executeActionNode(node: any, config: any, context: any) {
-    console.log(`Executing action node: ${node.data?.label || node.id}`);
+    console.log(`\n=== Executing action node: ${node.data?.label || node.id} ===`);
+    console.log('Node config:', JSON.stringify(config, null, 2));
 
     // Replace variables in templates
     const replaceVariables = (template: string) => {
@@ -529,24 +546,44 @@ async function executeActionNode(node: any, config: any, context: any) {
         const replyTemplate = config.replyTemplate || config.template || '';
         const replyMessage = replaceVariables(replyTemplate);
 
+        console.log(`Comment Reply Action - Template: "${replyTemplate}", Final Message: "${replyMessage}"`);
+
         if (replyMessage && context.pageAccessToken) {
+            console.log('✓ Calling replyToComment...');
             await replyToComment(context.commentId, replyMessage, context.pageAccessToken);
+        } else {
+            console.log('✗ Skipping comment reply - Missing:', {
+                hasMessage: !!replyMessage,
+                hasToken: !!context.pageAccessToken
+            });
         }
     } else if (node.data?.label?.includes('Send') && node.data?.label?.includes('Message')) {
         // Send DM
         const messageTemplate = config.messageTemplate || config.template || '';
         const dmMessage = replaceVariables(messageTemplate);
 
+        console.log(`Send Message Action - Template: "${messageTemplate}", Final Message: "${dmMessage}", SendDM: ${config.sendDM}`);
+
         if (dmMessage && context.pageAccessToken && config.sendDM) {
+            console.log('✓ Calling sendDirectMessage...');
             await sendDirectMessage(context.commenterId, dmMessage, context.pageId, context.pageAccessToken);
+        } else {
+            console.log('✗ Skipping DM - Missing:', {
+                hasMessage: !!dmMessage,
+                hasToken: !!context.pageAccessToken,
+                sendDMEnabled: config.sendDM
+            });
         }
     }
+    console.log('=== Action node complete ===\n');
 }
 
 // Reply to a Facebook comment
 async function replyToComment(commentId: string, message: string, pageAccessToken: string) {
     try {
-        console.log(`Replying to comment ${commentId}: ${message}`);
+        console.log(`\n>>> Replying to comment ${commentId}`);
+        console.log(`>>> Message: "${message}"`);
+        console.log(`>>> Endpoint: https://graph.facebook.com/v18.0/${commentId}/comments`);
 
         const response = await fetch(
             `https://graph.facebook.com/v18.0/${commentId}/comments`,
@@ -561,14 +598,15 @@ async function replyToComment(commentId: string, message: string, pageAccessToke
         );
 
         const result = await response.json();
+        console.log('>>> FB Comment Reply Response:', JSON.stringify(result, null, 2));
 
         if (result.error) {
-            console.error('Error replying to comment:', result.error);
+            console.error('✗ Error replying to comment:', result.error);
         } else {
-            console.log('Comment reply posted successfully:', result.id);
+            console.log('✓ Comment reply posted successfully! Reply ID:', result.id);
         }
     } catch (error) {
-        console.error('Error in replyToComment:', error);
+        console.error('✗ Exception in replyToComment:', error);
     }
 }
 
