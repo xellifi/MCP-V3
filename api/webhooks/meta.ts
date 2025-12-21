@@ -298,6 +298,7 @@ async function processCommentEvent(value: any, pageId: string) {
     console.log(`Processing comment from user ${commenterId} (${commenterName})`);
 
     // Get the page details and workspace
+    console.log(`Fetching page details for pageId: ${pageId}`);
     const { data: page } = await supabase
         .from('connected_pages')
         .select('*, workspaces!inner(id)')
@@ -308,6 +309,8 @@ async function processCommentEvent(value: any, pageId: string) {
         console.error('Page not found:', pageId);
         return;
     }
+
+    console.log(`Page found! DB ID: ${(page as any).id}, Page Access Token exists: ${!!(page as any).page_access_token}`);
 
     const workspaceId = (page as any).workspaces.id;
 
@@ -346,6 +349,7 @@ async function processCommentEvent(value: any, pageId: string) {
     console.log('Comment saved successfully:', commentId);
 
     // Trigger flow execution
+    console.log(`\n========== TRIGGERING FLOW EXECUTION ==========`);
     try {
         await executeFlowsForComment({
             workspaceId,
@@ -359,6 +363,7 @@ async function processCommentEvent(value: any, pageId: string) {
             parentCommentId,
             pageAccessToken: (page as any).page_access_token
         });
+        console.log(`========== FLOW EXECUTION COMPLETE ==========\n`);
     } catch (error) {
         console.error('Error executing flows for comment:', error);
     }
@@ -368,23 +373,40 @@ async function processCommentEvent(value: any, pageId: string) {
 async function executeFlowsForComment(context: any) {
     const { workspaceId, pageId, pageDbId } = context;
 
+    console.log(`\n>>> executeFlowsForComment called`);
+    console.log(`>>> WorkspaceID: ${workspaceId}`);
+    console.log(`>>> Facebook PageID: ${pageId}`);
+    console.log(`>>> Database PageID (UUID): ${pageDbId}`);
+
     const { data: flows, error } = await supabase
         .from('flows')
         .select('*')
         .eq('workspace_id', workspaceId)
         .eq('status', 'ACTIVE');
 
-    if (error || !flows || flows.length === 0) {
-        console.log('No active flows found for workspace:', workspaceId);
+    if (error) {
+        console.error('>>> ERROR fetching flows:', error);
         return;
     }
 
-    console.log(`Found ${flows.length} active flows for workspace`);
+    if (!flows || flows.length === 0) {
+        console.log('>>> ❌ NO ACTIVE FLOWS found for workspace:', workspaceId);
+        return;
+    }
+
+    console.log(`>>> ✓ Found ${flows.length} active flow(s) for workspace`);
+    flows.forEach((flow, index) => {
+        console.log(`>>>   Flow ${index + 1}: ID=${flow.id}, Name="${flow.name}"`);
+    });
 
     for (const flow of flows) {
         try {
+            console.log(`\n>>> Checking Flow: "${flow.name}" (ID: ${flow.id})`);
             const configurations = flow.configurations || {};
             const nodes = flow.nodes || [];
+
+            console.log(`>>>   Nodes count: ${nodes.length}`);
+            console.log(`>>>   Configurations: ${JSON.stringify(configurations, null, 2)}`);
 
             const triggerNode = nodes.find((node: any) =>
                 node.type === 'triggerNode' &&
@@ -392,25 +414,33 @@ async function executeFlowsForComment(context: any) {
             );
 
             if (!triggerNode) {
-                console.log(`Flow ${flow.id} has no comment trigger`);
+                console.log(`>>>   ❌ SKIP: No comment trigger node found`);
                 continue;
             }
+
+            console.log(`>>>   ✓ Found trigger node: ${triggerNode.id}`);
 
             const triggerConfig = configurations[triggerNode.id] || {};
+            console.log(`>>>   Trigger config:`, JSON.stringify(triggerConfig, null, 2));
 
             // Compare against database UUID, not Facebook Page ID
+            console.log(`>>>   Comparing: triggerConfig.pageId (${triggerConfig.pageId}) vs pageDbId (${pageDbId})`);
+
             if (triggerConfig.pageId !== pageDbId) {
-                console.log(`Flow ${flow.id} trigger not configured for page ${pageId} (DB ID: ${pageDbId}, Expected: ${triggerConfig.pageId})`);
+                console.log(`>>>   ❌ SKIP: Page ID mismatch`);
+                console.log(`>>>       Expected: ${triggerConfig.pageId}`);
+                console.log(`>>>       Got: ${pageDbId}`);
                 continue;
             }
 
-            console.log(`Executing flow ${flow.id} (${flow.name}) for comment`);
+            console.log(`>>>   ✓✓✓ EXECUTING FLOW: "${flow.name}" ✓✓✓`);
             await executeFlow(flow, configurations, context);
 
         } catch (error) {
-            console.error(`Error processing flow ${flow.id}:`, error);
+            console.error(`>>>   ❌ ERROR processing flow ${flow.id}:`, error);
         }
     }
+    console.log(`>>> executeFlowsForComment complete\n`);
 }
 
 // Execute a single flow
