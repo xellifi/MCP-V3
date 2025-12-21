@@ -56,9 +56,20 @@ const SendMessageNodeForm: React.FC<SendMessageNodeFormProps> = ({
                     rows={5}
                     className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-purple-500/50 outline-none transition-all placeholder-slate-500 resize-none"
                 />
-                <p className="mt-2 text-xs text-slate-400">
-                    <strong>Available variables:</strong> {'{commenter_name}'}, {'{comment_text}'}, {'{page_name}'}, {'{post_url}'}
-                </p>
+                <div className="mt-2 space-y-1">
+                    <p className="text-xs font-semibold text-slate-300">
+                        Available variables:
+                    </p>
+                    <div className="text-xs text-slate-400 space-y-0.5 pl-2">
+                        <p><code className="px-1.5 py-0.5 bg-white/10 rounded">{'{commenter_name}'}</code> - Name of the person who commented</p>
+                        <p><code className="px-1.5 py-0.5 bg-white/10 rounded">{'{comment_text}'}</code> - The comment message</p>
+                        <p><code className="px-1.5 py-0.5 bg-white/10 rounded">{'{page_name}'}</code> - Your Facebook page name</p>
+                        <p><code className="px-1.5 py-0.5 bg-white/10 rounded">{'{post_url}'}</code> - URL to the post</p>
+                    </div>
+                    <p className="text-xs text-purple-300 mt-2">
+                        Example: "Hi {'{commenter_name}'}, we'd love to chat about your comment on {'{page_name}'}!"
+                    </p>
+                </div>
             </div>
 
             {/* AI Integration */}

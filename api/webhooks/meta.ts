@@ -132,8 +132,9 @@ async function processComment(value: any, pageId: string) {
 
     const workspaceId = (page as any).workspaces.id;
     const pageAccessToken = (page as any).page_access_token;
+    const pageName = (page as any).page_name || 'Your Page';
 
-    console.log(`✓ Page found (Workspace: ${workspaceId})`);
+    console.log(`✓ Page found: ${pageName} (Workspace: ${workspaceId})`);
 
     // Save comment to database
     const { error: saveError } = await supabase
@@ -170,7 +171,9 @@ async function processComment(value: any, pageId: string) {
         message: message || '',
         commenterId: fromId,
         commenterName: fromName || 'Unknown',
-        pageId
+        pageId,
+        pageName,
+        postUrl: postId ? `https://facebook.com/${postId}` : ''
     });
 }
 
@@ -271,16 +274,32 @@ async function executeAction(
     console.log(`\n  → Executing: ${label}`);
 
     // Replace variables in templates
-    const replaceVars = (template: string) =>
-        template
+    const replaceVars = (template: string) => {
+        let result = template;
+
+        // Support new variable format (UI-advertised)
+        result = result
+            .replace(/\{commenter_name\}/g, context.commenterName)
+            .replace(/\{comment_text\}/g, context.message)
+            .replace(/\{page_name\}/g, context.pageName || 'Your Page')
+            .replace(/\{post_url\}/g, context.postUrl || '');
+
+        // Support old variable format (backward compatibility)
+        result = result
             .replace(/\{\{USER\}\}/g, context.commenterName)
             .replace(/\{\{COMMENT\}\}/g, context.message)
             .replace(/\{\{POST\}\}/g, context.postId);
 
+        return result;
+    };
+
     // Comment Reply Action
     if (label.includes('Comment Reply')) {
         const template = config.replyTemplate || config.template || '';
+        console.log(`    📝 Template: "${template}"`);
+
         const message = replaceVars(template);
+        console.log(`    📝 After variable replacement: "${message}"`);
 
         if (!message || !pageAccessToken) {
             console.log('    ⊘ Skipping: Missing message or token');
@@ -306,7 +325,10 @@ async function executeAction(
     // Send DM Action
     if (label.includes('Send') && label.includes('Message')) {
         const template = config.messageTemplate || config.template || '';
+        console.log(`    📝 Template: "${template}"`);
+
         const message = replaceVars(template);
+        console.log(`    📝 After variable replacement: "${message}"`);
 
         if (!message || !pageAccessToken) {
             console.log('    ⊘ Skipping: Missing message or token');
@@ -356,10 +378,12 @@ async function replyToComment(
         const result = await response.json();
 
         if (result.error) {
-            console.error('    ✗ Facebook error:', result.error.message);
+            console.error('    ✗ Facebook API error:', result.error.message);
+            console.error('    ✗ Full error response:', JSON.stringify(result.error, null, 2));
             await logAction(originalCommentId, flowId, 'comment_reply', false, result.error.message, result);
         } else {
             console.log('    ✓ Reply posted successfully!');
+            console.log('    ✓ Facebook response:', JSON.stringify(result, null, 2));
             await logAction(originalCommentId, flowId, 'comment_reply', true, null, result);
         }
     } catch (error: any) {
@@ -397,10 +421,12 @@ async function sendDirectMessage(
         const result = await response.json();
 
         if (result.error) {
-            console.error('    ✗ Facebook error:', result.error.message);
+            console.error('    ✗ Facebook API error:', result.error.message);
+            console.error('    ✗ Full error response:', JSON.stringify(result.error, null, 2));
             await logAction(commentId, flowId, 'dm_sent', false, result.error.message, result);
         } else {
             console.log('    ✓ DM sent successfully!');
+            console.log('    ✓ Facebook response:', JSON.stringify(result, null, 2));
             await logAction(commentId, flowId, 'dm_sent', true, null, result);
         }
     } catch (error: any) {
