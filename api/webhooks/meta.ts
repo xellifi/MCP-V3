@@ -77,22 +77,19 @@ async function processComment(value: any, pageId: string) {
     console.log('\n--- Processing Comment ---');
     console.log('Raw value object:', JSON.stringify(value, null, 2));
 
-    // Log what we're checking
-    console.log(`Checking: value.item = "${value.item}" (expected: "comment")`);
-    console.log(`Checking: value.verb = "${value.verb}" (expected: "add")`);
-
-    // Only process new comments
-    if (value.item !== 'comment' || value.verb !== 'add') {
-        console.log(`⊘ Skipping: Not a new comment (item=${value.item}, verb=${value.verb})`);
-        return;
-    }
-
+    // Extract comment data - Facebook sends this in various formats
     const commentId = value.comment_id;
     const postId = value.post_id;
     const message = value.message;
     const fromId = value.from?.id;
     const fromName = value.from?.name;
     const parentId = value.parent_id || null;
+
+    // If we don't have a comment_id, this isn't a comment event
+    if (!commentId) {
+        console.log('⊘ Skipping: No comment_id found');
+        return;
+    }
 
     console.log(`Comment ID: ${commentId}`);
     console.log(`From: ${fromName} (${fromId})`);
