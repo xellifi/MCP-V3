@@ -336,9 +336,11 @@ async function processCommentEvent(value: any, pageId: string) {
 
     // Ignore comments made by the page itself to prevent infinite loops
     if (commenterId === pageId) {
-        console.log('Ignoring comment from page itself:', pageId);
+        console.log(`Ignoring comment from page itself: PageID ${pageId} matches CommenterID ${commenterId}`);
         return;
     }
+
+    console.log(`Processing comment from user ${commenterId} on page ${pageId}`);
 
     // Get the page details and workspace
     const { data: page } = await supabase
@@ -536,7 +538,7 @@ async function executeActionNode(node: any, config: any, context: any) {
         const dmMessage = replaceVariables(messageTemplate);
 
         if (dmMessage && context.pageAccessToken && config.sendDM) {
-            await sendDirectMessage(context.commenterId, dmMessage, context.pageAccessToken);
+            await sendDirectMessage(context.commenterId, dmMessage, context.pageId, context.pageAccessToken);
         }
     }
 }
@@ -571,12 +573,12 @@ async function replyToComment(commentId: string, message: string, pageAccessToke
 }
 
 // Send a direct message to a Facebook user
-async function sendDirectMessage(userId: string, message: string, pageAccessToken: string) {
+async function sendDirectMessage(userId: string, message: string, pageId: string, pageAccessToken: string) {
     try {
-        console.log(`Sending DM to user ${userId}: ${message}`);
+        console.log(`Sending DM to user ${userId} from page ${pageId}: ${message}`);
 
         const response = await fetch(
-            `https://graph.facebook.com/v18.0/me/messages`,
+            `https://graph.facebook.com/v18.0/${pageId}/messages`,
             {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -590,6 +592,7 @@ async function sendDirectMessage(userId: string, message: string, pageAccessToke
         );
 
         const result = await response.json();
+        console.log('FB DM Response:', JSON.stringify(result, null, 2));
 
         if (result.error) {
             console.error('Error sending DM:', result.error);
