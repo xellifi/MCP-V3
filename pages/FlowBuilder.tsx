@@ -27,6 +27,10 @@ import CustomActionNode from '../components/nodes/CustomActionNode';
 import CustomAINode from '../components/nodes/CustomAINode';
 import CustomConditionNode from '../components/nodes/CustomConditionNode';
 import { api } from '../services/api';
+// Import node configuration registry
+import '../src/config'; // This initializes all node configs
+import { nodeConfigRegistry } from '../src/utils/nodeConfigRegistry';
+
 
 interface FlowBuilderProps {
   workspace: Workspace;
@@ -95,11 +99,15 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
     if (!id || id.startsWith('new')) return;
 
     try {
-      console.log('[FlowBuilder.loadFlowData] Loading flow data for ID:', id);
+      console.log('[FlowBuilder.loadFlowData] ========== LOADING FLOW ==========');
+      console.log('[FlowBuilder.loadFlowData] Flow ID:', id);
+
       const flow = await api.workspace.getFlow(id);
 
       if (flow) {
-        console.log('[FlowBuilder.loadFlowData] Flow loaded:', flow);
+        console.log('[FlowBuilder.loadFlowData] ✓ Flow loaded successfully');
+        console.log('[FlowBuilder.loadFlowData] Flow name:', flow.name);
+        console.log('[FlowBuilder.loadFlowData] Flow status:', flow.status);
         console.log('[FlowBuilder.loadFlowData] Flow configurations:', (flow as any).configurations);
 
         // Set flow name and status
@@ -108,44 +116,60 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
 
         // First, restore configurations
         const savedConfigs = (flow as any).configurations || {};
-        console.log('[FlowBuilder.loadFlowData] Setting nodeConfigs to:', savedConfigs);
-        console.log('[FlowBuilder.loadFlowData] savedConfigs keys:', Object.keys(savedConfigs));
+        console.log('[FlowBuilder.loadFlowData] Saved configurations object:', savedConfigs);
+        console.log('[FlowBuilder.loadFlowData] Configuration keys:', Object.keys(savedConfigs));
         setNodeConfigs(savedConfigs);
 
         // Restore nodes with their configurations applied
         if (flow.nodes && Array.isArray(flow.nodes)) {
+          console.log('[FlowBuilder.loadFlowData] Processing', flow.nodes.length, 'nodes');
+
           const restoredNodes = flow.nodes.map((node: any) => {
             // Get saved configuration for this node
             const nodeConfig = savedConfigs[node.id] || {};
-            console.log(`[FlowBuilder.loadFlowData] Node ${node.id} config:`, nodeConfig);
+            console.log(`[FlowBuilder.loadFlowData] ────────────────────────────────`);
+            console.log(`[FlowBuilder.loadFlowData] Node ID: ${node.id}`);
+            console.log(`[FlowBuilder.loadFlowData] Node label: ${node.data?.label}`);
+            console.log(`[FlowBuilder.loadFlowData] Node type: ${node.data?.nodeType}`);
+            console.log(`[FlowBuilder.loadFlowData] Saved config for this node:`, nodeConfig);
 
-            return {
+            if (nodeConfig.enableCommentReply !== undefined) {
+              console.log(`[FlowBuilder.loadFlowData] ⚠️ TOGGLE: enableCommentReply = ${nodeConfig.enableCommentReply}`);
+            }
+            if (nodeConfig.enableSendMessage !== undefined) {
+              console.log(`[FlowBuilder.loadFlowData] ⚠️ TOGGLE: enableSendMessage = ${nodeConfig.enableSendMessage}`);
+            }
+
+            const mergedNode = {
               ...node,
               data: {
                 ...node.data,
                 // Merge saved configuration into node data
-                ...nodeConfig,
-                // Ensure handlers are attached
-                onConfigure: () => handleConfigureNode(node),
-                onDelete: () => handleDeleteNode(node.id)
+                ...nodeConfig
               }
             };
+
+            console.log(`[FlowBuilder.loadFlowData] Merged node data:`, mergedNode.data);
+            return mergedNode;
           });
+
           setNodes(restoredNodes);
-          console.log('[FlowBuilder.loadFlowData] Restored nodes with configs:', restoredNodes);
+          console.log('[FlowBuilder.loadFlowData] ✓ All nodes restored with configurations');
         }
 
         // Restore edges
         if (flow.edges && Array.isArray(flow.edges)) {
           setEdges(flow.edges);
-          console.log('[FlowBuilder.loadFlowData] Restored edges:', flow.edges);
+          console.log('[FlowBuilder.loadFlowData] ✓ Restored', flow.edges.length, 'edges');
         }
+
+        console.log('[FlowBuilder.loadFlowData] ========== FLOW LOAD COMPLETE ==========');
       } else {
-        console.warn('[FlowBuilder.loadFlowData] Flow not found:', id);
+        console.warn('[FlowBuilder.loadFlowData] ✗ Flow not found:', id);
         toast.error('Flow not found');
       }
     } catch (error) {
-      console.error('[FlowBuilder.loadFlowData] Error loading flow:', error);
+      console.error('[FlowBuilder.loadFlowData] ✗ ERROR loading flow:', error);
       toast.error('Failed to load flow');
     }
   };
@@ -197,44 +221,29 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
   }, [setNodes, setEdges, toast]);
 
   const handleConfigureNode = useCallback((node: Node) => {
-    // Extract configuration from node.data
-    // During loadFlowData, we merge savedConfigs into node.data (line 124)
-    // So we need to extract the config fields from node.data
+    console.log('[FlowBuilder.handleConfigureNode] Opening config modal for node:', node.id);
+    console.log('[FlowBuilder.handleConfigureNode] Node data:', node.data);
+
     const nodeData = node.data;
-
-    // Build config object from node data based on node type
-    let extractedConfig: any = {};
-
     const nodeLabel = nodeData.label as string;
     const nodeType = nodeData.nodeType as string;
 
+    // Determine the config type based on node label and type
+    let configType = '';
     if (nodeLabel?.includes('Comment') && nodeType === 'triggerNode') {
-      // Trigger node config
-      extractedConfig = {
-        pageId: nodeData.pageId,
-        enableCommentReply: nodeData.enableCommentReply,
-        enableSendMessage: nodeData.enableSendMessage
-      };
-    } else if (nodeLabel?.includes('Reply')) {
-      // Comment reply node config
-      extractedConfig = {
-        replyTemplate: nodeData.replyTemplate || nodeData.template,
-        useAI: nodeData.useAI,
-        aiProvider: nodeData.aiProvider,
-        aiPrompt: nodeData.aiPrompt
-      };
-    } else if (nodeLabel?.includes('Message')) {
-      // Send message node config
-      extractedConfig = {
-        messageTemplate: nodeData.messageTemplate || nodeData.template,
-        useAI: nodeData.useAI,
-        aiProvider: nodeData.aiProvider,
-        aiPrompt: nodeData.aiPrompt
-      };
+      configType = 'triggerNode';
+    } else if (nodeLabel?.includes('Reply') && !nodeLabel?.includes('Messenger')) {
+      configType = 'commentReplyNode';
+    } else if (nodeLabel?.includes('Message') || nodeLabel?.includes('Messenger')) {
+      configType = 'messengerReplyNode';
     }
 
-    console.log('[FlowBuilder.handleConfigureNode] Opening config modal for node:', node.id);
-    console.log('[FlowBuilder.handleConfigureNode] Node data:', nodeData);
+    // Use registry to extract configuration
+    const extractedConfig = configType
+      ? nodeConfigRegistry.extractConfig(configType, nodeData)
+      : {};
+
+    console.log('[FlowBuilder.handleConfigureNode] Config type:', configType);
     console.log('[FlowBuilder.handleConfigureNode] Extracted config:', extractedConfig);
     console.log('[FlowBuilder.handleConfigureNode] nodeConfigs[node.id]:', nodeConfigs[node.id]);
 
@@ -612,7 +621,7 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
                     <div className="w-8 h-8 bg-purple-500/20 text-purple-400 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
                       <div className="w-3 h-3 rounded-full bg-purple-400"></div>
                     </div>
-                    <span className="text-sm font-semibold text-slate-300 group-hover:text-white transition-colors">Send DM</span>
+                    <span className="text-sm font-semibold text-slate-300 group-hover:text-white transition-colors">Messenger Reply</span>
                   </button>
                 </div>
               </div>
@@ -730,7 +739,7 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
                   <div className="w-12 h-12 bg-purple-500/30 rounded-xl mx-auto mb-2 flex items-center justify-center">
                     <div className="w-4 h-4 rounded-full bg-purple-400"></div>
                   </div>
-                  <p className="text-sm font-semibold text-white">Send DM</p>
+                  <p className="text-sm font-semibold text-white">Messenger Reply</p>
                 </button>
                 <button onClick={() => addNode('aiNode', 'AI Agent')} className="p-4 bg-indigo-500/20 border border-indigo-500/30 rounded-xl text-center">
                   <div className="w-12 h-12 bg-indigo-500/30 rounded-xl mx-auto mb-2 flex items-center justify-center">
