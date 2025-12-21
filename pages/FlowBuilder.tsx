@@ -197,13 +197,49 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
   }, [setNodes, setEdges, toast]);
 
   const handleConfigureNode = useCallback((node: Node) => {
-    const savedConfig = nodeConfigs[node.id] || {};
-    console.log('Opening config modal for node:', node.id);
-    console.log('Saved config:', savedConfig);
-    console.log('Node data:', node.data);
+    // Extract configuration from node.data
+    // During loadFlowData, we merge savedConfigs into node.data (line 124)
+    // So we need to extract the config fields from node.data
+    const nodeData = node.data;
+
+    // Build config object from node data based on node type
+    let extractedConfig: any = {};
+
+    const nodeLabel = nodeData.label as string;
+    const nodeType = nodeData.nodeType as string;
+
+    if (nodeLabel?.includes('Comment') && nodeType === 'triggerNode') {
+      // Trigger node config
+      extractedConfig = {
+        pageId: nodeData.pageId,
+        enableCommentReply: nodeData.enableCommentReply,
+        enableSendMessage: nodeData.enableSendMessage
+      };
+    } else if (nodeLabel?.includes('Reply')) {
+      // Comment reply node config
+      extractedConfig = {
+        replyTemplate: nodeData.replyTemplate || nodeData.template,
+        useAI: nodeData.useAI,
+        aiProvider: nodeData.aiProvider,
+        aiPrompt: nodeData.aiPrompt
+      };
+    } else if (nodeLabel?.includes('Message')) {
+      // Send message node config
+      extractedConfig = {
+        messageTemplate: nodeData.messageTemplate || nodeData.template,
+        useAI: nodeData.useAI,
+        aiProvider: nodeData.aiProvider,
+        aiPrompt: nodeData.aiPrompt
+      };
+    }
+
+    console.log('[FlowBuilder.handleConfigureNode] Opening config modal for node:', node.id);
+    console.log('[FlowBuilder.handleConfigureNode] Node data:', nodeData);
+    console.log('[FlowBuilder.handleConfigureNode] Extracted config:', extractedConfig);
+    console.log('[FlowBuilder.handleConfigureNode] nodeConfigs[node.id]:', nodeConfigs[node.id]);
 
     setSelectedNode(node);
-    setCurrentConfig(savedConfig);
+    setCurrentConfig(extractedConfig);
     setShowConfigModal(true);
   }, [nodeConfigs]);
 
