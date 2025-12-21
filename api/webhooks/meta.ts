@@ -82,8 +82,17 @@ async function handleWebhookEvent(eventData: any, res: VercelResponse) {
 
 // Process a single comment event
 async function processComment(value: any, pageId: string) {
-    console.log('\n--- Processing Comment ---');
+    console.log('\n--- Processing Feed Event ---');
     console.log('Raw value object:', JSON.stringify(value, null, 2));
+
+    // Check the item type - we only care about comment events
+    const itemType = value.item;
+    console.log(`Item type: ${itemType}`);
+
+    if (itemType !== 'comment') {
+        console.log(`⊘ Skipping: Not a comment event (item type: ${itemType})`);
+        return;
+    }
 
     // Extract comment data - Facebook sends this in various formats
     const commentId = value.comment_id;
@@ -93,9 +102,10 @@ async function processComment(value: any, pageId: string) {
     const fromName = value.from?.name;
     const parentId = value.parent_id || null;
 
-    // If we don't have a comment_id, this isn't a comment event
+    // If we don't have a comment_id, this isn't a valid comment event
     if (!commentId) {
         console.log('⊘ Skipping: No comment_id found');
+        console.log('Available fields:', Object.keys(value));
         return;
     }
 
