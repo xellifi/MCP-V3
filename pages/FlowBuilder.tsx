@@ -24,12 +24,14 @@ import CommentReplyNodeForm from '../components/CommentReplyNodeForm';
 import SendMessageNodeForm from '../components/SendMessageNodeForm';
 import TextNodeForm from '../components/TextNodeForm';
 import ButtonNodeForm from '../components/ButtonNodeForm';
+import ButtonsOnlyNodeForm from '../components/ButtonsOnlyNodeForm';
 import CustomTriggerNode from '../components/nodes/CustomTriggerNode';
 import CustomActionNode from '../components/nodes/CustomActionNode';
 import CustomAINode from '../components/nodes/CustomAINode';
 import CustomConditionNode from '../components/nodes/CustomConditionNode';
 import CustomTextNode from '../components/nodes/CustomTextNode';
 import CustomButtonNode from '../components/nodes/CustomButtonNode';
+import CustomButtonsOnlyNode from '../components/nodes/CustomButtonsOnlyNode';
 import { api } from '../services/api';
 // Import node configuration registry
 import '../src/config'; // This initializes all node configs
@@ -52,6 +54,7 @@ const nodeTypes: NodeTypes = {
   conditionNode: CustomConditionNode,
   textNode: CustomTextNode,
   buttonNode: CustomButtonNode,
+  buttonsOnlyNode: CustomButtonsOnlyNode,
 };
 
 const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
@@ -514,9 +517,20 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
     }
 
     // Button Node
-    if (nodeType === 'buttonNode' || label.toLowerCase().includes('button')) {
+    if (nodeType === 'buttonNode' || label.toLowerCase().includes('text with buttons')) {
       return (
         <ButtonNodeForm
+          userId={workspace.ownerId}
+          initialConfig={currentConfig}
+          onChange={setCurrentConfig}
+        />
+      );
+    }
+
+    // Buttons Only Node
+    if (nodeType === 'buttonsOnlyNode' || (label.toLowerCase().includes('button') && !label.toLowerCase().includes('text'))) {
+      return (
+        <ButtonsOnlyNodeForm
           userId={workspace.ownerId}
           initialConfig={currentConfig}
           onChange={setCurrentConfig}
@@ -666,11 +680,17 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
                     </div>
                     <span className="text-sm font-semibold text-slate-300 group-hover:text-white transition-colors">Text</span>
                   </button>
-                  <button onClick={() => addNode('buttonNode', 'Button')} className="w-full flex items-center gap-3 p-3 bg-white/5 border border-white/10 rounded-xl hover:border-blue-500/50 hover:bg-blue-500/10 transition-all text-left group">
+                  <button onClick={() => addNode('buttonNode', 'Text with Buttons')} className="w-full flex items-center gap-3 p-3 bg-white/5 border border-white/10 rounded-xl hover:border-blue-500/50 hover:bg-blue-500/10 transition-all text-left group">
                     <div className="w-8 h-8 bg-blue-500/20 text-blue-400 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
                       <div className="w-3 h-3 rounded-full bg-blue-400"></div>
                     </div>
-                    <span className="text-sm font-semibold text-slate-300 group-hover:text-white transition-colors">Button</span>
+                    <span className="text-sm font-semibold text-slate-300 group-hover:text-white transition-colors">Text with Buttons</span>
+                  </button>
+                  <button onClick={() => addNode('buttonsOnlyNode', 'Buttons')} className="w-full flex items-center gap-3 p-3 bg-white/5 border border-white/10 rounded-xl hover:border-indigo-500/50 hover:bg-indigo-500/10 transition-all text-left group">
+                    <div className="w-8 h-8 bg-indigo-500/20 text-indigo-400 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <div className="w-3 h-3 rounded-full bg-indigo-400"></div>
+                    </div>
+                    <span className="text-sm font-semibold text-slate-300 group-hover:text-white transition-colors">Buttons</span>
                   </button>
                 </div>
               </div>
