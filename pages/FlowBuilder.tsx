@@ -646,11 +646,11 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
                     </div>
                     <span className="text-sm font-semibold text-slate-300 group-hover:text-white transition-colors">Messenger Reply</span>
                   </button>
-                  <button onClick={() => addNode('textNode', 'Text/Delay')} className="w-full flex items-center gap-3 p-3 bg-white/5 border border-white/10 rounded-xl hover:border-amber-500/50 hover:bg-amber-500/10 transition-all text-left group">
+                  <button onClick={() => addNode('textNode', 'Text')} className="w-full flex items-center gap-3 p-3 bg-white/5 border border-white/10 rounded-xl hover:border-amber-500/50 hover:bg-amber-500/10 transition-all text-left group">
                     <div className="w-8 h-8 bg-amber-500/20 text-amber-400 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
                       <div className="w-3 h-3 rounded-full bg-amber-400"></div>
                     </div>
-                    <span className="text-sm font-semibold text-slate-300 group-hover:text-white transition-colors">Text/Delay</span>
+                    <span className="text-sm font-semibold text-slate-300 group-hover:text-white transition-colors">Text</span>
                   </button>
                 </div>
               </div>
