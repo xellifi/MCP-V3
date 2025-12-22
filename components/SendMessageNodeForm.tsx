@@ -11,7 +11,7 @@ interface Button {
 }
 
 interface SendMessageNodeFormProps {
-    userId: string;
+    workspaceId: string;
     initialConfig?: {
         messageTemplate?: string;
         buttons?: Button[];
@@ -20,7 +20,7 @@ interface SendMessageNodeFormProps {
 }
 
 const SendMessageNodeForm: React.FC<SendMessageNodeFormProps> = ({
-    userId,
+    workspaceId,
     initialConfig,
     onChange
 }) => {
@@ -35,14 +35,14 @@ const SendMessageNodeForm: React.FC<SendMessageNodeFormProps> = ({
     // Fetch Start flows on mount
     useEffect(() => {
         fetchStartFlows();
-    }, [userId]);
+    }, [workspaceId]);
 
     const fetchStartFlows = async () => {
-        console.log('Fetching Start flows for user:', userId);
+        console.log('Fetching Start flows for workspace:', workspaceId);
         const { data: flows, error } = await supabase
             .from('flows')
-            .select('id, name, flow_data')
-            .eq('user_id', userId)
+            .select('id, name, nodes')
+            .eq('workspace_id', workspaceId)
             .eq('status', 'ACTIVE');
 
         console.log('Flows query result:', { flows, error });
@@ -50,7 +50,7 @@ const SendMessageNodeForm: React.FC<SendMessageNodeFormProps> = ({
         if (!error && flows) {
             // Filter flows that have Start nodes
             const flowsWithStartNodes = flows.filter(flow => {
-                const nodes = flow.flow_data?.nodes || [];
+                const nodes = flow.nodes || [];
                 const hasStartNode = nodes.some((n: any) => n.type === 'startNode');
                 console.log(`Flow "${flow.name}" has Start node:`, hasStartNode);
                 return hasStartNode;

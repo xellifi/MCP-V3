@@ -500,7 +500,7 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
     if (actionType === 'message' || nodeLabel.includes('Message')) {
       return (
         <SendMessageNodeForm
-          userId={workspace.ownerId}
+          workspaceId={workspace.id}
           initialConfig={currentConfig}
           onChange={setCurrentConfig}
         />
