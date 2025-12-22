@@ -43,7 +43,7 @@ const SendMessageNodeForm: React.FC<SendMessageNodeFormProps> = ({
             .from('flows')
             .select('id, name, flow_data')
             .eq('user_id', userId)
-            .eq('status', 'active');
+            .eq('status', 'ACTIVE');
 
         console.log('Flows query result:', { flows, error });
 
