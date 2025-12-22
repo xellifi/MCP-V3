@@ -7,19 +7,13 @@
 
 import { nodeConfigRegistry } from '../utils/nodeConfigRegistry';
 import { triggerNodeConfig } from './triggerNodeConfig';
-import { commentReplyNodeConfig } from './commentReplyNodeConfig';
-import { messengerReplyNodeConfig } from './messengerReplyNodeConfig';
 
 // Register all node configurations
 export function initializeNodeConfigs() {
     nodeConfigRegistry.register(triggerNodeConfig);
-    nodeConfigRegistry.register(commentReplyNodeConfig);
-    nodeConfigRegistry.register(messengerReplyNodeConfig);
 
     console.log('[NodeConfig] Registered node configurations:', {
-        trigger: triggerNodeConfig.nodeType,
-        commentReply: commentReplyNodeConfig.nodeType,
-        messengerReply: messengerReplyNodeConfig.nodeType
+        trigger: triggerNodeConfig.nodeType
     });
 }
 

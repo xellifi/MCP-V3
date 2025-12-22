@@ -8,12 +8,10 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 export default async function handler(req: VercelRequest, res: VercelResponse) {
     const { method, query, body } = req;
 
-    // Log EVERY request that hits this endpoint
     console.log('========== WEBHOOK REQUEST RECEIVED ==========');
     console.log('Method:', method);
     console.log('Query:', JSON.stringify(query));
-    console.log('Body:', JSON.stringify(body));
-    console.log('Headers:', JSON.stringify(req.headers));
+    console.log('Body:', JSON.stringify(body, null, 2));
     console.log('==============================================');
 
     // Handle GET request for webhook verification
@@ -96,7 +94,7 @@ async function processComment(value: any, pageId: string) {
         return;
     }
 
-    // Extract comment data - Facebook sends this in various formats
+    // Extract comment data
     const commentId = value.comment_id;
     const postId = value.post_id;
     const message = value.message;
@@ -152,7 +150,7 @@ async function processComment(value: any, pageId: string) {
 
     const workspaceId = (page as any).workspaces.id;
     const pageAccessToken = (page as any).page_access_token;
-    const pageName = (page as any).page_name || 'Your Page';
+    const pageName = (page as any).name || 'Your Page';
 
     console.log(`✓ Page found: ${pageName} (Workspace: ${workspaceId})`);
 
@@ -291,38 +289,25 @@ async function executeAction(
     commentId: string
 ) {
     const label = node.data?.label || '';
-    console.log(`\n  → Executing: ${label}`);
+    const actionType = node.data?.actionType || '';
+    console.log(`\n  → Executing: ${label} (type: ${actionType})`);
 
     // Replace variables in templates
     const replaceVars = (template: string) => {
-        let result = template;
-
-        // Support new variable format (UI-advertised)
-        result = result
-            .replace(/\{commenter_name\}/g, context.commenterName)
-            .replace(/\{comment_text\}/g, context.message)
-            .replace(/\{page_name\}/g, context.pageName || 'Your Page')
-            .replace(/\{post_url\}/g, context.postUrl || '');
-
-        // Support old variable format (backward compatibility)
-        result = result
-            .replace(/\{\{USER\}\}/g, context.commenterName)
-            .replace(/\{\{COMMENT\}\}/g, context.message)
-            .replace(/\{\{POST\}\}/g, context.postId);
-
-        return result;
+        return template
+            .replace(/{commenter_name}/g, context.commenterName)
+            .replace(/{comment_text}/g, context.message)
+            .replace(/{page_name}/g, context.pageName || 'Your Page')
+            .replace(/{post_url}/g, context.postUrl || '');
     };
 
     // Comment Reply Action
-    if (label.includes('Comment Reply')) {
+    if (actionType === 'reply' || label.includes('Reply')) {
         const template = config.replyTemplate || config.template || '';
         console.log(`    📝 Template: "${template}"`);
 
-        const message = replaceVars(template);
-        console.log(`    📝 After variable replacement: "${message}"`);
-
-        if (!message || !pageAccessToken) {
-            console.log('    ⊘ Skipping: Missing message or token');
+        if (!template || !pageAccessToken) {
+            console.log('    ⊘ Skipping: Missing template or token');
             return;
         }
 
@@ -339,19 +324,19 @@ async function executeAction(
             return;
         }
 
-        await replyToComment(context.commentId, message, pageAccessToken, flowId, commentId);
+        // Replace variables EXCEPT the @mention which needs the actual ID
+        const messageWithVars = replaceVars(template);
+
+        await replyToComment(context.commentId, messageWithVars, context.commenterId, pageAccessToken, flowId, commentId);
     }
 
     // Send DM Action
-    if ((label.includes('Send') && label.includes('Message')) || label.includes('Messenger')) {
+    if (actionType === 'message' || label.includes('Message') || label.includes('Messenger')) {
         const template = config.messageTemplate || config.template || '';
         console.log(`    📝 Template: "${template}"`);
 
-        const message = replaceVars(template);
-        console.log(`    📝 After variable replacement: "${message}"`);
-
-        if (!message || !pageAccessToken) {
-            console.log('    ⊘ Skipping: Missing message or token');
+        if (!template || !pageAccessToken) {
+            console.log('    ⊘ Skipping: Missing template or token');
             return;
         }
 
@@ -368,23 +353,29 @@ async function executeAction(
             return;
         }
 
-        await sendDirectMessage(context.commenterId, message, context.pageId, pageAccessToken, flowId, commentId);
+        const message = replaceVars(template);
+        await sendPrivateReply(context.commenterId, context.commenterName, message, pageAccessToken, flowId, commentId);
     }
 }
 
-// Reply to a Facebook comment
+// Reply to a Facebook comment with @mention tagging
 async function replyToComment(
     commentId: string,
-    message: string,
+    messageTemplate: string,
+    userId: string,
     pageAccessToken: string,
     flowId: string,
     originalCommentId: string
 ) {
-    console.log(`    📤 Posting reply: "${message}"`);
+    // Construct message with @mention tag per Facebook API docs
+    // Format: @[{userId}] creates a clickable mention
+    const message = `@[${userId}] ${messageTemplate}`;
+
+    console.log(`    📤 Posting reply with mention: "${message}"`);
 
     try {
         const response = await fetch(
-            `https://graph.facebook.com/v18.0/${commentId}/comments`,
+            `https://graph.facebook.com/v21.0/${commentId}/comments`,
             {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -402,7 +393,7 @@ async function replyToComment(
             console.error('    ✗ Full error response:', JSON.stringify(result.error, null, 2));
             await logAction(originalCommentId, flowId, 'comment_reply', false, result.error.message, result);
         } else {
-            console.log('    ✓ Reply posted successfully!');
+            console.log('    ✓ Reply posted successfully with @mention!');
             console.log('    ✓ Facebook response:', JSON.stringify(result, null, 2));
             await logAction(originalCommentId, flowId, 'comment_reply', true, null, result);
         }
@@ -412,32 +403,30 @@ async function replyToComment(
     }
 }
 
-// Send a direct message (private reply to comment)
-async function sendDirectMessage(
+// Send a private Messenger reply
+async function sendPrivateReply(
     userId: string,
+    userName: string,
     message: string,
-    pageId: string,
     pageAccessToken: string,
     flowId: string,
     commentId: string
 ) {
-    console.log(`    📤 Sending Private Reply (DM): "${message}"`);
-    console.log(`    📤 Comment ID: ${commentId}`);
-    console.log(`    📤 User ID: ${userId}`);
+    console.log(`    📤 Sending Private Messenger Reply: "${message}"`);
+    console.log(`    📤 To User: ${userName} (${userId})`);
 
     try {
-        // IMPORTANT: To send a private reply to a comment, use comment_id in recipient
-        // This creates a private conversation in Messenger linked to the comment
         const requestBody = {
-            recipient: { comment_id: commentId }, // Use comment_id, not user id
+            recipient: { id: userId },
             message: { text: message },
+            messaging_type: 'RESPONSE',
             access_token: pageAccessToken
         };
 
         console.log(`    📤 Request body:`, JSON.stringify(requestBody, null, 2));
 
         const response = await fetch(
-            `https://graph.facebook.com/v18.0/${pageId}/messages`,
+            `https://graph.facebook.com/v21.0/me/messages`,
             {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -452,7 +441,6 @@ async function sendDirectMessage(
             console.error('    ✗ Facebook API error:', result.error.message);
             console.error('    ✗ Error code:', result.error.code);
             console.error('    ✗ Error type:', result.error.type);
-            console.error('    ✗ Full error response:', JSON.stringify(result.error, null, 2));
             await logAction(commentId, flowId, 'dm_sent', false, result.error.message, result);
         } else {
             console.log('    ✓ Private reply (DM) sent successfully!');

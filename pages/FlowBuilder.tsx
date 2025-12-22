@@ -20,8 +20,6 @@ import { Save, ArrowLeft, PlayCircle, Menu, X, Grid3x3 } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import NodeConfigModal from '../components/NodeConfigModal';
 import TriggerNodeForm from '../components/TriggerNodeForm';
-import CommentReplyNodeForm from '../components/CommentReplyNodeForm';
-import SendMessageNodeForm from '../components/SendMessageNodeForm';
 import CustomTriggerNode from '../components/nodes/CustomTriggerNode';
 import CustomActionNode from '../components/nodes/CustomActionNode';
 import CustomAINode from '../components/nodes/CustomAINode';
@@ -465,24 +463,6 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
           workspaceId={workspace.id}
           initialConfig={currentConfig}
           onChange={setCurrentConfig}
-        />
-      );
-    } else if (nodeLabel.includes('Reply')) {
-      return (
-        <CommentReplyNodeForm
-          userId={workspace.ownerId}
-          initialConfig={currentConfig}
-          onChange={setCurrentConfig}
-          userApiKeys={userApiKeys}
-        />
-      );
-    } else if (nodeLabel.includes('Message')) {
-      return (
-        <SendMessageNodeForm
-          userId={workspace.ownerId}
-          initialConfig={currentConfig}
-          onChange={setCurrentConfig}
-          userApiKeys={userApiKeys}
         />
       );
     }
