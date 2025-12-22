@@ -17,19 +17,26 @@ const ButtonNodeForm: React.FC<ButtonNodeFormProps> = ({
 }) => {
     const [messageText, setMessageText] = useState(initialConfig?.messageText || '');
     const [buttons, setButtons] = useState<Array<{ title: string; payload: string }>>(
-        initialConfig?.buttons || [{ title: '', payload: '' }]
+        initialConfig?.buttons && initialConfig.buttons.length > 0
+            ? initialConfig.buttons
+            : [{ title: '', payload: '' }]
     );
 
     useEffect(() => {
         if (initialConfig) {
             setMessageText(initialConfig.messageText || '');
-            setButtons(initialConfig.buttons || [{ title: '', payload: '' }]);
+            setButtons(
+                initialConfig.buttons && initialConfig.buttons.length > 0
+                    ? initialConfig.buttons
+                    : [{ title: '', payload: '' }]
+            );
         }
     }, [initialConfig]);
 
     useEffect(() => {
-        onChange({ messageText, buttons: buttons.filter(b => b.title && b.payload) });
-    }, [messageText, buttons]);
+        const validButtons = buttons.filter(b => b.title && b.payload);
+        onChange({ messageText, buttons: validButtons });
+    }, [messageText, buttons, onChange]);
 
     const addButton = () => {
         if (buttons.length < 13) {
