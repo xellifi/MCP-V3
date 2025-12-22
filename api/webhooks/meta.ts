@@ -78,6 +78,107 @@ async function handleWebhookEvent(eventData: any, res: VercelResponse) {
     }
 }
 
+// Process button postback event
+async function processPostback(messagingEvent: any, pageId: string) {
+    console.log('\n--- Processing Button Postback ---');
+    console.log('Messaging event:', JSON.stringify(messagingEvent, null, 2));
+
+    const senderId = messagingEvent.sender.id;
+    const payload = messagingEvent.postback.payload;
+
+    console.log(`Button clicked by user: ${senderId}`);
+    console.log(`Button payload: ${payload}`);
+
+    // Get page access token
+    const { data: pageData, error: pageError } = await supabase
+        .from('pages')
+        .select('page_access_token, user_id')
+        .eq('page_id', pageId)
+        .single();
+
+    if (pageError || !pageData) {
+        console.error('✗ Page not found or no access token');
+        return;
+    }
+
+    const pageAccessToken = pageData.page_access_token;
+    const userId = pageData.user_id;
+
+    // Find all active flows for this user
+    const { data: flows, error: flowsError } = await supabase
+        .from('flows')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('status', 'active');
+
+    if (flowsError || !flows || flows.length === 0) {
+        console.log('✗ No active flows found for this user');
+        return;
+    }
+
+    console.log(`Found ${flows.length} active flow(s)`);
+
+    // Find flows with Start nodes that match the payload
+    for (const flow of flows) {
+        const flowData = flow.flow_data;
+        if (!flowData || !flowData.nodes || !flowData.edges) continue;
+
+        const nodes = flowData.nodes;
+        const edges = flowData.edges;
+        const configurations = flowData.configurations || {};
+
+        // Find Start nodes
+        const startNodes = nodes.filter((n: any) => n.type === 'startNode');
+
+        for (const startNode of startNodes) {
+            const config = configurations[startNode.id] || {};
+            const keywords = config.keywords || [];
+            const matchType = config.matchType || 'exact';
+
+            console.log(`Checking Start node "${startNode.data?.label}" with keywords:`, keywords);
+            console.log(`Match type: ${matchType}`);
+
+            // Check if payload matches any keyword
+            let isMatch = false;
+            if (matchType === 'exact') {
+                isMatch = keywords.some((kw: string) => kw.toUpperCase() === payload.toUpperCase());
+            } else if (matchType === 'contains') {
+                isMatch = keywords.some((kw: string) =>
+                    payload.toUpperCase().includes(kw.toUpperCase()) ||
+                    kw.toUpperCase().includes(payload.toUpperCase())
+                );
+            }
+
+            if (isMatch) {
+                console.log(`✓ Match found! Executing flow from Start node`);
+
+                // Execute flow starting from this Start node
+                await executeFlowFromNode(
+                    startNode,
+                    nodes,
+                    edges,
+                    configurations,
+                    {
+                        commenterId: senderId,
+                        commenterName: 'User', // We don't have the name from postback
+                        commentText: `Clicked button: ${payload}`,
+                        pageId: pageId,
+                        postId: '',
+                        commentId: messagingEvent.sender.id // Use sender ID as reference
+                    },
+                    pageAccessToken,
+                    flow.id,
+                    messagingEvent.sender.id
+                );
+
+                return; // Execute only the first matching flow
+            }
+        }
+    }
+
+    console.log('✗ No matching Start node found for payload:', payload);
+}
+
 // Process a single comment event
 async function processComment(value: any, pageId: string) {
     console.log('\n--- Processing Feed Event ---');
@@ -306,6 +407,51 @@ async function executeFlowActions(
     }
 
     console.log(`  ✓ Executed ${visited.size - 1} action node(s)`); // -1 for trigger
+}
+
+// Helper function to execute flow starting from any node (Start or Trigger)
+async function executeFlowFromNode(
+    startNode: any,
+    nodes: any[],
+    edges: any[],
+    configurations: any,
+    context: any,
+    pageAccessToken: string,
+    flowId: string,
+    commentId: string
+) {
+    console.log(`Starting flow execution from node: ${startNode.data?.label || startNode.id}`);
+
+    // Use a queue to visit all nodes (BFS-like traversal)
+    const queue: string[] = [startNode.id];
+    const visited = new Set<string>();
+
+    while (queue.length > 0) {
+        const currentNodeId = queue.shift()!;
+
+        if (visited.has(currentNodeId)) continue;
+        visited.add(currentNodeId);
+
+        const node = nodes.find((n: any) => n.id === currentNodeId);
+        if (!node) continue;
+
+        // Execute action nodes (skip trigger and start nodes)
+        if (node.type !== 'triggerNode' && node.type !== 'startNode') {
+            await executeAction(node, configurations[node.id] || {}, context, pageAccessToken, flowId, commentId);
+        }
+
+        // Find ALL edges from this node and add targets to queue
+        const outgoingEdges = edges.filter((e: any) => e.source === currentNodeId);
+        console.log(`  Node "${node.data?.label || currentNodeId}" has ${outgoingEdges.length} outgoing edge(s)`);
+
+        for (const edge of outgoingEdges) {
+            if (edge.target && !visited.has(edge.target)) {
+                queue.push(edge.target);
+            }
+        }
+    }
+
+    console.log(`  ✓ Flow execution complete from ${startNode.data?.label}`);
 }
 
 // Execute a single action node
