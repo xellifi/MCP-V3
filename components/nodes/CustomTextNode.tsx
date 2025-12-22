@@ -38,9 +38,14 @@ const CustomTextNode: React.FC<NodeProps> = ({ data, selected }) => {
                         <div className="text-white font-bold text-sm">
                             {data.label || 'Text/Delay'}
                         </div>
-                        {data.delaySeconds && (
-                            <div className="text-amber-100 text-xs mt-0.5">
-                                Wait {data.delaySeconds}s
+                        {data.textContent && (
+                            <div className="text-amber-100 text-xs mt-0.5 line-clamp-2">
+                                {data.textContent}
+                            </div>
+                        )}
+                        {data.delaySeconds > 0 && (
+                            <div className="text-amber-200 text-xs mt-0.5 font-semibold">
+                                ⏱️ Wait {data.delaySeconds}s
                             </div>
                         )}
                     </div>
