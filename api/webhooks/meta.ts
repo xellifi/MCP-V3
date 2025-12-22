@@ -423,7 +423,40 @@ async function executeAction(
         // Send text content as message if it exists
         if (textContent && textContent.trim()) {
             console.log(`    📤 Sending text content as Messenger message...`);
-            await sendPrivateReply(context.commenterId, context.commenterName, textContent, pageAccessToken, flowId, commentId);
+
+            // Use user_id instead of comment_id for follow-up messages
+            // This avoids Facebook's "Activity already replied to" error
+            try {
+                const requestBody = {
+                    recipient: { id: context.commenterId }, // Use user_id, not comment_id
+                    message: { text: textContent },
+                    access_token: pageAccessToken
+                };
+
+                console.log(`    📤 Sending follow-up message to user: ${context.commenterName}`);
+                console.log(`    📤 Message: "${textContent}"`);
+
+                const response = await fetch(
+                    `https://graph.facebook.com/v21.0/me/messages`,
+                    {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(requestBody)
+                    }
+                );
+
+                const result = await response.json();
+                console.log(`    📤 Facebook API response:`, JSON.stringify(result, null, 2));
+
+                if (result.error) {
+                    console.error('    ✗ Facebook API error:', result.error.message);
+                } else {
+                    console.log('    ✓ Follow-up message sent successfully!');
+                    console.log('    ✓ Message ID:', result.message_id);
+                }
+            } catch (error: any) {
+                console.error('    ✗ Exception sending follow-up message:', error.message);
+            }
         }
 
         return; // Continue to next node
