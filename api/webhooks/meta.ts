@@ -265,24 +265,47 @@ async function executeFlowActions(
     const nodes = flow.nodes || [];
     const edges = flow.edges || [];
 
-    // Build execution order
-    const triggerNode = nodes.find((n: any) => n.type === 'triggerNode');
-    if (!triggerNode) return;
+    console.log(`  Flow has ${nodes.length} nodes and ${edges.length} edges`);
 
-    let currentNodeId = triggerNode.id;
+    // Build execution order - execute ALL nodes connected from trigger
+    const triggerNode = nodes.find((n: any) => n.type === 'triggerNode');
+    if (!triggerNode) {
+        console.log('  ⊘ No trigger node found');
+        return;
+    }
+
+    console.log(`  Starting from trigger: ${triggerNode.data?.label || triggerNode.id}`);
+
+    // Use a queue to visit all nodes (BFS-like traversal)
+    const queue: string[] = [triggerNode.id];
     const visited = new Set<string>();
 
-    while (currentNodeId && !visited.has(currentNodeId)) {
-        visited.add(currentNodeId);
-        const node = nodes.find((n: any) => n.id === currentNodeId);
+    while (queue.length > 0) {
+        const currentNodeId = queue.shift()!;
 
-        if (node && node.type !== 'triggerNode') {
+        if (visited.has(currentNodeId)) continue;
+        visited.add(currentNodeId);
+
+        const node = nodes.find((n: any) => n.id === currentNodeId);
+        if (!node) continue;
+
+        // Execute action nodes (skip trigger)
+        if (node.type !== 'triggerNode') {
             await executeAction(node, configurations[node.id] || {}, context, pageAccessToken, flow.id, commentId);
         }
 
-        const nextEdge = edges.find((e: any) => e.source === currentNodeId);
-        currentNodeId = nextEdge?.target;
+        // Find ALL edges from this node and add targets to queue
+        const outgoingEdges = edges.filter((e: any) => e.source === currentNodeId);
+        console.log(`  Node "${node.data?.label || currentNodeId}" has ${outgoingEdges.length} outgoing edge(s)`);
+
+        for (const edge of outgoingEdges) {
+            if (edge.target && !visited.has(edge.target)) {
+                queue.push(edge.target);
+            }
+        }
     }
+
+    console.log(`  ✓ Executed ${visited.size - 1} action node(s)`); // -1 for trigger
 }
 
 // Execute a single action node
