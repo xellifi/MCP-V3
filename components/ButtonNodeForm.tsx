@@ -36,7 +36,8 @@ const ButtonNodeForm: React.FC<ButtonNodeFormProps> = ({
     useEffect(() => {
         const validButtons = buttons.filter(b => b.title && b.payload);
         onChange({ messageText, buttons: validButtons });
-    }, [messageText, buttons, onChange]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [messageText, buttons]);
 
     const addButton = () => {
         if (buttons.length < 13) {
