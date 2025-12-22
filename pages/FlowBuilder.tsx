@@ -23,11 +23,13 @@ import TriggerNodeForm from '../components/TriggerNodeForm';
 import CommentReplyNodeForm from '../components/CommentReplyNodeForm';
 import SendMessageNodeForm from '../components/SendMessageNodeForm';
 import TextNodeForm from '../components/TextNodeForm';
+import ButtonNodeForm from '../components/ButtonNodeForm';
 import CustomTriggerNode from '../components/nodes/CustomTriggerNode';
 import CustomActionNode from '../components/nodes/CustomActionNode';
 import CustomAINode from '../components/nodes/CustomAINode';
 import CustomConditionNode from '../components/nodes/CustomConditionNode';
 import CustomTextNode from '../components/nodes/CustomTextNode';
+import CustomButtonNode from '../components/nodes/CustomButtonNode';
 import { api } from '../services/api';
 // Import node configuration registry
 import '../src/config'; // This initializes all node configs
@@ -49,6 +51,7 @@ const nodeTypes: NodeTypes = {
   aiNode: CustomAINode,
   conditionNode: CustomConditionNode,
   textNode: CustomTextNode,
+  buttonNode: CustomButtonNode,
 };
 
 const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
@@ -510,6 +513,17 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
       );
     }
 
+    // Button Node
+    if (nodeType === 'buttonNode' || label.toLowerCase().includes('button')) {
+      return (
+        <ButtonNodeForm
+          userId={workspace.ownerId}
+          initialConfig={currentConfig}
+          onChange={setCurrentConfig}
+        />
+      );
+    }
+
     return (
       <div className="text-center py-8">
         <p className="text-slate-400">Configuration form for this node type is coming soon.</p>
@@ -651,6 +665,12 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
                       <div className="w-3 h-3 rounded-full bg-amber-400"></div>
                     </div>
                     <span className="text-sm font-semibold text-slate-300 group-hover:text-white transition-colors">Text</span>
+                  </button>
+                  <button onClick={() => addNode('buttonNode', 'Button')} className="w-full flex items-center gap-3 p-3 bg-white/5 border border-white/10 rounded-xl hover:border-blue-500/50 hover:bg-blue-500/10 transition-all text-left group">
+                    <div className="w-8 h-8 bg-blue-500/20 text-blue-400 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <div className="w-3 h-3 rounded-full bg-blue-400"></div>
+                    </div>
+                    <span className="text-sm font-semibold text-slate-300 group-hover:text-white transition-colors">Button</span>
                   </button>
                 </div>
               </div>
