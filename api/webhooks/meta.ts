@@ -536,15 +536,26 @@ async function sendPrivateReply(
     try {
         // IMPORTANT: Use comment_id in recipient to send private reply linked to comment
         // This bypasses the 24-hour messaging window restriction
-        const messagePayload: any = { text: message };
+        let messagePayload: any;
 
-        // Add quick_replies if buttons are provided
+        // Use Button Template if buttons are provided, otherwise plain text
         if (buttons && buttons.length > 0) {
-            messagePayload.quick_replies = buttons.map(btn => ({
-                content_type: 'text',
-                title: btn.title,
-                payload: btn.payload
-            }));
+            messagePayload = {
+                attachment: {
+                    type: 'template',
+                    payload: {
+                        template_type: 'button',
+                        text: message,
+                        buttons: buttons.map(btn => ({
+                            type: 'postback',
+                            title: btn.title,
+                            payload: btn.payload
+                        }))
+                    }
+                }
+            };
+        } else {
+            messagePayload = { text: message };
         }
 
         const requestBody = {
