@@ -20,6 +20,8 @@ import { Save, ArrowLeft, PlayCircle, Menu, X, Grid3x3 } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import NodeConfigModal from '../components/NodeConfigModal';
 import TriggerNodeForm from '../components/TriggerNodeForm';
+import CommentReplyNodeForm from '../components/CommentReplyNodeForm';
+import SendMessageNodeForm from '../components/SendMessageNodeForm';
 import CustomTriggerNode from '../components/nodes/CustomTriggerNode';
 import CustomActionNode from '../components/nodes/CustomActionNode';
 import CustomAINode from '../components/nodes/CustomAINode';
@@ -451,16 +453,39 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
 
     const nodeLabel = selectedNode.data.label as string;
     const nodeType = selectedNode.data.nodeType as string;
+    const actionType = selectedNode.data.actionType as string;
 
     console.log('[FlowBuilder.renderConfigForm] Rendering form for:', nodeLabel);
+    console.log('[FlowBuilder.renderConfigForm] actionType:', actionType);
     console.log('[FlowBuilder.renderConfigForm] currentConfig:', currentConfig);
-    console.log('[FlowBuilder.renderConfigForm] selectedNode.id:', selectedNode.id);
-    console.log('[FlowBuilder.renderConfigForm] nodeConfigs[selectedNode.id]:', nodeConfigs[selectedNode.id]);
 
+    // Trigger Node
     if (nodeLabel.includes('Comment') && nodeType === 'triggerNode') {
       return (
         <TriggerNodeForm
           workspaceId={workspace.id}
+          initialConfig={currentConfig}
+          onChange={setCurrentConfig}
+        />
+      );
+    }
+
+    // Comment Reply Node
+    if (actionType === 'reply' || nodeLabel.includes('Reply')) {
+      return (
+        <CommentReplyNodeForm
+          userId={workspace.ownerId}
+          initialConfig={currentConfig}
+          onChange={setCurrentConfig}
+        />
+      );
+    }
+
+    // Send Message Node
+    if (actionType === 'message' || nodeLabel.includes('Message')) {
+      return (
+        <SendMessageNodeForm
+          userId={workspace.ownerId}
           initialConfig={currentConfig}
           onChange={setCurrentConfig}
         />
