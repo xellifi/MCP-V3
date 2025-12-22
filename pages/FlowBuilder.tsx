@@ -25,6 +25,7 @@ import SendMessageNodeForm from '../components/SendMessageNodeForm';
 import TextNodeForm from '../components/TextNodeForm';
 import ButtonNodeForm from '../components/ButtonNodeForm';
 import ButtonsOnlyNodeForm from '../components/ButtonsOnlyNodeForm';
+import StartNodeForm from '../components/StartNodeForm';
 import CustomTriggerNode from '../components/nodes/CustomTriggerNode';
 import CustomActionNode from '../components/nodes/CustomActionNode';
 import CustomAINode from '../components/nodes/CustomAINode';
@@ -32,6 +33,7 @@ import CustomConditionNode from '../components/nodes/CustomConditionNode';
 import CustomTextNode from '../components/nodes/CustomTextNode';
 import CustomButtonNode from '../components/nodes/CustomButtonNode';
 import CustomButtonsOnlyNode from '../components/nodes/CustomButtonsOnlyNode';
+import CustomStartNode from '../components/nodes/CustomStartNode';
 import { api } from '../services/api';
 // Import node configuration registry
 import '../src/config'; // This initializes all node configs
@@ -55,6 +57,7 @@ const nodeTypes: NodeTypes = {
   textNode: CustomTextNode,
   buttonNode: CustomButtonNode,
   buttonsOnlyNode: CustomButtonsOnlyNode,
+  startNode: CustomStartNode,
 };
 
 const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
@@ -538,6 +541,17 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
       );
     }
 
+    // Start Node
+    if (nodeType === 'startNode' || label.toLowerCase().includes('start')) {
+      return (
+        <StartNodeForm
+          userId={workspace.ownerId}
+          initialConfig={currentConfig}
+          onChange={setCurrentConfig}
+        />
+      );
+    }
+
     return (
       <div className="text-center py-8">
         <p className="text-slate-400">Configuration form for this node type is coming soon.</p>
@@ -650,11 +664,17 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
               <div>
                 <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Triggers</h3>
                 <div className="space-y-2">
-                  <button onClick={() => addNode('triggerNode', 'New Comment')} className="w-full flex items-center gap-3 p-3 bg-white/5 border border-white/10 rounded-xl hover:border-green-500/50 hover:bg-green-500/10 transition-all text-left group">
-                    <div className="w-8 h-8 bg-green-500/20 text-green-400 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
-                      <div className="w-3 h-3 rounded-full bg-green-400"></div>
+                  <button onClick={() => addNode('triggerNode', 'New Comment')} className="w-full flex items-center gap-3 p-3 bg-white/5 border border-white/10 rounded-xl hover:border-blue-500/50 hover:bg-blue-500/10 transition-all text-left group">
+                    <div className="w-8 h-8 bg-blue-500/20 text-blue-400 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <div className="w-3 h-3 rounded-full bg-blue-400"></div>
                     </div>
-                    <span className="text-sm font-semibold text-slate-300 group-hover:text-white transition-colors">Comment Trigger</span>
+                    <span className="text-sm font-semibold text-slate-300 group-hover:text-white transition-colors">New Comment</span>
+                  </button>
+                  <button onClick={() => addNode('startNode', 'Start')} className="w-full flex items-center gap-3 p-3 bg-white/5 border border-white/10 rounded-xl hover:border-emerald-500/50 hover:bg-emerald-500/10 transition-all text-left group">
+                    <div className="w-8 h-8 bg-emerald-500/20 text-emerald-400 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <div className="w-3 h-3 rounded-full bg-emerald-400"></div>
+                    </div>
+                    <span className="text-sm font-semibold text-slate-300 group-hover:text-white transition-colors">Start</span>
                   </button>
                 </div>
               </div>
