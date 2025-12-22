@@ -16,7 +16,7 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Workspace } from '../types';
-import { Save, ArrowLeft, PlayCircle, Menu, X, Grid3x3 } from 'lucide-react';
+import { Save, ArrowLeft, PlayCircle, Menu, X, Grid3x3, MessageCircle, Play, Bot, Send, Clock, MousePointer2, SquareMousePointer, Sparkles, GitBranch } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import NodeConfigModal from '../components/NodeConfigModal';
 import TriggerNodeForm from '../components/TriggerNodeForm';
@@ -666,13 +666,13 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
                 <div className="space-y-2">
                   <button onClick={() => addNode('triggerNode', 'New Comment')} className="w-full flex items-center gap-3 p-3 bg-white/5 border border-white/10 rounded-xl hover:border-blue-500/50 hover:bg-blue-500/10 transition-all text-left group">
                     <div className="w-8 h-8 bg-blue-500/20 text-blue-400 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
-                      <div className="w-3 h-3 rounded-full bg-blue-400"></div>
+                      <MessageCircle className="w-4 h-4" />
                     </div>
                     <span className="text-sm font-semibold text-slate-300 group-hover:text-white transition-colors">New Comment</span>
                   </button>
                   <button onClick={() => addNode('startNode', 'Start')} className="w-full flex items-center gap-3 p-3 bg-white/5 border border-white/10 rounded-xl hover:border-emerald-500/50 hover:bg-emerald-500/10 transition-all text-left group">
                     <div className="w-8 h-8 bg-emerald-500/20 text-emerald-400 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
-                      <div className="w-3 h-3 rounded-full bg-emerald-400"></div>
+                      <Play className="w-4 h-4" fill="currentColor" />
                     </div>
                     <span className="text-sm font-semibold text-slate-300 group-hover:text-white transition-colors">Start</span>
                   </button>
@@ -684,31 +684,31 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
                 <div className="space-y-2">
                   <button onClick={() => addNode('actionNode', 'Comment Reply', 'reply')} className="w-full flex items-center gap-3 p-3 bg-white/5 border border-white/10 rounded-xl hover:border-cyan-500/50 hover:bg-cyan-500/10 transition-all text-left group">
                     <div className="w-8 h-8 bg-cyan-500/20 text-cyan-400 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
-                      <div className="w-3 h-3 rounded-full bg-cyan-400"></div>
+                      <MessageCircle className="w-4 h-4" />
                     </div>
                     <span className="text-sm font-semibold text-slate-300 group-hover:text-white transition-colors">Reply to Comment</span>
                   </button>
                   <button onClick={() => addNode('actionNode', 'Send Message', 'message')} className="w-full flex items-center gap-3 p-3 bg-white/5 border border-white/10 rounded-xl hover:border-purple-500/50 hover:bg-purple-500/10 transition-all text-left group">
                     <div className="w-8 h-8 bg-purple-500/20 text-purple-400 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
-                      <div className="w-3 h-3 rounded-full bg-purple-400"></div>
+                      <Send className="w-4 h-4" />
                     </div>
                     <span className="text-sm font-semibold text-slate-300 group-hover:text-white transition-colors">Messenger Reply</span>
                   </button>
                   <button onClick={() => addNode('textNode', 'Text')} className="w-full flex items-center gap-3 p-3 bg-white/5 border border-white/10 rounded-xl hover:border-amber-500/50 hover:bg-amber-500/10 transition-all text-left group">
                     <div className="w-8 h-8 bg-amber-500/20 text-amber-400 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
-                      <div className="w-3 h-3 rounded-full bg-amber-400"></div>
+                      <Clock className="w-4 h-4" />
                     </div>
                     <span className="text-sm font-semibold text-slate-300 group-hover:text-white transition-colors">Text</span>
                   </button>
                   <button onClick={() => addNode('buttonNode', 'Text with Buttons')} className="w-full flex items-center gap-3 p-3 bg-white/5 border border-white/10 rounded-xl hover:border-blue-500/50 hover:bg-blue-500/10 transition-all text-left group">
                     <div className="w-8 h-8 bg-blue-500/20 text-blue-400 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
-                      <div className="w-3 h-3 rounded-full bg-blue-400"></div>
+                      <MousePointer2 className="w-4 h-4" />
                     </div>
                     <span className="text-sm font-semibold text-slate-300 group-hover:text-white transition-colors">Text with Buttons</span>
                   </button>
                   <button onClick={() => addNode('buttonsOnlyNode', 'Buttons')} className="w-full flex items-center gap-3 p-3 bg-white/5 border border-white/10 rounded-xl hover:border-indigo-500/50 hover:bg-indigo-500/10 transition-all text-left group">
                     <div className="w-8 h-8 bg-indigo-500/20 text-indigo-400 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
-                      <div className="w-3 h-3 rounded-full bg-indigo-400"></div>
+                      <SquareMousePointer className="w-4 h-4" />
                     </div>
                     <span className="text-sm font-semibold text-slate-300 group-hover:text-white transition-colors">Buttons</span>
                   </button>
@@ -720,13 +720,13 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
                 <div className="space-y-2">
                   <button onClick={() => addNode('aiNode', 'AI Agent')} className="w-full flex items-center gap-3 p-3 bg-white/5 border border-white/10 rounded-xl hover:border-indigo-500/50 hover:bg-indigo-500/10 transition-all text-left group">
                     <div className="w-8 h-8 bg-indigo-500/20 text-indigo-400 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
-                      <div className="w-3 h-3 rounded-full bg-indigo-400"></div>
+                      <Sparkles className="w-4 h-4" />
                     </div>
                     <span className="text-sm font-semibold text-slate-300 group-hover:text-white transition-colors">AI Agent</span>
                   </button>
                   <button onClick={() => addNode('conditionNode', 'Condition')} className="w-full flex items-center gap-3 p-3 bg-white/5 border border-white/10 rounded-xl hover:border-amber-500/50 hover:bg-amber-500/10 transition-all text-left group">
                     <div className="w-8 h-8 bg-amber-500/20 text-amber-400 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
-                      <div className="w-3 h-3 rounded-full bg-amber-400"></div>
+                      <GitBranch className="w-4 h-4" />
                     </div>
                     <span className="text-sm font-semibold text-slate-300 group-hover:text-white transition-colors">Condition</span>
                   </button>
