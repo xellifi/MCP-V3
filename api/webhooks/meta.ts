@@ -83,14 +83,20 @@ async function processComment(value: any, pageId: string) {
     console.log('\n--- Processing Feed Event ---');
     console.log('Raw value object:', JSON.stringify(value, null, 2));
 
-    // Check the item type and verb - we only care about NEW comment events
+    // Check the item type and verb
     const itemType = value.item;
     const verb = value.verb;
     console.log(`Item type: ${itemType}, Verb: ${verb}`);
 
-    // Only process comment creation events
-    if (itemType !== 'comment' || verb !== 'add') {
-        console.log(`⊘ Skipping: Not a comment creation event (item: ${itemType}, verb: ${verb})`);
+    // Only process comment items (not status, photo, etc.)
+    if (itemType !== 'comment') {
+        console.log(`⊘ Skipping: Not a comment event (item: ${itemType})`);
+        return;
+    }
+
+    // Skip delete/remove events - process add and edited events
+    if (verb === 'remove' || verb === 'delete') {
+        console.log(`⊘ Skipping: Comment deletion event (verb: ${verb})`);
         return;
     }
 
