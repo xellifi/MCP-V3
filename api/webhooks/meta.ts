@@ -409,7 +409,7 @@ async function replyToComment(
     }
 }
 
-// Send a private Messenger reply
+// Send a private Messenger reply (linked to comment)
 async function sendPrivateReply(
     userId: string,
     userName: string,
@@ -420,12 +420,14 @@ async function sendPrivateReply(
 ) {
     console.log(`    📤 Sending Private Messenger Reply: "${message}"`);
     console.log(`    📤 To User: ${userName} (${userId})`);
+    console.log(`    📤 Linked to Comment: ${commentId}`);
 
     try {
+        // IMPORTANT: Use comment_id in recipient to send private reply linked to comment
+        // This bypasses the 24-hour messaging window restriction
         const requestBody = {
-            recipient: { id: userId },
+            recipient: { comment_id: commentId }, // Use comment_id, not user_id
             message: { text: message },
-            messaging_type: 'RESPONSE',
             access_token: pageAccessToken
         };
 
