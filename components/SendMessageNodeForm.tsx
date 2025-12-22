@@ -53,18 +53,6 @@ const SendMessageNodeForm: React.FC<SendMessageNodeFormProps> = ({
         notifyChange(messageTemplate, newButtons);
     };
 
-    useEffect(() => {
-        if (initialConfig) {
-            setMessageTemplate(initialConfig.messageTemplate || '');
-            setButtons(initialConfig.buttons && initialConfig.buttons.length > 0 ? initialConfig.buttons : []);
-        }
-    }, [initialConfig]);
-
-    // The onChange is now handled by notifyChange, so this useEffect is no longer needed.
-    // useEffect(() => {
-    //     onChange({ messageTemplate });
-    // }, [messageTemplate]);
-
     return (
         <div className="space-y-6">
             {/* Message Template */}
@@ -111,6 +99,7 @@ const SendMessageNodeForm: React.FC<SendMessageNodeFormProps> = ({
                         Quick Reply Buttons (optional, max 3)
                     </label>
                     <button
+                        type="button"
                         onClick={addButton}
                         disabled={buttons.length >= 3}
                         className="px-3 py-1 bg-purple-500 text-white text-xs rounded-lg hover:bg-purple-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
