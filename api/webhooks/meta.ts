@@ -385,14 +385,13 @@ async function executeAction(
             return;
         }
 
-        // Check if we've already sent DM from THIS SPECIFIC NODE for this comment
+        // Check if we've already sent DM for this comment
         const { data: existingLog } = await supabase
             .from('comment_automation_log')
             .select('id')
             .eq('comment_id', commentId)
             .eq('action_type', 'dm_sent')
             .eq('flow_id', flowId)
-            .eq('metadata->>nodeId', node.id) // Check specific node, not just action type
             .single();
 
         if (existingLog) {
@@ -401,7 +400,7 @@ async function executeAction(
         }
 
         const message = replaceVars(template);
-        await sendPrivateReply(context.commenterId, context.commenterName, message, pageAccessToken, flowId, commentId, node.id);
+        await sendPrivateReply(context.commenterId, context.commenterName, message, pageAccessToken, flowId, commentId);
         return; // Return after executing
     }
 

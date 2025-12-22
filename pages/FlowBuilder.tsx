@@ -148,7 +148,10 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
               data: {
                 ...node.data,
                 // Merge saved configuration into node data
-                ...nodeConfig
+                ...nodeConfig,
+                // Add callbacks for node buttons
+                onDelete: () => handleDeleteNode(node.id),
+                onConfigure: () => handleConfigureNode(node)
               }
             };
 
