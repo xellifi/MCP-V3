@@ -1,11 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { MessageSquare } from 'lucide-react';
+import { supabase } from '../services/supabaseClient';
+
+interface Button {
+    title: string;
+    type: 'startFlow' | 'url';
+    flowId?: string;
+    url?: string;
+    webviewType?: 'full' | 'compact' | 'tall';
+}
 
 interface SendMessageNodeFormProps {
     userId: string;
     initialConfig?: {
         messageTemplate?: string;
-        buttons?: Array<{ title: string; payload: string }>;
+        buttons?: Button[];
     };
     onChange: (config: any) => void;
 }
@@ -16,14 +25,42 @@ const SendMessageNodeForm: React.FC<SendMessageNodeFormProps> = ({
     onChange
 }) => {
     const [messageTemplate, setMessageTemplate] = useState(initialConfig?.messageTemplate || '');
-    const [buttons, setButtons] = useState<Array<{ title: string; payload: string }>>(
+    const [buttons, setButtons] = useState<Button[]>(
         initialConfig?.buttons && initialConfig.buttons.length > 0
             ? initialConfig.buttons
             : []
     );
+    const [startFlows, setStartFlows] = useState<any[]>([]);
 
-    const notifyChange = (newTemplate: string, newButtons: Array<{ title: string; payload: string }>) => {
-        const validButtons = newButtons.filter(b => b.title && b.payload);
+    // Fetch Start flows on mount
+    useEffect(() => {
+        fetchStartFlows();
+    }, [userId]);
+
+    const fetchStartFlows = async () => {
+        const { data: flows, error } = await supabase
+            .from('flows')
+            .select('id, name, flow_data')
+            .eq('user_id', userId)
+            .eq('status', 'active');
+
+        if (!error && flows) {
+            // Filter flows that have Start nodes
+            const flowsWithStartNodes = flows.filter(flow => {
+                const nodes = flow.flow_data?.nodes || [];
+                return nodes.some((n: any) => n.type === 'startNode');
+            });
+            setStartFlows(flowsWithStartNodes);
+        }
+    };
+
+    const notifyChange = (newTemplate: string, newButtons: Button[]) => {
+        const validButtons = newButtons.filter(b => {
+            if (!b.title) return false;
+            if (b.type === 'startFlow') return !!b.flowId;
+            if (b.type === 'url') return !!b.url;
+            return false;
+        });
         onChange({ messageTemplate: newTemplate, buttons: validButtons });
     };
 
@@ -34,7 +71,7 @@ const SendMessageNodeForm: React.FC<SendMessageNodeFormProps> = ({
 
     const addButton = () => {
         if (buttons.length < 3) {
-            const newButtons = [...buttons, { title: '', payload: '' }];
+            const newButtons = [...buttons, { title: '', type: 'startFlow' as const }];
             setButtons(newButtons);
             notifyChange(messageTemplate, newButtons);
         }
@@ -46,9 +83,9 @@ const SendMessageNodeForm: React.FC<SendMessageNodeFormProps> = ({
         notifyChange(messageTemplate, newButtons);
     };
 
-    const updateButton = (index: number, field: 'title' | 'payload', value: string) => {
+    const updateButton = (index: number, updates: Partial<Button>) => {
         const newButtons = [...buttons];
-        newButtons[index][field] = value;
+        newButtons[index] = { ...newButtons[index], ...updates };
         setButtons(newButtons);
         notifyChange(messageTemplate, newButtons);
     };
@@ -98,48 +135,151 @@ const SendMessageNodeForm: React.FC<SendMessageNodeFormProps> = ({
                         <MessageSquare className="w-4 h-4 inline mr-2" />
                         Quick Reply Buttons (optional, max 3)
                     </label>
-                    <button
-                        type="button"
-                        onClick={addButton}
-                        disabled={buttons.length >= 3}
-                        className="px-3 py-1 bg-purple-500 text-white text-xs rounded-lg hover:bg-purple-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
-                    >
-                        + Add Button
-                    </button>
+                    {buttons.length < 3 && (
+                        <button
+                            type="button"
+                            onClick={addButton}
+                            className="px-3 py-1 bg-purple-500 text-white text-xs rounded-lg hover:bg-purple-600"
+                        >
+                            + Add Button
+                        </button>
+                    )}
                 </div>
 
-                {buttons.length > 0 && (
-                    <div className="space-y-3">
-                        {buttons.map((button, index) => (
-                            <div key={index} className="flex gap-2">
+                <div className="space-y-4">
+                    {buttons.map((button, index) => (
+                        <div key={index} className="p-4 bg-black/20 border border-white/10 rounded-xl space-y-3">
+                            {/* Button Title */}
+                            <div>
+                                <label className="block text-xs text-slate-400 mb-1">Button Text</label>
                                 <input
                                     type="text"
                                     value={button.title}
-                                    onChange={(e) => updateButton(index, 'title', e.target.value)}
-                                    placeholder="Button text (e.g., Get Pricing)"
+                                    onChange={(e) => updateButton(index, { title: e.target.value })}
+                                    placeholder="e.g., Get Pricing"
+                                    className="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:ring-2 focus:ring-purple-500/50 outline-none"
                                     maxLength={20}
-                                    className="flex-1 bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:ring-2 focus:ring-purple-500/50 outline-none"
                                 />
-                                <input
-                                    type="text"
-                                    value={button.payload}
-                                    onChange={(e) => updateButton(index, 'payload', e.target.value)}
-                                    placeholder="Keyword (e.g., PRICING)"
-                                    className="flex-1 bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:ring-2 focus:ring-purple-500/50 outline-none"
-                                />
-                                <button
-                                    onClick={() => removeButton(index)}
-                                    className="w-8 h-8 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 flex items-center justify-center"
-                                >
-                                    ×
-                                </button>
                             </div>
-                        ))}
-                    </div>
-                )}
+
+                            {/* Button Type */}
+                            <div>
+                                <label className="block text-xs text-slate-400 mb-1">Button Type</label>
+                                <div className="flex gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => updateButton(index, { type: 'startFlow', flowId: '', url: undefined, webviewType: undefined })}
+                                        className={`flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-all ${button.type === 'startFlow'
+                                            ? 'bg-purple-500 text-white'
+                                            : 'bg-white/5 text-slate-400 hover:bg-white/10'
+                                            }`}
+                                    >
+                                        Start Flow
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => updateButton(index, { type: 'url', url: '', webviewType: 'full', flowId: undefined })}
+                                        className={`flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-all ${button.type === 'url'
+                                            ? 'bg-purple-500 text-white'
+                                            : 'bg-white/5 text-slate-400 hover:bg-white/10'
+                                            }`}
+                                    >
+                                        URL
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Start Flow Selector */}
+                            {button.type === 'startFlow' && (
+                                <div>
+                                    <label className="block text-xs text-slate-400 mb-1">Select Flow</label>
+                                    <select
+                                        value={button.flowId || ''}
+                                        onChange={(e) => updateButton(index, { flowId: e.target.value })}
+                                        className="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:ring-2 focus:ring-purple-500/50 outline-none"
+                                    >
+                                        <option value="">Select a flow...</option>
+                                        {startFlows.map(flow => (
+                                            <option key={flow.id} value={flow.id}>
+                                                {flow.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    {startFlows.length === 0 && (
+                                        <p className="text-xs text-amber-400 mt-1">No flows with Start nodes found</p>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* URL Input */}
+                            {button.type === 'url' && (
+                                <>
+                                    <div>
+                                        <label className="block text-xs text-slate-400 mb-1">URL</label>
+                                        <input
+                                            type="url"
+                                            value={button.url || ''}
+                                            onChange={(e) => updateButton(index, { url: e.target.value })}
+                                            placeholder="https://example.com"
+                                            className="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:ring-2 focus:ring-purple-500/50 outline-none"
+                                        />
+                                    </div>
+
+                                    {/* Webview Type */}
+                                    <div>
+                                        <label className="block text-xs text-slate-400 mb-1">Webview Type</label>
+                                        <div className="grid grid-cols-3 gap-2">
+                                            <button
+                                                type="button"
+                                                onClick={() => updateButton(index, { webviewType: 'full' })}
+                                                className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${button.webviewType === 'full'
+                                                    ? 'bg-blue-500 text-white'
+                                                    : 'bg-white/5 text-slate-400 hover:bg-white/10'
+                                                    }`}
+                                            >
+                                                FULL
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => updateButton(index, { webviewType: 'compact' })}
+                                                className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${button.webviewType === 'compact'
+                                                    ? 'bg-blue-500 text-white'
+                                                    : 'bg-white/5 text-slate-400 hover:bg-white/10'
+                                                    }`}
+                                            >
+                                                COMPACT
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => updateButton(index, { webviewType: 'tall' })}
+                                                className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${button.webviewType === 'tall'
+                                                    ? 'bg-blue-500 text-white'
+                                                    : 'bg-white/5 text-slate-400 hover:bg-white/10'
+                                                    }`}
+                                            >
+                                                TALL
+                                            </button>
+                                        </div>
+                                    </div>
+                                </>
+                            )}
+
+                            {/* Remove Button */}
+                            <button
+                                type="button"
+                                onClick={() => removeButton(index)}
+                                className="w-full px-3 py-2 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 text-xs font-medium"
+                            >
+                                Remove Button
+                            </button>
+                        </div>
+                    ))}
+                </div>
 
                 {buttons.length === 0 && (
-                    <p className="text-xs text-slate-500 italic">No buttons added. Click "+ Add Button" to add quick reply options.</p>
+                    <p className="text-sm text-slate-500 text-center py-4">
+                        No buttons added. Click "+ Add Button" to add quick reply buttons.
+                    </p>
                 )}
             </div>
 
