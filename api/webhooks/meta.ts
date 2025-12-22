@@ -400,7 +400,15 @@ async function executeAction(
         }
 
         const message = replaceVars(template);
-        await sendPrivateReply(context.commenterId, context.commenterName, message, pageAccessToken, flowId, commentId);
+        await sendPrivateReply(
+            context.commenterId,
+            context.commenterName,
+            message,
+            pageAccessToken,
+            flowId,
+            commentId,
+            config.buttons // Pass buttons from config
+        );
         return; // Return after executing
     }
 
@@ -515,18 +523,33 @@ async function sendPrivateReply(
     message: string,
     pageAccessToken: string,
     flowId: string,
-    commentId: string
+    commentId: string,
+    buttons?: Array<{ title: string; payload: string }>
 ) {
     console.log(`    📤 Sending Private Messenger Reply: "${message}"`);
     console.log(`    📤 To User: ${userName} (${userId})`);
     console.log(`    📤 Linked to Comment: ${commentId}`);
+    if (buttons && buttons.length > 0) {
+        console.log(`    📤 With ${buttons.length} quick reply button(s)`);
+    }
 
     try {
         // IMPORTANT: Use comment_id in recipient to send private reply linked to comment
         // This bypasses the 24-hour messaging window restriction
+        const messagePayload: any = { text: message };
+
+        // Add quick_replies if buttons are provided
+        if (buttons && buttons.length > 0) {
+            messagePayload.quick_replies = buttons.map(btn => ({
+                content_type: 'text',
+                title: btn.title,
+                payload: btn.payload
+            }));
+        }
+
         const requestBody = {
             recipient: { comment_id: commentId }, // Use comment_id, not user_id
-            message: { text: message },
+            message: messagePayload,
             access_token: pageAccessToken
         };
 
