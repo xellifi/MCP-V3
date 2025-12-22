@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { MessageSquare } from 'lucide-react';
-import { supabase } from '../services/supabaseClient';
+import { supabase } from '../lib/supabase';
 
 interface Button {
     title: string;
