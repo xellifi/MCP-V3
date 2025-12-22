@@ -296,7 +296,12 @@ async function executeAction(
 ) {
     const label = node.data?.label || '';
     const actionType = node.data?.actionType || '';
-    console.log(`\n  → Executing: ${label} (type: ${actionType})`);
+    const nodeType = node.type || '';
+
+    console.log(`\n  → Executing: ${label}`);
+    console.log(`    actionType: ${actionType}, nodeType: ${nodeType}`);
+    console.log(`    Node data:`, JSON.stringify(node.data, null, 2));
+    console.log(`    Config:`, JSON.stringify(config, null, 2));
 
     // Replace variables in templates
     const replaceVars = (template: string) => {
@@ -307,8 +312,13 @@ async function executeAction(
             .replace(/{post_url}/g, context.postUrl || '');
     };
 
-    // Comment Reply Action
-    if (actionType === 'reply' || label.includes('Reply')) {
+    // Comment Reply Action - check multiple ways
+    const isCommentReply = actionType === 'reply' ||
+        label.toLowerCase().includes('reply') ||
+        label.toLowerCase().includes('comment');
+
+    if (isCommentReply) {
+        console.log(`    ✓ Detected as Comment Reply node`);
         const template = config.replyTemplate || config.template || '';
         console.log(`    📝 Template: "${template}"`);
 
@@ -334,10 +344,16 @@ async function executeAction(
         const messageWithVars = replaceVars(template);
 
         await replyToComment(context.commentId, messageWithVars, context.commenterId, pageAccessToken, flowId, commentId);
+        return; // Return after executing to prevent fall-through
     }
 
     // Send DM Action
-    if (actionType === 'message' || label.includes('Message') || label.includes('Messenger')) {
+    const isMessage = actionType === 'message' ||
+        label.toLowerCase().includes('message') ||
+        label.toLowerCase().includes('messenger');
+
+    if (isMessage) {
+        console.log(`    ✓ Detected as Send Message node`);
         const template = config.messageTemplate || config.template || '';
         console.log(`    📝 Template: "${template}"`);
 
