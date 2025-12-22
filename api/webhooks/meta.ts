@@ -400,6 +400,26 @@ async function executeAction(
 
         const message = replaceVars(template);
         await sendPrivateReply(context.commenterId, context.commenterName, message, pageAccessToken, flowId, commentId);
+        return; // Return after executing
+    }
+
+    // Text/Delay Node - just wait if delay is set
+    if (nodeType === 'textNode') {
+        console.log(`    ✓ Detected as Text/Delay node`);
+        const delaySeconds = config.delaySeconds || 0;
+        const textContent = config.textContent || '';
+
+        if (textContent) {
+            console.log(`    📝 Note: "${textContent}"`);
+        }
+
+        if (delaySeconds > 0) {
+            console.log(`    ⏱️  Waiting ${delaySeconds} second(s)...`);
+            await new Promise(resolve => setTimeout(resolve, delaySeconds * 1000));
+            console.log(`    ✓ Delay complete`);
+        }
+
+        return; // Continue to next node
     }
 }
 
