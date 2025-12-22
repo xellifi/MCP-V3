@@ -670,77 +670,88 @@ async function sendPrivateReply(
     pageAccessToken: string,
     flowId: string,
     commentId: string,
-    buttons?: Array<{ title: string; payload: string }>
+    buttons?: Array<{
+        title: string;
+        type: 'startFlow' | 'url';
+        flowId?: string;
+        url?: string;
+        webviewType?: 'full' | 'compact' | 'tall';
+    }>
 ) {
-    console.log(`    📤 Sending Private Messenger Reply: "${message}"`);
-    console.log(`    📤 To User: ${userName} (${userId})`);
-    console.log(`    📤 Linked to Comment: ${commentId}`);
-    if (buttons && buttons.length > 0) {
-        console.log(`    📤 With ${buttons.length} quick reply button(s)`);
-    }
-
-    try {
-        // IMPORTANT: Use comment_id in recipient to send private reply linked to comment
-        // This bypasses the 24-hour messaging window restriction
-        let messagePayload: any;
-
-        // Use Button Template if buttons are provided, otherwise plain text
-        if (buttons && buttons.length > 0) {
-            messagePayload = {
-                attachment: {
-                    type: 'template',
-                    payload: {
-                        template_type: 'button',
-                        text: message,
-                        buttons: buttons.map(btn => ({
-                            type: 'postback',
-                            title: btn.title,
-                            payload: btn.payload
-                        }))
-                    }
-                }
+    // Map buttons to Facebook format
+    const fbButtons = buttons.map(btn => {
+        if (btn.type === 'url' && btn.url) {
+            // URL button
+            return {
+                type: 'web_url',
+                title: btn.title,
+                url: btn.url,
+                webview_height_ratio: btn.webviewType || 'full'
             };
-        } else {
-            messagePayload = { text: message };
+        } else if (btn.type === 'startFlow' && btn.flowId) {
+            // Start Flow button - use flowId as payload
+            return {
+                type: 'postback',
+                title: btn.title,
+                payload: `FLOW_${btn.flowId}` // Prefix with FLOW_ to identify flow triggers
+            };
         }
+        return null;
+    }).filter(Boolean); // Remove null entries
 
-        const requestBody = {
-            recipient: { comment_id: commentId }, // Use comment_id, not user_id
-            message: messagePayload,
-            access_token: pageAccessToken
-        };
+    console.log(`  Mapped ${fbButtons.length} button(s) to Facebook format:`, fbButtons);
 
-        console.log(`    📤 Request body:`, JSON.stringify(requestBody, null, 2));
-
-        const response = await fetch(
-            `https://graph.facebook.com/v21.0/me/messages`,
-            {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(requestBody)
+    messagePayload = {
+        attachment: {
+            type: 'template',
+            payload: {
+                template_type: 'button',
+                text: message,
+                buttons: fbButtons
             }
-        );
-
-        const result = await response.json();
-        console.log(`    📤 Facebook API response:`, JSON.stringify(result, null, 2));
-
-        if (result.error) {
-            console.error('    ✗ Facebook API error:', result.error.message);
-            console.error('    ✗ Error code:', result.error.code);
-            console.error('    ✗ Error type:', result.error.type);
-            await logAction(commentId, flowId, 'dm_sent', false, result.error.message, result);
-        } else {
-            console.log('    ✓ Private reply (DM) sent successfully!');
-            console.log('    ✓ Message ID:', result.message_id);
-            console.log('    ✓ Recipient ID:', result.recipient_id);
-            await logAction(commentId, flowId, 'dm_sent', true, null, result);
         }
-    } catch (error: any) {
-        console.error('    ✗ Exception sending private reply:', error.message);
-        console.error('    ✗ Stack:', error.stack);
-        await logAction(commentId, flowId, 'dm_sent', false, error.message, null);
-    }
+    };
+} else {
+    messagePayload = { text: message };
 }
+
+const requestBody = {
+    recipient: { comment_id: commentId }, // Use comment_id, not user_id
+    message: messagePayload,
+    access_token: pageAccessToken
+};
+
+console.log(`    📤 Request body:`, JSON.stringify(requestBody, null, 2));
+
+const response = await fetch(
+    `https://graph.facebook.com/v21.0/me/messages`,
+    {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestBody)
+    }
+);
+
+const result = await response.json();
+console.log(`    📤 Facebook API response:`, JSON.stringify(result, null, 2));
+
+if (result.error) {
+    console.error('    ✗ Facebook API error:', result.error.message);
+    console.error('    ✗ Error code:', result.error.code);
+    console.error('    ✗ Error type:', result.error.type);
+    await logAction(commentId, flowId, 'dm_sent', false, result.error.message, result);
+} else {
+    console.log('    ✓ Private reply (DM) sent successfully!');
+    console.log('    ✓ Message ID:', result.message_id);
+    console.log('    ✓ Recipient ID:', result.recipient_id);
+    await logAction(commentId, flowId, 'dm_sent', true, null, result);
+}
+        } catch (error: any) {
+    console.error('    ✗ Exception sending private reply:', error.message);
+    console.error('    ✗ Stack:', error.stack);
+    await logAction(commentId, flowId, 'dm_sent', false, error.message, null);
+}
+    }
 
 // Log automation action
 async function logAction(

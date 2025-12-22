@@ -38,19 +38,27 @@ const SendMessageNodeForm: React.FC<SendMessageNodeFormProps> = ({
     }, [userId]);
 
     const fetchStartFlows = async () => {
+        console.log('Fetching Start flows for user:', userId);
         const { data: flows, error } = await supabase
             .from('flows')
             .select('id, name, flow_data')
             .eq('user_id', userId)
             .eq('status', 'active');
 
+        console.log('Flows query result:', { flows, error });
+
         if (!error && flows) {
             // Filter flows that have Start nodes
             const flowsWithStartNodes = flows.filter(flow => {
                 const nodes = flow.flow_data?.nodes || [];
-                return nodes.some((n: any) => n.type === 'startNode');
+                const hasStartNode = nodes.some((n: any) => n.type === 'startNode');
+                console.log(`Flow "${flow.name}" has Start node:`, hasStartNode);
+                return hasStartNode;
             });
+            console.log('Flows with Start nodes:', flowsWithStartNodes);
             setStartFlows(flowsWithStartNodes);
+        } else if (error) {
+            console.error('Error fetching flows:', error);
         }
     };
 
