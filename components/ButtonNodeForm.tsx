@@ -22,37 +22,35 @@ const ButtonNodeForm: React.FC<ButtonNodeFormProps> = ({
             : [{ title: '', payload: '' }]
     );
 
-    useEffect(() => {
-        if (initialConfig) {
-            setMessageText(initialConfig.messageText || '');
-            setButtons(
-                initialConfig.buttons && initialConfig.buttons.length > 0
-                    ? initialConfig.buttons
-                    : [{ title: '', payload: '' }]
-            );
-        }
-    }, [initialConfig]);
+    const notifyChange = (newMessageText: string, newButtons: Array<{ title: string; payload: string }>) => {
+        const validButtons = newButtons.filter(b => b.title && b.payload);
+        onChange({ messageText: newMessageText, buttons: validButtons });
+    };
 
-    useEffect(() => {
-        const validButtons = buttons.filter(b => b.title && b.payload);
-        onChange({ messageText, buttons: validButtons });
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [messageText, buttons]);
+    const handleMessageChange = (value: string) => {
+        setMessageText(value);
+        notifyChange(value, buttons);
+    };
 
     const addButton = () => {
         if (buttons.length < 13) {
-            setButtons([...buttons, { title: '', payload: '' }]);
+            const newButtons = [...buttons, { title: '', payload: '' }];
+            setButtons(newButtons);
+            notifyChange(messageText, newButtons);
         }
     };
 
     const removeButton = (index: number) => {
-        setButtons(buttons.filter((_, i) => i !== index));
+        const newButtons = buttons.filter((_, i) => i !== index);
+        setButtons(newButtons);
+        notifyChange(messageText, newButtons);
     };
 
     const updateButton = (index: number, field: 'title' | 'payload', value: string) => {
         const newButtons = [...buttons];
         newButtons[index][field] = value;
         setButtons(newButtons);
+        notifyChange(messageText, newButtons);
     };
 
     return (
@@ -64,7 +62,7 @@ const ButtonNodeForm: React.FC<ButtonNodeFormProps> = ({
                 </label>
                 <textarea
                     value={messageText}
-                    onChange={(e) => setMessageText(e.target.value)}
+                    onChange={(e) => handleMessageChange(e.target.value)}
                     placeholder="Enter your message..."
                     rows={3}
                     className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500/50 outline-none transition-all placeholder-slate-500 resize-none"
