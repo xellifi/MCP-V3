@@ -404,20 +404,26 @@ async function executeAction(
         return; // Return after executing
     }
 
-    // Text/Delay Node - just wait if delay is set
+    // Text/Delay Node - send text as message and/or wait
     if (nodeType === 'textNode') {
         console.log(`    ✓ Detected as Text/Delay node`);
         const delaySeconds = config.delaySeconds || 0;
         const textContent = config.textContent || '';
 
         if (textContent) {
-            console.log(`    📝 Note: "${textContent}"`);
+            console.log(`    📝 Text content: "${textContent}"`);
         }
 
         if (delaySeconds > 0) {
             console.log(`    ⏱️  Waiting ${delaySeconds} second(s)...`);
             await new Promise(resolve => setTimeout(resolve, delaySeconds * 1000));
             console.log(`    ✓ Delay complete`);
+        }
+
+        // Send text content as message if it exists
+        if (textContent && textContent.trim()) {
+            console.log(`    📤 Sending text content as Messenger message...`);
+            await sendPrivateReply(context.commenterId, context.commenterName, textContent, pageAccessToken, flowId, commentId);
         }
 
         return; // Continue to next node
