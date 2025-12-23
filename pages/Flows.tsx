@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Workspace, Flow, ConnectedPage } from '../types';
 import { api } from '../services/api';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search, MoreHorizontal, Play, Edit, Trash, Zap, Facebook } from 'lucide-react';
+import { Plus, Search, MoreHorizontal, Play, Edit, Trash, Zap, Facebook, AlertTriangle, X } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface FlowsProps {
@@ -50,17 +50,36 @@ const Flows: React.FC<FlowsProps> = ({ workspace }) => {
     return null;
   };
 
-  const handleDelete = async (flowId: string, flowName: string) => {
-    const confirmed = window.confirm(`Are you sure you want to delete "${flowName}"? This action cannot be undone.`);
-    if (!confirmed) return;
+  // Delete confirmation modal state
+  const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; flowId: string; flowName: string }>({
+    isOpen: false,
+    flowId: '',
+    flowName: ''
+  });
+  const [deleting, setDeleting] = useState(false);
 
+  const openDeleteModal = (flowId: string, flowName: string) => {
+    setDeleteModal({ isOpen: true, flowId, flowName });
+  };
+
+  const closeDeleteModal = () => {
+    setDeleteModal({ isOpen: false, flowId: '', flowName: '' });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteModal.flowId) return;
+
+    setDeleting(true);
     try {
-      await api.workspace.deleteFlow(flowId);
+      await api.workspace.deleteFlow(deleteModal.flowId);
       // Remove from state
-      setFlows(flows.filter(f => f.id !== flowId));
+      setFlows(flows.filter(f => f.id !== deleteModal.flowId));
+      closeDeleteModal();
     } catch (error) {
       console.error('Error deleting flow:', error);
       alert('Failed to delete flow. Please try again.');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -176,7 +195,7 @@ const Flows: React.FC<FlowsProps> = ({ workspace }) => {
                           <Edit className="w-4 h-4" />
                         </button>
                         <button
-                          onClick={() => handleDelete(flow.id, flow.name)}
+                          onClick={() => openDeleteModal(flow.id, flow.name)}
                           className="p-2 text-slate-400 hover:text-red-400 hover:bg-white/5 rounded-lg transition-colors border border-transparent hover:border-white/10"
                           title="Delete Flow"
                         >
@@ -210,6 +229,64 @@ const Flows: React.FC<FlowsProps> = ({ workspace }) => {
           </table>
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {deleteModal.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={closeDeleteModal}
+          />
+
+          {/* Modal */}
+          <div className="relative bg-slate-800 rounded-2xl border border-white/10 shadow-2xl max-w-md w-full p-6 animate-fade-in">
+            {/* Close button */}
+            <button
+              onClick={closeDeleteModal}
+              className="absolute top-4 right-4 p-1 text-slate-400 hover:text-white transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            {/* Icon */}
+            <div className="flex items-center justify-center w-14 h-14 bg-red-500/20 rounded-full mx-auto mb-4">
+              <AlertTriangle className="w-7 h-7 text-red-400" />
+            </div>
+
+            {/* Content */}
+            <h3 className="text-xl font-bold text-white text-center mb-2">Delete Flow</h3>
+            <p className="text-slate-400 text-center mb-6">
+              Are you sure you want to delete <span className="text-white font-semibold">"{deleteModal.flowName}"</span>?
+              This action cannot be undone.
+            </p>
+
+            {/* Buttons */}
+            <div className="flex gap-3">
+              <button
+                onClick={closeDeleteModal}
+                className="flex-1 px-4 py-3 bg-white/5 hover:bg-white/10 text-white rounded-xl font-semibold transition-colors border border-white/10"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                disabled={deleting}
+                className="flex-1 px-4 py-3 bg-red-500 hover:bg-red-600 text-white rounded-xl font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {deleting ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    Deleting...
+                  </>
+                ) : (
+                  'Delete'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
