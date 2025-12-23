@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Clock } from 'lucide-react';
+import { Clock, MessageSquare } from 'lucide-react';
 
 interface TextNodeFormProps {
     userId: string;
@@ -34,17 +34,18 @@ const TextNodeForm: React.FC<TextNodeFormProps> = ({
             {/* Text Content */}
             <div>
                 <label className="block text-sm font-semibold text-slate-300 mb-2">
-                    Text Content (Optional)
+                    <MessageSquare className="w-4 h-4 inline mr-2" />
+                    Message Text
                 </label>
                 <textarea
                     value={textContent}
                     onChange={(e) => setTextContent(e.target.value)}
-                    placeholder="Add a note or description for this step..."
-                    rows={3}
+                    placeholder="Enter the message you want to send to users..."
+                    rows={4}
                     className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-amber-500/50 outline-none transition-all placeholder-slate-500 resize-none"
                 />
-                <p className="mt-2 text-xs text-slate-400">
-                    This text is for your reference only and won't be sent to users.
+                <p className="mt-2 text-xs text-green-400">
+                    ✓ This text message will be sent to users when this node is executed.
                 </p>
             </div>
 
@@ -52,7 +53,7 @@ const TextNodeForm: React.FC<TextNodeFormProps> = ({
             <div>
                 <label className="block text-sm font-semibold text-slate-300 mb-2">
                     <Clock className="w-4 h-4 inline mr-2" />
-                    Delay (seconds)
+                    Delay Before Sending (seconds)
                 </label>
                 <input
                     type="number"
@@ -63,7 +64,7 @@ const TextNodeForm: React.FC<TextNodeFormProps> = ({
                     className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-amber-500/50 outline-none transition-all"
                 />
                 <p className="mt-2 text-xs text-slate-400">
-                    Wait this many seconds before executing the next action (0-300 seconds).
+                    Wait this many seconds before sending the message (0-300 seconds).
                 </p>
             </div>
 
@@ -73,19 +74,24 @@ const TextNodeForm: React.FC<TextNodeFormProps> = ({
                     <strong>Use this node to:</strong>
                 </p>
                 <ul className="mt-2 text-sm text-amber-200 space-y-1 list-disc list-inside">
-                    <li>Add a delay between actions</li>
-                    <li>Organize your flow with notes</li>
-                    <li>Create a more natural conversation pace</li>
+                    <li>Send a text message to users</li>
+                    <li>Add a delay before sending the message</li>
+                    <li>Create a natural conversation flow</li>
                 </ul>
             </div>
 
             {/* Preview */}
-            {delaySeconds > 0 && (
+            {textContent && (
                 <div className="p-4 bg-white/5 border border-white/10 rounded-xl">
-                    <h4 className="text-sm font-semibold text-slate-300 mb-2">Preview</h4>
-                    <p className="text-sm text-white">
-                        ⏱️ Will wait <strong>{delaySeconds} second{delaySeconds !== 1 ? 's' : ''}</strong> before continuing
-                    </p>
+                    <h4 className="text-sm font-semibold text-slate-300 mb-2">Message Preview</h4>
+                    <div className="bg-indigo-500/20 border border-indigo-500/30 rounded-xl px-4 py-3">
+                        <p className="text-sm text-white whitespace-pre-wrap">{textContent}</p>
+                    </div>
+                    {delaySeconds > 0 && (
+                        <p className="text-xs text-slate-400 mt-2">
+                            ⏱️ Will wait <strong>{delaySeconds} second{delaySeconds !== 1 ? 's' : ''}</strong> before sending
+                        </p>
+                    )}
                 </div>
             )}
         </div>
