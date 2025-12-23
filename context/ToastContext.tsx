@@ -52,17 +52,13 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   return (
     <ToastContext.Provider value={{ addToast, success, error, info, warning }}>
       {children}
-      <div className="fixed top-4 right-4 z-[100] flex flex-col gap-2 w-full max-w-sm pointer-events-none" style={{ top: '1rem', right: '1rem', zIndex: 9999 }}>
+      <div
+        className="fixed top-4 left-4 right-4 md:left-auto md:right-4 z-[9999] flex flex-col gap-2 md:w-80 pointer-events-none"
+      >
         {toasts.map((toast) => (
           <div
             key={toast.id}
-            className={`
-              pointer-events-auto flex items-start gap-3 p-4 rounded-lg shadow-lg border-l-4 transition-all animate-in slide-in-from-right-full fade-in duration-300
-              ${toast.type === 'success' ? 'bg-green-500 border-green-600 text-white' : ''}
-              ${toast.type === 'error' ? 'bg-red-500 border-red-600 text-white' : ''}
-              ${toast.type === 'info' ? 'bg-blue-500 border-blue-600 text-white' : ''}
-              ${toast.type === 'warning' ? 'bg-amber-500 border-amber-600 text-white' : ''}
-            `}
+            className="pointer-events-auto flex items-start gap-3 p-3 md:p-4 rounded-lg shadow-lg border-l-4 transition-all animate-in slide-in-from-right-full fade-in duration-300"
             style={{
               backgroundColor: toast.type === 'success' ? '#22c55e' :
                 toast.type === 'error' ? '#ef4444' :
@@ -81,14 +77,18 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
               {toast.type === 'info' && <Info className="w-5 h-5 text-white" />}
               {toast.type === 'warning' && <AlertTriangle className="w-5 h-5 text-white" />}
             </div>
-            <div className="flex-1 text-sm font-medium leading-relaxed">
+            <div className="flex-1 text-sm font-medium leading-relaxed break-words">
               {toast.message}
             </div>
             <button
-              onClick={() => removeToast(toast.id)}
-              className="flex-shrink-0 text-white/70 hover:text-white transition-colors"
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                removeToast(toast.id);
+              }}
+              className="flex-shrink-0 p-1 -m-1 rounded-full text-white/80 hover:text-white hover:bg-white/20 transition-all cursor-pointer"
             >
-              <X className="w-4 h-4" />
+              <X className="w-5 h-5" />
             </button>
           </div>
         ))}
