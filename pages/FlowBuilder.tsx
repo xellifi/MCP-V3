@@ -100,6 +100,9 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
   // Ref for ReactFlow wrapper (for drag-drop)
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
 
+  // Get ReactFlow instance for coordinate conversion
+  const reactFlowInstance = useReactFlow();
+
   useEffect(() => {
     loadUserApiKeys();
     // Check if mobile
@@ -497,15 +500,15 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
       const reactFlowBounds = reactFlowWrapper.current?.getBoundingClientRect();
       if (!reactFlowBounds) return;
 
-      // Calculate position relative to the canvas
-      const position = {
-        x: event.clientX - reactFlowBounds.left - 90, // Offset for node width/2
-        y: event.clientY - reactFlowBounds.top - 30,  // Offset for node height/2
-      };
+      // Use screenToFlowPosition for accurate coordinate conversion (accounts for zoom/pan)
+      const position = reactFlowInstance.screenToFlowPosition({
+        x: event.clientX - 90, // Offset for node width/2
+        y: event.clientY - 30,  // Offset for node height/2
+      });
 
       addNode(nodeType, label, actionType || undefined, position);
     },
-    [addNode]
+    [addNode, reactFlowInstance]
   );
 
   const renderConfigForm = () => {
@@ -852,7 +855,7 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
             onNodeDoubleClick={onNodeDoubleClick}
             onEdgeClick={onEdgeClick}
             nodeTypes={nodeTypes}
-            fitView
+            fitView={nodes.length === 0}
             className="bg-slate-950"
             defaultEdgeOptions={{
               type: 'smoothstep',
@@ -1005,4 +1008,13 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
   );
 };
 
-export default FlowBuilder;
+// Wrap with ReactFlowProvider for useReactFlow hook
+const FlowBuilderWithProvider: React.FC<FlowBuilderProps> = (props) => {
+  return (
+    <ReactFlowProvider>
+      <FlowBuilder {...props} />
+    </ReactFlowProvider>
+  );
+};
+
+export default FlowBuilderWithProvider;
