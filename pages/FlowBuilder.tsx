@@ -545,7 +545,7 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
     if (nodeType === 'startNode' || label.toLowerCase().includes('start')) {
       return (
         <StartNodeForm
-          userId={workspace.ownerId}
+          workspaceId={workspace.id}
           initialConfig={currentConfig}
           onChange={setCurrentConfig}
         />
