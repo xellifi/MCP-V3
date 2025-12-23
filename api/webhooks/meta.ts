@@ -696,6 +696,7 @@ async function executeAction(
         console.log(`    ✓ Detected as Text/Delay node`);
         const delaySeconds = config.delaySeconds || 0;
         const textContent = config.textContent || '';
+        const buttons = config.buttons || [];
 
         if (textContent) {
             console.log(`    📝 Text content: "${textContent}"`);
@@ -717,14 +718,47 @@ async function executeAction(
             console.log(`    📤 Sending text content as Messenger message...`);
 
             try {
+                let messagePayload: any;
+
+                // Check if there are URL buttons to include
+                if (buttons && buttons.length > 0) {
+                    const validButtons = buttons.filter((b: any) => b.title && b.url);
+
+                    if (validButtons.length > 0) {
+                        console.log(`    🔗 Including ${validButtons.length} URL button(s)`);
+
+                        const fbButtons = validButtons.map((btn: any) => ({
+                            type: 'web_url',
+                            title: btn.title,
+                            url: btn.url,
+                            webview_height_ratio: btn.webviewHeight || 'full'
+                        }));
+
+                        messagePayload = {
+                            attachment: {
+                                type: 'template',
+                                payload: {
+                                    template_type: 'button',
+                                    text: textContent,
+                                    buttons: fbButtons
+                                }
+                            }
+                        };
+                    } else {
+                        messagePayload = { text: textContent };
+                    }
+                } else {
+                    messagePayload = { text: textContent };
+                }
+
                 const requestBody = {
                     recipient: { id: context.commenterId },
-                    message: { text: textContent },
+                    message: messagePayload,
                     access_token: pageAccessToken
                 };
 
-                console.log(`    📤 Sending follow-up message to user: ${context.commenterName}`);
-                console.log(`    📤 Message: "${textContent}"`);
+                console.log(`    📤 Sending message to user: ${context.commenterName}`);
+                console.log(`    📤 Request:`, JSON.stringify(requestBody, null, 2));
 
                 const response = await fetch(
                     `https://graph.facebook.com/v21.0/me/messages`,
@@ -741,11 +775,11 @@ async function executeAction(
                 if (result.error) {
                     console.error('    ✗ Facebook API error:', result.error.message);
                 } else {
-                    console.log('    ✓ Follow-up message sent successfully!');
+                    console.log('    ✓ Message sent successfully!');
                     console.log('    ✓ Message ID:', result.message_id);
                 }
             } catch (error: any) {
-                console.error('    ✗ Exception sending follow-up message:', error.message);
+                console.error('    ✗ Exception sending message:', error.message);
             }
         }
 
