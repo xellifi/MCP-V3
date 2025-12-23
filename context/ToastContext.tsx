@@ -84,10 +84,12 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             <button
               type="button"
               onClick={(e) => {
+                e.preventDefault();
                 e.stopPropagation();
                 removeToast(toast.id);
               }}
-              className="flex-shrink-0 p-1 -m-1 rounded-full text-white/80 hover:text-white hover:bg-white/20 transition-all cursor-pointer"
+              className="flex-shrink-0 p-2 rounded-full text-white/90 hover:text-white hover:bg-white/20 transition-all cursor-pointer pointer-events-auto"
+              style={{ pointerEvents: 'auto' }}
             >
               <X className="w-5 h-5" />
             </button>
