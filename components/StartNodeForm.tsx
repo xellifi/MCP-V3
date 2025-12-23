@@ -268,7 +268,7 @@ const StartNodeForm: React.FC<StartNodeFormProps> = ({
             {/* Info */}
             <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
                 <p className="text-sm text-emerald-300">
-                    <strong>Start Node:</strong> This flow will be triggered when a user clicks a button with a matching keyword payload
+                    <strong>Start Node:</strong> This flow will be triggered when a user sends a message or clicks a button matching the keywords
                     {selectedPage && <span> on <strong>{selectedPage.name}</strong></span>}.
                 </p>
             </div>

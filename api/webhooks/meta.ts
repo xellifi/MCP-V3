@@ -69,6 +69,22 @@ async function handleWebhookEvent(eventData: any, res: VercelResponse) {
                     await processComment(change.value, pageId);
                 }
             }
+
+            // Process Messenger events (messages and postbacks)
+            for (const messaging of entry.messaging || []) {
+                console.log('\n--- Messenger Event ---');
+                console.log('Event data:', JSON.stringify(messaging, null, 2));
+
+                // Handle postback events (button clicks)
+                if (messaging.postback) {
+                    await processPostback(messaging, pageId);
+                }
+
+                // Handle incoming text messages
+                if (messaging.message && messaging.message.text) {
+                    await processTextMessage(messaging, pageId);
+                }
+            }
         }
 
         return res.status(200).send('EVENT_RECEIVED');
@@ -177,6 +193,123 @@ async function processPostback(messagingEvent: any, pageId: string) {
     }
 
     console.log('✗ No matching Start node found for payload:', payload);
+}
+
+// Process incoming text message (for Start node triggers)
+async function processTextMessage(messagingEvent: any, pageId: string) {
+    console.log('\n--- Processing Text Message ---');
+    console.log('Messaging event:', JSON.stringify(messagingEvent, null, 2));
+
+    const senderId = messagingEvent.sender.id;
+    const messageText = messagingEvent.message.text;
+
+    console.log(`Message from user: ${senderId}`);
+    console.log(`Message text: "${messageText}"`);
+
+    // Ignore messages from the page itself
+    if (senderId === pageId) {
+        console.log('✓ IGNORING: Message from page itself');
+        return;
+    }
+
+    // Get page details from connected_pages
+    const { data: page, error: pageError } = await supabase
+        .from('connected_pages')
+        .select('*, workspaces!inner(id)')
+        .eq('page_id', pageId)
+        .single();
+
+    if (pageError || !page) {
+        console.error('✗ Page not found in connected_pages');
+        return;
+    }
+
+    const workspaceId = (page as any).workspaces.id;
+    const pageAccessToken = (page as any).page_access_token;
+    const pageDbId = (page as any).id;
+
+    console.log(`✓ Page found - Workspace: ${workspaceId}`);
+
+    // Find all active flows for this workspace
+    const { data: flows, error: flowsError } = await supabase
+        .from('flows')
+        .select('*')
+        .eq('workspace_id', workspaceId)
+        .eq('status', 'ACTIVE');
+
+    if (flowsError || !flows || flows.length === 0) {
+        console.log('✗ No active flows found for this workspace');
+        return;
+    }
+
+    console.log(`Found ${flows.length} active flow(s)`);
+
+    // Find flows with Start nodes that match the message text
+    for (const flow of flows) {
+        const nodes = flow.nodes || [];
+        const edges = flow.edges || [];
+        const configurations = flow.configurations || {};
+
+        // Find Start nodes
+        const startNodes = nodes.filter((n: any) => n.type === 'startNode');
+
+        for (const startNode of startNodes) {
+            const config = configurations[startNode.id] || {};
+            const keywords = config.keywords || [];
+            const matchType = config.matchType || 'exact';
+            const configPageId = config.pageId;
+
+            // Check if this Start node is configured for this page
+            if (configPageId && configPageId !== pageDbId) {
+                console.log(`⊘ Skipping Start node - configured for different page`);
+                continue;
+            }
+
+            console.log(`Checking Start node "${startNode.data?.label}" with keywords:`, keywords);
+            console.log(`Match type: ${matchType}`);
+
+            // Check if message text matches any keyword
+            let isMatch = false;
+            const messageUpper = messageText.toUpperCase().trim();
+
+            if (matchType === 'exact') {
+                isMatch = keywords.some((kw: string) => kw.toUpperCase().trim() === messageUpper);
+            } else if (matchType === 'contains') {
+                isMatch = keywords.some((kw: string) =>
+                    messageUpper.includes(kw.toUpperCase().trim()) ||
+                    kw.toUpperCase().trim().includes(messageUpper)
+                );
+            }
+
+            if (isMatch) {
+                console.log(`✓ Match found! Executing flow from Start node`);
+
+                // Execute flow starting from this Start node
+                await executeFlowFromNode(
+                    startNode,
+                    nodes,
+                    edges,
+                    configurations,
+                    {
+                        commenterId: senderId,
+                        commenterName: 'User',
+                        commentText: messageText,
+                        message: messageText,
+                        pageId: pageId,
+                        postId: '',
+                        commentId: messagingEvent.message.mid // Use message ID as reference
+                    },
+                    pageAccessToken,
+                    flow.id,
+                    messagingEvent.message.mid
+                );
+
+                return; // Execute only the first matching flow
+            }
+        }
+    }
+
+    console.log('✗ No matching Start node found for message:', messageText);
 }
 
 // Process a single comment event
