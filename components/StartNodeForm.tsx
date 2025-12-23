@@ -219,7 +219,7 @@ const StartNodeForm: React.FC<StartNodeFormProps> = ({
                 </div>
                 <p className="text-xs text-slate-500 mt-2">
                     {matchType === 'exact'
-                        ? 'Button payload must exactly match keyword'
+                        ? 'Button payload must exactly match keyword (case-insensitive)'
                         : 'Button payload contains keyword (case-insensitive)'}
                 </p>
             </div>
@@ -248,8 +248,8 @@ const StartNodeForm: React.FC<StartNodeFormProps> = ({
                                 type="text"
                                 value={keyword}
                                 onChange={(e) => updateKeyword(index, e.target.value)}
-                                placeholder="e.g., PRICING, GET_STARTED, HELP"
-                                className="flex-1 bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:ring-2 focus:ring-emerald-500/50 outline-none uppercase"
+                                placeholder="e.g., pricing, get_started, HELP"
+                                className="flex-1 bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:ring-2 focus:ring-emerald-500/50 outline-none"
                             />
                             {keywords.length > 1 && (
                                 <button
