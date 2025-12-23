@@ -32,7 +32,7 @@ const CustomEdge: React.FC<EdgeProps> = ({
         targetPosition,
     });
 
-    const onEdgeDelete = (evt: React.MouseEvent) => {
+    const onEdgeDelete = (evt: React.MouseEvent | React.TouchEvent) => {
         evt.stopPropagation();
         evt.preventDefault();
         setEdges((edges) => edges.filter((edge) => edge.id !== id));
@@ -42,26 +42,34 @@ const CustomEdge: React.FC<EdgeProps> = ({
     const showDeleteButton = isHovered || selected;
 
     return (
-        <>
-            {/* Invisible wider path for easier hover detection */}
+        <g
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+            onTouchStart={() => setIsHovered(true)}
+        >
+            {/* Invisible wider path for easier hover/touch detection */}
             <path
                 d={edgePath}
                 fill="none"
                 stroke="transparent"
-                strokeWidth={20}
-                onMouseEnter={() => setIsHovered(true)}
-                onMouseLeave={() => setIsHovered(false)}
+                strokeWidth={30}
                 style={{ cursor: 'pointer' }}
             />
-            <BaseEdge
-                path={edgePath}
+            {/* Visible edge path */}
+            <path
+                d={edgePath}
+                fill="none"
+                stroke={showDeleteButton ? '#f59e0b' : style.stroke?.toString() || '#64748b'}
+                strokeWidth={showDeleteButton ? 2.5 : 2}
+                strokeDasharray={style.strokeDasharray?.toString()}
                 markerEnd={markerEnd}
                 style={{
-                    ...style,
-                    stroke: showDeleteButton ? '#f59e0b' : style.stroke || '#64748b',
-                    strokeWidth: showDeleteButton ? 2.5 : style.strokeWidth || 2,
+                    pointerEvents: 'none',
+                    transition: 'stroke 0.15s ease-in-out'
                 }}
+                className={selected ? '' : 'react-flow__edge-path'}
             />
+            {/* Delete button at the center of the edge */}
             <EdgeLabelRenderer>
                 <div
                     style={{
@@ -69,6 +77,7 @@ const CustomEdge: React.FC<EdgeProps> = ({
                         transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
                         pointerEvents: 'all',
                         opacity: showDeleteButton ? 1 : 0,
+                        visibility: showDeleteButton ? 'visible' : 'hidden',
                         transition: 'opacity 0.15s ease-in-out',
                     }}
                     className="nodrag nopan"
@@ -78,6 +87,7 @@ const CustomEdge: React.FC<EdgeProps> = ({
                     <button
                         type="button"
                         onClick={onEdgeDelete}
+                        onTouchEnd={onEdgeDelete}
                         className="w-5 h-5 bg-amber-500 hover:bg-red-500 rounded-full flex items-center justify-center shadow-md transition-all hover:scale-110 border border-white/50"
                         title="Delete connection"
                         style={{ pointerEvents: 'auto' }}
@@ -86,7 +96,7 @@ const CustomEdge: React.FC<EdgeProps> = ({
                     </button>
                 </div>
             </EdgeLabelRenderer>
-        </>
+        </g>
     );
 };
 
