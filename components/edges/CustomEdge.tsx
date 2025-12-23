@@ -1,8 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
     BaseEdge,
     EdgeLabelRenderer,
-    getBezierPath,
     getSmoothStepPath,
     useReactFlow,
     EdgeProps,
@@ -22,6 +21,7 @@ const CustomEdge: React.FC<EdgeProps> = ({
     selected,
 }) => {
     const { setEdges } = useReactFlow();
+    const [isHovered, setIsHovered] = useState(false);
 
     const [edgePath, labelX, labelY] = getSmoothStepPath({
         sourceX,
@@ -34,41 +34,58 @@ const CustomEdge: React.FC<EdgeProps> = ({
 
     const onEdgeDelete = (evt: React.MouseEvent) => {
         evt.stopPropagation();
+        evt.preventDefault();
         setEdges((edges) => edges.filter((edge) => edge.id !== id));
     };
 
+    // Show delete button on hover or when selected (for mobile touch)
+    const showDeleteButton = isHovered || selected;
+
     return (
         <>
+            {/* Invisible wider path for easier hover detection */}
+            <path
+                d={edgePath}
+                fill="none"
+                stroke="transparent"
+                strokeWidth={20}
+                onMouseEnter={() => setIsHovered(true)}
+                onMouseLeave={() => setIsHovered(false)}
+                style={{ cursor: 'pointer' }}
+            />
             <BaseEdge
                 path={edgePath}
                 markerEnd={markerEnd}
                 style={{
                     ...style,
-                    stroke: selected ? '#ef4444' : style.stroke || '#64748b',
-                    strokeWidth: selected ? 3 : style.strokeWidth || 2,
+                    stroke: showDeleteButton ? '#f59e0b' : style.stroke || '#64748b',
+                    strokeWidth: showDeleteButton ? 2.5 : style.strokeWidth || 2,
                 }}
             />
-            {selected && (
-                <EdgeLabelRenderer>
-                    <div
-                        style={{
-                            position: 'absolute',
-                            transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
-                            pointerEvents: 'all',
-                        }}
-                        className="nodrag nopan"
+            <EdgeLabelRenderer>
+                <div
+                    style={{
+                        position: 'absolute',
+                        transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
+                        pointerEvents: 'all',
+                        opacity: showDeleteButton ? 1 : 0,
+                        transition: 'opacity 0.15s ease-in-out',
+                    }}
+                    className="nodrag nopan"
+                    onMouseEnter={() => setIsHovered(true)}
+                    onMouseLeave={() => setIsHovered(false)}
+                >
+                    <button
+                        type="button"
+                        onClick={onEdgeDelete}
+                        className="w-5 h-5 bg-amber-500 hover:bg-red-500 rounded-full flex items-center justify-center shadow-md transition-all hover:scale-110 border border-white/50"
+                        title="Delete connection"
+                        style={{ pointerEvents: 'auto' }}
                     >
-                        <button
-                            type="button"
-                            onClick={onEdgeDelete}
-                            className="w-6 h-6 bg-red-500 hover:bg-red-600 rounded-full flex items-center justify-center shadow-lg transition-all hover:scale-110 border-2 border-white"
-                            title="Delete connection"
-                        >
-                            <X className="w-3.5 h-3.5 text-white" />
-                        </button>
-                    </div>
-                </EdgeLabelRenderer>
-            )}
+                        <X className="w-3 h-3 text-white" strokeWidth={3} />
+                    </button>
+                </div>
+            </EdgeLabelRenderer>
         </>
     );
 };
