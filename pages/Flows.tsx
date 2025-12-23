@@ -50,6 +50,20 @@ const Flows: React.FC<FlowsProps> = ({ workspace }) => {
     return null;
   };
 
+  const handleDelete = async (flowId: string, flowName: string) => {
+    const confirmed = window.confirm(`Are you sure you want to delete "${flowName}"? This action cannot be undone.`);
+    if (!confirmed) return;
+
+    try {
+      await api.workspace.deleteFlow(flowId);
+      // Remove from state
+      setFlows(flows.filter(f => f.id !== flowId));
+    } catch (error) {
+      console.error('Error deleting flow:', error);
+      alert('Failed to delete flow. Please try again.');
+    }
+  };
+
   const handleCreate = () => {
     // In a real app, create a new flow in DB then redirect
     // For demo, just go to a new ID
@@ -162,6 +176,7 @@ const Flows: React.FC<FlowsProps> = ({ workspace }) => {
                           <Edit className="w-4 h-4" />
                         </button>
                         <button
+                          onClick={() => handleDelete(flow.id, flow.name)}
                           className="p-2 text-slate-400 hover:text-red-400 hover:bg-white/5 rounded-lg transition-colors border border-transparent hover:border-white/10"
                           title="Delete Flow"
                         >

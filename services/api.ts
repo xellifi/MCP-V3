@@ -1096,6 +1096,18 @@ export const api = {
       }
     },
 
+    deleteFlow: async (flowId: string): Promise<void> => {
+      const { error } = await supabase
+        .from('flows')
+        .delete()
+        .eq('id', flowId);
+
+      if (error) {
+        console.error('Error deleting flow:', error);
+        throw new Error('Failed to delete flow');
+      }
+    },
+
     getScheduledPosts: async (workspaceId: string): Promise<ScheduledPost[]> => {
       const { data, error } = await supabase
         .from('scheduled_posts')
