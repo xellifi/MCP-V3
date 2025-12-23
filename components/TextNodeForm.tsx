@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Clock, MessageSquare, Plus, X, Link, ChevronDown } from 'lucide-react';
+import React, { useState } from 'react';
+import { Clock, MessageSquare, Plus, X, Link } from 'lucide-react';
 
 interface UrlButton {
     title: string;
@@ -28,34 +28,44 @@ const TextNodeForm: React.FC<TextNodeFormProps> = ({
         initialConfig?.buttons || []
     );
 
-    useEffect(() => {
-        if (initialConfig) {
-            setTextContent(initialConfig.textContent || '');
-            setDelaySeconds(initialConfig.delaySeconds || 0);
-            setButtons(initialConfig.buttons || []);
-        }
-    }, [initialConfig]);
+    const notifyChange = (
+        newTextContent: string,
+        newDelaySeconds: number,
+        newButtons: UrlButton[]
+    ) => {
+        const validButtons = newButtons.filter(b => b.title.trim() && b.url.trim());
+        onChange({ textContent: newTextContent, delaySeconds: newDelaySeconds, buttons: validButtons });
+    };
 
-    useEffect(() => {
-        // Only include valid buttons with both title and url
-        const validButtons = buttons.filter(b => b.title.trim() && b.url.trim());
-        onChange({ textContent, delaySeconds, buttons: validButtons });
-    }, [textContent, delaySeconds, buttons]);
+    const handleTextChange = (value: string) => {
+        setTextContent(value);
+        notifyChange(value, delaySeconds, buttons);
+    };
+
+    const handleDelayChange = (value: number) => {
+        setDelaySeconds(value);
+        notifyChange(textContent, value, buttons);
+    };
 
     const addButton = () => {
         if (buttons.length < 3) {
-            setButtons([...buttons, { title: '', url: '', webviewHeight: 'full' }]);
+            const newButtons = [...buttons, { title: '', url: '', webviewHeight: 'full' as const }];
+            setButtons(newButtons);
+            notifyChange(textContent, delaySeconds, newButtons);
         }
     };
 
     const removeButton = (index: number) => {
-        setButtons(buttons.filter((_, i) => i !== index));
+        const newButtons = buttons.filter((_, i) => i !== index);
+        setButtons(newButtons);
+        notifyChange(textContent, delaySeconds, newButtons);
     };
 
     const updateButton = (index: number, field: keyof UrlButton, value: string) => {
         const newButtons = [...buttons];
         newButtons[index] = { ...newButtons[index], [field]: value };
         setButtons(newButtons);
+        notifyChange(textContent, delaySeconds, newButtons);
     };
 
     return (
@@ -68,7 +78,7 @@ const TextNodeForm: React.FC<TextNodeFormProps> = ({
                 </label>
                 <textarea
                     value={textContent}
-                    onChange={(e) => setTextContent(e.target.value)}
+                    onChange={(e) => handleTextChange(e.target.value)}
                     placeholder="Enter the message you want to send to users..."
                     rows={4}
                     className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-amber-500/50 outline-none transition-all placeholder-slate-500 resize-none"
@@ -89,7 +99,7 @@ const TextNodeForm: React.FC<TextNodeFormProps> = ({
                     min="0"
                     max="300"
                     value={delaySeconds}
-                    onChange={(e) => setDelaySeconds(parseInt(e.target.value) || 0)}
+                    onChange={(e) => handleDelayChange(parseInt(e.target.value) || 0)}
                     className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-amber-500/50 outline-none transition-all"
                 />
                 <p className="mt-2 text-xs text-slate-400">
