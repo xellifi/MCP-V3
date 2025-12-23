@@ -1,6 +1,6 @@
 import React from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
-import { Clock, Settings, Trash2 } from 'lucide-react';
+import { MessageSquare, Settings, Trash2 } from 'lucide-react';
 
 const CustomTextNode: React.FC<NodeProps> = ({ data, selected }) => {
     const handleConfigure = (e: React.MouseEvent) => {
@@ -32,7 +32,7 @@ const CustomTextNode: React.FC<NodeProps> = ({ data, selected }) => {
                 {/* Icon and Label */}
                 <div className="flex items-center gap-3">
                     <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
-                        <Clock className="w-5 h-5 text-white" />
+                        <MessageSquare className="w-5 h-5 text-white" />
                     </div>
                     <div className="flex-1">
                         <div className="text-white font-bold text-sm">

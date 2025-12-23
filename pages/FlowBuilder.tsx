@@ -16,7 +16,7 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Workspace } from '../types';
-import { Save, ArrowLeft, PlayCircle, Menu, X, Grid3x3, MessageCircle, Play, Bot, Send, Clock, MousePointer2, SquareMousePointer, Sparkles, GitBranch } from 'lucide-react';
+import { Save, ArrowLeft, PlayCircle, Menu, X, Grid3x3, MessageCircle, Play, Bot, Send, Clock, MousePointer2, SquareMousePointer, Sparkles, GitBranch, MessageSquare } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import NodeConfigModal from '../components/NodeConfigModal';
 import TriggerNodeForm from '../components/TriggerNodeForm';
@@ -696,7 +696,7 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
                   </button>
                   <button onClick={() => addNode('textNode', 'Text')} className="w-full flex items-center gap-3 p-3 bg-white/5 border border-white/10 rounded-xl hover:border-amber-500/50 hover:bg-amber-500/10 transition-all text-left group">
                     <div className="w-8 h-8 bg-amber-500/20 text-amber-400 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
-                      <Clock className="w-4 h-4" />
+                      <MessageSquare className="w-4 h-4" />
                     </div>
                     <span className="text-sm font-semibold text-slate-300 group-hover:text-white transition-colors">Text</span>
                   </button>
