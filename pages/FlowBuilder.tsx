@@ -471,6 +471,83 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
     setShowMobileNodeGrid(false);
   };
 
+  // Add Comment Reply Template (3 pre-connected nodes)
+  const addCommentReplyTemplate = (position?: { x: number; y: number }) => {
+    const baseX = position?.x || 450;
+    const baseY = position?.y || 280;
+
+    // Generate unique IDs for the nodes
+    const triggerId = `trigger-${Date.now()}`;
+    const replyId = `action-${Date.now() + 1}`;
+    const messageId = `action-${Date.now() + 2}`;
+
+    // Create the 3 nodes
+    const triggerNode = {
+      id: triggerId,
+      type: 'triggerNode',
+      data: {
+        label: 'New Comment',
+        nodeType: 'triggerNode',
+        onConfigure: () => handleConfigureNode({ id: triggerId, data: { label: 'New Comment', nodeType: 'triggerNode' } } as any),
+        onDelete: () => handleDeleteNode(triggerId)
+      },
+      position: { x: baseX, y: baseY },
+    };
+
+    const replyNode = {
+      id: replyId,
+      type: 'actionNode',
+      data: {
+        label: 'Comment Reply',
+        nodeType: 'actionNode',
+        actionType: 'reply',
+        onConfigure: () => handleConfigureNode({ id: replyId, data: { label: 'Comment Reply', nodeType: 'actionNode', actionType: 'reply' } } as any),
+        onDelete: () => handleDeleteNode(replyId)
+      },
+      position: { x: baseX + 250, y: baseY - 80 },
+    };
+
+    const messageNode = {
+      id: messageId,
+      type: 'actionNode',
+      data: {
+        label: 'Send Message',
+        nodeType: 'actionNode',
+        actionType: 'message',
+        onConfigure: () => handleConfigureNode({ id: messageId, data: { label: 'Send Message', nodeType: 'actionNode', actionType: 'message' } } as any),
+        onDelete: () => handleDeleteNode(messageId)
+      },
+      position: { x: baseX + 250, y: baseY + 80 },
+    };
+
+    // Create edges connecting trigger to both action nodes
+    const newEdges = [
+      {
+        id: `edge-${triggerId}-${replyId}`,
+        source: triggerId,
+        target: replyId,
+        type: 'smoothstep',
+        animated: true,
+        style: { stroke: '#64748b', strokeWidth: 2 }
+      },
+      {
+        id: `edge-${triggerId}-${messageId}`,
+        source: triggerId,
+        target: messageId,
+        type: 'smoothstep',
+        animated: true,
+        style: { stroke: '#64748b', strokeWidth: 2 }
+      }
+    ];
+
+    // Add all nodes and edges
+    setNodes((nds) => nds.concat([triggerNode, replyNode, messageNode]));
+    setEdges((eds) => eds.concat(newEdges));
+
+    toast.success('Comment Reply template added! Configure each node by double-clicking.');
+    setShowMobileNodeGrid(false);
+  };
+
   // Drag and drop handlers
   const onDragStart = (event: DragEvent<HTMLDivElement>, nodeType: string, label: string, actionType?: string) => {
     event.dataTransfer.setData('application/reactflow-type', nodeType);
@@ -490,6 +567,24 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
     (event: DragEvent<HTMLDivElement>) => {
       event.preventDefault();
 
+      // Check if this is a template drop
+      const template = event.dataTransfer.getData('application/reactflow-template');
+      if (template) {
+        const reactFlowBounds = reactFlowWrapper.current?.getBoundingClientRect();
+        if (!reactFlowBounds) return;
+
+        const position = reactFlowInstance.screenToFlowPosition({
+          x: event.clientX - 90,
+          y: event.clientY - 30,
+        });
+
+        if (template === 'commentReply') {
+          addCommentReplyTemplate(position);
+        }
+        return;
+      }
+
+      // Regular node drop
       const nodeType = event.dataTransfer.getData('application/reactflow-type');
       const label = event.dataTransfer.getData('application/reactflow-label');
       const actionType = event.dataTransfer.getData('application/reactflow-action');
@@ -508,7 +603,7 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
 
       addNode(nodeType, label, actionType || undefined, position);
     },
-    [addNode, reactFlowInstance]
+    [addNode, addCommentReplyTemplate, reactFlowInstance]
   );
 
   const renderConfigForm = () => {
@@ -714,8 +809,11 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
                 <div className="space-y-2">
                   <div
                     draggable
-                    onDragStart={(e) => onDragStart(e, 'triggerNode', 'New Comment')}
-                    onClick={() => addNode('triggerNode', 'New Comment')}
+                    onDragStart={(e) => {
+                      e.dataTransfer.setData('application/reactflow-template', 'commentReply');
+                      e.dataTransfer.effectAllowed = 'move';
+                    }}
+                    onClick={() => addCommentReplyTemplate()}
                     className="w-full flex items-center gap-3 p-3 bg-white/5 border border-white/10 rounded-xl hover:border-blue-500/50 hover:bg-blue-500/10 transition-all text-left group cursor-grab active:cursor-grabbing"
                   >
                     <div className="w-8 h-8 bg-blue-500/20 text-blue-400 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -742,28 +840,6 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
                 <div className="space-y-2">
                   <div
                     draggable
-                    onDragStart={(e) => onDragStart(e, 'actionNode', 'Comment Reply', 'reply')}
-                    onClick={() => addNode('actionNode', 'Comment Reply', 'reply')}
-                    className="w-full flex items-center gap-3 p-3 bg-white/5 border border-white/10 rounded-xl hover:border-cyan-500/50 hover:bg-cyan-500/10 transition-all text-left group cursor-grab active:cursor-grabbing"
-                  >
-                    <div className="w-8 h-8 bg-cyan-500/20 text-cyan-400 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
-                      <MessageCircle className="w-4 h-4" />
-                    </div>
-                    <span className="text-sm font-semibold text-slate-300 group-hover:text-white transition-colors">Reply to Comment</span>
-                  </div>
-                  <div
-                    draggable
-                    onDragStart={(e) => onDragStart(e, 'actionNode', 'Send Message', 'message')}
-                    onClick={() => addNode('actionNode', 'Send Message', 'message')}
-                    className="w-full flex items-center gap-3 p-3 bg-white/5 border border-white/10 rounded-xl hover:border-purple-500/50 hover:bg-purple-500/10 transition-all text-left group cursor-grab active:cursor-grabbing"
-                  >
-                    <div className="w-8 h-8 bg-purple-500/20 text-purple-400 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
-                      <Send className="w-4 h-4" />
-                    </div>
-                    <span className="text-sm font-semibold text-slate-300 group-hover:text-white transition-colors">Messenger Reply</span>
-                  </div>
-                  <div
-                    draggable
                     onDragStart={(e) => onDragStart(e, 'textNode', 'Text')}
                     onClick={() => addNode('textNode', 'Text')}
                     className="w-full flex items-center gap-3 p-3 bg-white/5 border border-white/10 rounded-xl hover:border-amber-500/50 hover:bg-amber-500/10 transition-all text-left group cursor-grab active:cursor-grabbing"
@@ -772,28 +848,6 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
                       <MessageSquare className="w-4 h-4" />
                     </div>
                     <span className="text-sm font-semibold text-slate-300 group-hover:text-white transition-colors">Text</span>
-                  </div>
-                  <div
-                    draggable
-                    onDragStart={(e) => onDragStart(e, 'buttonNode', 'Text with Buttons')}
-                    onClick={() => addNode('buttonNode', 'Text with Buttons')}
-                    className="w-full flex items-center gap-3 p-3 bg-white/5 border border-white/10 rounded-xl hover:border-blue-500/50 hover:bg-blue-500/10 transition-all text-left group cursor-grab active:cursor-grabbing"
-                  >
-                    <div className="w-8 h-8 bg-blue-500/20 text-blue-400 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
-                      <RectangleEllipsis className="w-4 h-4" />
-                    </div>
-                    <span className="text-sm font-semibold text-slate-300 group-hover:text-white transition-colors">Text with Buttons</span>
-                  </div>
-                  <div
-                    draggable
-                    onDragStart={(e) => onDragStart(e, 'buttonsOnlyNode', 'Buttons')}
-                    onClick={() => addNode('buttonsOnlyNode', 'Buttons')}
-                    className="w-full flex items-center gap-3 p-3 bg-white/5 border border-white/10 rounded-xl hover:border-indigo-500/50 hover:bg-indigo-500/10 transition-all text-left group cursor-grab active:cursor-grabbing"
-                  >
-                    <div className="w-8 h-8 bg-indigo-500/20 text-indigo-400 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
-                      <SquareMousePointer className="w-4 h-4" />
-                    </div>
-                    <span className="text-sm font-semibold text-slate-300 group-hover:text-white transition-colors">Buttons</span>
                   </div>
                 </div>
               </div>
