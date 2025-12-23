@@ -702,8 +702,13 @@ async function executeAction(
         }
 
         if (delaySeconds > 0) {
-            console.log(`    ⏱️  Waiting ${delaySeconds} second(s)...`);
+            console.log(`    ⏱️  Showing typing indicator for ${delaySeconds} second(s)...`);
+
+            // Show typing indicator during the delay
+            await sendTypingIndicator(context.commenterId, pageAccessToken, 'typing_on');
             await new Promise(resolve => setTimeout(resolve, delaySeconds * 1000));
+            await sendTypingIndicator(context.commenterId, pageAccessToken, 'typing_off');
+
             console.log(`    ✓ Delay complete`);
         }
 
@@ -711,11 +716,9 @@ async function executeAction(
         if (textContent && textContent.trim()) {
             console.log(`    📤 Sending text content as Messenger message...`);
 
-            // Use user_id instead of comment_id for follow-up messages
-            // This avoids Facebook's "Activity already replied to" error
             try {
                 const requestBody = {
-                    recipient: { id: context.commenterId }, // Use user_id, not comment_id
+                    recipient: { id: context.commenterId },
                     message: { text: textContent },
                     access_token: pageAccessToken
                 };
@@ -746,7 +749,203 @@ async function executeAction(
             }
         }
 
-        return; // Continue to next node
+        return;
+    }
+
+    // Button Node (Text with Buttons) - send text message with buttons
+    if (nodeType === 'buttonNode') {
+        console.log(`    ✓ Detected as Button Node (Text with Buttons)`);
+        const messageText = config.messageText || config.textContent || '';
+        const buttons = config.buttons || [];
+
+        console.log(`    📝 Message: "${messageText}"`);
+        console.log(`    🔘 Buttons: ${buttons.length}`);
+
+        if (!messageText) {
+            console.log('    ⊘ Skipping: No message text configured');
+            return;
+        }
+
+        try {
+            // Show typing indicator briefly
+            await sendTypingIndicator(context.commenterId, pageAccessToken, 'typing_on');
+            await new Promise(resolve => setTimeout(resolve, 500));
+            await sendTypingIndicator(context.commenterId, pageAccessToken, 'typing_off');
+
+            let messagePayload: any;
+
+            if (buttons && buttons.length > 0) {
+                // Map buttons to Facebook format
+                const fbButtons = buttons.map((btn: any) => {
+                    if (btn.type === 'url' && btn.url) {
+                        return {
+                            type: 'web_url',
+                            title: btn.title,
+                            url: btn.url,
+                            webview_height_ratio: btn.webviewType || 'full'
+                        };
+                    } else if (btn.type === 'startFlow' && btn.flowId) {
+                        return {
+                            type: 'postback',
+                            title: btn.title,
+                            payload: `FLOW_${btn.flowId}`
+                        };
+                    } else if (btn.type === 'postback' || btn.payload) {
+                        return {
+                            type: 'postback',
+                            title: btn.title,
+                            payload: btn.payload || btn.title.toUpperCase().replace(/\s+/g, '_')
+                        };
+                    }
+                    return null;
+                }).filter(Boolean);
+
+                console.log(`    📤 Sending message with ${fbButtons.length} button(s)`);
+
+                messagePayload = {
+                    attachment: {
+                        type: 'template',
+                        payload: {
+                            template_type: 'button',
+                            text: messageText,
+                            buttons: fbButtons
+                        }
+                    }
+                };
+            } else {
+                messagePayload = { text: messageText };
+            }
+
+            const requestBody = {
+                recipient: { id: context.commenterId },
+                message: messagePayload,
+                access_token: pageAccessToken
+            };
+
+            console.log(`    📤 Request body:`, JSON.stringify(requestBody, null, 2));
+
+            const response = await fetch(
+                `https://graph.facebook.com/v21.0/me/messages`,
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestBody)
+                }
+            );
+
+            const result = await response.json();
+            console.log(`    📤 Facebook API response:`, JSON.stringify(result, null, 2));
+
+            if (result.error) {
+                console.error('    ✗ Facebook API error:', result.error.message);
+            } else {
+                console.log('    ✓ Button message sent successfully!');
+                console.log('    ✓ Message ID:', result.message_id);
+            }
+        } catch (error: any) {
+            console.error('    ✗ Exception sending button message:', error.message);
+        }
+
+        return;
+    }
+
+    // Buttons Only Node - send quick reply buttons
+    if (nodeType === 'buttonsOnlyNode') {
+        console.log(`    ✓ Detected as Buttons Only Node`);
+        const buttons = config.buttons || [];
+
+        if (buttons.length === 0) {
+            console.log('    ⊘ Skipping: No buttons configured');
+            return;
+        }
+
+        // Use a generic prompt message for buttons-only
+        const promptText = config.promptText || 'Please select an option:';
+
+        try {
+            await sendTypingIndicator(context.commenterId, pageAccessToken, 'typing_on');
+            await new Promise(resolve => setTimeout(resolve, 300));
+            await sendTypingIndicator(context.commenterId, pageAccessToken, 'typing_off');
+
+            const fbButtons = buttons.map((btn: any) => {
+                if (btn.type === 'url' && btn.url) {
+                    return {
+                        type: 'web_url',
+                        title: btn.title,
+                        url: btn.url
+                    };
+                } else {
+                    return {
+                        type: 'postback',
+                        title: btn.title,
+                        payload: btn.payload || btn.title.toUpperCase().replace(/\s+/g, '_')
+                    };
+                }
+            }).filter(Boolean);
+
+            const requestBody = {
+                recipient: { id: context.commenterId },
+                message: {
+                    attachment: {
+                        type: 'template',
+                        payload: {
+                            template_type: 'button',
+                            text: promptText,
+                            buttons: fbButtons
+                        }
+                    }
+                },
+                access_token: pageAccessToken
+            };
+
+            const response = await fetch(
+                `https://graph.facebook.com/v21.0/me/messages`,
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestBody)
+                }
+            );
+
+            const result = await response.json();
+
+            if (result.error) {
+                console.error('    ✗ Facebook API error:', result.error.message);
+            } else {
+                console.log('    ✓ Buttons sent successfully!');
+            }
+        } catch (error: any) {
+            console.error('    ✗ Exception sending buttons:', error.message);
+        }
+
+        return;
+    }
+}
+
+// Send typing indicator to show user is typing
+async function sendTypingIndicator(userId: string, pageAccessToken: string, action: 'typing_on' | 'typing_off') {
+    try {
+        const response = await fetch(
+            `https://graph.facebook.com/v21.0/me/messages`,
+            {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    recipient: { id: userId },
+                    sender_action: action,
+                    access_token: pageAccessToken
+                })
+            }
+        );
+
+        const result = await response.json();
+        if (result.error) {
+            console.log(`    ⚠️ Typing indicator error: ${result.error.message}`);
+        } else {
+            console.log(`    ✓ Typing indicator: ${action}`);
+        }
+    } catch (error: any) {
+        console.log(`    ⚠️ Typing indicator exception: ${error.message}`);
     }
 }
 
