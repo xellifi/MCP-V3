@@ -28,6 +28,7 @@ import TextNodeForm from '../components/TextNodeForm';
 import ButtonNodeForm from '../components/ButtonNodeForm';
 import ButtonsOnlyNodeForm from '../components/ButtonsOnlyNodeForm';
 import StartNodeForm from '../components/StartNodeForm';
+import CustomEdge from '../components/edges/CustomEdge';
 import CustomTriggerNode from '../components/nodes/CustomTriggerNode';
 import CustomActionNode from '../components/nodes/CustomActionNode';
 import CustomAINode from '../components/nodes/CustomAINode';
@@ -60,6 +61,11 @@ const nodeTypes: NodeTypes = {
   buttonNode: CustomButtonNode,
   buttonsOnlyNode: CustomButtonsOnlyNode,
   startNode: CustomStartNode,
+};
+
+// Define custom edge types
+const edgeTypes = {
+  custom: CustomEdge,
 };
 
 const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
@@ -909,10 +915,11 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
             onNodeDoubleClick={onNodeDoubleClick}
             onEdgeClick={onEdgeClick}
             nodeTypes={nodeTypes}
+            edgeTypes={edgeTypes}
             fitView={nodes.length === 0}
             className="bg-slate-950"
             defaultEdgeOptions={{
-              type: 'smoothstep',
+              type: 'custom',
               animated: true,
               style: { stroke: '#64748b', strokeWidth: 2 }
             }}
@@ -938,16 +945,7 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
             />
           </ReactFlow>
 
-          {/* Delete Edge Button */}
-          {selectedEdge && (
-            <button
-              onClick={handleDeleteEdge}
-              className="absolute bottom-24 right-6 z-30 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg shadow-lg flex items-center gap-2 transition-colors"
-            >
-              <X className="w-4 h-4" />
-              Delete Connection
-            </button>
-          )}
+          {/* Delete button now appears on the edge itself when selected */}
         </div>
       </div>
 
