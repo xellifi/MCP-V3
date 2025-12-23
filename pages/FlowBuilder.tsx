@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef, DragEvent } from 'react';
 import ReactFlow, {
   addEdge,
   Background,
@@ -11,7 +11,9 @@ import ReactFlow, {
   MiniMap,
   NodeMouseHandler,
   EdgeMouseHandler,
-  NodeTypes
+  NodeTypes,
+  useReactFlow,
+  ReactFlowProvider
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -94,6 +96,9 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
 
   // User API keys
   const [userApiKeys, setUserApiKeys] = useState<any>({});
+
+  // Ref for ReactFlow wrapper (for drag-drop)
+  const reactFlowWrapper = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     loadUserApiKeys();
@@ -441,7 +446,7 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
     }
   };
 
-  const addNode = (nodeType: string, label: string, actionType?: string) => {
+  const addNode = (nodeType: string, label: string, actionType?: string, position?: { x: number; y: number }) => {
     const newNode: Node = {
       id: `${Date.now()}`,
       type: nodeType,
@@ -452,7 +457,7 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
         onConfigure: () => handleConfigureNode(newNode),
         onDelete: () => handleDeleteNode(newNode.id)
       },
-      position: {
+      position: position || {
         x: 100 + nodes.length * 250,
         y: 200
       },
@@ -462,6 +467,46 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
     toast.info(`Added ${label} - Double-click or click gear to configure`);
     setShowMobileNodeGrid(false);
   };
+
+  // Drag and drop handlers
+  const onDragStart = (event: DragEvent<HTMLDivElement>, nodeType: string, label: string, actionType?: string) => {
+    event.dataTransfer.setData('application/reactflow-type', nodeType);
+    event.dataTransfer.setData('application/reactflow-label', label);
+    if (actionType) {
+      event.dataTransfer.setData('application/reactflow-action', actionType);
+    }
+    event.dataTransfer.effectAllowed = 'move';
+  };
+
+  const onDragOver = useCallback((event: DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
+  }, []);
+
+  const onDrop = useCallback(
+    (event: DragEvent<HTMLDivElement>) => {
+      event.preventDefault();
+
+      const nodeType = event.dataTransfer.getData('application/reactflow-type');
+      const label = event.dataTransfer.getData('application/reactflow-label');
+      const actionType = event.dataTransfer.getData('application/reactflow-action');
+
+      if (!nodeType || !label) return;
+
+      // Get the bounds of the ReactFlow wrapper
+      const reactFlowBounds = reactFlowWrapper.current?.getBoundingClientRect();
+      if (!reactFlowBounds) return;
+
+      // Calculate position relative to the canvas
+      const position = {
+        x: event.clientX - reactFlowBounds.left - 90, // Offset for node width/2
+        y: event.clientY - reactFlowBounds.top - 30,  // Offset for node height/2
+      };
+
+      addNode(nodeType, label, actionType || undefined, position);
+    },
+    [addNode]
+  );
 
   const renderConfigForm = () => {
     if (!selectedNode) return null;
@@ -664,72 +709,117 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
               <div>
                 <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Triggers</h3>
                 <div className="space-y-2">
-                  <button onClick={() => addNode('triggerNode', 'New Comment')} className="w-full flex items-center gap-3 p-3 bg-white/5 border border-white/10 rounded-xl hover:border-blue-500/50 hover:bg-blue-500/10 transition-all text-left group">
+                  <div
+                    draggable
+                    onDragStart={(e) => onDragStart(e, 'triggerNode', 'New Comment')}
+                    onClick={() => addNode('triggerNode', 'New Comment')}
+                    className="w-full flex items-center gap-3 p-3 bg-white/5 border border-white/10 rounded-xl hover:border-blue-500/50 hover:bg-blue-500/10 transition-all text-left group cursor-grab active:cursor-grabbing"
+                  >
                     <div className="w-8 h-8 bg-blue-500/20 text-blue-400 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
                       <MessageCircle className="w-4 h-4" />
                     </div>
                     <span className="text-sm font-semibold text-slate-300 group-hover:text-white transition-colors">New Comment</span>
-                  </button>
-                  <button onClick={() => addNode('startNode', 'Start')} className="w-full flex items-center gap-3 p-3 bg-white/5 border border-white/10 rounded-xl hover:border-emerald-500/50 hover:bg-emerald-500/10 transition-all text-left group">
+                  </div>
+                  <div
+                    draggable
+                    onDragStart={(e) => onDragStart(e, 'startNode', 'Start')}
+                    onClick={() => addNode('startNode', 'Start')}
+                    className="w-full flex items-center gap-3 p-3 bg-white/5 border border-white/10 rounded-xl hover:border-emerald-500/50 hover:bg-emerald-500/10 transition-all text-left group cursor-grab active:cursor-grabbing"
+                  >
                     <div className="w-8 h-8 bg-emerald-500/20 text-emerald-400 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
                       <Play className="w-4 h-4" fill="currentColor" />
                     </div>
                     <span className="text-sm font-semibold text-slate-300 group-hover:text-white transition-colors">Start</span>
-                  </button>
+                  </div>
                 </div>
               </div>
 
               <div>
                 <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Actions</h3>
                 <div className="space-y-2">
-                  <button onClick={() => addNode('actionNode', 'Comment Reply', 'reply')} className="w-full flex items-center gap-3 p-3 bg-white/5 border border-white/10 rounded-xl hover:border-cyan-500/50 hover:bg-cyan-500/10 transition-all text-left group">
+                  <div
+                    draggable
+                    onDragStart={(e) => onDragStart(e, 'actionNode', 'Comment Reply', 'reply')}
+                    onClick={() => addNode('actionNode', 'Comment Reply', 'reply')}
+                    className="w-full flex items-center gap-3 p-3 bg-white/5 border border-white/10 rounded-xl hover:border-cyan-500/50 hover:bg-cyan-500/10 transition-all text-left group cursor-grab active:cursor-grabbing"
+                  >
                     <div className="w-8 h-8 bg-cyan-500/20 text-cyan-400 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
                       <MessageCircle className="w-4 h-4" />
                     </div>
                     <span className="text-sm font-semibold text-slate-300 group-hover:text-white transition-colors">Reply to Comment</span>
-                  </button>
-                  <button onClick={() => addNode('actionNode', 'Send Message', 'message')} className="w-full flex items-center gap-3 p-3 bg-white/5 border border-white/10 rounded-xl hover:border-purple-500/50 hover:bg-purple-500/10 transition-all text-left group">
+                  </div>
+                  <div
+                    draggable
+                    onDragStart={(e) => onDragStart(e, 'actionNode', 'Send Message', 'message')}
+                    onClick={() => addNode('actionNode', 'Send Message', 'message')}
+                    className="w-full flex items-center gap-3 p-3 bg-white/5 border border-white/10 rounded-xl hover:border-purple-500/50 hover:bg-purple-500/10 transition-all text-left group cursor-grab active:cursor-grabbing"
+                  >
                     <div className="w-8 h-8 bg-purple-500/20 text-purple-400 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
                       <Send className="w-4 h-4" />
                     </div>
                     <span className="text-sm font-semibold text-slate-300 group-hover:text-white transition-colors">Messenger Reply</span>
-                  </button>
-                  <button onClick={() => addNode('textNode', 'Text')} className="w-full flex items-center gap-3 p-3 bg-white/5 border border-white/10 rounded-xl hover:border-amber-500/50 hover:bg-amber-500/10 transition-all text-left group">
+                  </div>
+                  <div
+                    draggable
+                    onDragStart={(e) => onDragStart(e, 'textNode', 'Text')}
+                    onClick={() => addNode('textNode', 'Text')}
+                    className="w-full flex items-center gap-3 p-3 bg-white/5 border border-white/10 rounded-xl hover:border-amber-500/50 hover:bg-amber-500/10 transition-all text-left group cursor-grab active:cursor-grabbing"
+                  >
                     <div className="w-8 h-8 bg-amber-500/20 text-amber-400 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
                       <MessageSquare className="w-4 h-4" />
                     </div>
                     <span className="text-sm font-semibold text-slate-300 group-hover:text-white transition-colors">Text</span>
-                  </button>
-                  <button onClick={() => addNode('buttonNode', 'Text with Buttons')} className="w-full flex items-center gap-3 p-3 bg-white/5 border border-white/10 rounded-xl hover:border-blue-500/50 hover:bg-blue-500/10 transition-all text-left group">
+                  </div>
+                  <div
+                    draggable
+                    onDragStart={(e) => onDragStart(e, 'buttonNode', 'Text with Buttons')}
+                    onClick={() => addNode('buttonNode', 'Text with Buttons')}
+                    className="w-full flex items-center gap-3 p-3 bg-white/5 border border-white/10 rounded-xl hover:border-blue-500/50 hover:bg-blue-500/10 transition-all text-left group cursor-grab active:cursor-grabbing"
+                  >
                     <div className="w-8 h-8 bg-blue-500/20 text-blue-400 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
                       <RectangleEllipsis className="w-4 h-4" />
                     </div>
                     <span className="text-sm font-semibold text-slate-300 group-hover:text-white transition-colors">Text with Buttons</span>
-                  </button>
-                  <button onClick={() => addNode('buttonsOnlyNode', 'Buttons')} className="w-full flex items-center gap-3 p-3 bg-white/5 border border-white/10 rounded-xl hover:border-indigo-500/50 hover:bg-indigo-500/10 transition-all text-left group">
+                  </div>
+                  <div
+                    draggable
+                    onDragStart={(e) => onDragStart(e, 'buttonsOnlyNode', 'Buttons')}
+                    onClick={() => addNode('buttonsOnlyNode', 'Buttons')}
+                    className="w-full flex items-center gap-3 p-3 bg-white/5 border border-white/10 rounded-xl hover:border-indigo-500/50 hover:bg-indigo-500/10 transition-all text-left group cursor-grab active:cursor-grabbing"
+                  >
                     <div className="w-8 h-8 bg-indigo-500/20 text-indigo-400 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
                       <SquareMousePointer className="w-4 h-4" />
                     </div>
                     <span className="text-sm font-semibold text-slate-300 group-hover:text-white transition-colors">Buttons</span>
-                  </button>
+                  </div>
                 </div>
               </div>
 
               <div>
                 <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Logic & AI</h3>
                 <div className="space-y-2">
-                  <button onClick={() => addNode('aiNode', 'AI Agent')} className="w-full flex items-center gap-3 p-3 bg-white/5 border border-white/10 rounded-xl hover:border-indigo-500/50 hover:bg-indigo-500/10 transition-all text-left group">
+                  <div
+                    draggable
+                    onDragStart={(e) => onDragStart(e, 'aiNode', 'AI Agent')}
+                    onClick={() => addNode('aiNode', 'AI Agent')}
+                    className="w-full flex items-center gap-3 p-3 bg-white/5 border border-white/10 rounded-xl hover:border-indigo-500/50 hover:bg-indigo-500/10 transition-all text-left group cursor-grab active:cursor-grabbing"
+                  >
                     <div className="w-8 h-8 bg-indigo-500/20 text-indigo-400 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
                       <Sparkles className="w-4 h-4" />
                     </div>
                     <span className="text-sm font-semibold text-slate-300 group-hover:text-white transition-colors">AI Agent</span>
-                  </button>
-                  <button onClick={() => addNode('conditionNode', 'Condition')} className="w-full flex items-center gap-3 p-3 bg-white/5 border border-white/10 rounded-xl hover:border-amber-500/50 hover:bg-amber-500/10 transition-all text-left group">
+                  </div>
+                  <div
+                    draggable
+                    onDragStart={(e) => onDragStart(e, 'conditionNode', 'Condition')}
+                    onClick={() => addNode('conditionNode', 'Condition')}
+                    className="w-full flex items-center gap-3 p-3 bg-white/5 border border-white/10 rounded-xl hover:border-amber-500/50 hover:bg-amber-500/10 transition-all text-left group cursor-grab active:cursor-grabbing"
+                  >
                     <div className="w-8 h-8 bg-amber-500/20 text-amber-400 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
                       <GitBranch className="w-4 h-4" />
                     </div>
                     <span className="text-sm font-semibold text-slate-300 group-hover:text-white transition-colors">Condition</span>
-                  </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -747,7 +837,12 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
         )}
 
         {/* Canvas */}
-        <div className="flex-1 h-full bg-slate-950">
+        <div
+          ref={reactFlowWrapper}
+          className="flex-1 h-full bg-slate-950"
+          onDragOver={onDragOver}
+          onDrop={onDrop}
+        >
           <ReactFlow
             nodes={nodes}
             edges={edges}
