@@ -1,6 +1,6 @@
 import React from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
-import { MousePointer2, Settings, Trash2 } from 'lucide-react';
+import { RectangleEllipsis, Settings, Trash2 } from 'lucide-react';
 
 const CustomButtonNode: React.FC<NodeProps> = ({ data, selected }) => {
     const handleConfigure = (e: React.MouseEvent) => {
@@ -34,7 +34,7 @@ const CustomButtonNode: React.FC<NodeProps> = ({ data, selected }) => {
                 {/* Icon and Label */}
                 <div className="flex items-center gap-3">
                     <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
-                        <MousePointer2 className="w-5 h-5 text-white" />
+                        <RectangleEllipsis className="w-5 h-5 text-white" />
                     </div>
                     <div className="flex-1">
                         <div className="text-white font-bold text-sm">
