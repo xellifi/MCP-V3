@@ -219,7 +219,7 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
   const onConnect = useCallback((params: Connection) => {
     setEdges((eds) => addEdge({
       ...params,
-      type: 'smoothstep',
+      type: 'custom',
       animated: true,
       style: { stroke: '#64748b', strokeWidth: 2 }
     }, eds));
@@ -532,7 +532,7 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
         id: `edge-${triggerId}-${replyId}`,
         source: triggerId,
         target: replyId,
-        type: 'smoothstep',
+        type: 'custom',
         animated: true,
         style: { stroke: '#64748b', strokeWidth: 2 }
       },
@@ -540,7 +540,7 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
         id: `edge-${triggerId}-${messageId}`,
         source: triggerId,
         target: messageId,
-        type: 'smoothstep',
+        type: 'custom',
         animated: true,
         style: { stroke: '#64748b', strokeWidth: 2 }
       }
