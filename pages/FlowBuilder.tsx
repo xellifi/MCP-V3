@@ -17,7 +17,7 @@ import ReactFlow, {
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Workspace } from '../types';
+import { Workspace, ConnectedPage } from '../types';
 import { Save, ArrowLeft, PlayCircle, Menu, X, Grid3x3, MessageCircle, Play, Bot, Send, Clock, MousePointer2, SquareMousePointer, Sparkles, GitBranch, MessageSquare, RectangleEllipsis } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import NodeConfigModal from '../components/NodeConfigModal';
@@ -38,7 +38,6 @@ import CustomButtonNode from '../components/nodes/CustomButtonNode';
 import CustomButtonsOnlyNode from '../components/nodes/CustomButtonsOnlyNode';
 import CustomStartNode from '../components/nodes/CustomStartNode';
 import { api } from '../services/api';
-import { supabase } from '../lib/supabase';
 // Import node configuration registry
 import '../src/config'; // This initializes all node configs
 import { nodeConfigRegistry } from '../src/utils/nodeConfigRegistry';
@@ -104,12 +103,12 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
   // User API keys
   const [userApiKeys, setUserApiKeys] = useState<any>({});
 
-  // Selected page info for display
-  const [selectedPage, setSelectedPage] = useState<{
-    pageId: string;
-    pageName: string;
-    pageLogo: string;
-  } | null>(null);
+  // Available pages for this workspace
+  const [availablePages, setAvailablePages] = useState<ConnectedPage[]>([]);
+  const [flowPageId, setFlowPageId] = useState<string>('');
+  const [pageDropdownOpen, setPageDropdownOpen] = useState(false);
+  const [loadingPages, setLoadingPages] = useState(true);
+  const pageDropdownRef = useRef<HTMLDivElement>(null);
 
   // Ref for ReactFlow wrapper (for drag-drop)
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
@@ -119,6 +118,7 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
 
   useEffect(() => {
     loadUserApiKeys();
+    loadAvailablePages();
     // Check if mobile
     const isMobile = window.innerWidth < 768;
     setSidebarCollapsed(isMobile);
@@ -128,6 +128,55 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
       loadFlowData();
     }
   }, [id]);
+
+  // Close page dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (pageDropdownRef.current && !pageDropdownRef.current.contains(event.target as HTMLElement)) {
+        setPageDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Load available pages for this workspace
+  const loadAvailablePages = async () => {
+    try {
+      setLoadingPages(true);
+      const pages = await api.workspace.getConnectedPages(workspace.id);
+      // Only show pages with automation enabled
+      const automationPages = pages.filter(p => p.isAutomationEnabled);
+      setAvailablePages(automationPages);
+      console.log('[FlowBuilder] Loaded', automationPages.length, 'pages with automation');
+    } catch (error) {
+      console.error('[FlowBuilder] Error loading pages:', error);
+    } finally {
+      setLoadingPages(false);
+    }
+  };
+
+  // Handle page selection from header dropdown
+  const handlePageSelect = (pageId: string) => {
+    setFlowPageId(pageId);
+    setPageDropdownOpen(false);
+
+    // Update all trigger node configs with this page
+    const updatedConfigs = { ...nodeConfigs };
+    nodes.forEach(node => {
+      if (node.type === 'triggerNode' || node.data?.nodeType === 'triggerNode') {
+        updatedConfigs[node.id] = {
+          ...updatedConfigs[node.id],
+          pageId: pageId
+        };
+      }
+    });
+    setNodeConfigs(updatedConfigs);
+    console.log('[FlowBuilder] Page selected:', pageId, '- updated trigger configs');
+  };
+
+  // Get selected page object
+  const selectedPage = availablePages.find(p => p.id === flowPageId);
 
   const loadFlowData = async () => {
     if (!id || id.startsWith('new')) return;
@@ -215,34 +264,15 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
   };
 
   // Extract page info from trigger node configurations
-  const extractPageInfo = async (configs: NodeConfig) => {
-    try {
-      // Find trigger node config with pageId
-      for (const nodeId in configs) {
-        const config = configs[nodeId];
-        if (config.pageId) {
-          console.log('[FlowBuilder] Found pageId in config:', config.pageId);
-
-          // Fetch page details from database
-          const { data: page } = await supabase
-            .from('pages')
-            .select('id, name, picture')
-            .eq('id', config.pageId)
-            .single();
-
-          if (page) {
-            setSelectedPage({
-              pageId: page.id,
-              pageName: page.name,
-              pageLogo: page.picture || ''
-            });
-            console.log('[FlowBuilder] Page info loaded:', page.name);
-          }
-          break;
-        }
+  const extractPageInfo = (configs: NodeConfig) => {
+    // Find trigger node config with pageId and set it
+    for (const nodeId in configs) {
+      const config = configs[nodeId];
+      if (config.pageId) {
+        console.log('[FlowBuilder] Found pageId in config:', config.pageId);
+        setFlowPageId(config.pageId);
+        break;
       }
-    } catch (error) {
-      console.error('[FlowBuilder] Error loading page info:', error);
     }
   };
 
@@ -671,6 +701,7 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
       return (
         <TriggerNodeForm
           workspaceId={workspace.id}
+          flowPageId={flowPageId}
           initialConfig={currentConfig}
           onChange={setCurrentConfig}
         />
@@ -813,27 +844,77 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
                   }`}>
                   {flowStatus === 'ACTIVE' ? 'Active' : 'Draft'}
                 </span>
-                {/* Page logo and name */}
-                {selectedPage && (
-                  <div className="hidden sm:flex items-center gap-2 px-2 py-1 bg-white/5 border border-white/10 rounded-lg">
-                    {selectedPage.pageLogo ? (
-                      <img
-                        src={selectedPage.pageLogo}
-                        alt={selectedPage.pageName}
-                        className="w-5 h-5 rounded-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center">
-                        <span className="text-[10px] font-bold text-white">
-                          {selectedPage.pageName?.charAt(0)?.toUpperCase()}
+                {/* Page Selector Dropdown */}
+                <div className="relative hidden sm:block" ref={pageDropdownRef}>
+                  <button
+                    type="button"
+                    onClick={() => setPageDropdownOpen(!pageDropdownOpen)}
+                    className="flex items-center gap-2 px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 hover:border-white/20 transition-all"
+                  >
+                    {loadingPages ? (
+                      <div className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+                    ) : selectedPage ? (
+                      <>
+                        <img
+                          src={selectedPage.pageImageUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(selectedPage.name)}&background=1877F2&color=fff&size=32`}
+                          alt={selectedPage.name}
+                          className="w-5 h-5 rounded-full object-cover"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(selectedPage.name)}&background=1877F2&color=fff&size=32`;
+                          }}
+                        />
+                        <span className="text-xs text-slate-300 font-medium truncate max-w-[80px] md:max-w-[120px]">
+                          {selectedPage.name}
                         </span>
-                      </div>
+                      </>
+                    ) : (
+                      <span className="text-xs text-slate-400">Select Page</span>
                     )}
-                    <span className="text-xs text-slate-300 font-medium truncate max-w-[100px] md:max-w-[150px]">
-                      {selectedPage.pageName}
-                    </span>
-                  </div>
-                )}
+                    <svg className={`w-3 h-3 text-slate-400 transition-transform ${pageDropdownOpen ? 'rotate-180' : ''}`} viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                    </svg>
+                  </button>
+
+                  {/* Dropdown Menu */}
+                  {pageDropdownOpen && (
+                    <div className="absolute top-full left-0 mt-1 w-64 bg-slate-800 border border-white/10 rounded-xl shadow-2xl z-50 max-h-64 overflow-y-auto">
+                      {availablePages.length === 0 ? (
+                        <div className="p-4 text-center text-sm text-slate-400">
+                          No pages with automation enabled
+                        </div>
+                      ) : (
+                        availablePages.map((page) => (
+                          <button
+                            key={page.id}
+                            type="button"
+                            onClick={() => handlePageSelect(page.id)}
+                            className={`w-full flex items-center gap-3 p-3 hover:bg-white/5 transition-colors ${flowPageId === page.id ? 'bg-blue-500/20' : ''}`}
+                          >
+                            <img
+                              src={page.pageImageUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(page.name)}&background=1877F2&color=fff&size=32`}
+                              alt={page.name}
+                              className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(page.name)}&background=1877F2&color=fff&size=32`;
+                              }}
+                            />
+                            <div className="flex-1 text-left">
+                              <div className="text-white font-medium text-sm">{page.name}</div>
+                              <div className="text-xs text-slate-400">{page.pageFollowers?.toLocaleString() || 0} followers</div>
+                            </div>
+                            {flowPageId === page.id && (
+                              <div className="w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
+                                <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                </svg>
+                              </div>
+                            )}
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
             <p className="text-xs text-slate-500 hidden md:block">{currentFlowName}</p>

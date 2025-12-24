@@ -5,6 +5,7 @@ import { AlertCircle, CheckCircle2, ChevronDown } from 'lucide-react';
 
 interface TriggerNodeFormProps {
     workspaceId: string;
+    flowPageId?: string; // Page selected from header dropdown
     initialConfig?: {
         pageId?: string;
         enableCommentReply?: boolean;
@@ -15,6 +16,7 @@ interface TriggerNodeFormProps {
 
 const TriggerNodeForm: React.FC<TriggerNodeFormProps> = ({
     workspaceId,
+    flowPageId,
     initialConfig,
     onChange
 }) => {
@@ -51,6 +53,14 @@ const TriggerNodeForm: React.FC<TriggerNodeFormProps> = ({
             setEnableSendMessage(initialConfig.enableSendMessage !== undefined ? initialConfig.enableSendMessage : true);
         }
     }, [initialConfig]);
+
+    // Sync with flowPageId from header when it changes
+    useEffect(() => {
+        if (flowPageId && flowPageId !== selectedPageId) {
+            console.log('[TriggerNodeForm] Syncing with header flowPageId:', flowPageId);
+            setSelectedPageId(flowPageId);
+        }
+    }, [flowPageId]);
 
     useEffect(() => {
         onChange({
