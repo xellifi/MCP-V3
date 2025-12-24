@@ -451,6 +451,11 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
         // Navigate to the new flow
         navigate(`/flows/${newFlow.id}`);
         toast.success(`Flow "${flowData.name}" published successfully!`);
+
+        // Reload page after short delay to show fresh data
+        setTimeout(() => {
+          window.location.reload();
+        }, 500);
       } else {
         // Update existing flow
         console.log('Updating existing flow:', flowId);
@@ -462,6 +467,11 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
         setFlowStatus('ACTIVE');
 
         toast.success(`Flow "${flowData.name}" published successfully!`);
+
+        // Reload page after short delay to show fresh data
+        setTimeout(() => {
+          window.location.reload();
+        }, 500);
       }
     } catch (error: any) {
       console.error('Error saving flow:', error);
