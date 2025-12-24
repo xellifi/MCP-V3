@@ -48,6 +48,48 @@ const ConnectedPages: React.FC<ConnectedPagesProps> = ({ workspace }) => {
     }
   };
 
+  const handleSubscribeToWebhooks = async (page: ConnectedPage) => {
+    toast.info(`Subscribing ${page.name} to webhooks...`);
+    try {
+      // Get the page access token from the database
+      const { supabase } = await import('../lib/supabase');
+      const { data: pageData } = await supabase
+        .from('connected_pages')
+        .select('page_access_token')
+        .eq('id', page.id)
+        .single();
+
+      if (!pageData?.page_access_token) {
+        toast.error('No access token found for this page. Please reconnect your Facebook account.');
+        return;
+      }
+
+      // Subscribe the page to webhooks
+      const subscribeResponse = await fetch(
+        `https://graph.facebook.com/v18.0/${page.pageId}/subscribed_apps`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            subscribed_fields: ['feed', 'messages', 'messaging_postbacks', 'message_deliveries', 'message_reads'],
+            access_token: pageData.page_access_token
+          })
+        }
+      );
+      const subscribeResult = await subscribeResponse.json();
+
+      if (subscribeResult.success) {
+        toast.success(`✓ ${page.name} is now subscribed to webhooks! Automations will work.`);
+      } else {
+        console.error('Subscribe error:', subscribeResult);
+        toast.error(`Failed to subscribe: ${subscribeResult.error?.message || 'Unknown error'}`);
+      }
+    } catch (error: any) {
+      console.error('Subscribe webhook error:', error);
+      toast.error(`Error subscribing to webhooks: ${error.message}`);
+    }
+  };
+
   const formatFollowers = (num: number | null | undefined) => {
     if (!num || num === 0) return '0';
     if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
@@ -232,7 +274,16 @@ const ConnectedPages: React.FC<ConnectedPagesProps> = ({ workspace }) => {
               <div className="flex gap-4">
                 <span className="font-mono bg-black/20 px-2 py-0.5 rounded text-slate-500">ID: {page.pageId}</span>
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-3">
+                <button
+                  onClick={() => handleSubscribeToWebhooks(page)}
+                  className="flex items-center gap-1.5 text-indigo-400 hover:text-indigo-300 transition-colors group/sub"
+                  title="Subscribe this page to receive webhooks for automations"
+                >
+                  <RefreshCw className="w-3.5 h-3.5 group-hover/sub:rotate-180 transition-transform duration-500" />
+                  Subscribe to Webhooks
+                </button>
+                <span className="text-slate-600">|</span>
                 <button className="flex items-center gap-1.5 hover:text-white transition-colors group/link" title="View on Facebook">
                   Open Page
                   <ExternalLink className="w-3.5 h-3.5 group-hover/link:translate-x-0.5 group-hover/link:-translate-y-0.5 transition-transform" />

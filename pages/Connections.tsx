@@ -151,6 +151,28 @@ const Connections: React.FC<ConnectionsProps> = ({ workspace }) => {
                       console.log(`Saved page: ${fbPage.name}`);
                     }
                   }
+
+                  // CRITICAL: Subscribe the page to receive webhooks from this app
+                  // Without this, the page won't receive comment/message webhooks
+                  console.log(`Subscribing page ${fbPage.name} to webhooks...`);
+                  const subscribeResponse = await fetch(
+                    `https://graph.facebook.com/v18.0/${fbPage.id}/subscribed_apps`,
+                    {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        subscribed_fields: ['feed', 'messages', 'messaging_postbacks', 'message_deliveries', 'message_reads'],
+                        access_token: fbPage.access_token
+                      })
+                    }
+                  );
+                  const subscribeResult = await subscribeResponse.json();
+
+                  if (subscribeResult.success) {
+                    console.log(`✓ Page ${fbPage.name} subscribed to webhooks successfully!`);
+                  } else {
+                    console.error(`✗ Failed to subscribe page ${fbPage.name} to webhooks:`, subscribeResult);
+                  }
                 } catch (err) {
                   console.error(`Exception saving page ${fbPage.name}:`, err);
                 }
