@@ -702,6 +702,10 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
         <TriggerNodeForm
           workspaceId={workspace.id}
           flowPageId={flowPageId}
+          onPageChange={(pageId) => {
+            console.log('[FlowBuilder] Page changed from form:', pageId);
+            setFlowPageId(pageId);
+          }}
           initialConfig={currentConfig}
           onChange={setCurrentConfig}
         />
@@ -769,6 +773,11 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
       return (
         <StartNodeForm
           workspaceId={workspace.id}
+          flowPageId={flowPageId}
+          onPageChange={(pageId) => {
+            console.log('[FlowBuilder] Page changed from StartNodeForm:', pageId);
+            setFlowPageId(pageId);
+          }}
           initialConfig={currentConfig}
           onChange={setCurrentConfig}
         />

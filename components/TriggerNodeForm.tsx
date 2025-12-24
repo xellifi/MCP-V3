@@ -6,6 +6,7 @@ import { AlertCircle, CheckCircle2, ChevronDown } from 'lucide-react';
 interface TriggerNodeFormProps {
     workspaceId: string;
     flowPageId?: string; // Page selected from header dropdown
+    onPageChange?: (pageId: string) => void; // Callback when user changes page in form
     initialConfig?: {
         pageId?: string;
         enableCommentReply?: boolean;
@@ -17,6 +18,7 @@ interface TriggerNodeFormProps {
 const TriggerNodeForm: React.FC<TriggerNodeFormProps> = ({
     workspaceId,
     flowPageId,
+    onPageChange,
     initialConfig,
     onChange
 }) => {
@@ -54,13 +56,24 @@ const TriggerNodeForm: React.FC<TriggerNodeFormProps> = ({
         }
     }, [initialConfig]);
 
-    // Sync with flowPageId from header when it changes
+    // Sync with flowPageId from header when it changes (only if no user selection yet)
     useEffect(() => {
-        if (flowPageId && flowPageId !== selectedPageId) {
+        if (flowPageId && flowPageId !== selectedPageId && !initialConfig?.pageId) {
             console.log('[TriggerNodeForm] Syncing with header flowPageId:', flowPageId);
             setSelectedPageId(flowPageId);
         }
     }, [flowPageId]);
+
+    // Handle page selection by user - notify parent
+    const handlePageSelect = (pageId: string) => {
+        console.log('[TriggerNodeForm] User selected page:', pageId);
+        setSelectedPageId(pageId);
+        setIsDropdownOpen(false);
+        // Notify parent to sync header dropdown
+        if (onPageChange) {
+            onPageChange(pageId);
+        }
+    };
 
     useEffect(() => {
         onChange({
@@ -167,10 +180,7 @@ const TriggerNodeForm: React.FC<TriggerNodeFormProps> = ({
                                 <button
                                     key={page.id}
                                     type="button"
-                                    onClick={() => {
-                                        setSelectedPageId(page.id);
-                                        setIsDropdownOpen(false);
-                                    }}
+                                    onClick={() => handlePageSelect(page.id)}
                                     className={`w-full flex items-center gap-3 p-3 hover:bg-white/5 transition-colors ${selectedPageId === page.id ? 'bg-indigo-500/20' : ''
                                         }`}
                                 >

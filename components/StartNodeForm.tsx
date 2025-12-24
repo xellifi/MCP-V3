@@ -5,6 +5,8 @@ import { ConnectedPage } from '../types';
 
 interface StartNodeFormProps {
     workspaceId: string;
+    flowPageId?: string; // Page selected from header dropdown
+    onPageChange?: (pageId: string) => void; // Callback when user changes page in form
     initialConfig?: {
         pageId?: string;
         keywords?: string[];
@@ -15,6 +17,8 @@ interface StartNodeFormProps {
 
 const StartNodeForm: React.FC<StartNodeFormProps> = ({
     workspaceId,
+    flowPageId,
+    onPageChange,
     initialConfig,
     onChange
 }) => {
@@ -55,6 +59,14 @@ const StartNodeForm: React.FC<StartNodeFormProps> = ({
         fetchPages();
     }, [workspaceId]);
 
+    // Sync with flowPageId from header when it changes (only if no user selection yet)
+    useEffect(() => {
+        if (flowPageId && flowPageId !== selectedPageId && !initialConfig?.pageId) {
+            console.log('[StartNodeForm] Syncing with header flowPageId:', flowPageId);
+            setSelectedPageId(flowPageId);
+        }
+    }, [flowPageId]);
+
     // Close dropdown when clicking outside
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -73,8 +85,13 @@ const StartNodeForm: React.FC<StartNodeFormProps> = ({
     }, [selectedPageId, keywords, matchType]);
 
     const handlePageChange = (pageId: string) => {
+        console.log('[StartNodeForm] User selected page:', pageId);
         setSelectedPageId(pageId);
         setIsDropdownOpen(false);
+        // Notify parent to sync header dropdown
+        if (onPageChange) {
+            onPageChange(pageId);
+        }
     };
 
     const addKeyword = () => {
