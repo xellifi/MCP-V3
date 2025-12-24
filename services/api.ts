@@ -481,7 +481,16 @@ export const api = {
         return [];
       }
 
-      return data?.map(mapConnectedPage) || [];
+      // Map pages and use Facebook Graph API for fresh picture URLs
+      return data?.map(row => {
+        const page = mapConnectedPage(row);
+        // Use Facebook Graph API picture endpoint for fresh, non-expiring URLs
+        // This returns a redirect to the current profile picture
+        if (row.page_id) {
+          page.pageImageUrl = `https://graph.facebook.com/${row.page_id}/picture?type=small`;
+        }
+        return page;
+      }) || [];
     },
 
     togglePageAutomation: async (pageId: string, enabled: boolean): Promise<void> => {
