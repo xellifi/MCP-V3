@@ -105,10 +105,10 @@ async function processPostback(messagingEvent: any, pageId: string) {
     console.log(`Button clicked by user: ${senderId}`);
     console.log(`Button payload: ${payload}`);
 
-    // Get page access token
+    // Get page access token from connected_pages table
     const { data: pageData, error: pageError } = await supabase
-        .from('pages')
-        .select('page_access_token, user_id')
+        .from('connected_pages')
+        .select('page_access_token, workspaces!inner(id)')
         .eq('page_id', pageId)
         .single();
 
@@ -117,18 +117,18 @@ async function processPostback(messagingEvent: any, pageId: string) {
         return;
     }
 
-    const pageAccessToken = pageData.page_access_token;
-    const userId = pageData.user_id;
+    const pageAccessToken = (pageData as any).page_access_token;
+    const workspaceId = (pageData as any).workspaces.id;
 
-    // Find all active flows for this user
+    // Find all active flows for this workspace
     const { data: flows, error: flowsError } = await supabase
         .from('flows')
         .select('*')
-        .eq('user_id', userId)
-        .eq('status', 'active');
+        .eq('workspace_id', workspaceId)
+        .eq('status', 'ACTIVE');
 
     if (flowsError || !flows || flows.length === 0) {
-        console.log('✗ No active flows found for this user');
+        console.log('✗ No active flows found for this workspace');
         return;
     }
 
@@ -136,12 +136,11 @@ async function processPostback(messagingEvent: any, pageId: string) {
 
     // Find flows with Start nodes that match the payload
     for (const flow of flows) {
-        const flowData = flow.flow_data;
-        if (!flowData || !flowData.nodes || !flowData.edges) continue;
+        const nodes = flow.nodes || [];
+        const edges = flow.edges || [];
+        const configurations = flow.configurations || {};
 
-        const nodes = flowData.nodes;
-        const edges = flowData.edges;
-        const configurations = flowData.configurations || {};
+        if (nodes.length === 0) continue;
 
         // Find Start nodes
         const startNodes = nodes.filter((n: any) => n.type === 'startNode');
