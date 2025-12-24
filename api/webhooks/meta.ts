@@ -749,12 +749,20 @@ async function executeAction(
 
     if (isCommentReply) {
         console.log(`    ✓ Detected as Comment Reply node`);
-        const template = config.replyTemplate || config.template || '';
-        console.log(`    📝 Template: "${template}"`);
 
-        if (!template || !pageAccessToken) {
-            console.log('    ⊘ Skipping: Missing template or token');
-            return;
+        // Check for AI Reply mode
+        const useAiReply = config.useAiReply === true;
+        const aiProvider = config.aiProvider || 'openai';
+        const aiPrompt = config.aiPrompt || '';
+        const template = config.replyTemplate || config.template || '';
+
+        console.log(`    🔧 AI Mode: ${useAiReply ? 'ON' : 'OFF'}`);
+
+        if (useAiReply) {
+            console.log(`    🤖 AI Provider: ${aiProvider}`);
+            console.log(`    📝 AI Prompt: "${aiPrompt}"`);
+        } else {
+            console.log(`    📝 Template: "${template}"`);
         }
 
         // Check if we've already replied to this comment
@@ -770,10 +778,41 @@ async function executeAction(
             return;
         }
 
-        // Replace variables EXCEPT the @mention which needs the actual ID
-        const messageWithVars = replaceVars(template);
+        let replyMessage = '';
 
-        await replyToComment(context.commentId, messageWithVars, context.commenterId, pageAccessToken, flowId, commentId);
+        if (useAiReply) {
+            // Generate AI response for comment reply
+            const generatedMessage = await generateAIResponse(
+                aiProvider,
+                aiPrompt,
+                {
+                    commenterName: context.commenterName || 'User',
+                    commentText: context.message || '',
+                    pageName: context.pageName || 'Our Page'
+                }
+            );
+
+            if (!generatedMessage) {
+                console.log('    ⊘ Skipping: AI failed to generate a response');
+                return;
+            }
+
+            replyMessage = generatedMessage;
+        } else {
+            // Use manual template
+            if (!template || !pageAccessToken) {
+                console.log('    ⊘ Skipping: Missing template or token');
+                return;
+            }
+            replyMessage = replaceVars(template);
+        }
+
+        if (!pageAccessToken) {
+            console.log('    ⊘ Skipping: Missing page access token');
+            return;
+        }
+
+        await replyToComment(context.commentId, replyMessage, context.commenterId, pageAccessToken, flowId, commentId);
         return; // Return after executing to prevent fall-through
     }
 
