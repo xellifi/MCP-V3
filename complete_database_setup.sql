@@ -358,9 +358,13 @@ CREATE TABLE IF NOT EXISTS public.flows (
   status TEXT DEFAULT 'DRAFT',
   nodes JSONB DEFAULT '[]'::jsonb,
   edges JSONB DEFAULT '[]'::jsonb,
+  configurations JSONB DEFAULT '{}'::jsonb,
   updated_at TIMESTAMPTZ DEFAULT NOW(),
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Add configurations column if it doesn't exist (for existing databases)
+ALTER TABLE public.flows ADD COLUMN IF NOT EXISTS configurations JSONB DEFAULT '{}'::jsonb;
 
 ALTER TABLE public.flows ENABLE ROW LEVEL SECURITY;
 
