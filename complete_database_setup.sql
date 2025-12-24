@@ -48,16 +48,30 @@ CREATE POLICY "Authenticated can view all profiles" ON public.profiles
 -- ============================================
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
+DECLARE
+  user_name TEXT;
 BEGIN
+  -- Get the user's name
+  user_name := COALESCE(NEW.raw_user_meta_data->>'name', split_part(NEW.email, '@', 1));
+  
+  -- Create profile
   INSERT INTO public.profiles (id, email, name, role, avatar_url, affiliate_code)
   VALUES (
     NEW.id,
     NEW.email,
-    COALESCE(NEW.raw_user_meta_data->>'name', split_part(NEW.email, '@', 1)),
+    user_name,
     'member',
-    'https://ui-avatars.com/api/?name=' || COALESCE(NEW.raw_user_meta_data->>'name', split_part(NEW.email, '@', 1)) || '&background=random',
-    LOWER(REPLACE(COALESCE(NEW.raw_user_meta_data->>'name', split_part(NEW.email, '@', 1)), ' ', ''))
+    'https://ui-avatars.com/api/?name=' || user_name || '&background=random',
+    LOWER(REPLACE(user_name, ' ', ''))
   );
+  
+  -- Create default workspace for the user
+  INSERT INTO public.workspaces (name, owner_id)
+  VALUES (
+    user_name || '''s Workspace',
+    NEW.id
+  );
+  
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
