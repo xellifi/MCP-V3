@@ -5,6 +5,135 @@ const supabaseUrl = process.env.VITE_SUPABASE_URL!;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY!;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
+// AI Response Generation function
+async function generateAIResponse(
+    provider: 'openai' | 'gemini',
+    prompt: string,
+    context: {
+        commenterName: string;
+        commentText: string;
+        pageName: string;
+    },
+    workspaceId?: string
+): Promise<string | null> {
+    console.log(`    🤖 Generating AI response using ${provider}...`);
+    console.log(`    📝 AI Prompt: "${prompt}"`);
+    console.log(`    💬 Comment context:`, context);
+
+    try {
+        // Get API keys - first try workspace settings, then admin settings
+        let apiKey = null;
+
+        if (workspaceId) {
+            const { data: workspaceSettings } = await supabase
+                .from('workspace_settings')
+                .select('openai_api_key, gemini_api_key')
+                .eq('workspace_id', workspaceId)
+                .single();
+
+            if (workspaceSettings) {
+                const ws = workspaceSettings as any;
+                apiKey = provider === 'openai' ? ws.openai_api_key : ws.gemini_api_key;
+            }
+        }
+
+        // Fallback to admin settings
+        if (!apiKey) {
+            const { data: adminSettings } = await supabase
+                .from('admin_settings')
+                .select('openai_api_key, gemini_api_key')
+                .eq('id', 1)
+                .single();
+
+            if (adminSettings) {
+                apiKey = provider === 'openai'
+                    ? adminSettings.openai_api_key
+                    : adminSettings.gemini_api_key;
+            }
+        }
+
+        if (!apiKey) {
+            console.error(`    ✗ No ${provider} API key found`);
+            return null;
+        }
+
+        // Build the full prompt with context
+        const fullPrompt = `You are a helpful assistant replying to a Facebook comment on behalf of a business page.
+
+Comment from ${context.commenterName}: "${context.commentText}"
+Page Name: ${context.pageName}
+
+Instructions: ${prompt || 'Be friendly and helpful. Thank them for their comment and offer to help.'}
+
+Generate a personalized, conversational direct message reply. Keep it concise and friendly. Do not use hashtags or emojis unless appropriate. Do not start with "Thank you for reaching out" or similar generic phrases.`;
+
+        if (provider === 'openai') {
+            const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${apiKey}`
+                },
+                body: JSON.stringify({
+                    model: 'gpt-3.5-turbo',
+                    messages: [
+                        { role: 'system', content: 'You are a helpful business assistant responding to customer comments.' },
+                        { role: 'user', content: fullPrompt }
+                    ],
+                    max_tokens: 300,
+                    temperature: 0.7
+                })
+            });
+
+            const data = await response.json();
+            console.log('    🤖 OpenAI response:', JSON.stringify(data, null, 2));
+
+            if (data.error) {
+                console.error('    ✗ OpenAI API error:', data.error.message);
+                return null;
+            }
+
+            const generatedMessage = data.choices?.[0]?.message?.content?.trim();
+            console.log(`    ✓ Generated message: "${generatedMessage}"`);
+            return generatedMessage || null;
+
+        } else if (provider === 'gemini') {
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    contents: [{
+                        parts: [{ text: fullPrompt }]
+                    }],
+                    generationConfig: {
+                        maxOutputTokens: 300,
+                        temperature: 0.7
+                    }
+                })
+            });
+
+            const data = await response.json();
+            console.log('    🤖 Gemini response:', JSON.stringify(data, null, 2));
+
+            if (data.error) {
+                console.error('    ✗ Gemini API error:', data.error.message);
+                return null;
+            }
+
+            const generatedMessage = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+            console.log(`    ✓ Generated message: "${generatedMessage}"`);
+            return generatedMessage || null;
+        }
+
+        return null;
+    } catch (error: any) {
+        console.error(`    ✗ AI generation error: ${error.message}`);
+        return null;
+    }
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
     const { method, query, body } = req;
 
@@ -655,12 +784,20 @@ async function executeAction(
 
     if (isMessage) {
         console.log(`    ✓ Detected as Send Message node`);
-        const template = config.messageTemplate || config.template || '';
-        console.log(`    📝 Template: "${template}"`);
 
-        if (!template || !pageAccessToken) {
-            console.log('    ⊘ Skipping: Missing template or token');
-            return;
+        // Check for AI Reply mode
+        const useAiReply = config.useAiReply === true;
+        const aiProvider = config.aiProvider || 'openai';
+        const aiPrompt = config.aiPrompt || '';
+        const template = config.messageTemplate || config.template || '';
+
+        console.log(`    🔧 AI Mode: ${useAiReply ? 'ON' : 'OFF'}`);
+
+        if (useAiReply) {
+            console.log(`    🤖 AI Provider: ${aiProvider}`);
+            console.log(`    📝 AI Prompt: "${aiPrompt}"`);
+        } else {
+            console.log(`    📝 Template: "${template}"`);
         }
 
         // Check if we've already sent DM for this comment
@@ -677,7 +814,40 @@ async function executeAction(
             return;
         }
 
-        const message = replaceVars(template);
+        let message = '';
+
+        if (useAiReply) {
+            // Generate AI response
+            const generatedMessage = await generateAIResponse(
+                aiProvider,
+                aiPrompt,
+                {
+                    commenterName: context.commenterName || 'User',
+                    commentText: context.message || '',
+                    pageName: context.pageName || 'Our Page'
+                }
+            );
+
+            if (!generatedMessage) {
+                console.log('    ⊘ Skipping: AI failed to generate a response');
+                return;
+            }
+
+            message = generatedMessage;
+        } else {
+            // Use manual template
+            if (!template || !pageAccessToken) {
+                console.log('    ⊘ Skipping: Missing template or token');
+                return;
+            }
+            message = replaceVars(template);
+        }
+
+        if (!pageAccessToken) {
+            console.log('    ⊘ Skipping: Missing page access token');
+            return;
+        }
+
         await sendPrivateReply(
             context.commenterId,
             context.commenterName,
