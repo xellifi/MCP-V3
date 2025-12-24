@@ -38,6 +38,7 @@ import CustomButtonNode from '../components/nodes/CustomButtonNode';
 import CustomButtonsOnlyNode from '../components/nodes/CustomButtonsOnlyNode';
 import CustomStartNode from '../components/nodes/CustomStartNode';
 import { api } from '../services/api';
+import { supabase } from '../lib/supabase';
 // Import node configuration registry
 import '../src/config'; // This initializes all node configs
 import { nodeConfigRegistry } from '../src/utils/nodeConfigRegistry';
@@ -102,6 +103,13 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
 
   // User API keys
   const [userApiKeys, setUserApiKeys] = useState<any>({});
+
+  // Selected page info for display
+  const [selectedPage, setSelectedPage] = useState<{
+    pageId: string;
+    pageName: string;
+    pageLogo: string;
+  } | null>(null);
 
   // Ref for ReactFlow wrapper (for drag-drop)
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
@@ -193,6 +201,9 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
         }
 
         console.log('[FlowBuilder.loadFlowData] ========== FLOW LOAD COMPLETE ==========');
+
+        // Extract page info from trigger node config
+        extractPageInfo(savedConfigs);
       } else {
         console.warn('[FlowBuilder.loadFlowData] ✗ Flow not found:', id);
         toast.error('Flow not found');
@@ -200,6 +211,38 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
     } catch (error) {
       console.error('[FlowBuilder.loadFlowData] ✗ ERROR loading flow:', error);
       toast.error('Failed to load flow');
+    }
+  };
+
+  // Extract page info from trigger node configurations
+  const extractPageInfo = async (configs: NodeConfig) => {
+    try {
+      // Find trigger node config with pageId
+      for (const nodeId in configs) {
+        const config = configs[nodeId];
+        if (config.pageId) {
+          console.log('[FlowBuilder] Found pageId in config:', config.pageId);
+
+          // Fetch page details from database
+          const { data: page } = await supabase
+            .from('pages')
+            .select('id, name, picture')
+            .eq('id', config.pageId)
+            .single();
+
+          if (page) {
+            setSelectedPage({
+              pageId: page.id,
+              pageName: page.name,
+              pageLogo: page.picture || ''
+            });
+            console.log('[FlowBuilder] Page info loaded:', page.name);
+          }
+          break;
+        }
+      }
+    } catch (error) {
+      console.error('[FlowBuilder] Error loading page info:', error);
     }
   };
 
@@ -751,24 +794,47 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
                 onChange={(e) => setEditedName(e.target.value)}
                 onBlur={handleNameSave}
                 onKeyDown={handleNameKeyPress}
-                className="font-bold text-white bg-white/10 border border-indigo-500/50 rounded-lg px-3 py-1 text-base md:text-lg outline-none focus:ring-2 focus:ring-indigo-500/50"
+                className="font-bold text-white bg-white/10 border border-indigo-500/50 rounded-lg px-3 py-1 text-sm md:text-lg outline-none focus:ring-2 focus:ring-indigo-500/50"
                 autoFocus
-                style={{ minWidth: '200px' }}
+                style={{ minWidth: '150px' }}
               />
             ) : (
-              <h2
-                className="font-bold text-white flex items-center gap-2 text-base md:text-lg cursor-pointer hover:text-indigo-300 transition-colors"
-                onDoubleClick={handleNameDoubleClick}
-                title="Double-click to edit"
-              >
-                {currentFlowName}
-                <span className={`px-2 py-0.5 rounded-full text-xs font-normal border ${flowStatus === 'ACTIVE'
+              <div className="flex items-center gap-2 md:gap-3">
+                <h2
+                  className="font-bold text-white text-xs md:text-lg cursor-pointer hover:text-indigo-300 transition-colors truncate max-w-[120px] md:max-w-none"
+                  onDoubleClick={handleNameDoubleClick}
+                  title="Double-click to edit"
+                >
+                  {currentFlowName}
+                </h2>
+                <span className={`px-2 py-0.5 rounded-full text-xs font-normal border flex-shrink-0 ${flowStatus === 'ACTIVE'
                   ? 'bg-green-500/20 text-green-300 border-green-500/30'
                   : 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30'
                   }`}>
                   {flowStatus === 'ACTIVE' ? 'Active' : 'Draft'}
                 </span>
-              </h2>
+                {/* Page logo and name */}
+                {selectedPage && (
+                  <div className="hidden sm:flex items-center gap-2 px-2 py-1 bg-white/5 border border-white/10 rounded-lg">
+                    {selectedPage.pageLogo ? (
+                      <img
+                        src={selectedPage.pageLogo}
+                        alt={selectedPage.pageName}
+                        className="w-5 h-5 rounded-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center">
+                        <span className="text-[10px] font-bold text-white">
+                          {selectedPage.pageName?.charAt(0)?.toUpperCase()}
+                        </span>
+                      </div>
+                    )}
+                    <span className="text-xs text-slate-300 font-medium truncate max-w-[100px] md:max-w-[150px]">
+                      {selectedPage.pageName}
+                    </span>
+                  </div>
+                )}
+              </div>
             )}
             <p className="text-xs text-slate-500 hidden md:block">{currentFlowName}</p>
           </div>
