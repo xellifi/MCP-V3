@@ -118,14 +118,14 @@ const Connections: React.FC<ConnectionsProps> = ({ workspace }) => {
                 try {
                   // GLOBAL CHECK: Check if page is already connected by ANOTHER user
                   const { supabase } = await import('../lib/supabase');
-                  const { data: globalExistingPage } = await supabase
+                  const { data: globalExistingPages, error: globalPageError } = await supabase
                     .from('connected_pages')
                     .select('id, workspace_id, name')
                     .eq('page_id', fbPage.id)
-                    .neq('workspace_id', workspace.id)  // Exclude current workspace
-                    .single();
+                    .neq('workspace_id', workspace.id);  // Exclude current workspace - returns array
 
-                  if (globalExistingPage) {
+                  // Check if page is already connected by another user
+                  if (!globalPageError && globalExistingPages && globalExistingPages.length > 0) {
                     console.log(`Page "${fbPage.name}" is already connected by another user, skipping...`);
                     toast.warning(`Page "${fbPage.name}" is already connected by another user. Skipped.`);
                     continue; // Skip this page
