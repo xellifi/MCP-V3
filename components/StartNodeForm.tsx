@@ -24,7 +24,7 @@ const StartNodeForm: React.FC<StartNodeFormProps> = ({
 }) => {
     const [pages, setPages] = useState<ConnectedPage[]>([]);
     const [loading, setLoading] = useState(true);
-    const [selectedPageId, setSelectedPageId] = useState<string>(initialConfig?.pageId || '');
+    const [selectedPageId, setSelectedPageId] = useState<string>(flowPageId || initialConfig?.pageId || '');
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
     const [keywords, setKeywords] = useState<string[]>(
@@ -59,9 +59,9 @@ const StartNodeForm: React.FC<StartNodeFormProps> = ({
         fetchPages();
     }, [workspaceId]);
 
-    // Sync with flowPageId from header when it changes (only if no user selection yet)
+    // ALWAYS sync with flowPageId from header - header is the source of truth
     useEffect(() => {
-        if (flowPageId && flowPageId !== selectedPageId && !initialConfig?.pageId) {
+        if (flowPageId && flowPageId !== selectedPageId) {
             console.log('[StartNodeForm] Syncing with header flowPageId:', flowPageId);
             setSelectedPageId(flowPageId);
         }

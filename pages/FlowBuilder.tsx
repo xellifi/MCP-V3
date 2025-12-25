@@ -90,6 +90,7 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
   const [editedName, setEditedName] = useState('');
   const [currentFlowName, setCurrentFlowName] = useState('Untitled Flow');
   const [flowStatus, setFlowStatus] = useState<'ACTIVE' | 'DRAFT'>('DRAFT');
+  const [pageSaved, setPageSaved] = useState(false);
 
   // Node configuration state
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
@@ -163,14 +164,16 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
   };
 
   // Handle page selection from header dropdown
-  const handlePageSelect = (pageId: string) => {
+  const handlePageSelect = async (pageId: string) => {
     setFlowPageId(pageId);
     setPageDropdownOpen(false);
+    setPageSaved(false);
 
-    // Update all trigger node configs with this page
+    // Update all trigger and start node configs with this page
     const updatedConfigs = { ...nodeConfigs };
     nodes.forEach(node => {
-      if (node.type === 'triggerNode' || node.data?.nodeType === 'triggerNode') {
+      const nodeType = node.data?.nodeType || node.type;
+      if (nodeType === 'triggerNode' || nodeType === 'startNode') {
         updatedConfigs[node.id] = {
           ...updatedConfigs[node.id],
           pageId: pageId
@@ -178,7 +181,27 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
       }
     });
     setNodeConfigs(updatedConfigs);
-    console.log('[FlowBuilder] Page selected:', pageId, '- updated trigger configs');
+    console.log('[FlowBuilder] Page selected:', pageId, '- updated node configs');
+
+    // Auto-save to database if flow already exists
+    if (id && !id.startsWith('new')) {
+      try {
+        // Save flow with updated configurations
+        await api.workspace.updateFlow(id, {
+          configurations: updatedConfigs
+        });
+        setPageSaved(true);
+        console.log('[FlowBuilder] ✓ Page saved to database');
+        // Hide check after 3 seconds
+        setTimeout(() => setPageSaved(false), 3000);
+      } catch (error) {
+        console.error('[FlowBuilder] ✗ Failed to save page:', error);
+      }
+    } else {
+      // For new flows, just show the check (will be saved when flow is published)
+      setPageSaved(true);
+      setTimeout(() => setPageSaved(false), 3000);
+    }
   };
 
   // Get selected page object
@@ -357,9 +380,9 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
     // Merge saved config with extracted config - saved config takes priority
     let mergedConfig = { ...extractedConfig, ...savedConfig };
 
-    // For trigger nodes and start nodes, include flowPageId from header if not already saved
+    // For trigger and start nodes, ALWAYS use flowPageId from header as source of truth
     const needsPageSync = configType === 'triggerNode' || nodeType === 'startNode' || nodeLabel?.toLowerCase().includes('start');
-    if (needsPageSync && flowPageId && !savedConfig.pageId) {
+    if (needsPageSync && flowPageId) {
       mergedConfig = { ...mergedConfig, pageId: flowPageId };
     }
 
@@ -377,17 +400,28 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
 
   const handleSaveConfig = () => {
     if (selectedNode) {
-      // For trigger nodes, always include the flowPageId
-      const isTriggerNode = selectedNode.type === 'triggerNode' ||
+      // Check if this is a trigger or start node
+      const isTriggerOrStartNode = selectedNode.type === 'triggerNode' ||
+        selectedNode.type === 'startNode' ||
         selectedNode.data?.nodeType === 'triggerNode' ||
-        selectedNode.data?.label?.includes('Comment');
+        selectedNode.data?.nodeType === 'startNode' ||
+        selectedNode.data?.label?.includes('Comment') ||
+        selectedNode.data?.label?.toLowerCase().includes('start');
 
-      const configToSave = isTriggerNode
+      // For trigger/start nodes, use flowPageId from header
+      const configToSave = isTriggerOrStartNode
         ? { ...currentConfig, pageId: flowPageId }
         : currentConfig;
 
+      // If user changed page in node config, update header too (reverse sync)
+      if (isTriggerOrStartNode && currentConfig.pageId && currentConfig.pageId !== flowPageId) {
+        console.log('[FlowBuilder.handleSaveConfig] Updating header from node config:', currentConfig.pageId);
+        setFlowPageId(currentConfig.pageId);
+        configToSave.pageId = currentConfig.pageId;
+      }
+
       console.log('[FlowBuilder.handleSaveConfig] Saving config for:', selectedNode.id);
-      console.log('[FlowBuilder.handleSaveConfig] Is trigger node:', isTriggerNode);
+      console.log('[FlowBuilder.handleSaveConfig] Is trigger/start node:', isTriggerOrStartNode);
       console.log('[FlowBuilder.handleSaveConfig] flowPageId:', flowPageId);
       console.log('[FlowBuilder.handleSaveConfig] Config to save:', configToSave);
 
@@ -918,7 +952,15 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
                     </svg>
                   </button>
 
-                  {/* Dropdown Menu */}
+                  {/* Green check icon when page is saved */}
+                  {pageSaved && (
+                    <div className="flex items-center gap-1 px-2 py-1 bg-emerald-500/20 border border-emerald-500/30 rounded-full animate-fade-in">
+                      <svg className="w-3.5 h-3.5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                      <span className="text-xs text-emerald-400 font-medium">Saved</span>
+                    </div>
+                  )}
                   {pageDropdownOpen && (
                     <div className="absolute top-full left-0 mt-1 w-64 bg-slate-800 border border-white/10 rounded-xl shadow-2xl z-50 max-h-64 overflow-y-auto">
                       {availablePages.length === 0 ? (

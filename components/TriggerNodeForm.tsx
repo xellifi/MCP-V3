@@ -24,7 +24,7 @@ const TriggerNodeForm: React.FC<TriggerNodeFormProps> = ({
 }) => {
     const [pages, setPages] = useState<ConnectedPage[]>([]);
     const [loading, setLoading] = useState(true);
-    const [selectedPageId, setSelectedPageId] = useState(initialConfig?.pageId || '');
+    const [selectedPageId, setSelectedPageId] = useState(flowPageId || initialConfig?.pageId || '');
     const [enableCommentReply, setEnableCommentReply] = useState(initialConfig?.enableCommentReply !== undefined ? initialConfig.enableCommentReply : true);
     const [enableSendMessage, setEnableSendMessage] = useState(initialConfig?.enableSendMessage !== undefined ? initialConfig.enableSendMessage : true);
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -47,9 +47,9 @@ const TriggerNodeForm: React.FC<TriggerNodeFormProps> = ({
         isInitialMount.current = false;
     }, [initialConfig]);
 
-    // Sync with flowPageId from header when it changes (only if no user selection yet)
+    // ALWAYS sync with flowPageId from header - header is the source of truth
     useEffect(() => {
-        if (flowPageId && flowPageId !== selectedPageId && !initialConfig?.pageId) {
+        if (flowPageId && flowPageId !== selectedPageId) {
             setSelectedPageId(flowPageId);
         }
     }, [flowPageId]);
