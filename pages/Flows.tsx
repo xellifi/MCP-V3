@@ -35,16 +35,23 @@ const Flows: React.FC<FlowsProps> = ({ workspace }) => {
     loadData();
   }, [workspace.id]);
 
-  // Get page info from flow configuration (trigger node stores pageId)
+  // Get page info from flow configuration (only from trigger/start nodes)
   const getFlowPage = (flow: Flow): ConnectedPage | null => {
-    if (!flow.configurations) return null;
+    if (!flow.configurations || !flow.nodes) return null;
 
-    // Find trigger node configuration that has pageId
-    for (const nodeId in flow.configurations) {
-      const config = flow.configurations[nodeId];
-      if (config?.pageId) {
-        // pageId in config refers to connected_pages.id
-        return pages.find(p => p.id === config.pageId) || null;
+    // Only look at trigger or start nodes for the page
+    for (const node of (flow.nodes as any[])) {
+      const nodeType = node.type || node.data?.nodeType;
+      const nodeLabel = node.data?.label?.toLowerCase() || '';
+
+      // Only check trigger and start nodes
+      if (nodeType === 'triggerNode' || nodeType === 'startNode' ||
+        nodeLabel.includes('trigger') || nodeLabel.includes('start') ||
+        nodeLabel.includes('new comment')) {
+        const config = flow.configurations[node.id];
+        if (config?.pageId) {
+          return pages.find(p => p.id === config.pageId) || null;
+        }
       }
     }
     return null;
