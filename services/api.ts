@@ -357,9 +357,6 @@ export const api = {
         const pageNames = pagesWithAutomation.map(p => p.name).join(', ');
         throw new Error(`Cannot delete connection. Please disable automation for these pages first: ${pageNames}`);
       }
-
-      console.log('Starting cascade delete for workspace:', workspaceId);
-
       // Get all conversation IDs for this workspace to delete messages first
       const { data: conversations } = await supabase
         .from('conversations')
