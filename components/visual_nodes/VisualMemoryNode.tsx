@@ -15,26 +15,25 @@ const VisualMemoryNode = ({ data }: { data: any }) => {
             {/* Node Container - Circle with transparent background */}
             <div className="w-20 h-20 bg-slate-900 border-2 border-slate-600 rounded-full shadow-lg flex flex-col items-center justify-center gap-1 transition-all hover:scale-105 hover:shadow-blue-500/20 relative z-0 overflow-hidden">
                 <div className="absolute inset-0 bg-blue-500/5 pointer-events-none" />
-
-                {/* Controls */}
-                <div className="absolute -top-0 -right-0 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-20">
-                    <button
-                        onClick={(e) => { e.stopPropagation(); data.onConfigure?.(); }}
-                        className="w-7 h-7 bg-slate-800 hover:bg-slate-700 rounded-full flex items-center justify-center border border-white/10 shadow-md transform hover:scale-110 transition-all"
-                        title="Configure"
-                    >
-                        <Settings className="w-3.5 h-3.5 text-slate-300" />
-                    </button>
-                    <button
-                        onClick={(e) => { e.stopPropagation(); data.onDelete?.(); }}
-                        className="w-7 h-7 bg-slate-800 hover:bg-red-900/50 rounded-full flex items-center justify-center border border-white/10 shadow-md transform hover:scale-110 transition-all group/delete"
-                        title="Delete"
-                    >
-                        <Trash2 className="w-3.5 h-3.5 text-slate-300 group-hover/delete:text-red-400" />
-                    </button>
-                </div>
-
                 <Database className="w-8 h-8 text-blue-500" />
+            </div>
+
+            {/* Controls - Outside circle, positioned to right */}
+            <div className="absolute -top-2 -right-10 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-50">
+                <button
+                    onClick={(e) => { e.stopPropagation(); data.onConfigure?.(); }}
+                    className="w-7 h-7 bg-slate-800 hover:bg-slate-700 rounded-full flex items-center justify-center border border-white/10 shadow-md transform hover:scale-110 transition-all"
+                    title="Configure"
+                >
+                    <Settings className="w-3.5 h-3.5 text-slate-300" />
+                </button>
+                <button
+                    onClick={(e) => { e.stopPropagation(); data.onDelete?.(); }}
+                    className="w-7 h-7 bg-slate-800 hover:bg-red-900/50 rounded-full flex items-center justify-center border border-white/10 shadow-md transform hover:scale-110 transition-all group/delete"
+                    title="Delete"
+                >
+                    <Trash2 className="w-3.5 h-3.5 text-slate-300 group-hover/delete:text-red-400" />
+                </button>
             </div>
 
             {/* Label Below */}
