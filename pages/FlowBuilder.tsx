@@ -340,17 +340,24 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
       configType = 'messengerReplyNode';
     }
 
-    // Use registry to extract configuration
+    // Use registry to extract configuration from node data
     const extractedConfig = configType
       ? nodeConfigRegistry.extractConfig(configType, nodeData)
       : {};
 
+    // Get saved config from nodeConfigs (this has pageId and other saved settings)
+    const savedConfig = nodeConfigs[node.id] || {};
+
+    // Merge saved config with extracted config - saved config takes priority
+    const mergedConfig = { ...extractedConfig, ...savedConfig };
+
     console.log('[FlowBuilder.handleConfigureNode] Config type:', configType);
     console.log('[FlowBuilder.handleConfigureNode] Extracted config:', extractedConfig);
-    console.log('[FlowBuilder.handleConfigureNode] nodeConfigs[node.id]:', nodeConfigs[node.id]);
+    console.log('[FlowBuilder.handleConfigureNode] Saved config (nodeConfigs):', savedConfig);
+    console.log('[FlowBuilder.handleConfigureNode] Merged config:', mergedConfig);
 
     setSelectedNode(node);
-    setCurrentConfig(extractedConfig);
+    setCurrentConfig(mergedConfig);
     setShowConfigModal(true);
   }, [nodeConfigs]);
 
