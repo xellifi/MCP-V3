@@ -11,19 +11,14 @@ import ReactFlow, {
   NodeTypes,
   ReactFlowProvider,
   useReactFlow,
-  MarkerType,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { Workspace } from '../types';
-import { Plus, Zap, Sparkles, Table, Globe, Save, Play, Settings, Wrench, X, Eye, Database, BrainCircuit } from 'lucide-react';
+import { Plus, Zap, Sparkles, Table, Globe, Save, Play, Settings, Wrench, X } from 'lucide-react';
 import VisualTriggerNode from '../components/visual_nodes/VisualTriggerNode';
 import VisualAINode from '../components/visual_nodes/VisualAINode';
 import VisualSheetNode from '../components/visual_nodes/VisualSheetNode';
 import VisualHTTPNode from '../components/visual_nodes/VisualHTTPNode';
-import VisualPreviewNode from '../components/visual_nodes/VisualPreviewNode';
-import VisualMemoryNode from '../components/visual_nodes/VisualMemoryNode';
-import VisualToolNode from '../components/visual_nodes/VisualToolNode';
-import VisualModelNode from '../components/visual_nodes/VisualModelNode';
 import CustomEdge from '../components/edges/CustomEdge';
 import { useToast } from '../context/ToastContext';
 
@@ -36,10 +31,6 @@ const nodeTypes: NodeTypes = {
   visualAI: VisualAINode,
   visualSheet: VisualSheetNode,
   visualHTTP: VisualHTTPNode,
-  visualPreview: VisualPreviewNode,
-  visualMemory: VisualMemoryNode,
-  visualTool: VisualToolNode,
-  visualModel: VisualModelNode,
 };
 
 
@@ -77,19 +68,7 @@ const ScheduledPostsContent: React.FC<ScheduledPostsProps> = ({ workspace }) => 
   ]);
 
   const [edges, setEdges, onEdgesChange] = useEdgesState([
-    {
-      id: 'e1-2',
-      source: '1',
-      target: '2',
-      type: 'custom',
-      style: { stroke: '#475569', strokeWidth: 10 },
-      markerEnd: {
-        type: MarkerType.ArrowClosed,
-        color: '#475569',
-        width: 40,
-        height: 40,
-      },
-    },
+    { id: 'e1-2', source: '1', target: '2', type: 'custom', animated: true, style: { stroke: '#6366f1', strokeWidth: 3 } },
   ]);
   const [isToolsOpen, setIsToolsOpen] = useState(true);
 
@@ -116,17 +95,7 @@ const ScheduledPostsContent: React.FC<ScheduledPostsProps> = ({ workspace }) => 
 
 
   const onConnect = useCallback(
-    (params: Connection) => setEdges((eds) => addEdge({
-      ...params,
-      type: 'custom',
-      style: { stroke: '#475569', strokeWidth: 10 },
-      markerEnd: {
-        type: MarkerType.ArrowClosed,
-        color: '#475569',
-        width: 40,
-        height: 40,
-      },
-    }, eds)),
+    (params: Connection) => setEdges((eds) => addEdge({ ...params, type: 'custom', animated: true, style: { stroke: '#6366f1', strokeWidth: 3 } }, eds)),
     [setEdges],
   );
 
@@ -141,10 +110,6 @@ const ScheduledPostsContent: React.FC<ScheduledPostsProps> = ({ workspace }) => 
         onConfigure: handleConfigureNode,
         onDelete: () => handleDeleteNode(id),
       },
-      // Ensure circular nodes have transparent background to avoid square box
-      style: ['visualMemory', 'visualTool', 'visualModel'].includes(type)
-        ? { background: 'transparent', border: 'none', borderRadius: '50%' }
-        : undefined,
     };
     setNodes((nds) => nds.concat(newNode));
 
@@ -238,46 +203,6 @@ const ScheduledPostsContent: React.FC<ScheduledPostsProps> = ({ workspace }) => 
           >
             <Globe className="w-6 h-6" />
           </div>
-
-          <div
-            onDragStart={(event) => onDragStart(event, 'visualPreview')}
-            draggable
-            onClick={() => addNode('visualPreview')}
-            className="w-12 h-12 bg-gradient-to-br from-pink-500 to-rose-600 rounded-xl flex items-center justify-center text-white shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing"
-            title="Add Preview"
-          >
-            <Eye className="w-6 h-6" />
-          </div>
-
-          <div
-            onDragStart={(event) => onDragStart(event, 'visualModel')}
-            draggable
-            onClick={() => addNode('visualModel')}
-            className="w-12 h-12 bg-gradient-to-br from-violet-500 to-purple-600 rounded-xl flex items-center justify-center text-white shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing"
-            title="Add Chat Model"
-          >
-            <BrainCircuit className="w-6 h-6" />
-          </div>
-
-          <div
-            onDragStart={(event) => onDragStart(event, 'visualMemory')}
-            draggable
-            onClick={() => addNode('visualMemory')}
-            className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing"
-            title="Add Memory"
-          >
-            <Database className="w-6 h-6" />
-          </div>
-
-          <div
-            onDragStart={(event) => onDragStart(event, 'visualTool')}
-            draggable
-            onClick={() => addNode('visualTool')}
-            className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing"
-            title="Add Tool"
-          >
-            <Wrench className="w-6 h-6" />
-          </div>
         </div>
       </div>
 
@@ -313,7 +238,7 @@ const ScheduledPostsContent: React.FC<ScheduledPostsProps> = ({ workspace }) => 
         fitView
         fitViewOptions={{ padding: 0.35 }}
         minZoom={0.1}
-        maxZoom={1.5}
+        maxZoom={0.75}
         className="bg-slate-950"
       >
         <Background color="#334155" gap={20} size={1} />

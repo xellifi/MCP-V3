@@ -132,3 +132,13 @@
 .react-flow__node.selected {
   border: none !important;
 }
+
+/* Circular nodes - ensure transparent background */
+.react-flow__node-visualMemory,
+.react-flow__node-visualTool,
+.react-flow__node-visualModel {
+  background: transparent !important;
+  border: none !important;
+  border-radius: 50% !important;
+  box-shadow: none !important;
+}

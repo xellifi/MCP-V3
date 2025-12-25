@@ -5,68 +5,85 @@ import { Sparkles, Bot, BrainCircuit, Settings, Trash2 } from 'lucide-react';
 const VisualAINode = ({ data }: { data: any }) => {
     return (
         <div className="relative group">
+
+
+            {/* Input Handle - Left (Small dot matching reference) */}
             <Handle
                 type="target"
                 position={Position.Left}
-                className="!w-4 !h-4 !bg-gradient-to-r !from-violet-500 !to-indigo-600 !border-4 !border-slate-900 shadow-xl !-left-2"
+                className="!w-2.5 !h-2.5 !bg-slate-500 !border-none !rounded-full !-left-1 hover:!bg-slate-400 transition-colors"
             />
 
-            {/* Node Container */}
-            <div className="w-[300px] bg-slate-900/90 backdrop-blur-xl border-2 border-violet-500/50 rounded-2xl shadow-[0_0_30px_rgba(139,92,246,0.3)] overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:border-violet-400">
+            {/* Node Container - Rectangular, Dark Gray, Light Border */}
+            <div className="w-[300px] h-24 bg-[#1e1e1e] border-2 border-slate-500 rounded-xl shadow-lg flex items-center justify-center gap-4 relative group/node">
 
                 {/* Controls */}
-                <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-20">
+                <div className="absolute -top-3 -right-3 flex gap-1 opacity-0 group-hover/node:opacity-100 transition-opacity z-20">
                     <button
                         onClick={(e) => { e.stopPropagation(); data.onConfigure?.(); }}
-                        className="w-8 h-8 bg-slate-800/80 hover:bg-slate-700 rounded-full flex items-center justify-center border border-white/10 transition-colors shadow-lg"
+                        className="w-7 h-7 bg-slate-800 hover:bg-slate-700 rounded-full flex items-center justify-center border border-white/10 shadow-md transform hover:scale-110 transition-all"
                         title="Configure"
                     >
-                        <Settings className="w-4 h-4 text-slate-300" />
+                        <Settings className="w-3.5 h-3.5 text-slate-300" />
                     </button>
                     <button
                         onClick={(e) => { e.stopPropagation(); data.onDelete?.(); }}
-                        className="w-8 h-8 bg-black/60 hover:bg-red-500/80 rounded-full flex items-center justify-center border border-white/10 transition-colors shadow-lg group/delete"
+                        className="w-7 h-7 bg-slate-800 hover:bg-red-900/50 rounded-full flex items-center justify-center border border-white/10 shadow-md transform hover:scale-110 transition-all group/delete"
                         title="Delete"
                     >
-                        <Trash2 className="w-4 h-4 text-slate-300 group-hover/delete:text-white" />
+                        <Trash2 className="w-3.5 h-3.5 text-slate-300 group-hover/delete:text-red-400" />
                     </button>
                 </div>
 
-                {/* Header */}
-                <div className="bg-gradient-to-r from-violet-600 to-indigo-600 p-4 flex items-center gap-3">
-                    <div className="p-2 bg-white/20 rounded-xl backdrop-blur-sm">
-                        <Sparkles className="w-5 h-5 text-white" />
-                    </div>
-                    <div>
-                        <h3 className="font-bold text-white text-lg leading-tight">AI Agent</h3>
-                        <p className="text-violet-100 text-xs font-medium opacity-90">Generate Content</p>
-                    </div>
+                {/* Content: Icon + Text */}
+                <Bot className="w-10 h-10 text-white" />
+                <div className="flex flex-col">
+                    <span className="font-bold text-white text-lg">AI Agent</span>
+                    <span className="text-slate-400 text-xs">Tools Agent</span>
                 </div>
 
-                {/* Content */}
-                <div className="p-5 space-y-4">
-                    <div className="space-y-2">
-                        <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Model</label>
-                        <div className="bg-black/40 rounded-xl p-2 border border-white/5 flex items-center gap-2 text-slate-300 text-sm">
-                            <BrainCircuit className="w-4 h-4 text-violet-400" />
-                            GPT-4 Turbo
-                        </div>
-                    </div>
-                    <div className="space-y-2">
-                        <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Prompt</label>
-                        <div className="bg-black/40 rounded-xl p-3 border border-white/5 text-slate-500 text-xs italic h-16 overflow-hidden">
-                            Generate a creative post about...
-                        </div>
-                    </div>
+                {/* Bottom Handles - Small dots */}
+                {/* Chat Model */}
+                <div className="absolute -bottom-1 left-[20%] flex flex-col items-center">
+                    <Handle
+                        type="target"
+                        position={Position.Bottom}
+                        id="chat-model"
+                        className="!w-2.5 !h-2.5 !bg-slate-500 !border-none !rounded-full !static mb-1 hover:!bg-slate-400 transition-colors"
+                    />
+                    <span className="absolute top-4 text-[10px] text-slate-400 font-medium whitespace-nowrap">Chat Model<span className="text-red-500">*</span></span>
                 </div>
+
+                {/* Memory */}
+                <div className="absolute -bottom-1 left-[50%] flex flex-col items-center">
+                    <Handle
+                        type="target"
+                        position={Position.Bottom}
+                        id="memory"
+                        className="!w-2.5 !h-2.5 !bg-slate-500 !border-none !rounded-full !static mb-1 hover:!bg-slate-400 transition-colors"
+                    />
+                    <span className="absolute top-4 text-[10px] text-slate-400 font-medium whitespace-nowrap">Memory</span>
+                </div>
+
+                {/* Tool */}
+                <div className="absolute -bottom-1 left-[80%] flex flex-col items-center">
+                    <Handle
+                        type="target"
+                        position={Position.Bottom}
+                        id="tool"
+                        className="!w-2.5 !h-2.5 !bg-slate-500 !border-none !rounded-full !static mb-1 hover:!bg-slate-400 transition-colors"
+                    />
+                    <span className="absolute top-4 text-[10px] text-slate-400 font-medium whitespace-nowrap">Tool</span>
+                </div>
+
             </div>
 
+            {/* Output Handle - Small dot */}
             <Handle
                 type="source"
                 position={Position.Right}
-                className="!w-4 !h-4 !bg-gradient-to-r !from-violet-500 !to-indigo-600 !border-4 !border-slate-900 shadow-xl !-right-2"
-            />
-        </div>
+                className="!w-2.5 !h-2.5 !bg-slate-500 !border-none !rounded-full !-right-1 hover:!bg-slate-400 transition-colors"
+            />        </div>
     );
 };
 

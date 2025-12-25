@@ -5,66 +5,50 @@ import { Table, FileSpreadsheet, Database, Settings, Trash2 } from 'lucide-react
 const VisualSheetNode = ({ data }: { data: any }) => {
     return (
         <div className="relative group">
+            {/* Input Handle - Small dot */}
             <Handle
                 type="target"
                 position={Position.Left}
-                className="!w-4 !h-4 !bg-gradient-to-r !from-emerald-500 !to-green-600 !border-4 !border-slate-900 shadow-xl !-left-2"
+                className="!w-2.5 !h-2.5 !bg-slate-500 !border-none !rounded-full !-left-1 hover:!bg-slate-400 transition-colors"
             />
 
-            {/* Node Container */}
-            <div className="w-[280px] bg-slate-900/90 backdrop-blur-xl border-2 border-emerald-500/50 rounded-2xl shadow-[0_0_30px_rgba(16,185,129,0.3)] overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:border-emerald-400">
+            {/* Node Container - Square */}
+            <div className="w-24 h-24 bg-slate-900/95 backdrop-blur-md border-2 border-emerald-500 rounded-xl shadow-lg flex flex-col items-center justify-center gap-2 transition-all hover:scale-105 hover:shadow-emerald-500/20 relative">
+
+
 
                 {/* Controls */}
-                <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-20">
+                <div className="absolute -top-3 -right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-20">
                     <button
                         onClick={(e) => { e.stopPropagation(); data.onConfigure?.(); }}
-                        className="w-8 h-8 bg-slate-800/80 hover:bg-slate-700 rounded-full flex items-center justify-center border border-white/10 transition-colors shadow-lg"
+                        className="w-7 h-7 bg-slate-800 hover:bg-slate-700 rounded-full flex items-center justify-center border border-white/10 shadow-md transform hover:scale-110 transition-all"
                         title="Configure"
                     >
-                        <Settings className="w-4 h-4 text-slate-300" />
+                        <Settings className="w-3.5 h-3.5 text-slate-300" />
                     </button>
                     <button
                         onClick={(e) => { e.stopPropagation(); data.onDelete?.(); }}
-                        className="w-8 h-8 bg-black/60 hover:bg-red-500/80 rounded-full flex items-center justify-center border border-white/10 transition-colors shadow-lg group/delete"
+                        className="w-7 h-7 bg-slate-800 hover:bg-red-900/50 rounded-full flex items-center justify-center border border-white/10 shadow-md transform hover:scale-110 transition-all group/delete"
                         title="Delete"
                     >
-                        <Trash2 className="w-4 h-4 text-slate-300 group-hover/delete:text-white" />
+                        <Trash2 className="w-3.5 h-3.5 text-slate-300 group-hover/delete:text-red-400" />
                     </button>
                 </div>
 
-                {/* Header */}
-                <div className="bg-gradient-to-r from-emerald-500 to-green-600 p-4 flex items-center gap-3">
-                    <div className="p-2 bg-white/20 rounded-xl backdrop-blur-sm">
-                        <Table className="w-5 h-5 text-white" />
-                    </div>
-                    <div>
-                        <h3 className="font-bold text-white text-lg leading-tight">Sheets</h3>
-                        <p className="text-emerald-100 text-xs font-medium opacity-90">Read/Write Data</p>
-                    </div>
-                </div>
-
-                {/* Content */}
-                <div className="p-5 space-y-4">
-                    <div className="space-y-2">
-                        <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Spreadsheet</label>
-                        <div className="bg-black/40 rounded-xl p-3 border border-white/5 flex items-center gap-2 text-slate-300 text-sm">
-                            <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
-                            <span className="truncate">Leads Database 2024</span>
-                        </div>
-                    </div>
-                    <div className="space-y-2">
-                        <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Action</label>
-                        <div className="bg-emerald-500/10 rounded-lg px-2 py-1 inline-block text-emerald-400 text-xs font-bold border border-emerald-500/20">
-                            ADD ROW
-                        </div>
-                    </div>
-                </div>
+                <Table className="w-10 h-10 text-emerald-500" />
             </div>
 
+            {/* Label Below */}
+            <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 w-48 text-center">
+                <p className="text-slate-200 font-bold text-sm leading-tight">Google Sheets</p>
+                <p className="text-slate-400 text-[10px] uppercase tracking-wide">Add Row</p>
+            </div>
+
+            {/* Output Handle - Small dot */}
             <Handle
                 type="source"
                 position={Position.Right}
-                className="!w-4 !h-4 !bg-gradient-to-r !from-emerald-500 !to-green-600 !border-4 !border-slate-900 shadow-xl !-right-2"
+                className="!w-2.5 !h-2.5 !bg-slate-500 !border-none !rounded-full !-right-1 hover:!bg-slate-400 transition-colors"
             />
         </div>
     );
