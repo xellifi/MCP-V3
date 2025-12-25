@@ -141,13 +141,13 @@ const ScheduledPosts: React.FC<ScheduledPostsProps> = ({ workspace }) => {
       </div>
 
       {/* Top Right Controls */}
-      <div className="absolute right-6 top-6 z-10 flex gap-3">
-        <button className="flex items-center gap-2 px-5 py-2.5 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-xl text-white font-bold transition-all border border-white/10">
-          <Save className="w-4 h-4" />
+      <div className="absolute top-4 left-1/2 -translate-x-1/2 md:translate-x-0 md:left-auto md:right-6 md:top-6 z-10 flex gap-2 md:gap-3 w-max">
+        <button className="flex items-center gap-1.5 md:gap-2 px-3 py-1.5 md:px-5 md:py-2.5 text-xs md:text-sm bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-lg md:rounded-xl text-white font-bold transition-all border border-white/10">
+          <Save className="w-3 h-3 md:w-4 md:h-4" />
           Save Workflow
         </button>
-        <button className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold transition-all shadow-lg shadow-indigo-500/20">
-          <Play className="w-4 h-4 fill-current" />
+        <button className="flex items-center gap-1.5 md:gap-2 px-3 py-1.5 md:px-5 md:py-2.5 text-xs md:text-sm bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg md:rounded-xl font-bold transition-all shadow-lg shadow-indigo-500/20">
+          <Play className="w-3 h-3 md:w-4 md:h-4 fill-current" />
           Run Test
         </button>
       </div>
@@ -160,6 +160,9 @@ const ScheduledPosts: React.FC<ScheduledPostsProps> = ({ workspace }) => {
         onConnect={onConnect}
         nodeTypes={nodeTypes}
         fitView
+        fitViewOptions={{ padding: 0.35 }}
+        minZoom={0.1}
+        maxZoom={0.75}
         className="bg-slate-950"
       >
         <Background color="#334155" gap={20} size={1} />
