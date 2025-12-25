@@ -86,125 +86,130 @@ const Connections: React.FC<ConnectionsProps> = ({ workspace }) => {
 
           console.log('Connection saved successfully!');
 
-          // Auto-fetch pages immediately after connection
-          console.log('Auto-fetching Facebook pages...');
-          try {
-            const pagesResponse = await fetch(
-              `https://graph.facebook.com/v18.0/me/accounts?fields=id,name,access_token,picture,fan_count,instagram_business_account{id,username,profile_picture_url,followers_count}&access_token=${tokenData.access_token}`
-            );
-            const pagesData = await pagesResponse.json();
-
-            console.log('Pages API Response:', pagesData);
-
-            if (pagesData.data && pagesData.data.length > 0) {
-              console.log(`Found ${pagesData.data.length} pages, saving to database...`);
-
-              // Save each page directly using the access token we already have
-              for (const fbPage of pagesData.data) {
-                const pagePayload = {
-                  workspace_id: workspace.id,
-                  name: fbPage.name,
-                  page_id: fbPage.id,
-                  page_image_url: fbPage.picture?.data?.url || `https://ui-avatars.com/api/?name=${encodeURIComponent(fbPage.name)}&background=1877F2&color=fff`,
-                  page_followers: fbPage.fan_count || 0,
-                  page_access_token: fbPage.access_token,
-                  instagram_id: fbPage.instagram_business_account?.id || null,
-                  instagram_username: fbPage.instagram_business_account?.username || null,
-                  instagram_image_url: fbPage.instagram_business_account?.profile_picture_url || null,
-                  instagram_followers: fbPage.instagram_business_account?.followers_count || null,
-                  status: 'CONNECTED'
-                };
-
-                try {
-                  // GLOBAL CHECK: Check if page is already connected by ANOTHER user
-                  // Uses RPC function with SECURITY DEFINER to bypass RLS
-                  const { supabase } = await import('../lib/supabase');
-                  const { data: globalExistingPages, error: globalPageError } = await supabase
-                    .rpc('check_page_duplicate', {
-                      check_page_id: fbPage.id,
-                      exclude_workspace_id: workspace.id
-                    });
-
-                  // Check if page is already connected by another user
-                  if (!globalPageError && globalExistingPages && globalExistingPages.length > 0) {
-                    console.log(`Page "${fbPage.name}" is already connected by another user, skipping...`);
-                    toast.warning(`Page "${fbPage.name}" is already connected by another user. Skipped.`);
-                    continue; // Skip this page
-                  }
-
-                  // Check if page already exists in THIS workspace
-                  const { data: existingPage } = await supabase
-                    .from('connected_pages')
-                    .select('id')
-                    .eq('workspace_id', workspace.id)
-                    .eq('page_id', fbPage.id)
-                    .single();
-
-                  if (existingPage) {
-                    // Update existing page
-                    const { error: updateError } = await supabase
-                      .from('connected_pages')
-                      .update(pagePayload)
-                      .eq('id', existingPage.id);
-
-                    if (updateError) {
-                      console.error(`Error updating page ${fbPage.name}:`, updateError);
-                    } else {
-                      console.log(`Updated page: ${fbPage.name}`);
-                    }
-                  } else {
-                    // Insert new page
-                    const { data, error: pageError } = await supabase
-                      .from('connected_pages')
-                      .insert(pagePayload)
-                      .select()
-                      .single();
-
-                    if (pageError) {
-                      console.error(`Error saving page ${fbPage.name}:`, pageError);
-                    } else {
-                      console.log(`Saved page: ${fbPage.name}`);
-                    }
-                  }
-
-                  // CRITICAL: Subscribe the page to receive webhooks from this app
-                  // Without this, the page won't receive comment/message webhooks
-                  console.log(`Subscribing page ${fbPage.name} to webhooks...`);
-                  const subscribeResponse = await fetch(
-                    `https://graph.facebook.com/v18.0/${fbPage.id}/subscribed_apps`,
-                    {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({
-                        subscribed_fields: ['feed', 'messages', 'messaging_postbacks', 'message_deliveries', 'message_reads'],
-                        access_token: fbPage.access_token
-                      })
-                    }
-                  );
-                  const subscribeResult = await subscribeResponse.json();
-
-                  if (subscribeResult.success) {
-                    console.log(`✓ Page ${fbPage.name} subscribed to webhooks successfully!`);
-                  } else {
-                    console.error(`✗ Failed to subscribe page ${fbPage.name} to webhooks:`, subscribeResult);
-                  }
-                } catch (err) {
-                  console.error(`Exception saving page ${fbPage.name}:`, err);
-                }
-              }
-
-              toast.success(`Successfully connected ${userData.name} and imported ${pagesData.data.length} page(s)! Go to Pages tab to view them.`);
-            } else {
-              toast.success(`Successfully connected ${userData.name}!`);
-            }
-          } catch (pageError) {
-            console.error('Error auto-fetching pages:', pageError);
-            toast.success(`Successfully connected ${userData.name}! (Pages will be synced later)`);
-          }
-
-          // Clean up URL and reload connections
+          // Show profile immediately - don't wait for pages
+          toast.success(`Connected ${userData.name}! Importing pages...`);
           window.history.replaceState({}, document.title, '/connections');
           await loadConnections();
+          setLoading(false);
+
+          // Auto-fetch pages in background (don't await this to show profile immediately)
+          console.log('Auto-fetching Facebook pages in background...');
+          (async () => {
+            try {
+              const pagesResponse = await fetch(
+                `https://graph.facebook.com/v18.0/me/accounts?fields=id,name,access_token,picture,fan_count,instagram_business_account{id,username,profile_picture_url,followers_count}&access_token=${tokenData.access_token}`
+              );
+              const pagesData = await pagesResponse.json();
+
+              console.log('Pages API Response:', pagesData);
+
+              if (pagesData.data && pagesData.data.length > 0) {
+                console.log(`Found ${pagesData.data.length} pages, saving to database...`);
+
+                // Save each page directly using the access token we already have
+                for (const fbPage of pagesData.data) {
+                  const pagePayload = {
+                    workspace_id: workspace.id,
+                    name: fbPage.name,
+                    page_id: fbPage.id,
+                    page_image_url: fbPage.picture?.data?.url || `https://ui-avatars.com/api/?name=${encodeURIComponent(fbPage.name)}&background=1877F2&color=fff`,
+                    page_followers: fbPage.fan_count || 0,
+                    page_access_token: fbPage.access_token,
+                    instagram_id: fbPage.instagram_business_account?.id || null,
+                    instagram_username: fbPage.instagram_business_account?.username || null,
+                    instagram_image_url: fbPage.instagram_business_account?.profile_picture_url || null,
+                    instagram_followers: fbPage.instagram_business_account?.followers_count || null,
+                    status: 'CONNECTED'
+                  };
+
+                  try {
+                    // GLOBAL CHECK: Check if page is already connected by ANOTHER user
+                    // Uses RPC function with SECURITY DEFINER to bypass RLS
+                    const { supabase } = await import('../lib/supabase');
+                    const { data: globalExistingPages, error: globalPageError } = await supabase
+                      .rpc('check_page_duplicate', {
+                        check_page_id: fbPage.id,
+                        exclude_workspace_id: workspace.id
+                      });
+
+                    // Check if page is already connected by another user
+                    if (!globalPageError && globalExistingPages && globalExistingPages.length > 0) {
+                      console.log(`Page "${fbPage.name}" is already connected by another user, skipping...`);
+                      toast.warning(`Page "${fbPage.name}" is already connected by another user. Skipped.`);
+                      continue; // Skip this page
+                    }
+
+                    // Check if page already exists in THIS workspace
+                    const { data: existingPage } = await supabase
+                      .from('connected_pages')
+                      .select('id')
+                      .eq('workspace_id', workspace.id)
+                      .eq('page_id', fbPage.id)
+                      .single();
+
+                    if (existingPage) {
+                      // Update existing page
+                      const { error: updateError } = await supabase
+                        .from('connected_pages')
+                        .update(pagePayload)
+                        .eq('id', existingPage.id);
+
+                      if (updateError) {
+                        console.error(`Error updating page ${fbPage.name}:`, updateError);
+                      } else {
+                        console.log(`Updated page: ${fbPage.name}`);
+                      }
+                    } else {
+                      // Insert new page
+                      const { data, error: pageError } = await supabase
+                        .from('connected_pages')
+                        .insert(pagePayload)
+                        .select()
+                        .single();
+
+                      if (pageError) {
+                        console.error(`Error saving page ${fbPage.name}:`, pageError);
+                      } else {
+                        console.log(`Saved page: ${fbPage.name}`);
+                      }
+                    }
+
+                    // CRITICAL: Subscribe the page to receive webhooks from this app
+                    // Without this, the page won't receive comment/message webhooks
+                    console.log(`Subscribing page ${fbPage.name} to webhooks...`);
+                    const subscribeResponse = await fetch(
+                      `https://graph.facebook.com/v18.0/${fbPage.id}/subscribed_apps`,
+                      {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          subscribed_fields: ['feed', 'messages', 'messaging_postbacks', 'message_deliveries', 'message_reads'],
+                          access_token: fbPage.access_token
+                        })
+                      }
+                    );
+                    const subscribeResult = await subscribeResponse.json();
+
+                    if (subscribeResult.success) {
+                      console.log(`✓ Page ${fbPage.name} subscribed to webhooks successfully!`);
+                    } else {
+                      console.error(`✗ Failed to subscribe page ${fbPage.name} to webhooks:`, subscribeResult);
+                    }
+                  } catch (err) {
+                    console.error(`Exception saving page ${fbPage.name}:`, err);
+                  }
+                }
+                // Trigger auto-refresh for Pages component
+                localStorage.setItem('pagesUpdated', Date.now().toString());
+                toast.success(`Imported ${pagesData.data.length} page(s)! Go to Pages tab to view them.`);
+              } else {
+                toast.info(`No pages found to import.`);
+              }
+            } catch (pageError) {
+              console.error('Error auto-fetching pages:', pageError);
+              toast.error('Failed to import some pages. You can sync them manually later.');
+            }
+          })(); // End of background IIFE
         } else {
           console.error('No access token in response:', tokenData);
           throw new Error(tokenData.error?.message || 'Failed to get access token');
