@@ -21,6 +21,17 @@ const CustomStartNode: React.FC<NodeProps> = ({ data, selected }) => {
 
     return (
         <div className="relative group">
+            {/* FB Page Logo - Top Left */}
+            {data.pageImageUrl && (
+                <img
+                    src={data.pageImageUrl}
+                    alt={data.pageName || 'Page'}
+                    className="absolute -top-2 -left-2 w-8 h-8 rounded-full border-2 border-white shadow-lg z-10 object-cover"
+                    onError={(e) => {
+                        (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(data.pageName || 'Page')}&background=1877F2&color=fff&size=32`;
+                    }}
+                />
+            )}
             {/* Node Container */}
             <div
                 className={`
