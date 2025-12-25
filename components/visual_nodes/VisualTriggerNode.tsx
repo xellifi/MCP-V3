@@ -1,12 +1,30 @@
 import React, { memo } from 'react';
 import { Handle, Position } from 'reactflow';
-import { Zap, Clock, Calendar } from 'lucide-react';
+import { Zap, Clock, Calendar, Settings, Trash2 } from 'lucide-react';
 
 const VisualTriggerNode = ({ data }: { data: any }) => {
     return (
         <div className="relative group">
             {/* Node Container */}
             <div className="w-[280px] bg-slate-900/90 backdrop-blur-xl border-2 border-orange-500/50 rounded-2xl shadow-[0_0_30px_rgba(249,115,22,0.3)] overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:border-orange-400">
+
+                {/* Controls */}
+                <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-20">
+                    <button
+                        onClick={(e) => { e.stopPropagation(); data.onConfigure?.(); }}
+                        className="w-8 h-8 bg-slate-800/80 hover:bg-slate-700 rounded-full flex items-center justify-center border border-white/10 transition-colors shadow-lg"
+                        title="Configure"
+                    >
+                        <Settings className="w-4 h-4 text-slate-300" />
+                    </button>
+                    <button
+                        onClick={(e) => { e.stopPropagation(); data.onDelete?.(); }}
+                        className="w-8 h-8 bg-black/60 hover:bg-red-500/80 rounded-full flex items-center justify-center border border-white/10 transition-colors shadow-lg group/delete"
+                        title="Delete"
+                    >
+                        <Trash2 className="w-4 h-4 text-slate-300 group-hover/delete:text-white" />
+                    </button>
+                </div>
 
                 {/* Header */}
                 <div className="bg-gradient-to-r from-orange-500 to-pink-600 p-4 flex items-center gap-3">

@@ -17,6 +17,8 @@ import VisualTriggerNode from '../components/visual_nodes/VisualTriggerNode';
 import VisualAINode from '../components/visual_nodes/VisualAINode';
 import VisualSheetNode from '../components/visual_nodes/VisualSheetNode';
 import VisualHTTPNode from '../components/visual_nodes/VisualHTTPNode';
+import CustomEdge from '../components/edges/CustomEdge';
+import { useToast } from '../context/ToastContext';
 
 interface ScheduledPostsProps {
   workspace: Workspace;
@@ -29,29 +31,64 @@ const nodeTypes: NodeTypes = {
   visualHTTP: VisualHTTPNode,
 };
 
-const initialNodes: Node[] = [
-  {
-    id: '1',
-    type: 'visualTrigger',
-    position: { x: 100, y: 300 },
-    data: { label: 'Start' },
-  },
-  {
-    id: '2',
-    type: 'visualAI',
-    position: { x: 500, y: 200 },
-    data: { label: 'AI Generation' },
-  },
-];
 
-const initialEdges: Edge[] = [
-  { id: 'e1-2', source: '1', target: '2', animated: true, style: { stroke: '#6366f1', strokeWidth: 3 } },
-];
+
+const edgeTypes = {
+  custom: CustomEdge,
+};
 
 const ScheduledPosts: React.FC<ScheduledPostsProps> = ({ workspace }) => {
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+  const toast = useToast();
+
+  const handleConfigureNode = useCallback(() => {
+    toast.info('Under Development: This feature is coming soon!');
+  }, [toast]);
+
+  const handleDeleteNode = useCallback((id: string) => {
+    setNodes((nds) => nds.filter((node) => node.id !== id));
+  }, []);
+
+  const [nodes, setNodes, onNodesChange] = useNodesState([
+    {
+      id: '1',
+      type: 'visualTrigger',
+      position: { x: 100, y: 300 },
+      data: { label: 'Start' },
+    },
+    {
+      id: '2',
+      type: 'visualAI',
+      position: { x: 500, y: 200 },
+      data: { label: 'AI Generation' },
+    },
+  ]);
+
+  const [edges, setEdges, onEdgesChange] = useEdgesState([
+    { id: 'e1-2', source: '1', target: '2', type: 'custom', animated: true, style: { stroke: '#6366f1', strokeWidth: 3 } },
+  ]);
   const [isToolsOpen, setIsToolsOpen] = useState(true);
+
+  // Inject handlers into nodes when they change or on mount
+  // Actually, we should just update them once on mount or when adding.
+  // We can use a side-effect to ensure all nodes have handlers.
+  useEffect(() => {
+    setNodes((nds) =>
+      nds.map((node) => {
+        const data = node.data as any;
+        if (!data.onDelete || !data.onConfigure) {
+          return {
+            ...node,
+            data: {
+              ...data,
+              onDelete: () => handleDeleteNode(node.id),
+              onConfigure: handleConfigureNode,
+            },
+          };
+        }
+        return node;
+      })
+    );
+  }, [handleDeleteNode, handleConfigureNode, setNodes]);
 
   // Auto-collapse tools on mobile by default
   useEffect(() => {
@@ -61,7 +98,7 @@ const ScheduledPosts: React.FC<ScheduledPostsProps> = ({ workspace }) => {
   }, []);
 
   const onConnect = useCallback(
-    (params: Connection) => setEdges((eds) => addEdge({ ...params, animated: true, style: { stroke: '#6366f1', strokeWidth: 3 } }, eds)),
+    (params: Connection) => setEdges((eds) => addEdge({ ...params, type: 'custom', animated: true, style: { stroke: '#6366f1', strokeWidth: 3 } }, eds)),
     [setEdges],
   );
 
@@ -71,7 +108,11 @@ const ScheduledPosts: React.FC<ScheduledPostsProps> = ({ workspace }) => {
       id,
       type,
       position: { x: Math.random() * 400 + 200, y: Math.random() * 400 + 100 },
-      data: { label: `New ${type}` },
+      data: {
+        label: `New ${type}`,
+        onConfigure: handleConfigureNode,
+        onDelete: () => handleDeleteNode(id),
+      },
     };
     setNodes((nds) => nds.concat(newNode));
 
@@ -160,6 +201,7 @@ const ScheduledPosts: React.FC<ScheduledPostsProps> = ({ workspace }) => {
         onConnect={onConnect}
         onPaneClick={() => setIsToolsOpen(false)}
         nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
         fitView
         fitViewOptions={{ padding: 0.35 }}
         minZoom={0.1}
