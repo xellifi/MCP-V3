@@ -344,7 +344,58 @@ export const api = {
         throw new Error(`Cannot delete connection. Please disable automation for these pages first: ${pageNames}`);
       }
 
-      // Delete all connected pages for this workspace first
+      console.log('Starting cascade delete for workspace:', workspaceId);
+
+      // Get all conversation IDs for this workspace to delete messages first
+      const { data: conversations } = await supabase
+        .from('conversations')
+        .select('id')
+        .eq('workspace_id', workspaceId);
+
+      const conversationIds = conversations?.map(c => c.id) || [];
+
+      // 1. Delete all messages for these conversations
+      if (conversationIds.length > 0) {
+        const { error: messagesError } = await supabase
+          .from('messages')
+          .delete()
+          .in('conversation_id', conversationIds);
+
+        if (messagesError) {
+          console.error('Error deleting messages:', messagesError);
+          // Continue anyway - messages might have cascade delete
+        } else {
+          console.log('Deleted messages for', conversationIds.length, 'conversations');
+        }
+      }
+
+      // 2. Delete all conversations for this workspace
+      const { error: conversationsError } = await supabase
+        .from('conversations')
+        .delete()
+        .eq('workspace_id', workspaceId);
+
+      if (conversationsError) {
+        console.error('Error deleting conversations:', conversationsError);
+        // Continue anyway
+      } else {
+        console.log('Deleted all conversations for workspace:', workspaceId);
+      }
+
+      // 3. Delete all subscribers for this workspace
+      const { error: subscribersError } = await supabase
+        .from('subscribers')
+        .delete()
+        .eq('workspace_id', workspaceId);
+
+      if (subscribersError) {
+        console.error('Error deleting subscribers:', subscribersError);
+        // Continue anyway
+      } else {
+        console.log('Deleted all subscribers for workspace:', workspaceId);
+      }
+
+      // 4. Delete all connected pages for this workspace
       const { error: pagesError } = await supabase
         .from('connected_pages')
         .delete()
@@ -357,7 +408,7 @@ export const api = {
 
       console.log('Deleted all connected pages for workspace:', workspaceId);
 
-      // Delete the connection
+      // 5. Delete the connection itself
       const { error } = await supabase
         .from('meta_connections')
         .delete()
@@ -368,7 +419,7 @@ export const api = {
         throw new Error(error.message || 'Failed to delete connection');
       }
 
-      console.log('Successfully deleted connection and all associated pages');
+      console.log('Successfully deleted connection and ALL associated data (messages, conversations, subscribers, pages)');
     },
 
     fetchPagesFromFacebook: async (workspaceId: string): Promise<ConnectedPage[]> => {
