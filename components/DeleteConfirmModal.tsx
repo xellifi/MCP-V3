@@ -77,7 +77,11 @@ const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
                                 <ul className="text-slate-500 text-xs mt-2 space-y-1">
                                     <li className="flex items-center gap-2">
                                         <span className="w-1.5 h-1.5 rounded-full bg-red-400" />
-                                        Connected pages & automations
+                                        Connected pages
+                                    </li>
+                                    <li className="flex items-center gap-2">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-red-400" />
+                                        Automation flows & settings
                                     </li>
                                     <li className="flex items-center gap-2">
                                         <span className="w-1.5 h-1.5 rounded-full bg-red-400" />
@@ -85,7 +89,7 @@ const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
                                     </li>
                                     <li className="flex items-center gap-2">
                                         <span className="w-1.5 h-1.5 rounded-full bg-red-400" />
-                                        Subscribers & their data
+                                        Subscribers & scheduled posts
                                     </li>
                                 </ul>
                             </div>
