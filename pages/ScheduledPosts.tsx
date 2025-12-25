@@ -91,19 +91,11 @@ const ScheduledPosts: React.FC<ScheduledPostsProps> = ({ workspace }) => {
       </div>
 
       {/* Floating Toolbar */}
-      <div className="absolute left-6 top-6 md:top-24 z-10 flex flex-col gap-3">
-        {/* Mobile Toggle Button */}
-        <div className="md:hidden">
-          <button
-            onClick={() => setIsToolsOpen(!isToolsOpen)}
-            className="w-12 h-12 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center text-white border border-white/10 shadow-lg active:scale-95 transition-all"
-          >
-            {isToolsOpen ? <X className="w-6 h-6" /> : <Wrench className="w-6 h-6" />}
-          </button>
-        </div>
+      <div className={`absolute left-6 top-20 md:top-24 z-10 flex flex-col gap-3 transition-opacity duration-300 ${!isToolsOpen ? 'opacity-0 pointer-events-none md:opacity-100 md:pointer-events-auto' : 'opacity-100'}`}>
+
 
         {/* Tools List */}
-        <div className={`glass-panel p-3 rounded-2xl border border-white/10 shadow-2xl space-y-3 backdrop-blur-xl transition-all duration-300 origin-top-left ${isToolsOpen ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none absolute top-14 left-0'}`}>
+        <div className={`glass-panel p-3 rounded-2xl border border-white/10 shadow-2xl space-y-3 backdrop-blur-xl transition-all duration-300 origin-top-left ${isToolsOpen ? 'scale-100' : 'scale-95 pointer-events-none md:scale-100 md:pointer-events-auto'}`}>
           <p className="text-xs font-bold text-slate-500 uppercase tracking-wider text-center mb-2">Tools</p>
 
           <button
@@ -141,14 +133,22 @@ const ScheduledPosts: React.FC<ScheduledPostsProps> = ({ workspace }) => {
       </div>
 
       {/* Top Right Controls */}
-      <div className="absolute top-4 left-1/2 -translate-x-1/2 md:translate-x-0 md:left-auto md:right-6 md:top-6 z-10 flex gap-2 md:gap-3 w-max">
+      <div className="absolute top-4 left-1/2 -translate-x-1/2 md:translate-x-0 md:left-auto md:right-6 md:top-6 z-10 flex gap-2 md:gap-3 w-max items-center">
+        {/* Mobile Tools Toggle */}
+        <button
+          onClick={() => setIsToolsOpen(!isToolsOpen)}
+          className="md:hidden w-8 h-8 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-lg flex items-center justify-center text-white border border-white/10 shadow-lg active:scale-95 transition-all"
+        >
+          {isToolsOpen ? <X className="w-4 h-4" /> : <Wrench className="w-4 h-4" />}
+        </button>
+
         <button className="flex items-center gap-1.5 md:gap-2 px-3 py-1.5 md:px-5 md:py-2.5 text-xs md:text-sm bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-lg md:rounded-xl text-white font-bold transition-all border border-white/10">
           <Save className="w-3 h-3 md:w-4 md:h-4" />
-          Save Workflow
+          <span className="hidden md:inline">Save Workflow</span>
         </button>
         <button className="flex items-center gap-1.5 md:gap-2 px-3 py-1.5 md:px-5 md:py-2.5 text-xs md:text-sm bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg md:rounded-xl font-bold transition-all shadow-lg shadow-indigo-500/20">
           <Play className="w-3 h-3 md:w-4 md:h-4 fill-current" />
-          Run Test
+          <span className="hidden md:inline">Run Test</span>
         </button>
       </div>
 
