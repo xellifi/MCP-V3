@@ -584,7 +584,7 @@ export const api = {
         // Use Facebook Graph API picture endpoint for fresh, non-expiring URLs
         // This returns a redirect to the current profile picture
         if (row.page_id) {
-          page.pageImageUrl = `https://graph.facebook.com/${row.page_id}/picture?type=small`;
+          page.pageImageUrl = `https://graph.facebook.com/${row.page_id}/picture?type=large`;
         }
         return page;
       }) || [];
