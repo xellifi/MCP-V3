@@ -318,15 +318,24 @@ export const api = {
     },
 
     deleteConnection: async (connectionId: string): Promise<void> => {
-      // First check if any pages have automation enabled
+      // First get the workspace_id for this connection
+      const { data: connectionData } = await supabase
+        .from('meta_connections')
+        .select('workspace_id')
+        .eq('id', connectionId)
+        .single();
+
+      const workspaceId = connectionData?.workspace_id;
+
+      if (!workspaceId) {
+        throw new Error('Connection not found');
+      }
+
+      // Check if any pages have automation enabled
       const { data: pages } = await supabase
         .from('connected_pages')
         .select('id, name, is_automation_enabled')
-        .eq('workspace_id', (await supabase
-          .from('meta_connections')
-          .select('workspace_id')
-          .eq('id', connectionId)
-          .single()).data?.workspace_id || '');
+        .eq('workspace_id', workspaceId);
 
       const pagesWithAutomation = pages?.filter(p => p.is_automation_enabled) || [];
 
@@ -334,6 +343,19 @@ export const api = {
         const pageNames = pagesWithAutomation.map(p => p.name).join(', ');
         throw new Error(`Cannot delete connection. Please disable automation for these pages first: ${pageNames}`);
       }
+
+      // Delete all connected pages for this workspace first
+      const { error: pagesError } = await supabase
+        .from('connected_pages')
+        .delete()
+        .eq('workspace_id', workspaceId);
+
+      if (pagesError) {
+        console.error('Error deleting connected pages:', pagesError);
+        throw new Error(pagesError.message || 'Failed to delete connected pages');
+      }
+
+      console.log('Deleted all connected pages for workspace:', workspaceId);
 
       // Delete the connection
       const { error } = await supabase
@@ -345,6 +367,8 @@ export const api = {
         console.error('Error deleting connection:', error);
         throw new Error(error.message || 'Failed to delete connection');
       }
+
+      console.log('Successfully deleted connection and all associated pages');
     },
 
     fetchPagesFromFacebook: async (workspaceId: string): Promise<ConnectedPage[]> => {
