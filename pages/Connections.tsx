@@ -228,18 +228,37 @@ const Connections: React.FC<ConnectionsProps> = ({ workspace }) => {
     setLoading(false);
   };
 
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+
   const handleDelete = async (connectionId: string, connectionName: string) => {
-    if (!confirm(`Are you sure you want to delete the connection for ${connectionName}?`)) {
+    console.log('=== handleDelete called ===', { connectionId, connectionName });
+
+    // First click: ask for confirmation via toast
+    if (deleteConfirmId !== connectionId) {
+      setDeleteConfirmId(connectionId);
+      toast.warning(`Click delete again to confirm removing ${connectionName}`);
+      // Reset after 5 seconds
+      setTimeout(() => setDeleteConfirmId(null), 5000);
       return;
     }
 
+    // Second click: proceed with delete
+    setDeleteConfirmId(null);
+    setLoading(true);
+    toast.info(`Deleting connection for ${connectionName}...`);
+
     try {
+      console.log('Calling api.workspace.deleteConnection...');
       await api.workspace.deleteConnection(connectionId);
+      console.log('Delete successful!');
       toast.success(`Successfully deleted connection for ${connectionName}`);
       await loadConnections();
     } catch (error: any) {
       console.error('Error deleting connection:', error);
+      console.error('Error message:', error.message);
       toast.error(error.message || 'Failed to delete connection');
+    } finally {
+      setLoading(false);
     }
   };
 
