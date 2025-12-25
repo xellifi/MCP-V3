@@ -149,7 +149,7 @@ const CommentReplyNodeForm: React.FC<CommentReplyNodeFormProps> = ({
                             <Bot className="w-5 h-5 text-white" />
                         </div>
                         <div>
-                            <h3 className="text-sm font-semibold text-white">AI-Powered Reply</h3>
+                            <h3 className="text-xs md:text-sm font-semibold text-white">AI-Powered Reply</h3>
                             <p className="text-xs text-slate-400">Let AI generate comment replies</p>
                         </div>
                     </div>
@@ -157,8 +157,8 @@ const CommentReplyNodeForm: React.FC<CommentReplyNodeFormProps> = ({
                         type="button"
                         onClick={() => handleAiToggle(!useAiReply)}
                         className={`relative w-14 h-7 rounded-full transition-all duration-300 ${useAiReply
-                                ? 'bg-gradient-to-r from-indigo-500 to-cyan-500'
-                                : 'bg-slate-600'
+                            ? 'bg-gradient-to-r from-indigo-500 to-cyan-500'
+                            : 'bg-slate-600'
                             }`}
                     >
                         <div
@@ -177,7 +177,7 @@ const CommentReplyNodeForm: React.FC<CommentReplyNodeFormProps> = ({
                 <div className="space-y-4 animate-in fade-in slide-in-from-top-4 duration-300">
                     {/* AI Provider Selection */}
                     <div>
-                        <label className="block text-sm font-semibold text-slate-300 mb-3">
+                        <label className="block text-xs md:text-sm font-semibold text-slate-300 mb-3">
                             Select AI Provider
                         </label>
 
@@ -205,10 +205,10 @@ const CommentReplyNodeForm: React.FC<CommentReplyNodeFormProps> = ({
                                         onClick={() => provider.available && handleAiProviderChange(provider.id)}
                                         disabled={!provider.available}
                                         className={`relative p-4 rounded-xl border-2 transition-all duration-200 ${!provider.available
-                                                ? 'opacity-40 cursor-not-allowed bg-black/10 border-white/5'
-                                                : aiProvider === provider.id
-                                                    ? 'bg-gradient-to-br from-indigo-500/20 to-cyan-500/20 border-indigo-500 ring-2 ring-indigo-500/30'
-                                                    : 'bg-black/20 border-white/10 hover:border-white/30 hover:bg-white/5'
+                                            ? 'opacity-40 cursor-not-allowed bg-black/10 border-white/5'
+                                            : aiProvider === provider.id
+                                                ? 'bg-gradient-to-br from-indigo-500/20 to-cyan-500/20 border-indigo-500 ring-2 ring-indigo-500/30'
+                                                : 'bg-black/20 border-white/10 hover:border-white/30 hover:bg-white/5'
                                             }`}
                                     >
                                         <div className="flex flex-col items-center gap-2">
@@ -222,9 +222,9 @@ const CommentReplyNodeForm: React.FC<CommentReplyNodeFormProps> = ({
                                                     }}
                                                 />
                                             </div>
-                                            <span className={`text-sm font-medium ${aiProvider === provider.id && provider.available
-                                                    ? 'text-white'
-                                                    : 'text-slate-300'
+                                            <span className={`text-xs md:text-sm font-medium ${aiProvider === provider.id && provider.available
+                                                ? 'text-white'
+                                                : 'text-slate-300'
                                                 }`}>
                                                 {provider.name}
                                             </span>
@@ -244,7 +244,7 @@ const CommentReplyNodeForm: React.FC<CommentReplyNodeFormProps> = ({
                     {/* AI Prompt Configuration */}
                     {hasAvailableProviders && (
                         <div>
-                            <label className="block text-sm font-semibold text-slate-300 mb-2">
+                            <label className="block text-xs md:text-sm font-semibold text-slate-300 mb-2">
                                 AI Instructions
                             </label>
                             <textarea
@@ -270,7 +270,7 @@ const CommentReplyNodeForm: React.FC<CommentReplyNodeFormProps> = ({
             {/* Manual Reply Template - Only show when AI is OFF */}
             {!useAiReply && (
                 <div className="animate-in fade-in slide-in-from-top-4 duration-300">
-                    <label className="block text-sm font-semibold text-slate-300 mb-2">
+                    <label className="block text-xs md:text-sm font-semibold text-slate-300 mb-2">
                         Comment Reply Template
                     </label>
                     <textarea
@@ -300,7 +300,7 @@ const CommentReplyNodeForm: React.FC<CommentReplyNodeFormProps> = ({
             {/* Preview - Only for manual template */}
             {!useAiReply && replyTemplate && (
                 <div className="p-4 bg-white/5 border border-white/10 rounded-xl">
-                    <h4 className="text-sm font-semibold text-slate-300 mb-2">Preview</h4>
+                    <h4 className="text-xs md:text-sm font-semibold text-slate-300 mb-2">Preview</h4>
                     <p className="text-sm text-white">
                         {replyTemplate
                             .replace('{commenter_name}', 'John Doe')
@@ -313,7 +313,7 @@ const CommentReplyNodeForm: React.FC<CommentReplyNodeFormProps> = ({
 
             {/* Info */}
             <div className="p-4 bg-indigo-500/10 border border-indigo-500/20 rounded-xl">
-                <p className="text-sm text-indigo-300">
+                <p className="text-xs md:text-sm text-indigo-300">
                     {useAiReply ? (
                         <>
                             <strong>AI Reply:</strong> The AI will generate a personalized public comment reply based on the commenter's message and your instructions.

@@ -220,7 +220,7 @@ const SendMessageNodeForm: React.FC<SendMessageNodeFormProps> = ({
                             <Bot className="w-5 h-5 text-white" />
                         </div>
                         <div>
-                            <h3 className="text-sm font-semibold text-white">AI-Powered Reply</h3>
+                            <h3 className="text-xs md:text-sm font-semibold text-white">AI-Powered Reply</h3>
                             <p className="text-xs text-slate-400">Let AI generate contextual responses</p>
                         </div>
                     </div>
@@ -228,8 +228,8 @@ const SendMessageNodeForm: React.FC<SendMessageNodeFormProps> = ({
                         type="button"
                         onClick={() => handleAiToggle(!useAiReply)}
                         className={`relative w-14 h-7 rounded-full transition-all duration-300 ${useAiReply
-                                ? 'bg-gradient-to-r from-purple-500 to-blue-500'
-                                : 'bg-slate-600'
+                            ? 'bg-gradient-to-r from-purple-500 to-blue-500'
+                            : 'bg-slate-600'
                             }`}
                     >
                         <div
@@ -248,7 +248,7 @@ const SendMessageNodeForm: React.FC<SendMessageNodeFormProps> = ({
                 <div className="space-y-4 animate-in fade-in slide-in-from-top-4 duration-300">
                     {/* AI Provider Selection */}
                     <div>
-                        <label className="block text-sm font-semibold text-slate-300 mb-3">
+                        <label className="block text-xs md:text-sm font-semibold text-slate-300 mb-3">
                             Select AI Provider
                         </label>
 
@@ -276,10 +276,10 @@ const SendMessageNodeForm: React.FC<SendMessageNodeFormProps> = ({
                                         onClick={() => provider.available && handleAiProviderChange(provider.id)}
                                         disabled={!provider.available}
                                         className={`relative p-4 rounded-xl border-2 transition-all duration-200 ${!provider.available
-                                                ? 'opacity-40 cursor-not-allowed bg-black/10 border-white/5'
-                                                : aiProvider === provider.id
-                                                    ? 'bg-gradient-to-br from-purple-500/20 to-blue-500/20 border-purple-500 ring-2 ring-purple-500/30'
-                                                    : 'bg-black/20 border-white/10 hover:border-white/30 hover:bg-white/5'
+                                            ? 'opacity-40 cursor-not-allowed bg-black/10 border-white/5'
+                                            : aiProvider === provider.id
+                                                ? 'bg-gradient-to-br from-purple-500/20 to-blue-500/20 border-purple-500 ring-2 ring-purple-500/30'
+                                                : 'bg-black/20 border-white/10 hover:border-white/30 hover:bg-white/5'
                                             }`}
                                     >
                                         <div className="flex flex-col items-center gap-2">
@@ -294,9 +294,9 @@ const SendMessageNodeForm: React.FC<SendMessageNodeFormProps> = ({
                                                     }}
                                                 />
                                             </div>
-                                            <span className={`text-sm font-medium ${aiProvider === provider.id && provider.available
-                                                    ? 'text-white'
-                                                    : 'text-slate-300'
+                                            <span className={`text-xs md:text-sm font-medium ${aiProvider === provider.id && provider.available
+                                                ? 'text-white'
+                                                : 'text-slate-300'
                                                 }`}>
                                                 {provider.name}
                                             </span>
@@ -316,7 +316,7 @@ const SendMessageNodeForm: React.FC<SendMessageNodeFormProps> = ({
                     {/* AI Prompt Configuration */}
                     {hasAvailableProviders && (
                         <div>
-                            <label className="block text-sm font-semibold text-slate-300 mb-2">
+                            <label className="block text-xs md:text-sm font-semibold text-slate-300 mb-2">
                                 AI Instructions
                             </label>
                             <textarea
@@ -342,7 +342,7 @@ const SendMessageNodeForm: React.FC<SendMessageNodeFormProps> = ({
             {/* Manual Message Template - Only show when AI is OFF */}
             {!useAiReply && (
                 <div className="animate-in fade-in slide-in-from-top-4 duration-300">
-                    <label className="block text-sm font-semibold text-slate-300 mb-2">
+                    <label className="block text-xs md:text-sm font-semibold text-slate-300 mb-2">
                         Direct Message Template
                     </label>
                     <textarea
@@ -380,7 +380,7 @@ const SendMessageNodeForm: React.FC<SendMessageNodeFormProps> = ({
             {/* Quick Reply Buttons - Available for both modes */}
             <div>
                 <div className="flex items-center justify-between mb-3">
-                    <label className="text-sm font-semibold text-slate-300">
+                    <label className="text-xs md:text-sm font-semibold text-slate-300">
                         <MessageSquare className="w-4 h-4 inline mr-2" />
                         Quick Reply Buttons (optional, max 3)
                     </label>
@@ -534,7 +534,7 @@ const SendMessageNodeForm: React.FC<SendMessageNodeFormProps> = ({
 
             {/* Info */}
             <div className="p-4 bg-purple-500/10 border border-purple-500/20 rounded-xl">
-                <p className="text-sm text-purple-300">
+                <p className="text-xs md:text-sm text-purple-300">
                     {useAiReply ? (
                         <>
                             <strong>AI Reply:</strong> The AI will generate a personalized response based on the commenter's message and your instructions.

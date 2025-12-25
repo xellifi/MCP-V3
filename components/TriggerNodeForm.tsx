@@ -141,7 +141,7 @@ const TriggerNodeForm: React.FC<TriggerNodeFormProps> = ({
         <div className="space-y-6">
             {/* Page Selection */}
             <div>
-                <label className="block text-sm font-semibold text-slate-300 mb-2">
+                <label className="block text-xs md:text-sm font-semibold text-slate-300 mb-2">
                     Select Facebook Page
                 </label>
                 <div className="relative" ref={dropdownRef}>
@@ -186,7 +186,7 @@ const TriggerNodeForm: React.FC<TriggerNodeFormProps> = ({
                                         className="w-8 h-8 rounded-full object-cover flex-shrink-0"
                                     />
                                     <div className="flex-1 text-left">
-                                        <div className="text-white font-medium text-sm">{page.name}</div>
+                                        <div className="text-white font-medium text-xs md:text-sm">{page.name}</div>
                                         <div className="text-xs text-slate-400">{page.pageFollowers?.toLocaleString() || 0} followers</div>
                                     </div>
                                     {selectedPageId === page.id && (
@@ -213,7 +213,7 @@ const TriggerNodeForm: React.FC<TriggerNodeFormProps> = ({
                         <CheckCircle2 className="w-4 h-4 text-green-400" />
                         <h4 className="font-bold text-white">Auto-Reply to Comments</h4>
                     </div>
-                    <p className="text-sm text-slate-400">
+                    <p className="text-xs md:text-sm text-slate-400">
                         Automatically reply to new comments on this page's posts
                     </p>
                 </div>
@@ -235,7 +235,7 @@ const TriggerNodeForm: React.FC<TriggerNodeFormProps> = ({
                         <CheckCircle2 className="w-4 h-4 text-purple-400" />
                         <h4 className="font-bold text-white">Send Direct Message</h4>
                     </div>
-                    <p className="text-sm text-slate-400">
+                    <p className="text-xs md:text-sm text-slate-400">
                         Send a private message to users who comment
                     </p>
                 </div>
@@ -252,7 +252,7 @@ const TriggerNodeForm: React.FC<TriggerNodeFormProps> = ({
 
             {/* Info Box */}
             <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl">
-                <p className="text-sm text-blue-300">
+                <p className="text-xs md:text-sm text-blue-300">
                     <strong>Note:</strong> This trigger will activate when someone comments on any post from the selected page.
                     Connect action nodes below to define what happens next.
                 </p>

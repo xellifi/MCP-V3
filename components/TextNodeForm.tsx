@@ -72,7 +72,7 @@ const TextNodeForm: React.FC<TextNodeFormProps> = ({
         <div className="space-y-6">
             {/* Text Content */}
             <div>
-                <label className="block text-sm font-semibold text-slate-300 mb-2">
+                <label className="block text-xs md:text-sm font-semibold text-slate-300 mb-2">
                     <MessageSquare className="w-4 h-4 inline mr-2" />
                     Message Text
                 </label>
@@ -90,7 +90,7 @@ const TextNodeForm: React.FC<TextNodeFormProps> = ({
 
             {/* Delay */}
             <div>
-                <label className="block text-sm font-semibold text-slate-300 mb-2">
+                <label className="block text-xs md:text-sm font-semibold text-slate-300 mb-2">
                     <Clock className="w-4 h-4 inline mr-2" />
                     Delay Before Sending (seconds)
                 </label>
@@ -110,7 +110,7 @@ const TextNodeForm: React.FC<TextNodeFormProps> = ({
             {/* URL Buttons */}
             <div>
                 <div className="flex items-center justify-between mb-3">
-                    <label className="text-sm font-semibold text-slate-300">
+                    <label className="text-xs md:text-sm font-semibold text-slate-300">
                         <Link className="w-4 h-4 inline mr-2" />
                         URL Buttons (optional, max 3)
                     </label>
@@ -166,8 +166,8 @@ const TextNodeForm: React.FC<TextNodeFormProps> = ({
                                                 type="button"
                                                 onClick={() => updateButton(index, 'webviewHeight', size)}
                                                 className={`flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-all ${button.webviewHeight === size
-                                                        ? 'bg-amber-500 text-white'
-                                                        : 'bg-white/5 text-slate-400 hover:bg-white/10'
+                                                    ? 'bg-amber-500 text-white'
+                                                    : 'bg-white/5 text-slate-400 hover:bg-white/10'
                                                     }`}
                                             >
                                                 {size.charAt(0).toUpperCase() + size.slice(1)}
@@ -194,10 +194,10 @@ const TextNodeForm: React.FC<TextNodeFormProps> = ({
 
             {/* Info */}
             <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl">
-                <p className="text-sm text-amber-300">
+                <p className="text-xs md:text-sm text-amber-300">
                     <strong>Use this node to:</strong>
                 </p>
-                <ul className="mt-2 text-sm text-amber-200 space-y-1 list-disc list-inside">
+                <ul className="mt-2 text-xs md:text-sm text-amber-200 space-y-1 list-disc list-inside">
                     <li>Send a text message to users</li>
                     <li>Add a delay before sending (with typing indicator)</li>
                     <li>Include URL buttons that open websites</li>
