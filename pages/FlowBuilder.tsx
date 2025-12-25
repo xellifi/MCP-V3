@@ -621,14 +621,21 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
   const addNode = (nodeType: string, label: string, actionType?: string, position?: { x: number; y: number }) => {
     let nodePosition = position;
 
-    // If no position provided and on mobile, place in center of screen
-    if (!nodePosition && window.innerWidth < 768 && reactFlowInstance) {
-      const center = reactFlowInstance.screenToFlowPosition({
-        x: window.innerWidth / 2,
-        y: window.innerHeight / 2
-      });
-      // Offset to center the node (approx width 200px / 2 = 100px)
-      nodePosition = { x: center.x - 100, y: center.y - 50 };
+    // If no position provided, place in center of screen (for both mobile and desktop)
+    if (!nodePosition && reactFlowInstance) {
+      // Get the center of the flow viewport
+      const flowBounds = reactFlowWrapper.current?.getBoundingClientRect();
+
+      if (flowBounds) {
+        // Calculate center based on the wrapper dimensions
+        const center = reactFlowInstance.screenToFlowPosition({
+          x: flowBounds.left + flowBounds.width / 2,
+          y: flowBounds.top + flowBounds.height / 2
+        });
+
+        // Offset to center the node (approx width 200px / 2 = 100px)
+        nodePosition = { x: center.x - 100, y: center.y - 50 };
+      }
     }
 
     const newNode: Node = {
@@ -667,15 +674,18 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
     let baseX = position?.x;
     let baseY = position?.y;
 
-    // If no position provided and on mobile, place in center of screen
-    if (baseX === undefined && window.innerWidth < 768 && reactFlowInstance) {
-      const center = reactFlowInstance.screenToFlowPosition({
-        x: window.innerWidth / 2,
-        y: window.innerHeight / 2
-      });
-      // Offset for template group (approx width 500px / 2 = 250px)
-      baseX = center.x - 220;
-      baseY = center.y - 100;
+    // If no position provided, place in center of screen
+    if (baseX === undefined && reactFlowInstance) {
+      const flowBounds = reactFlowWrapper.current?.getBoundingClientRect();
+      if (flowBounds) {
+        const center = reactFlowInstance.screenToFlowPosition({
+          x: flowBounds.left + flowBounds.width / 2,
+          y: flowBounds.top + flowBounds.height / 2
+        });
+        // Offset for template group (approx width 500px / 2 = 250px)
+        baseX = center.x - 220;
+        baseY = center.y - 100;
+      }
     }
 
     baseX = baseX || 450;
@@ -1115,7 +1125,7 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
               style: { stroke: '#64748b', strokeWidth: 2 }
             }}
             minZoom={0.1}
-            maxZoom={0.75}
+            maxZoom={1.5}
             fitViewOptions={{ padding: 0.35 }}
             zoomOnScroll={true}
             zoomOnPinch={true}
