@@ -46,9 +46,14 @@ const StartNodeForm: React.FC<StartNodeFormProps> = ({
                 const activePages = pagesData.filter(p => p.isAutomationEnabled);
                 setPages(activePages);
 
-                // If there's an initial pageId, keep it; otherwise select first active page
-                if (!initialConfig?.pageId && activePages.length > 0) {
+                // Only auto-select first page if no page was already selected
+                // Use a ref to check what was initially set, not closure variable
+                const currentSelection = initialConfig?.pageId || flowPageId;
+                if (!currentSelection && activePages.length > 0) {
                     setSelectedPageId(activePages[0].id);
+                } else if (currentSelection) {
+                    // Ensure we're using the saved pageId
+                    setSelectedPageId(currentSelection);
                 }
             } catch (error) {
                 console.error('Error fetching pages:', error);
