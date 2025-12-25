@@ -263,11 +263,12 @@ export const api = {
       accessToken: string;
     }): Promise<MetaConnection> => {
       // GLOBAL CHECK: Check if this Facebook profile is already connected by ANY user
+      // Uses RPC function with SECURITY DEFINER to bypass RLS
       const { data: globalExisting, error: globalError } = await supabase
-        .from('meta_connections')
-        .select('id, workspace_id, name')
-        .eq('external_id', connectionData.externalId)
-        .neq('workspace_id', workspaceId);  // Exclude current workspace - returns array
+        .rpc('check_connection_duplicate', {
+          check_external_id: connectionData.externalId,
+          exclude_workspace_id: workspaceId
+        });
 
       // Check if profile is already connected by another user
       if (!globalError && globalExisting && globalExisting.length > 0) {

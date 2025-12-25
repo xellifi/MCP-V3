@@ -117,12 +117,13 @@ const Connections: React.FC<ConnectionsProps> = ({ workspace }) => {
 
                 try {
                   // GLOBAL CHECK: Check if page is already connected by ANOTHER user
+                  // Uses RPC function with SECURITY DEFINER to bypass RLS
                   const { supabase } = await import('../lib/supabase');
                   const { data: globalExistingPages, error: globalPageError } = await supabase
-                    .from('connected_pages')
-                    .select('id, workspace_id, name')
-                    .eq('page_id', fbPage.id)
-                    .neq('workspace_id', workspace.id);  // Exclude current workspace - returns array
+                    .rpc('check_page_duplicate', {
+                      check_page_id: fbPage.id,
+                      exclude_workspace_id: workspace.id
+                    });
 
                   // Check if page is already connected by another user
                   if (!globalPageError && globalExistingPages && globalExistingPages.length > 0) {
