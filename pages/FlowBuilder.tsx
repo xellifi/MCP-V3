@@ -650,6 +650,16 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
     setNodes((nds) => nds.concat(newNode));
     toast.info(`Added ${label} - Double-click or click gear to configure`);
     setShowMobileNodeGrid(false);
+
+    // Mobile adjustment: Zoom out slightly if added on mobile to show node better
+    if (window.innerWidth < 768 && reactFlowInstance) {
+      setTimeout(() => {
+        const currentZoom = reactFlowInstance.getViewport().zoom;
+        if (currentZoom > 0.75) {
+          reactFlowInstance.zoomTo(0.75, { duration: 500 });
+        }
+      }, 100);
+    }
   };
 
   // Add Comment Reply Template (3 pre-connected nodes)
@@ -741,6 +751,16 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
 
     toast.success('Comment Reply template added! Configure each node by double-clicking.');
     setShowMobileNodeGrid(false);
+
+    // Mobile adjustment: Zoom out slightly to show full template
+    if (window.innerWidth < 768 && reactFlowInstance) {
+      setTimeout(() => {
+        const currentZoom = reactFlowInstance.getViewport().zoom;
+        if (currentZoom > 0.65) {
+          reactFlowInstance.zoomTo(0.65, { duration: 500 });
+        }
+      }, 100);
+    }
   };
 
   // Drag and drop handlers
