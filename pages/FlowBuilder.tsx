@@ -356,9 +356,23 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
 
   const handleSaveConfig = () => {
     if (selectedNode) {
+      // For trigger nodes, always include the flowPageId
+      const isTriggerNode = selectedNode.type === 'triggerNode' ||
+        selectedNode.data?.nodeType === 'triggerNode' ||
+        selectedNode.data?.label?.includes('Comment');
+
+      const configToSave = isTriggerNode
+        ? { ...currentConfig, pageId: flowPageId }
+        : currentConfig;
+
+      console.log('[FlowBuilder.handleSaveConfig] Saving config for:', selectedNode.id);
+      console.log('[FlowBuilder.handleSaveConfig] Is trigger node:', isTriggerNode);
+      console.log('[FlowBuilder.handleSaveConfig] flowPageId:', flowPageId);
+      console.log('[FlowBuilder.handleSaveConfig] Config to save:', configToSave);
+
       setNodeConfigs(prev => ({
         ...prev,
-        [selectedNode.id]: currentConfig
+        [selectedNode.id]: configToSave
       }));
 
       // Update node data with config
@@ -368,7 +382,7 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
             ...node,
             data: {
               ...node.data,
-              ...currentConfig,
+              ...configToSave,
               aiProvider: currentConfig.useAI ? currentConfig.aiProvider : undefined,
               template: currentConfig.replyTemplate || currentConfig.messageTemplate
             }
