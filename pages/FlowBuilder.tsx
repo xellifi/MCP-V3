@@ -18,7 +18,7 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Workspace, ConnectedPage } from '../types';
-import { Save, ArrowLeft, PlayCircle, Menu, X, Grid3x3, MessageCircle, Play, Bot, Send, Clock, MousePointer2, SquareMousePointer, Sparkles, GitBranch, MessageSquare, RectangleEllipsis } from 'lucide-react';
+import { Save, ArrowLeft, PlayCircle, Menu, X, Grid3x3, MessageCircle, Play, Bot, Send, Clock, MousePointer2, SquareMousePointer, Sparkles, GitBranch, MessageSquare, RectangleEllipsis, Plus, Minus, Maximize } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import NodeConfigModal from '../components/NodeConfigModal';
 import TriggerNodeForm from '../components/TriggerNodeForm';
@@ -619,6 +619,18 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
   };
 
   const addNode = (nodeType: string, label: string, actionType?: string, position?: { x: number; y: number }) => {
+    let nodePosition = position;
+
+    // If no position provided and on mobile, place in center of screen
+    if (!nodePosition && window.innerWidth < 768 && reactFlowInstance) {
+      const center = reactFlowInstance.screenToFlowPosition({
+        x: window.innerWidth / 2,
+        y: window.innerHeight / 2
+      });
+      // Offset to center the node (approx width 200px / 2 = 100px)
+      nodePosition = { x: center.x - 100, y: center.y - 50 };
+    }
+
     const newNode: Node = {
       id: `${Date.now()}`,
       type: nodeType,
@@ -629,7 +641,7 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
         onConfigure: () => handleConfigureNode(newNode),
         onDelete: () => handleDeleteNode(newNode.id)
       },
-      position: position || {
+      position: nodePosition || {
         x: 100 + nodes.length * 250,
         y: 200
       },
@@ -642,8 +654,22 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
 
   // Add Comment Reply Template (3 pre-connected nodes)
   const addCommentReplyTemplate = (position?: { x: number; y: number }) => {
-    const baseX = position?.x || 450;
-    const baseY = position?.y || 280;
+    let baseX = position?.x;
+    let baseY = position?.y;
+
+    // If no position provided and on mobile, place in center of screen
+    if (baseX === undefined && window.innerWidth < 768 && reactFlowInstance) {
+      const center = reactFlowInstance.screenToFlowPosition({
+        x: window.innerWidth / 2,
+        y: window.innerHeight / 2
+      });
+      // Offset for template group (approx width 500px / 2 = 250px)
+      baseX = center.x - 220;
+      baseY = center.y - 100;
+    }
+
+    baseX = baseX || 450;
+    baseY = baseY || 280;
 
     // Generate unique IDs for the nodes
     const triggerId = `trigger-${Date.now()}`;
@@ -898,7 +924,7 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
       <div className="absolute inset-0 bg-slate-950 z-0" />
 
       {/* Header */}
-      <div className="glass-panel border-b border-white/10 px-4 md:px-6 py-3 flex items-center justify-between z-20 shadow-lg relative">
+      <div className="glass-panel border-b border-white/10 px-6 pt-8 pb-3 md:py-3 flex items-center justify-between z-20 shadow-lg relative">
         <div className="flex items-center gap-2 md:gap-4">
           <button
             onClick={() => navigate('/flows')}
@@ -907,10 +933,10 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
             <ArrowLeft className="w-5 h-5" />
           </button>
 
-          {/* Mobile: Show menu button */}
+          {/* Mobile: Show menu button - HIDDEN per user request */}
           <button
             onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-            className="md:hidden p-2 hover:bg-white/10 rounded-lg text-slate-400 hover:text-white transition-colors"
+            className="hidden p-2 hover:bg-white/10 rounded-lg text-slate-400 hover:text-white transition-colors"
           >
             {sidebarCollapsed ? <Menu className="w-5 h-5" /> : <X className="w-5 h-5" />}
           </button>
@@ -1073,13 +1099,13 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
           </button>
         )}
 
-        {/* Mobile: Toggle sidebar button - positioned at left-middle */}
-        <button
+        {/* Mobile: Toggle sidebar button - HIDDEN as it is now in the top toolbar */}
+        {/* <button
           onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
           className="md:hidden absolute left-0 top-1/2 -translate-y-1/2 z-30 p-3 bg-slate-800/90 hover:bg-slate-700 border border-white/10 rounded-r-xl text-white shadow-lg transition-all"
         >
           <Menu className="w-5 h-5" />
-        </button>
+        </button> */}
 
         {/* Canvas */}
         <div
@@ -1088,6 +1114,37 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
           onDragOver={onDragOver}
           onDrop={onDrop}
         >
+          {/* Mobile Top Toolbar - Menu & Zoom Controls */}
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-40 flex items-center gap-1 p-1 bg-slate-800/90 backdrop-blur-md border border-white/10 rounded-lg shadow-xl md:hidden">
+            <button
+              onClick={() => setShowMobileNodeGrid(true)}
+              className="p-2 hover:bg-white/10 rounded-md text-slate-300 active:text-white transition-colors"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+
+            <div className="w-px h-5 bg-white/10 mx-1" />
+
+            <button
+              onClick={() => reactFlowInstance.zoomIn()}
+              className="p-2 hover:bg-white/10 rounded-md text-slate-300 active:text-white transition-colors"
+            >
+              <Plus className="w-5 h-5" />
+            </button>
+            <button
+              onClick={() => reactFlowInstance.zoomOut()}
+              className="p-2 hover:bg-white/10 rounded-md text-slate-300 active:text-white transition-colors"
+            >
+              <Minus className="w-5 h-5" />
+            </button>
+            <button
+              onClick={() => reactFlowInstance.fitView()}
+              className="p-2 hover:bg-white/10 rounded-md text-slate-300 active:text-white transition-colors"
+            >
+              <Maximize className="w-4 h-4" />
+            </button>
+          </div>
+
           <ReactFlow
             nodes={nodes}
             edges={edges}
@@ -1113,9 +1170,9 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
             panOnDrag={true}
           >
             <Background color="#1e293b" gap={20} />
-            <Controls className="bg-slate-800/80 backdrop-blur-sm border-slate-700 fill-slate-300 stroke-slate-300 shadow-xl rounded-lg" />
+            <Controls className="hidden md:block bg-slate-800/80 backdrop-blur-sm border-slate-700 fill-slate-300 stroke-slate-300 shadow-xl rounded-lg" />
             <MiniMap
-              className="bg-slate-900/80 backdrop-blur-sm border-slate-700 shadow-xl rounded-lg overflow-hidden"
+              className="hidden md:block bg-slate-900/80 backdrop-blur-sm border-slate-700 shadow-xl rounded-lg overflow-hidden"
               maskColor="rgba(15, 23, 42, 0.7)"
               nodeColor={(n) => {
                 if (n.type === 'triggerNode') return '#10b981';
@@ -1143,36 +1200,54 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
                 </button>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <button onClick={() => addNode('triggerNode', 'New Comment')} className="p-4 bg-green-500/20 border border-green-500/30 rounded-xl text-center">
-                  <div className="w-12 h-12 bg-green-500/30 rounded-xl mx-auto mb-2 flex items-center justify-center">
-                    <div className="w-4 h-4 rounded-full bg-green-400"></div>
+              <div className="grid grid-cols-3 gap-4">
+                <button onClick={() => addCommentReplyTemplate()} className="group flex flex-col items-center gap-3 p-4 bg-slate-800/50 hover:bg-green-500/10 border border-white/5 hover:border-green-500/30 rounded-2xl transition-all active:scale-95">
+                  <div className="w-12 h-12 bg-green-500/20 text-green-400 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg shadow-green-900/20">
+                    <MessageCircle className="w-6 h-6" />
                   </div>
-                  <p className="text-sm font-semibold text-white">Comment Trigger</p>
+                  <span className="text-xs font-medium text-slate-300 group-hover:text-green-300 text-center">Comment Trigger</span>
                 </button>
-                <button onClick={() => addNode('actionNode', 'Comment Reply', 'reply')} className="p-4 bg-cyan-500/20 border border-cyan-500/30 rounded-xl text-center">
-                  <div className="w-12 h-12 bg-cyan-500/30 rounded-xl mx-auto mb-2 flex items-center justify-center">
-                    <div className="w-4 h-4 rounded-full bg-cyan-400"></div>
+
+                <button onClick={() => addNode('actionNode', 'Comment Reply', 'reply')} className="group flex flex-col items-center gap-3 p-4 bg-slate-800/50 hover:bg-cyan-500/10 border border-white/5 hover:border-cyan-500/30 rounded-2xl transition-all active:scale-95">
+                  <div className="w-12 h-12 bg-cyan-500/20 text-cyan-400 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg shadow-cyan-900/20">
+                    <MessageSquare className="w-6 h-6" />
                   </div>
-                  <p className="text-sm font-semibold text-white">Reply</p>
+                  <span className="text-xs font-medium text-slate-300 group-hover:text-cyan-300 text-center">Reply</span>
                 </button>
-                <button onClick={() => addNode('actionNode', 'Send Message', 'message')} className="p-4 bg-purple-500/20 border border-purple-500/30 rounded-xl text-center">
-                  <div className="w-12 h-12 bg-purple-500/30 rounded-xl mx-auto mb-2 flex items-center justify-center">
-                    <div className="w-4 h-4 rounded-full bg-purple-400"></div>
+
+                <button onClick={() => addNode('actionNode', 'Send Message', 'message')} className="group flex flex-col items-center gap-3 p-4 bg-slate-800/50 hover:bg-purple-500/10 border border-white/5 hover:border-purple-500/30 rounded-2xl transition-all active:scale-95">
+                  <div className="w-12 h-12 bg-purple-500/20 text-purple-400 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg shadow-purple-900/20">
+                    <Send className="w-6 h-6" />
                   </div>
-                  <p className="text-sm font-semibold text-white">Messenger Reply</p>
+                  <span className="text-xs font-medium text-slate-300 group-hover:text-purple-300 text-center">Messenger Reply</span>
                 </button>
-                <button onClick={() => addNode('aiNode', 'AI Agent')} className="p-4 bg-indigo-500/20 border border-indigo-500/30 rounded-xl text-center">
-                  <div className="w-12 h-12 bg-indigo-500/30 rounded-xl mx-auto mb-2 flex items-center justify-center">
-                    <div className="w-4 h-4 rounded-full bg-indigo-400"></div>
+
+                <button onClick={() => addNode('startNode', 'Start')} className="group flex flex-col items-center gap-3 p-4 bg-slate-800/50 hover:bg-emerald-500/10 border border-white/5 hover:border-emerald-500/30 rounded-2xl transition-all active:scale-95">
+                  <div className="w-12 h-12 bg-emerald-500/20 text-emerald-400 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg shadow-emerald-900/20">
+                    <Play className="w-6 h-6" fill="currentColor" />
                   </div>
-                  <p className="text-sm font-semibold text-white">AI Agent</p>
+                  <span className="text-xs font-medium text-slate-300 group-hover:text-emerald-300 text-center">Start Flow</span>
                 </button>
-                <button onClick={() => addNode('conditionNode', 'Condition')} className="p-4 bg-amber-500/20 border border-amber-500/30 rounded-xl text-center col-span-2">
-                  <div className="w-12 h-12 bg-amber-500/30 rounded-xl mx-auto mb-2 flex items-center justify-center">
-                    <div className="w-4 h-4 rounded-full bg-amber-400"></div>
+
+                <button onClick={() => addNode('textNode', 'Text')} className="group flex flex-col items-center gap-3 p-4 bg-slate-800/50 hover:bg-amber-500/10 border border-white/5 hover:border-amber-500/30 rounded-2xl transition-all active:scale-95">
+                  <div className="w-12 h-12 bg-amber-500/20 text-amber-400 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg shadow-amber-900/20">
+                    <MessageSquare className="w-6 h-6" />
                   </div>
-                  <p className="text-sm font-semibold text-white">Condition</p>
+                  <span className="text-xs font-medium text-slate-300 group-hover:text-amber-300 text-center">Text</span>
+                </button>
+
+                <button onClick={() => addNode('aiNode', 'AI Agent')} className="group flex flex-col items-center gap-3 p-4 bg-slate-800/50 hover:bg-indigo-500/10 border border-white/5 hover:border-indigo-500/30 rounded-2xl transition-all active:scale-95">
+                  <div className="w-12 h-12 bg-indigo-500/20 text-indigo-400 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg shadow-indigo-900/20">
+                    <Sparkles className="w-6 h-6" />
+                  </div>
+                  <span className="text-xs font-medium text-slate-300 group-hover:text-indigo-300 text-center">AI Agent</span>
+                </button>
+
+                <button onClick={() => addNode('conditionNode', 'Condition')} className="group flex flex-col items-center gap-3 p-4 bg-slate-800/50 hover:bg-orange-500/10 border border-white/5 hover:border-orange-500/30 rounded-2xl transition-all active:scale-95">
+                  <div className="w-12 h-12 bg-orange-500/20 text-orange-400 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg shadow-orange-900/20">
+                    <GitBranch className="w-6 h-6" />
+                  </div>
+                  <span className="text-xs font-medium text-slate-300 group-hover:text-orange-300 text-center">Condition</span>
                 </button>
               </div>
             </div>
