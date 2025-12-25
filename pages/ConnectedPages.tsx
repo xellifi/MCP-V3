@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Workspace, ConnectedPage } from '../types';
 import { api } from '../services/api';
-import { Facebook, Instagram, RefreshCw, ExternalLink, CheckCircle, Bot, Users, AlertTriangle } from 'lucide-react';
+import { Facebook, Instagram, RefreshCw, ExternalLink, CheckCircle, Bot, Users, AlertTriangle, LayoutGrid, List, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 
 interface ConnectedPagesProps {
@@ -14,7 +14,10 @@ const ConnectedPages: React.FC<ConnectedPagesProps> = ({ workspace }) => {
   const [pages, setPages] = useState<ConnectedPage[]>([]);
   const [loading, setLoading] = useState(true);
   const [toggling, setToggling] = useState<string | null>(null);
-  const [filter, setFilter] = useState<FilterType | null>(null); // Start null until we know what to show
+  const [filter, setFilter] = useState<FilterType | null>(null);
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10; // 5 columns * 2 rows
   const toast = useToast();
 
   useEffect(() => {
@@ -39,6 +42,11 @@ const ConnectedPages: React.FC<ConnectedPagesProps> = ({ workspace }) => {
       setLoading(false);
     }
   };
+
+  // Reset pagination when filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filter, viewMode]);
 
   const handleToggleAutomation = async (pageId: string, currentState: boolean) => {
     setToggling(pageId);
@@ -118,22 +126,53 @@ const ConnectedPages: React.FC<ConnectedPagesProps> = ({ workspace }) => {
     return true; // 'all'
   });
 
+  // Pagination Logic
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = filteredPages.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(filteredPages.length / itemsPerPage);
+
+  const handlePageChange = (pageNumber: number) => {
+    setCurrentPage(pageNumber);
+    // Scroll to top of grid
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   return (
     <div className="space-y-8 animate-fade-in">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-4xl font-bold text-white tracking-tight mb-2">Pages</h1>
-          <p className="text-slate-400 text-lg">Manage bot automations for your Facebook Pages and Instagram Accounts</p>
+          <h1 className="text-2xl md:text-4xl font-bold text-white tracking-tight mb-2">Pages</h1>
+          <p className="text-slate-400 text-sm md:text-lg">Manage bot automations for your Facebook Pages and Instagram Accounts</p>
         </div>
-        <button
-          onClick={() => { loadPages(); toast.info("Refreshing page list..."); }}
-          className="flex items-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white px-5 py-2.5 rounded-xl font-medium transition-colors shadow-lg"
-        >
-          <RefreshCw className="w-4 h-4" />
-          Refresh List
-        </button>
-      </div>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => { loadPages(); toast.info("Refreshing page list..."); }}
+            className="flex items-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white px-5 py-2.5 rounded-xl font-medium transition-colors shadow-lg"
+          >
+            <RefreshCw className="w-4 h-4" />
+            <span className="hidden sm:inline">Refresh</span>
+          </button>
 
+          {/* View Toggle */}
+          <div className="flex bg-white/5 p-1 rounded-lg border border-white/10">
+            <button
+              onClick={() => setViewMode('list')}
+              className={`p-2 rounded-md transition-all ${viewMode === 'list' ? 'bg-indigo-500 text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
+              title="List View"
+            >
+              <List className="w-5 h-5" />
+            </button>
+            <button
+              onClick={() => setViewMode('grid')}
+              className={`p-2 rounded-md transition-all ${viewMode === 'grid' ? 'bg-indigo-500 text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
+              title="Grid View"
+            >
+              <LayoutGrid className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+      </div>
       {/* Filter Tabs */}
       <div className="flex gap-2 border-b border-white/10">
         <button
@@ -165,10 +204,20 @@ const ConnectedPages: React.FC<ConnectedPagesProps> = ({ workspace }) => {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 gap-4">
-        {filteredPages.map(page => (
-          <div key={page.id} className="glass-panel rounded-2xl border border-white/10 overflow-hidden group hover:border-indigo-500/30 transition-all duration-300">
-            <div className="p-6 flex flex-col md:flex-row items-center gap-6">
+      <div className={`grid gap-4 ${viewMode === 'grid' ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5' : 'grid-cols-1'}`}>
+        {currentItems.map(page => (
+          <div key={page.id} className="relative glass-panel rounded-2xl border border-white/10 overflow-hidden group hover:border-indigo-500/50 hover:shadow-[0_0_30px_rgba(99,102,241,0.2)] hover:scale-[1.03] hover:bg-white/10 transition-all duration-300 ease-out z-0 hover:z-10">
+            {/* Mobile/Grid Open Page Button (Top Right) */}
+            <a
+              href={`https://facebook.com/${page.pageId}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`${viewMode === 'grid' ? 'block' : 'md:hidden'} absolute top-3 right-3 p-2 bg-white/10 rounded-full text-slate-300 hover:text-white hover:bg-white/20 z-10 transition-colors`}
+              title="Open Page"
+            >
+              <ExternalLink className="w-4 h-4" />
+            </a>
+            <div className={`p-4 md:p-6 flex flex-col ${viewMode === 'list' ? 'md:flex-row' : ''} items-center gap-4 md:gap-6`}>
 
               {/* Overlapping Images Section */}
               <div className={`relative flex-shrink-0 h-28 flex items-center justify-start pl-2 ${page.instagram ? 'w-48' : 'w-28'}`}>
@@ -207,18 +256,18 @@ const ConnectedPages: React.FC<ConnectedPagesProps> = ({ workspace }) => {
               </div>
 
               {/* Info Section */}
-              <div className="flex-1 text-center md:text-left min-w-0">
-                <div className="flex flex-col md:flex-row md:items-center gap-2 mb-1">
-                  <h3 className="text-xl font-bold text-white truncate">{page.name}</h3>
+              <div className={`flex-1 text-center ${viewMode === 'list' ? 'md:text-left' : ''} min-w-0`}>
+                <div className={`flex flex-col ${viewMode === 'list' ? 'md:flex-row md:items-center' : ''} gap-2 mb-1`}>
+                  <h3 className="text-lg md:text-xl font-bold text-white truncate">{page.name}</h3>
                   {page.instagram && (
                     <span className="hidden md:inline text-slate-600 mx-1">|</span>
                   )}
                   {page.instagram && (
-                    <span className="text-base font-medium text-slate-400 truncate">@{page.instagram.username}</span>
+                    <span className="text-sm md:text-base font-medium text-slate-400 truncate">@{page.instagram.username}</span>
                   )}
                 </div>
 
-                <div className="flex items-center justify-center md:justify-start gap-6 text-sm text-slate-400 mt-3">
+                <div className={`flex items-center justify-center ${viewMode === 'list' ? 'md:justify-start' : ''} gap-6 text-sm text-slate-400 mt-3`}>
                   <div className="flex items-center gap-2" title="Facebook Followers">
                     <div className="p-1.5 bg-white/5 rounded-full">
                       <Users className="w-4 h-4 text-slate-400" />
@@ -243,7 +292,7 @@ const ConnectedPages: React.FC<ConnectedPagesProps> = ({ workspace }) => {
               </div>
 
               {/* Automation Toggle & Status */}
-              <div className="flex flex-col items-center md:items-end gap-3 min-w-[200px]">
+              <div className={`flex flex-col items-center ${viewMode === 'list' ? 'md:items-end' : ''} gap-3 min-w-[200px]`}>
                 <div className="flex items-center gap-3 bg-white/5 p-2.5 rounded-xl border border-white/5 shadow-inner">
                   <span className={`text-sm font-semibold ${page.isAutomationEnabled ? 'text-indigo-400' : 'text-slate-500'}`}>
                     {page.isAutomationEnabled ? 'Automation On' : 'Automation Off'}
@@ -278,11 +327,11 @@ const ConnectedPages: React.FC<ConnectedPagesProps> = ({ workspace }) => {
 
             </div>
 
-            <div className="bg-white/5 px-6 py-3 border-t border-white/5 flex justify-between items-center text-xs font-medium text-slate-400">
-              <div className="flex gap-4">
-                <span className="font-mono bg-black/20 px-2 py-0.5 rounded text-slate-500">ID: {page.pageId}</span>
+            <div className={`bg-white/5 px-4 md:px-6 py-3 border-t border-white/5 flex flex-col ${viewMode === 'list' ? 'sm:flex-row' : ''} justify-between items-start ${viewMode === 'list' ? 'sm:items-center' : 'items-center'} gap-3 text-xs font-medium text-slate-400`}>
+              <div className={`flex gap-4 w-full ${viewMode === 'list' ? 'sm:w-auto' : ''}`}>
+                <span className={`font-mono bg-black/20 px-2 py-0.5 rounded text-slate-500 truncate w-full ${viewMode === 'list' ? 'sm:w-auto text-center sm:text-left' : 'text-center'}`}>ID: {page.pageId}</span>
               </div>
-              <div className="flex gap-3">
+              <div className={`flex gap-3 w-full ${viewMode === 'list' ? 'sm:w-auto justify-center sm:justify-start' : 'justify-center'}`}>
                 <button
                   onClick={() => handleSubscribeToWebhooks(page)}
                   className="flex items-center gap-1.5 text-indigo-400 hover:text-indigo-300 transition-colors group/sub"
@@ -291,18 +340,28 @@ const ConnectedPages: React.FC<ConnectedPagesProps> = ({ workspace }) => {
                   <RefreshCw className="w-3.5 h-3.5 group-hover/sub:rotate-180 transition-transform duration-500" />
                   Subscribe to Webhooks
                 </button>
-                <span className="text-slate-600">|</span>
-                <button className="flex items-center gap-1.5 hover:text-white transition-colors group/link" title="View on Facebook">
-                  Open Page
-                  <ExternalLink className="w-3.5 h-3.5 group-hover/link:translate-x-0.5 group-hover/link:-translate-y-0.5 transition-transform" />
-                </button>
+                {viewMode === 'list' && (
+                  <>
+                    <span className="hidden md:inline text-slate-600">|</span>
+                    <a
+                      href={`https://facebook.com/${page.pageId}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="hidden md:flex items-center gap-1.5 hover:text-white transition-colors group/link"
+                      title="View on Facebook"
+                    >
+                      Open Page
+                      <ExternalLink className="w-3.5 h-3.5 group-hover/link:translate-x-0.5 group-hover/link:-translate-y-0.5 transition-transform" />
+                    </a>
+                  </>
+                )}
               </div>
             </div>
           </div>
         ))}
 
         {filteredPages.length === 0 && (
-          <div className="py-20 text-center glass-panel rounded-3xl border border-dashed border-white/10">
+          <div className="py-20 text-center glass-panel rounded-3xl border border-dashed border-white/10 w-full col-span-full">
             <div className="w-20 h-20 bg-indigo-500/10 text-indigo-400 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
               <Bot className="w-10 h-10" />
             </div>
@@ -319,6 +378,45 @@ const ConnectedPages: React.FC<ConnectedPagesProps> = ({ workspace }) => {
           </div>
         )}
       </div>
+
+      {/* Pagination Controls */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between border-t border-white/10 pt-4">
+          <p className="text-sm text-slate-400">
+            Showing <span className="font-medium text-white">{indexOfFirstItem + 1}</span> to <span className="font-medium text-white">{Math.min(indexOfLastItem, filteredPages.length)}</span> of <span className="font-medium text-white">{filteredPages.length}</span> results
+          </p>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+              className="p-2 rounded-lg bg-white/5 border border-white/10 text-slate-400 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+            <div className="flex items-center gap-1">
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                <button
+                  key={page}
+                  onClick={() => handlePageChange(page)}
+                  className={`w-8 h-8 rounded-lg text-sm font-medium transition-colors ${currentPage === page
+                    ? 'bg-indigo-500 text-white'
+                    : 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white'
+                    }`}
+                >
+                  {page}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              className="p-2 rounded-lg bg-white/5 border border-white/10 text-slate-400 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
