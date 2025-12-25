@@ -38,7 +38,7 @@ const VisualTriggerNode = ({ data }: { data: any }) => {
             {/* Text Below */}
             <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 w-48 text-center">
                 <p className="text-slate-200 font-medium text-sm leading-tight">
-                    On 'Create User' form submission
+                    Post Scheduler Trigger
                 </p>
             </div>
 

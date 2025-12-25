@@ -142,3 +142,9 @@
   border-radius: 50% !important;
   box-shadow: none !important;
 }
+
+/* Force thicker edge connections */
+.react-flow__edge-path {
+  stroke-width: 2 !important;
+  stroke: #94a3b8 !important;
+}

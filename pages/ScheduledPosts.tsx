@@ -65,32 +65,12 @@ const ScheduledPostsContent: React.FC<ScheduledPostsProps> = ({ workspace }) => 
     {
       id: '1',
       type: 'visualTrigger',
-      position: { x: 100, y: 300 },
+      position: { x: 250, y: 300 },
       data: { label: 'Start' },
-    },
-    {
-      id: '2',
-      type: 'visualAI',
-      position: { x: 500, y: 200 },
-      data: { label: 'AI Generation' },
     },
   ]);
 
-  const [edges, setEdges, onEdgesChange] = useEdgesState([
-    {
-      id: 'e1-2',
-      source: '1',
-      target: '2',
-      type: 'custom',
-      style: { stroke: '#475569', strokeWidth: 10 },
-      markerEnd: {
-        type: MarkerType.ArrowClosed,
-        color: '#475569',
-        width: 40,
-        height: 40,
-      },
-    },
-  ]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [isToolsOpen, setIsToolsOpen] = useState(true);
 
   // Inject handlers ... (keep existing)
@@ -119,12 +99,12 @@ const ScheduledPostsContent: React.FC<ScheduledPostsProps> = ({ workspace }) => 
     (params: Connection) => setEdges((eds) => addEdge({
       ...params,
       type: 'custom',
-      style: { stroke: '#475569', strokeWidth: 10 },
+      style: { stroke: '#94a3b8', strokeWidth: 2 },
       markerEnd: {
         type: MarkerType.ArrowClosed,
-        color: '#475569',
-        width: 40,
-        height: 40,
+        color: '#94a3b8',
+        width: 13,
+        height: 13,
       },
     }, eds)),
     [setEdges],

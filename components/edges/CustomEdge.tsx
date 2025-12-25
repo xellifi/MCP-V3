@@ -46,8 +46,8 @@ const CustomEdge: React.FC<EdgeProps> = ({
     const isVertical = sourcePosition === 'top' && targetPosition === 'bottom';
 
     const edgeStyle = {
-        stroke: showDeleteButton ? '#f59e0b' : style.stroke?.toString() || '#475569',
-        strokeWidth: showDeleteButton ? 12 : (style.strokeWidth ? Number(style.strokeWidth) : 10),
+        stroke: showDeleteButton ? '#f59e0b' : style.stroke?.toString() || '#94a3b8',
+        strokeWidth: showDeleteButton ? 32 : (style.strokeWidth ? Number(style.strokeWidth) : 28),
         strokeDasharray: isVertical ? '10, 10' : 'none',
         animation: 'none', // We'll handle animation via class
     };
@@ -63,7 +63,7 @@ const CustomEdge: React.FC<EdgeProps> = ({
                 d={edgePath}
                 fill="none"
                 stroke="transparent"
-                strokeWidth={30}
+                strokeWidth={50}
                 style={{ cursor: 'pointer' }}
             />
             {/* Visible edge path */}
@@ -71,7 +71,7 @@ const CustomEdge: React.FC<EdgeProps> = ({
                 d={edgePath}
                 fill="none"
                 stroke={edgeStyle.stroke}
-                strokeWidth={edgeStyle.strokeWidth}
+                strokeWidth={15}
                 strokeDasharray={edgeStyle.strokeDasharray}
                 markerEnd={markerEnd}
                 style={{
