@@ -4,6 +4,7 @@ import { api } from '../services/api';
 import { Facebook, CheckCircle, Trash2, Plus, RefreshCw, UserCheck } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import DeleteConfirmModal from '../components/DeleteConfirmModal';
+import ImportLoading from '../components/ImportLoading';
 
 interface ConnectionsProps {
   workspace: Workspace;
@@ -12,6 +13,7 @@ interface ConnectionsProps {
 const Connections: React.FC<ConnectionsProps> = ({ workspace }) => {
   const [connections, setConnections] = useState<MetaConnection[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isImporting, setIsImporting] = useState(false);
   const toast = useToast();
 
   useEffect(() => {
@@ -26,6 +28,7 @@ const Connections: React.FC<ConnectionsProps> = ({ workspace }) => {
 
     if (code) {
       setLoading(true);
+      setIsImporting(true);  // Show animated import loading
       try {
         // CRITICAL: Ensure we have a valid Supabase session first
         const { supabase } = await import('../lib/supabase');
@@ -92,6 +95,7 @@ const Connections: React.FC<ConnectionsProps> = ({ workspace }) => {
           window.history.replaceState({}, document.title, '/connections');
           await loadConnections();
           setLoading(false);
+          setIsImporting(false);  // Hide import loading animation
 
           // Auto-fetch pages in background (don't await this to show profile immediately)
           console.log('Auto-fetching Facebook pages in background...');
@@ -220,9 +224,11 @@ const Connections: React.FC<ConnectionsProps> = ({ workspace }) => {
         console.error('Error stack:', error.stack);
         toast.error(`Failed to complete connection: ${error.message || 'Please try again.'}`);
         setLoading(false);
+        setIsImporting(false);
         window.history.replaceState({}, document.title, '/connections');
       } finally {
         setLoading(false);
+        setIsImporting(false);
       }
     }
   };
@@ -331,6 +337,14 @@ const Connections: React.FC<ConnectionsProps> = ({ workspace }) => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Show animated loading during import */}
+        {isImporting && (
+          <ImportLoading
+            message="Connecting to Facebook..."
+            subMessage="Setting up your profile connection"
+          />
+        )}
+
         {connections.map(connection => (
           <div key={connection.id} className="glass-panel p-6 rounded-2xl border border-white/10 group hover:border-blue-500/30 transition-all duration-300 relative overflow-hidden">
             <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl -mr-16 -mt-16 transition-opacity group-hover:opacity-75"></div>
