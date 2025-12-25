@@ -398,7 +398,7 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
     setShowConfigModal(true);
   }, [nodeConfigs, flowPageId]);
 
-  const handleSaveConfig = () => {
+  const handleSaveConfig = async () => {
     if (selectedNode) {
       // Check if this is a trigger or start node
       const isTriggerOrStartNode = selectedNode.type === 'triggerNode' ||
@@ -452,6 +452,20 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
         }
         return node;
       }));
+
+      // Auto-save configurations to database so flows list shows correct page
+      if (id && !id.startsWith('new')) {
+        const updatedConfigs = {
+          ...nodeConfigs,
+          [selectedNode.id]: configToSave
+        };
+        try {
+          await api.workspace.updateFlow(id, { configurations: updatedConfigs });
+          console.log('[FlowBuilder.handleSaveConfig] ✓ Configurations auto-saved to database');
+        } catch (error) {
+          console.error('[FlowBuilder.handleSaveConfig] ✗ Failed to auto-save:', error);
+        }
+      }
 
       toast.success(`Configuration saved for ${selectedNode.data.label}`);
       setShowConfigModal(false);

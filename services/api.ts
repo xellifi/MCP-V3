@@ -1184,22 +1184,32 @@ export const api = {
     },
 
     updateFlow: async (flowId: string, updates: Partial<Flow>): Promise<void> => {
+      // Only include fields that are explicitly provided (not undefined)
+      const updatePayload: Record<string, any> = {
+        updated_at: new Date().toISOString()
+      };
+
+      if (updates.name !== undefined) updatePayload.name = updates.name;
+      if (updates.status !== undefined) updatePayload.status = updates.status;
+      if (updates.nodes !== undefined) updatePayload.nodes = updates.nodes;
+      if (updates.edges !== undefined) updatePayload.edges = updates.edges;
+      if ((updates as any).configurations !== undefined) {
+        updatePayload.configurations = (updates as any).configurations;
+      }
+
+      console.log('[api.updateFlow] Updating flow:', flowId, 'with:', Object.keys(updatePayload));
+
       const { error } = await supabase
         .from('flows')
-        .update({
-          name: updates.name,
-          status: updates.status,
-          nodes: updates.nodes,
-          edges: updates.edges,
-          configurations: (updates as any).configurations, // Node configurations
-          updated_at: new Date().toISOString()
-        })
+        .update(updatePayload)
         .eq('id', flowId);
 
       if (error) {
         console.error('Error updating flow:', error);
         throw new Error('Failed to update flow');
       }
+
+      console.log('[api.updateFlow] ✓ Flow updated successfully');
     },
 
     deleteFlow: async (flowId: string): Promise<void> => {
