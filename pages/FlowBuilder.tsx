@@ -951,13 +951,6 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
   // Mobile tools operations
   const [isToolsOpen, setIsToolsOpen] = useState(true);
 
-  // Auto-collapse tools on mobile by default
-  useEffect(() => {
-    if (window.innerWidth < 768) {
-      setIsToolsOpen(false);
-    }
-  }, []);
-
   return (
     <div className="h-[calc(100vh-60px)] w-full -m-6 relative bg-slate-950 overflow-hidden">
 

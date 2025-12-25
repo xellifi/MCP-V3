@@ -9,6 +9,8 @@ import ReactFlow, {
   Edge,
   Node,
   NodeTypes,
+  ReactFlowProvider,
+  useReactFlow,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { Workspace } from '../types';
@@ -37,9 +39,11 @@ const edgeTypes = {
   custom: CustomEdge,
 };
 
-const ScheduledPosts: React.FC<ScheduledPostsProps> = ({ workspace }) => {
+const ScheduledPostsContent: React.FC<ScheduledPostsProps> = ({ workspace }) => {
   const toast = useToast();
+  const { screenToFlowPosition } = useReactFlow();
 
+  // Handlers ... (keep existing)
   const handleConfigureNode = useCallback(() => {
     toast.info('Under Development: This feature is coming soon!');
   }, [toast]);
@@ -68,9 +72,7 @@ const ScheduledPosts: React.FC<ScheduledPostsProps> = ({ workspace }) => {
   ]);
   const [isToolsOpen, setIsToolsOpen] = useState(true);
 
-  // Inject handlers into nodes when they change or on mount
-  // Actually, we should just update them once on mount or when adding.
-  // We can use a side-effect to ensure all nodes have handlers.
+  // Inject handlers ... (keep existing)
   useEffect(() => {
     setNodes((nds) =>
       nds.map((node) => {
@@ -90,24 +92,19 @@ const ScheduledPosts: React.FC<ScheduledPostsProps> = ({ workspace }) => {
     );
   }, [handleDeleteNode, handleConfigureNode, setNodes]);
 
-  // Auto-collapse tools on mobile by default
-  useEffect(() => {
-    if (window.innerWidth < 768) {
-      setIsToolsOpen(false);
-    }
-  }, []);
+
 
   const onConnect = useCallback(
     (params: Connection) => setEdges((eds) => addEdge({ ...params, type: 'custom', animated: true, style: { stroke: '#6366f1', strokeWidth: 3 } }, eds)),
     [setEdges],
   );
 
-  const addNode = (type: string) => {
+  const addNode = (type: string, position?: { x: number; y: number }) => {
     const id = `${type}-${Date.now()}`;
     const newNode: Node = {
       id,
       type,
-      position: { x: Math.random() * 400 + 200, y: Math.random() * 400 + 100 },
+      position: position || { x: Math.random() * 400 + 200, y: Math.random() * 400 + 100 },
       data: {
         label: `New ${type}`,
         onConfigure: handleConfigureNode,
@@ -116,14 +113,42 @@ const ScheduledPosts: React.FC<ScheduledPostsProps> = ({ workspace }) => {
     };
     setNodes((nds) => nds.concat(newNode));
 
-    // Auto collapse on mobile after picking
-    if (window.innerWidth < 768) {
-      setIsToolsOpen(false);
-    }
+
   };
 
+  const onDragStart = (event: React.DragEvent, nodeType: string) => {
+    event.dataTransfer.setData('application/reactflow', nodeType);
+    event.dataTransfer.effectAllowed = 'move';
+  };
+
+  const onDragOver = useCallback((event: React.DragEvent) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
+  }, []);
+
+  const onDrop = useCallback(
+    (event: React.DragEvent) => {
+      event.preventDefault();
+
+      const type = event.dataTransfer.getData('application/reactflow');
+
+      // check if the dropped element is valid
+      if (typeof type === 'undefined' || !type) {
+        return;
+      }
+
+      const position = screenToFlowPosition({
+        x: event.clientX,
+        y: event.clientY,
+      });
+
+      addNode(type, position);
+    },
+    [screenToFlowPosition],
+  );
+
   return (
-    <div className="h-[calc(100vh-100px)] w-full -m-6 relative bg-slate-950">
+    <div className="h-[calc(100vh-100px)] w-full -m-6 relative bg-slate-950" onDragOver={onDragOver} onDrop={onDrop}>
 
       {/* Header Overlay - Hidden on Mobile */}
       <div className="absolute top-6 left-6 z-10 pointer-events-none hidden md:block">
@@ -139,37 +164,45 @@ const ScheduledPosts: React.FC<ScheduledPostsProps> = ({ workspace }) => {
         <div className={`glass-panel p-3 rounded-2xl border border-white/10 shadow-2xl space-y-3 backdrop-blur-xl transition-all duration-300 origin-top-left ${isToolsOpen ? 'scale-100' : 'scale-95 pointer-events-none md:scale-100 md:pointer-events-auto'}`}>
           <p className="text-xs font-bold text-slate-500 uppercase tracking-wider text-center mb-2">Tools</p>
 
-          <button
+          <div
+            onDragStart={(event) => onDragStart(event, 'visualTrigger')}
+            draggable
             onClick={() => addNode('visualTrigger')}
-            className="w-12 h-12 bg-gradient-to-br from-orange-500 to-pink-600 rounded-xl flex items-center justify-center text-white shadow-lg hover:scale-110 transition-transform group tooltip-container"
+            className="w-12 h-12 bg-gradient-to-br from-orange-500 to-pink-600 rounded-xl flex items-center justify-center text-white shadow-lg hover:scale-110 transition-transform group tooltip-container cursor-grab active:cursor-grabbing"
             title="Add Trigger"
           >
             <Zap className="w-6 h-6" />
-          </button>
+          </div>
 
-          <button
+          <div
+            onDragStart={(event) => onDragStart(event, 'visualAI')}
+            draggable
             onClick={() => addNode('visualAI')}
-            className="w-12 h-12 bg-gradient-to-br from-violet-500 to-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg hover:scale-110 transition-transform"
+            className="w-12 h-12 bg-gradient-to-br from-violet-500 to-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing"
             title="Add AI Agent"
           >
             <Sparkles className="w-6 h-6" />
-          </button>
+          </div>
 
-          <button
+          <div
+            onDragStart={(event) => onDragStart(event, 'visualSheet')}
+            draggable
             onClick={() => addNode('visualSheet')}
-            className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-green-600 rounded-xl flex items-center justify-center text-white shadow-lg hover:scale-110 transition-transform"
+            className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-green-600 rounded-xl flex items-center justify-center text-white shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing"
             title="Add Google Sheet"
           >
             <Table className="w-6 h-6" />
-          </button>
+          </div>
 
-          <button
+          <div
+            onDragStart={(event) => onDragStart(event, 'visualHTTP')}
+            draggable
             onClick={() => addNode('visualHTTP')}
-            className="w-12 h-12 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg hover:scale-110 transition-transform"
+            className="w-12 h-12 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing"
             title="Add HTTP Request"
           >
             <Globe className="w-6 h-6" />
-          </button>
+          </div>
         </div>
       </div>
 
@@ -214,5 +247,11 @@ const ScheduledPosts: React.FC<ScheduledPostsProps> = ({ workspace }) => {
     </div>
   );
 };
+
+const ScheduledPosts: React.FC<ScheduledPostsProps> = (props) => (
+  <ReactFlowProvider>
+    <ScheduledPostsContent {...props} />
+  </ReactFlowProvider>
+);
 
 export default ScheduledPosts;
