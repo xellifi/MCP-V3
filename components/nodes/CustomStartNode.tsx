@@ -36,23 +36,23 @@ const CustomStartNode: React.FC<NodeProps> = ({ data, selected }) => {
             <div
                 className={`
                     relative px-6 py-4 rounded-2xl
-                    bg-gradient-to-br from-emerald-500 to-teal-600
-                    border-2 ${selected ? 'border-emerald-300 shadow-2xl shadow-emerald-500/50' : 'border-emerald-400/50 shadow-xl'}
+                    bg-emerald-500/10 hover:bg-emerald-500/20 backdrop-blur-md
+                    border ${selected ? 'border-emerald-500/50 shadow-2xl shadow-emerald-500/20' : 'border-emerald-500/30 shadow-xl'}
                     transition-all duration-300
                     min-w-[180px]
                 `}
             >
                 {/* Icon and Label */}
                 <div className="flex items-center gap-3">
-                    <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
-                        <Play className="w-5 h-5 text-white" fill="white" />
+                    <div className="p-2 bg-emerald-500/20 rounded-lg backdrop-blur-sm">
+                        <Play className="w-5 h-5 text-emerald-400" fill="currentColor" />
                     </div>
                     <div className="flex-1">
-                        <div className="text-white font-bold text-sm">
+                        <div className="text-slate-200 font-bold text-sm">
                             {data.label || 'Start'}
                         </div>
                         {keywords.length > 0 && (
-                            <div className="text-emerald-100 text-xs mt-0.5">
+                            <div className="text-emerald-300 text-xs mt-0.5">
                                 {keywords.length} keyword{keywords.length !== 1 ? 's' : ''}
                             </div>
                         )}

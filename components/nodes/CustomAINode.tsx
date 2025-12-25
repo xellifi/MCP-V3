@@ -20,23 +20,23 @@ const CustomAINode: React.FC<NodeProps> = ({ data, selected }) => {
     return (
         <div className="relative group">
             {/* Node Container */}
-            <div className="bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 rounded-2xl p-4 shadow-xl hover:shadow-2xl transition-all min-w-[180px] border-2 border-indigo-400/50">
+            <div className="bg-indigo-500/10 hover:bg-indigo-500/20 backdrop-blur-md rounded-2xl p-4 shadow-xl transition-all min-w-[180px] border border-indigo-500/30 hover:border-indigo-500/50">
                 {/* Icon */}
                 <div className="flex items-center gap-3 mb-2">
-                    <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
-                        <Sparkles className="w-6 h-6 text-white" />
+                    <div className="w-12 h-12 bg-indigo-500/20 rounded-xl flex items-center justify-center">
+                        <Sparkles className="w-6 h-6 text-indigo-400" />
                     </div>
                     <div className="flex-1">
-                        <h3 className="text-white font-bold text-sm">{data.label}</h3>
+                        <h3 className="text-slate-200 font-bold text-sm">{data.label}</h3>
                         {data.subtitle && (
-                            <p className="text-white/80 text-xs">{data.subtitle}</p>
+                            <p className="text-slate-400 text-xs">{data.subtitle}</p>
                         )}
                     </div>
                 </div>
 
                 {/* Model Badge */}
                 {data.model && (
-                    <div className="mt-2 px-2 py-1 bg-white/20 rounded-lg text-xs text-white font-medium inline-block">
+                    <div className="mt-2 px-2 py-1 bg-indigo-500/20 border border-indigo-500/30 rounded-lg text-xs text-indigo-300 font-medium inline-block">
                         {data.model}
                     </div>
                 )}

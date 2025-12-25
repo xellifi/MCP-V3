@@ -21,13 +21,19 @@ const CustomActionNode: React.FC<NodeProps> = ({ data, selected }) => {
     const getColorScheme = () => {
         if (data.actionType === 'message') {
             return {
-                gradient: 'from-purple-500 to-purple-600',
-                border: 'border-purple-400/50'
+                bg: 'bg-purple-500/10 hover:bg-purple-500/20',
+                border: 'border-purple-500/30 hover:border-purple-500/50',
+                iconBg: 'bg-purple-500/20',
+                iconColor: 'text-purple-400',
+                badgeBg: 'bg-purple-500/20 border-purple-500/30 text-purple-300'
             };
         }
         return {
-            gradient: 'from-cyan-500 to-teal-600',
-            border: 'border-cyan-400/50'
+            bg: 'bg-cyan-500/10 hover:bg-cyan-500/20',
+            border: 'border-cyan-500/30 hover:border-cyan-500/50',
+            iconBg: 'bg-cyan-500/20',
+            iconColor: 'text-cyan-400',
+            badgeBg: 'bg-cyan-500/20 border-cyan-500/30 text-cyan-300'
         };
     };
 
@@ -36,31 +42,31 @@ const CustomActionNode: React.FC<NodeProps> = ({ data, selected }) => {
     return (
         <div className="relative group">
             {/* Node Container */}
-            <div className={`bg-gradient-to-br ${colors.gradient} rounded-2xl p-4 shadow-xl hover:shadow-2xl transition-all min-w-[200px] border-2 ${colors.border}`}>
+            <div className={`${colors.bg} backdrop-blur-md rounded-2xl p-4 shadow-xl transition-all min-w-[200px] border ${colors.border}`}>
                 {/* Header */}
                 <div className="flex items-center gap-3 mb-3">
-                    <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
-                        <Bot className="w-6 h-6 text-white" />
+                    <div className={`w-12 h-12 ${colors.iconBg} rounded-xl flex items-center justify-center`}>
+                        <Bot className={`w-6 h-6 ${colors.iconColor}`} />
                     </div>
                     <div className="flex-1">
-                        <h3 className="text-white font-bold text-sm">{data.label}</h3>
+                        <h3 className="text-slate-200 font-bold text-sm">{data.label}</h3>
                         {data.subtitle && (
-                            <p className="text-white/80 text-xs">{data.subtitle}</p>
+                            <p className="text-slate-400 text-xs">{data.subtitle}</p>
                         )}
                     </div>
                 </div>
 
                 {/* AI Provider Badge */}
                 {data.aiProvider && (
-                    <div className="flex items-center gap-2 mt-2 px-2 py-1 bg-white/20 rounded-lg">
-                        <Sparkles className="w-3 h-3 text-yellow-300" />
-                        <span className="text-xs text-white font-medium">{data.aiProvider}</span>
+                    <div className="flex items-center gap-2 mt-2 px-2 py-1 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
+                        <Sparkles className="w-3 h-3 text-yellow-500" />
+                        <span className="text-xs text-yellow-200 font-medium">{data.aiProvider}</span>
                     </div>
                 )}
 
                 {/* Template Preview */}
                 {data.template && (
-                    <div className="mt-2 px-2 py-1 bg-black/20 rounded-lg text-xs text-white/70 truncate max-w-[180px]">
+                    <div className={`mt-2 px-2 py-1 ${colors.badgeBg} border rounded-lg text-xs truncate max-w-[180px]`}>
                         {data.template}
                     </div>
                 )}

@@ -31,23 +31,23 @@ const CustomTriggerNode: React.FC<NodeProps> = ({ data, selected }) => {
                 />
             )}
             {/* Node Container */}
-            <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-2xl p-4 shadow-xl hover:shadow-2xl transition-all min-w-[180px] border-2 border-green-400/50">
+            <div className="bg-green-500/10 hover:bg-green-500/20 backdrop-blur-md rounded-2xl p-4 shadow-xl transition-all min-w-[180px] border border-green-500/30 hover:border-green-500/50">
                 {/* Icon */}
                 <div className="flex items-center gap-3 mb-2">
-                    <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
-                        <Play className="w-6 h-6 text-white fill-white" />
+                    <div className="w-12 h-12 bg-green-500/20 rounded-xl flex items-center justify-center">
+                        <Play className="w-6 h-6 text-green-400 fill-green-400" />
                     </div>
                     <div className="flex-1">
-                        <h3 className="text-white font-bold text-sm">{data.label}</h3>
+                        <h3 className="text-slate-200 font-bold text-sm">{data.label}</h3>
                         {data.subtitle && (
-                            <p className="text-green-100 text-xs">{data.subtitle}</p>
+                            <p className="text-slate-400 text-xs">{data.subtitle}</p>
                         )}
                     </div>
                 </div>
 
                 {/* Badge */}
                 {data.badge && (
-                    <div className="mt-2 px-2 py-1 bg-white/20 rounded-lg text-xs text-white font-medium inline-block">
+                    <div className="mt-2 px-2 py-1 bg-green-500/20 border border-green-500/30 rounded-lg text-xs text-green-300 font-medium inline-block">
                         {data.badge}
                     </div>
                 )}

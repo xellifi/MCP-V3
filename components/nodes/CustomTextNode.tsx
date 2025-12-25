@@ -23,28 +23,28 @@ const CustomTextNode: React.FC<NodeProps> = ({ data, selected }) => {
             <div
                 className={`
                     relative px-6 py-4 rounded-2xl
-                    bg-gradient-to-br from-amber-500 to-orange-600
-                    border-2 ${selected ? 'border-amber-300 shadow-2xl shadow-amber-500/50' : 'border-amber-400/50 shadow-xl'}
+                    bg-amber-500/10 hover:bg-amber-500/20 backdrop-blur-md
+                    border ${selected ? 'border-amber-500/50 shadow-2xl shadow-amber-500/20' : 'border-amber-500/30 shadow-xl'}
                     transition-all duration-300
                     min-w-[180px]
                 `}
             >
                 {/* Icon and Label */}
                 <div className="flex items-center gap-3">
-                    <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
-                        <MessageSquare className="w-5 h-5 text-white" />
+                    <div className="p-2 bg-amber-500/20 rounded-lg backdrop-blur-sm">
+                        <MessageSquare className="w-5 h-5 text-amber-400" />
                     </div>
                     <div className="flex-1">
-                        <div className="text-white font-bold text-sm">
+                        <div className="text-slate-200 font-bold text-sm">
                             {data.label || 'Text'}
                         </div>
                         {data.textContent && (
-                            <div className="text-amber-100 text-xs mt-0.5 line-clamp-2">
+                            <div className="text-slate-400 text-xs mt-0.5 line-clamp-2">
                                 {data.textContent}
                             </div>
                         )}
                         {data.delaySeconds > 0 && (
-                            <div className="text-amber-200 text-xs mt-0.5 font-semibold">
+                            <div className="text-amber-300 text-xs mt-0.5 font-semibold">
                                 ⏱️ {data.delaySeconds}s
                             </div>
                         )}
