@@ -3,6 +3,7 @@ import { Workspace, MetaConnection } from '../types';
 import { api } from '../services/api';
 import { Facebook, CheckCircle, Trash2, Plus, RefreshCw, UserCheck } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
+import DeleteConfirmModal from '../components/DeleteConfirmModal';
 
 interface ConnectionsProps {
   workspace: Workspace;
@@ -233,38 +234,47 @@ const Connections: React.FC<ConnectionsProps> = ({ workspace }) => {
     setLoading(false);
   };
 
-  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  // Delete modal state
+  const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; connectionId: string; connectionName: string }>({
+    isOpen: false,
+    connectionId: '',
+    connectionName: ''
+  });
+  const [isDeleting, setIsDeleting] = useState(false);
 
-  const handleDelete = async (connectionId: string, connectionName: string) => {
-    console.log('=== handleDelete called ===', { connectionId, connectionName });
+  const handleDeleteClick = (connectionId: string, connectionName: string) => {
+    console.log('Opening delete modal for:', connectionName);
+    setDeleteModal({
+      isOpen: true,
+      connectionId,
+      connectionName
+    });
+  };
 
-    // First click: ask for confirmation via toast
-    if (deleteConfirmId !== connectionId) {
-      setDeleteConfirmId(connectionId);
-      toast.warning(`Click delete again to confirm removing ${connectionName}`);
-      // Reset after 5 seconds
-      setTimeout(() => setDeleteConfirmId(null), 5000);
-      return;
-    }
+  const handleDeleteConfirm = async () => {
+    const { connectionId, connectionName } = deleteModal;
+    console.log('=== handleDeleteConfirm called ===', { connectionId, connectionName });
 
-    // Second click: proceed with delete
-    setDeleteConfirmId(null);
-    setLoading(true);
-    toast.info(`Deleting connection for ${connectionName}...`);
+    setIsDeleting(true);
 
     try {
       console.log('Calling api.workspace.deleteConnection...');
       await api.workspace.deleteConnection(connectionId);
       console.log('Delete successful!');
-      toast.success(`Successfully deleted connection for ${connectionName}`);
+      toast.success(`Successfully deleted ${connectionName}`);
+      setDeleteModal({ isOpen: false, connectionId: '', connectionName: '' });
       await loadConnections();
     } catch (error: any) {
       console.error('Error deleting connection:', error);
       console.error('Error message:', error.message);
       toast.error(error.message || 'Failed to delete connection');
     } finally {
-      setLoading(false);
+      setIsDeleting(false);
     }
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteModal({ isOpen: false, connectionId: '', connectionName: '' });
   };
 
   const handleRefresh = async () => {
@@ -369,7 +379,7 @@ const Connections: React.FC<ConnectionsProps> = ({ workspace }) => {
                   Refresh
                 </button>
                 <button
-                  onClick={() => handleDelete(connection.id, connection.name)}
+                  onClick={() => handleDeleteClick(connection.id, connection.name)}
                   className="py-3 px-4 text-sm font-bold text-red-400 bg-red-500/10 hover:bg-red-500/20 hover:text-red-300 rounded-xl transition-colors flex items-center justify-center border border-red-500/10"
                   title="Remove Connection"
                 >
@@ -401,6 +411,16 @@ const Connections: React.FC<ConnectionsProps> = ({ workspace }) => {
           </div>
         )}
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmModal
+        isOpen={deleteModal.isOpen}
+        onClose={handleDeleteCancel}
+        onConfirm={handleDeleteConfirm}
+        title="Delete Connection?"
+        itemName={deleteModal.connectionName}
+        isLoading={isDeleting}
+      />
     </div>
   );
 };
