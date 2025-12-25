@@ -262,7 +262,20 @@ export const api = {
       imageUrl?: string;
       accessToken: string;
     }): Promise<MetaConnection> => {
-      // First, check if a connection with this external_id already exists
+      // GLOBAL CHECK: Check if this Facebook profile is already connected by ANY user
+      const { data: globalExisting } = await supabase
+        .from('meta_connections')
+        .select('id, workspace_id, name')
+        .eq('external_id', connectionData.externalId)
+        .neq('workspace_id', workspaceId)  // Exclude current workspace
+        .single();
+
+      if (globalExisting) {
+        console.error('Profile already connected by another user:', globalExisting);
+        throw new Error(`This Facebook profile "${connectionData.name}" is already connected by another user. Each profile can only be connected to one account.`);
+      }
+
+      // Check if a connection with this external_id already exists in THIS workspace
       const { data: existingConnection } = await supabase
         .from('meta_connections')
         .select('*')
