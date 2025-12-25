@@ -29,53 +29,49 @@ const TriggerNodeForm: React.FC<TriggerNodeFormProps> = ({
     const [enableSendMessage, setEnableSendMessage] = useState(initialConfig?.enableSendMessage !== undefined ? initialConfig.enableSendMessage : true);
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
+    const isInitialMount = useRef(true);
+    const lastNotifiedConfig = useRef<string>('');
 
     useEffect(() => {
         loadPages();
     }, [workspaceId]);
 
-    // Debug: Log initial config on mount
-    useEffect(() => {
-        console.log('[TriggerNodeForm] Component mounted with initialConfig:', initialConfig);
-    }, []);
-
     // Sync form state when initialConfig changes (when modal reopens with saved config)
     useEffect(() => {
-        console.log('[TriggerNodeForm] initialConfig changed:', initialConfig);
         if (initialConfig) {
-            console.log('[TriggerNodeForm] Updating form state with:', {
-                pageId: initialConfig.pageId,
-                enableCommentReply: initialConfig.enableCommentReply,
-                enableSendMessage: initialConfig.enableSendMessage
-            });
             setSelectedPageId(initialConfig.pageId || '');
-            // Only default to true if the value is explicitly undefined (not saved yet)
-            // If it's false, keep it false
             setEnableCommentReply(initialConfig.enableCommentReply !== undefined ? initialConfig.enableCommentReply : true);
             setEnableSendMessage(initialConfig.enableSendMessage !== undefined ? initialConfig.enableSendMessage : true);
         }
+        // Mark initial mount complete after first sync
+        isInitialMount.current = false;
     }, [initialConfig]);
 
     // Sync with flowPageId from header when it changes (only if no user selection yet)
     useEffect(() => {
         if (flowPageId && flowPageId !== selectedPageId && !initialConfig?.pageId) {
-            console.log('[TriggerNodeForm] Syncing with header flowPageId:', flowPageId);
             setSelectedPageId(flowPageId);
         }
     }, [flowPageId]);
 
     // Handle page selection by user - notify parent
     const handlePageSelect = (pageId: string) => {
-        console.log('[TriggerNodeForm] User selected page:', pageId);
         setSelectedPageId(pageId);
         setIsDropdownOpen(false);
-        // Notify parent to sync header dropdown
         if (onPageChange) {
             onPageChange(pageId);
         }
     };
 
+    // Only call onChange when user makes actual changes, not on initial sync
     useEffect(() => {
+        // Skip if this is initial mount or if values haven't actually changed
+        const configKey = `${selectedPageId}-${enableCommentReply}-${enableSendMessage}`;
+        if (lastNotifiedConfig.current === configKey) {
+            return;
+        }
+        lastNotifiedConfig.current = configKey;
+
         onChange({
             pageId: selectedPageId,
             enableCommentReply,

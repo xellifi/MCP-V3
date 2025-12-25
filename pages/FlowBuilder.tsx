@@ -96,6 +96,12 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
   const [showConfigModal, setShowConfigModal] = useState(false);
   const [nodeConfigs, setNodeConfigs] = useState<NodeConfig>({});
   const [currentConfig, setCurrentConfig] = useState<any>({});
+  const initialConfigRef = useRef<any>({});
+
+  // Stable callback for form onChange to prevent re-render loops
+  const handleConfigChange = useCallback((config: any) => {
+    setCurrentConfig(config);
+  }, []);
 
   // Selected edge for deletion
   const [selectedEdge, setSelectedEdge] = useState<Edge | null>(null);
@@ -358,6 +364,7 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
 
     setSelectedNode(node);
     setCurrentConfig(mergedConfig);
+    initialConfigRef.current = mergedConfig; // Capture initial config for modal
     setShowConfigModal(true);
   }, [nodeConfigs]);
 
@@ -716,19 +723,19 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
     console.log('[FlowBuilder.renderConfigForm] Rendering form for:', nodeLabel);
     console.log('[FlowBuilder.renderConfigForm] actionType:', actionType);
     console.log('[FlowBuilder.renderConfigForm] currentConfig:', currentConfig);
+    console.log('[FlowBuilder.renderConfigForm] workspace:', workspace);
 
     // Trigger Node
     if (nodeLabel.includes('Comment') && nodeType === 'triggerNode') {
       return (
         <TriggerNodeForm
-          workspaceId={workspace.id}
+          workspaceId={workspace?.id || ''}
           flowPageId={flowPageId}
           onPageChange={(pageId) => {
-            console.log('[FlowBuilder] Page changed from form:', pageId);
             setFlowPageId(pageId);
           }}
-          initialConfig={currentConfig}
-          onChange={setCurrentConfig}
+          initialConfig={initialConfigRef.current}
+          onChange={handleConfigChange}
         />
       );
     }
@@ -737,9 +744,9 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
     if (actionType === 'reply' || nodeLabel.includes('Reply')) {
       return (
         <CommentReplyNodeForm
-          userId={workspace.ownerId}
-          initialConfig={currentConfig}
-          onChange={setCurrentConfig}
+          userId={workspace?.ownerId || ''}
+          initialConfig={initialConfigRef.current}
+          onChange={handleConfigChange}
         />
       );
     }
@@ -748,9 +755,9 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
     if (actionType === 'message' || nodeLabel.includes('Message')) {
       return (
         <SendMessageNodeForm
-          workspaceId={workspace.id}
-          initialConfig={currentConfig}
-          onChange={setCurrentConfig}
+          workspaceId={workspace?.id || ''}
+          initialConfig={initialConfigRef.current}
+          onChange={handleConfigChange}
         />
       );
     }
@@ -760,9 +767,9 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
     if (nodeType === 'textNode' || label.toLowerCase().includes('text') || label.toLowerCase().includes('delay')) {
       return (
         <TextNodeForm
-          userId={workspace.ownerId}
-          initialConfig={currentConfig}
-          onChange={setCurrentConfig}
+          userId={workspace?.ownerId || ''}
+          initialConfig={initialConfigRef.current}
+          onChange={handleConfigChange}
         />
       );
     }
@@ -771,9 +778,9 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
     if (nodeType === 'buttonNode' || label.toLowerCase().includes('text with buttons')) {
       return (
         <ButtonNodeForm
-          userId={workspace.ownerId}
-          initialConfig={currentConfig}
-          onChange={setCurrentConfig}
+          userId={workspace?.ownerId || ''}
+          initialConfig={initialConfigRef.current}
+          onChange={handleConfigChange}
         />
       );
     }
@@ -782,9 +789,9 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
     if (nodeType === 'buttonsOnlyNode' || (label.toLowerCase().includes('button') && !label.toLowerCase().includes('text'))) {
       return (
         <ButtonsOnlyNodeForm
-          userId={workspace.ownerId}
-          initialConfig={currentConfig}
-          onChange={setCurrentConfig}
+          userId={workspace?.ownerId || ''}
+          initialConfig={initialConfigRef.current}
+          onChange={handleConfigChange}
         />
       );
     }
@@ -793,14 +800,13 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
     if (nodeType === 'startNode' || label.toLowerCase().includes('start')) {
       return (
         <StartNodeForm
-          workspaceId={workspace.id}
+          workspaceId={workspace?.id || ''}
           flowPageId={flowPageId}
           onPageChange={(pageId) => {
-            console.log('[FlowBuilder] Page changed from StartNodeForm:', pageId);
             setFlowPageId(pageId);
           }}
-          initialConfig={currentConfig}
-          onChange={setCurrentConfig}
+          initialConfig={initialConfigRef.current}
+          onChange={handleConfigChange}
         />
       );
     }
@@ -1175,9 +1181,11 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
         </div>
       )}
 
+
       {/* Configuration Modal */}
       {selectedNode && (
         <NodeConfigModal
+          key={selectedNode.id}
           isOpen={showConfigModal}
           onClose={handleCloseModal}
           nodeType={selectedNode.data.nodeType as string || 'node'}

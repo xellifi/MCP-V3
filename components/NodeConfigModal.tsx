@@ -18,7 +18,11 @@ const NodeConfigModal: React.FC<NodeConfigModalProps> = ({
     children,
     onSave
 }) => {
-    if (!isOpen) return null;
+    // Use CSS to control visibility instead of conditional rendering
+    // This prevents React Hooks violations
+    if (!isOpen) {
+        return null;
+    }
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
