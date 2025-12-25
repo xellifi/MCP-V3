@@ -14,7 +14,7 @@ const ConnectedPages: React.FC<ConnectedPagesProps> = ({ workspace }) => {
   const [pages, setPages] = useState<ConnectedPage[]>([]);
   const [loading, setLoading] = useState(true);
   const [toggling, setToggling] = useState<string | null>(null);
-  const [filter, setFilter] = useState<FilterType>('active');
+  const [filter, setFilter] = useState<FilterType | null>(null); // Start null until we know what to show
   const toast = useToast();
 
   useEffect(() => {
@@ -26,8 +26,15 @@ const ConnectedPages: React.FC<ConnectedPagesProps> = ({ workspace }) => {
     try {
       const data = await api.workspace.getConnectedPages(workspace.id);
       setPages(data);
+
+      // Smart default: show 'active' tab if user has active pages, otherwise show 'inactive'
+      if (filter === null) {
+        const hasActivePages = data.some(p => p.isAutomationEnabled);
+        setFilter(hasActivePages ? 'active' : 'inactive');
+      }
     } catch (error) {
       toast.error("Failed to load connected pages.");
+      if (filter === null) setFilter('inactive'); // Default to inactive on error
     } finally {
       setLoading(false);
     }
@@ -105,6 +112,7 @@ const ConnectedPages: React.FC<ConnectedPagesProps> = ({ workspace }) => {
 
   // Filter pages based on selected filter
   const filteredPages = pages.filter(page => {
+    if (filter === null) return true; // Show all while determining default
     if (filter === 'active') return page.isAutomationEnabled;
     if (filter === 'inactive') return !page.isAutomationEnabled;
     return true; // 'all'
