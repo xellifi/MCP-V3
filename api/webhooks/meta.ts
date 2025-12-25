@@ -5,6 +5,11 @@ const supabaseUrl = process.env.VITE_SUPABASE_URL!;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY!;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
+// In-memory cache to prevent race conditions from duplicate webhook calls
+// Map of commentId -> processing start timestamp
+const processingCache = new Map<string, number>();
+const PROCESSING_TIMEOUT = 30000; // 30 seconds before allowing reprocessing
+
 // AI Response Generation function
 async function generateAIResponse(
     provider: 'openai' | 'gemini',
@@ -488,6 +493,22 @@ async function processComment(value: any, pageId: string) {
         return;
     }
 
+    // In-memory race condition prevention - check if already being processed
+    const now = Date.now();
+    const existingProcessing = processingCache.get(commentId);
+    if (existingProcessing && (now - existingProcessing) < PROCESSING_TIMEOUT) {
+        console.log('✓ SKIPPING: Comment is currently being processed (race condition prevention)');
+        return;
+    }
+    // Mark as being processed
+    processingCache.set(commentId, now);
+    // Clean up old entries (older than timeout)
+    for (const [key, timestamp] of processingCache.entries()) {
+        if (now - timestamp > PROCESSING_TIMEOUT) {
+            processingCache.delete(key);
+        }
+    }
+
     // Check if we've already processed this comment
     const { data: existingComment } = await supabase
         .from('comments')
@@ -858,17 +879,16 @@ async function executeAction(
             console.log(`    📝 Template: "${template}"`);
         }
 
-        // Check if we've already sent DM for this comment
+        // Check if we've already sent DM for this comment (regardless of which flow)
         const { data: existingLog } = await supabase
             .from('comment_automation_log')
             .select('id')
             .eq('comment_id', commentId)
             .eq('action_type', 'dm_sent')
-            .eq('flow_id', flowId)
             .single();
 
         if (existingLog) {
-            console.log('    ✓ Already sent DM from this node for this comment');
+            console.log('    ✓ Already sent DM for this comment (skipping duplicate)');
             return;
         }
 

@@ -355,18 +355,25 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
     const savedConfig = nodeConfigs[node.id] || {};
 
     // Merge saved config with extracted config - saved config takes priority
-    const mergedConfig = { ...extractedConfig, ...savedConfig };
+    let mergedConfig = { ...extractedConfig, ...savedConfig };
+
+    // For trigger nodes and start nodes, include flowPageId from header if not already saved
+    const needsPageSync = configType === 'triggerNode' || nodeType === 'startNode' || nodeLabel?.toLowerCase().includes('start');
+    if (needsPageSync && flowPageId && !savedConfig.pageId) {
+      mergedConfig = { ...mergedConfig, pageId: flowPageId };
+    }
 
     console.log('[FlowBuilder.handleConfigureNode] Config type:', configType);
     console.log('[FlowBuilder.handleConfigureNode] Extracted config:', extractedConfig);
     console.log('[FlowBuilder.handleConfigureNode] Saved config (nodeConfigs):', savedConfig);
     console.log('[FlowBuilder.handleConfigureNode] Merged config:', mergedConfig);
+    console.log('[FlowBuilder.handleConfigureNode] flowPageId:', flowPageId);
 
     setSelectedNode(node);
     setCurrentConfig(mergedConfig);
     initialConfigRef.current = mergedConfig; // Capture initial config for modal
     setShowConfigModal(true);
-  }, [nodeConfigs]);
+  }, [nodeConfigs, flowPageId]);
 
   const handleSaveConfig = () => {
     if (selectedNode) {
