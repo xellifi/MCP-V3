@@ -1114,6 +1114,7 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
             onConnect={onConnect}
             onNodeDoubleClick={onNodeDoubleClick}
             onEdgeClick={onEdgeClick}
+            onPaneClick={() => setIsToolsOpen(false)}
             nodeTypes={nodeTypes}
             edgeTypes={edgeTypes}
             fitView={nodes.length === 0}

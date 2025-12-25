@@ -158,6 +158,7 @@ const ScheduledPosts: React.FC<ScheduledPostsProps> = ({ workspace }) => {
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
+        onPaneClick={() => setIsToolsOpen(false)}
         nodeTypes={nodeTypes}
         fitView
         fitViewOptions={{ padding: 0.35 }}
