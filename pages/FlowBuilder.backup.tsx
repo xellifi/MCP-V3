@@ -18,7 +18,7 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Workspace, ConnectedPage } from '../types';
-import { Save, ArrowLeft, PlayCircle, Menu, X, Grid3x3, MessageCircle, Play, Bot, Send, Clock, MousePointer2, SquareMousePointer, Sparkles, GitBranch, MessageSquare, RectangleEllipsis, Plus, Minus, Maximize, Wrench } from 'lucide-react';
+import { Save, ArrowLeft, PlayCircle, Menu, X, Grid3x3, MessageCircle, Play, Bot, Send, Clock, MousePointer2, SquareMousePointer, Sparkles, GitBranch, MessageSquare, RectangleEllipsis, Plus, Minus, Maximize } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import NodeConfigModal from '../components/NodeConfigModal';
 import TriggerNodeForm from '../components/TriggerNodeForm';
@@ -938,30 +938,30 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
     </button>
   );
 
-  // Mobile tools operations
-  const [isToolsOpen, setIsToolsOpen] = useState(true);
-
-  // Auto-collapse tools on mobile by default
-  useEffect(() => {
-    if (window.innerWidth < 768) {
-      setIsToolsOpen(false);
-    }
-  }, []);
-
   return (
-    <div className="h-[calc(100vh-60px)] w-full -m-6 relative bg-slate-950 overflow-hidden">
+    <div className="h-[calc(100vh-4rem)] flex flex-col -m-8 animate-fade-in relative overflow-hidden">
+      {/* Background */}
+      <div className="absolute inset-0 bg-slate-950 z-0" />
 
-      {/* Header Overlay (Title & Back) - Hidden on Mobile to save space, or kept minimal */}
-      <div className="absolute top-6 left-6 z-10 hidden md:block">
-        <div className="flex items-center gap-3">
+      {/* Header */}
+      <div className="glass-panel border-b border-white/10 px-6 pt-8 pb-3 md:py-3 flex items-center justify-between z-20 shadow-lg relative">
+        <div className="flex items-center gap-2 md:gap-4">
           <button
             onClick={() => navigate('/flows')}
-            className="p-2 bg-white/5 hover:bg-white/10 backdrop-blur-md border border-white/10 rounded-xl text-slate-400 hover:text-white transition-all shadow-lg"
+            className="p-2 hover:bg-white/10 rounded-lg text-slate-400 hover:text-white transition-colors"
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
 
-          <div className="flex flex-col">
+          {/* Mobile: Show menu button - HIDDEN per user request */}
+          <button
+            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+            className="hidden p-2 hover:bg-white/10 rounded-lg text-slate-400 hover:text-white transition-colors"
+          >
+            {sidebarCollapsed ? <Menu className="w-5 h-5" /> : <X className="w-5 h-5" />}
+          </button>
+
+          <div>
             {isEditingName ? (
               <input
                 type="text"
@@ -969,134 +969,202 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
                 onChange={(e) => setEditedName(e.target.value)}
                 onBlur={handleNameSave}
                 onKeyDown={handleNameKeyPress}
-                className="font-bold text-white bg-white/10 border border-indigo-500/50 rounded-lg px-2 py-0.5 text-lg outline-none focus:ring-2 focus:ring-indigo-500/50 shadow-lg backdrop-blur-md"
+                className="font-bold text-white bg-white/10 border border-indigo-500/50 rounded-lg px-3 py-1 text-sm md:text-lg outline-none focus:ring-2 focus:ring-indigo-500/50"
                 autoFocus
-                style={{ minWidth: '200px' }}
+                style={{ minWidth: '150px' }}
               />
             ) : (
-              <div className="flex items-center gap-3 group">
-                <h1
-                  className="text-2xl font-bold text-white tracking-tight drop-shadow-md cursor-pointer"
+              <div className="flex items-center gap-2 md:gap-3">
+                <h2
+                  className="font-bold text-white text-xs md:text-lg cursor-pointer hover:text-indigo-300 transition-colors truncate max-w-[120px] md:max-w-none"
                   onDoubleClick={handleNameDoubleClick}
                   title="Double-click to edit"
                 >
                   {currentFlowName}
-                </h1>
-                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider border backdrop-blur-md shadow-sm ${flowStatus === 'ACTIVE'
+                </h2>
+                <span className={`px-2 py-0.5 rounded-full text-xs font-normal border flex-shrink-0 ${flowStatus === 'ACTIVE'
                   ? 'bg-green-500/20 text-green-300 border-green-500/30'
                   : 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30'
                   }`}>
-                  {flowStatus === 'ACTIVE' ? 'ACTIVE' : 'DRAFT'}
+                  {flowStatus === 'ACTIVE' ? 'Active' : 'Draft'}
                 </span>
               </div>
             )}
-            <p className="text-slate-400 text-sm drop-shadow-sm font-medium">Flow Automation Builder</p>
+            <p className="text-xs text-slate-500 hidden md:block">{currentFlowName}</p>
           </div>
         </div>
-      </div>
 
-      {/* Top Right Controls (Save / Publish) */}
-      <div className="absolute top-4 left-1/2 -translate-x-1/2 md:translate-x-0 md:left-auto md:right-6 md:top-6 z-10 flex gap-2 md:gap-3 w-max">
-        <button
-          onClick={handleSave}
-          disabled={isSaving}
-          className="flex items-center gap-1.5 md:gap-2 px-3 py-1.5 md:px-5 md:py-2.5 text-xs md:text-sm font-bold bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-lg md:rounded-xl text-white transition-all border border-white/10 shadow-lg disabled:opacity-50"
-        >
-          <Save className="w-3 h-3 md:w-4 md:h-4" />
-          <span className="hidden md:inline">{isSaving ? 'Saving...' : 'Save Draft'}</span>
-        </button>
-
-        <button
-          className="flex items-center gap-1.5 md:gap-2 px-3 py-1.5 md:px-5 md:py-2.5 text-xs md:text-sm font-bold bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white rounded-lg md:rounded-xl transition-all shadow-lg shadow-indigo-500/20 active:scale-95 border border-white/20"
-        >
-          <Play className="w-3 h-3 md:w-4 md:h-4 fill-current" />
-          Run Test
-        </button>
-      </div>
-
-      {/* Floating Toolbar (Tools) */}
-      <div className="absolute left-6 top-6 md:top-28 z-10 flex flex-col gap-3">
-        {/* Mobile Toggle Button */}
-        <div className="md:hidden">
+        <div className="flex items-center gap-2">
           <button
-            onClick={() => setIsToolsOpen(!isToolsOpen)}
-            className="w-12 h-12 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center text-white border border-white/10 shadow-lg active:scale-95 transition-all"
+            onClick={handleSave}
+            disabled={isSaving}
+            className="flex items-center gap-2 px-3 md:px-5 py-2 md:py-2.5 text-xs md:text-sm font-bold bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-xl hover:shadow-lg hover:shadow-indigo-500/20 disabled:opacity-50 transition-all active:scale-95 border border-white/20"
           >
-            {isToolsOpen ? <X className="w-6 h-6" /> : <Wrench className="w-6 h-6" />}
+            <Save className="w-4 h-4" />
+            <span className="hidden md:inline">{isSaving ? 'Saving...' : 'Publish'}</span>
           </button>
         </div>
-
-        {/* Tools List */}
-        <div className={`glass-panel p-3 rounded-2xl border border-white/10 shadow-2xl space-y-3 backdrop-blur-xl transition-all duration-300 origin-top-left ${isToolsOpen ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none absolute top-14 left-0'}`}>
-          <p className="text-xs font-bold text-slate-500 uppercase tracking-wider text-center mb-2">Build</p>
-
-          <div
-            draggable
-            onDragStart={(e) => onDragStart(e, 'startNode', 'Start')}
-            onClick={() => addNode('startNode', 'Start')}
-            className="w-12 h-12 bg-emerald-500/20 hover:bg-emerald-500/40 border border-emerald-500/30 rounded-xl flex items-center justify-center text-emerald-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing group relative"
-            title="Start Node"
-          >
-            <Play className="w-6 h-6 fill-current" />
-            <span className="absolute left-14 bg-black/80 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Start</span>
-          </div>
-
-          <div
-            draggable
-            onDragStart={(e) => {
-              e.dataTransfer.setData('application/reactflow-template', 'commentReply');
-              e.dataTransfer.effectAllowed = 'move';
-            }}
-            onClick={() => addCommentReplyTemplate()}
-            className="w-12 h-12 bg-blue-500/20 hover:bg-blue-500/40 border border-blue-500/30 rounded-xl flex items-center justify-center text-blue-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing group relative"
-            title="New Comment"
-          >
-            <MessageCircle className="w-6 h-6" />
-            <span className="absolute left-14 bg-black/80 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">New Comment</span>
-          </div>
-
-          <div
-            draggable
-            onDragStart={(e) => onDragStart(e, 'textNode', 'Text')}
-            onClick={() => addNode('textNode', 'Text')}
-            className="w-12 h-12 bg-amber-500/20 hover:bg-amber-500/40 border border-amber-500/30 rounded-xl flex items-center justify-center text-amber-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing group relative"
-            title="Send Text"
-          >
-            <MessageSquare className="w-6 h-6" />
-            <span className="absolute left-14 bg-black/80 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Send Text</span>
-          </div>
-
-          <div
-            draggable
-            onDragStart={(e) => onDragStart(e, 'aiNode', 'AI Agent')}
-            onClick={() => addNode('aiNode', 'AI Agent')}
-            className="w-12 h-12 bg-indigo-500/20 hover:bg-indigo-500/40 border border-indigo-500/30 rounded-xl flex items-center justify-center text-indigo-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing group relative"
-            title="AI Agent"
-          >
-            <Sparkles className="w-6 h-6" />
-            <span className="absolute left-14 bg-black/80 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">AI Agent</span>
-          </div>
-
-          <div
-            draggable
-            onDragStart={(e) => onDragStart(e, 'conditionNode', 'Condition')}
-            onClick={() => addNode('conditionNode', 'Condition')}
-            className="w-12 h-12 bg-orange-500/20 hover:bg-orange-500/40 border border-orange-500/30 rounded-xl flex items-center justify-center text-orange-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing group relative"
-            title="Condition"
-          >
-            <GitBranch className="w-6 h-6" />
-            <span className="absolute left-14 bg-black/80 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Condition</span>
-          </div>
-        </div>
       </div>
 
-      <div className="flex-1 h-full bg-slate-950 relative">
+      <div className="flex-1 flex overflow-hidden relative z-10">
+        {/* Sidebar */}
+        <div className={`${sidebarCollapsed ? 'w-0' : 'w-64 md:w-72'} glass-panel border-r border-white/10 overflow-y-auto transition-all duration-300 z-20 shadow-2xl ${sidebarCollapsed ? 'hidden' : 'absolute md:relative h-full'}`}>
+          <div className="p-4 md:p-5 space-y-6">
+            {/* Desktop: Collapse button */}
+            <button
+              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+              className="hidden md:flex items-center gap-2 w-full p-2 hover:bg-white/5 rounded-lg text-slate-400 hover:text-white transition-colors text-sm"
+            >
+              <Menu className="w-4 h-4" />
+              Collapse
+            </button>
+
+            {/* Mobile: Grid view button */}
+            <button
+              onClick={() => setShowMobileNodeGrid(true)}
+              className="md:hidden flex items-center gap-2 w-full p-3 bg-indigo-500/20 border border-indigo-500/30 rounded-xl text-white font-semibold"
+            >
+              <Grid3x3 className="w-5 h-5" />
+              View All Nodes
+            </button>
+
+            {/* Node Categories */}
+            <div className="space-y-6">
+              <div>
+                <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Triggers</h3>
+                <div className="space-y-2">
+                  <div
+                    draggable
+                    onDragStart={(e) => {
+                      e.dataTransfer.setData('application/reactflow-template', 'commentReply');
+                      e.dataTransfer.effectAllowed = 'move';
+                    }}
+                    onClick={() => addCommentReplyTemplate()}
+                    className="w-full flex items-center gap-3 p-3 bg-white/5 border border-white/10 rounded-xl hover:border-blue-500/50 hover:bg-blue-500/10 transition-all text-left group cursor-grab active:cursor-grabbing"
+                  >
+                    <div className="w-8 h-8 bg-blue-500/20 text-blue-400 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <MessageCircle className="w-4 h-4" />
+                    </div>
+                    <span className="text-sm font-semibold text-slate-300 group-hover:text-white transition-colors">New Comment</span>
+                  </div>
+                  <div
+                    draggable
+                    onDragStart={(e) => onDragStart(e, 'startNode', 'Start')}
+                    onClick={() => addNode('startNode', 'Start')}
+                    className="w-full flex items-center gap-3 p-3 bg-white/5 border border-white/10 rounded-xl hover:border-emerald-500/50 hover:bg-emerald-500/10 transition-all text-left group cursor-grab active:cursor-grabbing"
+                  >
+                    <div className="w-8 h-8 bg-emerald-500/20 text-emerald-400 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <Play className="w-4 h-4" fill="currentColor" />
+                    </div>
+                    <span className="text-sm font-semibold text-slate-300 group-hover:text-white transition-colors">Start</span>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Actions</h3>
+                <div className="space-y-2">
+                  <div
+                    draggable
+                    onDragStart={(e) => onDragStart(e, 'textNode', 'Text')}
+                    onClick={() => addNode('textNode', 'Text')}
+                    className="w-full flex items-center gap-3 p-3 bg-white/5 border border-white/10 rounded-xl hover:border-amber-500/50 hover:bg-amber-500/10 transition-all text-left group cursor-grab active:cursor-grabbing"
+                  >
+                    <div className="w-8 h-8 bg-amber-500/20 text-amber-400 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <MessageSquare className="w-4 h-4" />
+                    </div>
+                    <span className="text-sm font-semibold text-slate-300 group-hover:text-white transition-colors">Text</span>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Logic & AI</h3>
+                <div className="space-y-2">
+                  <div
+                    draggable
+                    onDragStart={(e) => onDragStart(e, 'aiNode', 'AI Agent')}
+                    onClick={() => addNode('aiNode', 'AI Agent')}
+                    className="w-full flex items-center gap-3 p-3 bg-white/5 border border-white/10 rounded-xl hover:border-indigo-500/50 hover:bg-indigo-500/10 transition-all text-left group cursor-grab active:cursor-grabbing"
+                  >
+                    <div className="w-8 h-8 bg-indigo-500/20 text-indigo-400 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <Sparkles className="w-4 h-4" />
+                    </div>
+                    <span className="text-sm font-semibold text-slate-300 group-hover:text-white transition-colors">AI Agent</span>
+                  </div>
+                  <div
+                    draggable
+                    onDragStart={(e) => onDragStart(e, 'conditionNode', 'Condition')}
+                    onClick={() => addNode('conditionNode', 'Condition')}
+                    className="w-full flex items-center gap-3 p-3 bg-white/5 border border-white/10 rounded-xl hover:border-amber-500/50 hover:bg-amber-500/10 transition-all text-left group cursor-grab active:cursor-grabbing"
+                  >
+                    <div className="w-8 h-8 bg-amber-500/20 text-amber-400 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <GitBranch className="w-4 h-4" />
+                    </div>
+                    <span className="text-sm font-semibold text-slate-300 group-hover:text-white transition-colors">Condition</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Desktop: Collapsed sidebar button */}
+        {sidebarCollapsed && (
+          <button
+            onClick={() => setSidebarCollapsed(false)}
+            className="hidden md:flex absolute left-0 top-1/2 -translate-y-1/2 z-30 p-2 bg-white/10 hover:bg-white/20 rounded-r-lg text-white transition-colors"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+        )}
+
+        {/* Mobile: Toggle sidebar button - HIDDEN as it is now in the top toolbar */}
+        {/* <button
+          onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+          className="md:hidden absolute left-0 top-1/2 -translate-y-1/2 z-30 p-3 bg-slate-800/90 hover:bg-slate-700 border border-white/10 rounded-r-xl text-white shadow-lg transition-all"
+        >
+          <Menu className="w-5 h-5" />
+        </button> */}
+
+        {/* Canvas */}
         <div
           ref={reactFlowWrapper}
-          className="w-full h-full"
+          className="flex-1 h-full bg-slate-950"
           onDragOver={onDragOver}
           onDrop={onDrop}
         >
+          {/* Mobile Top Toolbar - Menu & Zoom Controls */}
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-40 flex items-center gap-1 p-1 bg-slate-800/90 backdrop-blur-md border border-white/10 rounded-lg shadow-xl md:hidden">
+            <button
+              onClick={() => setShowMobileNodeGrid(true)}
+              className="p-2 hover:bg-white/10 rounded-md text-slate-300 active:text-white transition-colors"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+
+            <div className="w-px h-5 bg-white/10 mx-1" />
+
+            <button
+              onClick={() => reactFlowInstance.zoomIn()}
+              className="p-2 hover:bg-white/10 rounded-md text-slate-300 active:text-white transition-colors"
+            >
+              <Plus className="w-5 h-5" />
+            </button>
+            <button
+              onClick={() => reactFlowInstance.zoomOut()}
+              className="p-2 hover:bg-white/10 rounded-md text-slate-300 active:text-white transition-colors"
+            >
+              <Minus className="w-5 h-5" />
+            </button>
+            <button
+              onClick={() => reactFlowInstance.fitView()}
+              className="p-2 hover:bg-white/10 rounded-md text-slate-300 active:text-white transition-colors"
+            >
+              <Maximize className="w-4 h-4" />
+            </button>
+          </div>
+
           <ReactFlow
             nodes={nodes}
             edges={edges}
@@ -1115,17 +1183,16 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
               style: { stroke: '#64748b', strokeWidth: 2 }
             }}
             minZoom={0.1}
-            maxZoom={0.75}
-            fitViewOptions={{ padding: 0.35 }}
+            maxZoom={1.5}
             zoomOnScroll={true}
             zoomOnPinch={true}
             panOnScroll={false}
             panOnDrag={true}
           >
             <Background color="#1e293b" gap={20} />
-            <Controls className="hidden md:block !bg-slate-800 !border-white/10 !shadow-xl [&>button]:!fill-slate-400 [&>button:hover]:!fill-white" />
+            <Controls className="hidden md:block bg-slate-800/80 backdrop-blur-sm border-slate-700 fill-slate-300 stroke-slate-300 shadow-xl rounded-lg" />
             <MiniMap
-              className="hidden md:block !bg-slate-900/80 !backdrop-blur-sm !border-slate-700 !shadow-xl !rounded-lg overflow-hidden"
+              className="hidden md:block bg-slate-900/80 backdrop-blur-sm border-slate-700 shadow-xl rounded-lg overflow-hidden"
               maskColor="rgba(15, 23, 42, 0.7)"
               nodeColor={(n) => {
                 if (n.type === 'triggerNode') return '#10b981';
@@ -1136,8 +1203,78 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
               }}
             />
           </ReactFlow>
+
+          {/* Delete button now appears on the edge itself when selected */}
         </div>
       </div>
+
+      {/* Mobile Node Grid Modal */}
+      {showMobileNodeGrid && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="glass-panel rounded-2xl w-full max-w-lg max-h-[80vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-bold text-white">Add Node</h3>
+                <button onClick={() => setShowMobileNodeGrid(false)} className="p-2 hover:bg-white/10 rounded-lg text-slate-400 hover:text-white">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-3 gap-4">
+                <button onClick={() => addCommentReplyTemplate()} className="group flex flex-col items-center gap-3 p-4 bg-slate-800/50 hover:bg-green-500/10 border border-white/5 hover:border-green-500/30 rounded-2xl transition-all active:scale-95">
+                  <div className="w-12 h-12 bg-green-500/20 text-green-400 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg shadow-green-900/20">
+                    <MessageCircle className="w-6 h-6" />
+                  </div>
+                  <span className="text-xs font-medium text-slate-300 group-hover:text-green-300 text-center">Comment Trigger</span>
+                </button>
+
+                <button onClick={() => addNode('actionNode', 'Comment Reply', 'reply')} className="group flex flex-col items-center gap-3 p-4 bg-slate-800/50 hover:bg-cyan-500/10 border border-white/5 hover:border-cyan-500/30 rounded-2xl transition-all active:scale-95">
+                  <div className="w-12 h-12 bg-cyan-500/20 text-cyan-400 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg shadow-cyan-900/20">
+                    <MessageSquare className="w-6 h-6" />
+                  </div>
+                  <span className="text-xs font-medium text-slate-300 group-hover:text-cyan-300 text-center">Reply</span>
+                </button>
+
+                <button onClick={() => addNode('actionNode', 'Send Message', 'message')} className="group flex flex-col items-center gap-3 p-4 bg-slate-800/50 hover:bg-purple-500/10 border border-white/5 hover:border-purple-500/30 rounded-2xl transition-all active:scale-95">
+                  <div className="w-12 h-12 bg-purple-500/20 text-purple-400 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg shadow-purple-900/20">
+                    <Send className="w-6 h-6" />
+                  </div>
+                  <span className="text-xs font-medium text-slate-300 group-hover:text-purple-300 text-center">Messenger Reply</span>
+                </button>
+
+                <button onClick={() => addNode('startNode', 'Start')} className="group flex flex-col items-center gap-3 p-4 bg-slate-800/50 hover:bg-emerald-500/10 border border-white/5 hover:border-emerald-500/30 rounded-2xl transition-all active:scale-95">
+                  <div className="w-12 h-12 bg-emerald-500/20 text-emerald-400 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg shadow-emerald-900/20">
+                    <Play className="w-6 h-6" fill="currentColor" />
+                  </div>
+                  <span className="text-xs font-medium text-slate-300 group-hover:text-emerald-300 text-center">Start Flow</span>
+                </button>
+
+                <button onClick={() => addNode('textNode', 'Text')} className="group flex flex-col items-center gap-3 p-4 bg-slate-800/50 hover:bg-amber-500/10 border border-white/5 hover:border-amber-500/30 rounded-2xl transition-all active:scale-95">
+                  <div className="w-12 h-12 bg-amber-500/20 text-amber-400 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg shadow-amber-900/20">
+                    <MessageSquare className="w-6 h-6" />
+                  </div>
+                  <span className="text-xs font-medium text-slate-300 group-hover:text-amber-300 text-center">Text</span>
+                </button>
+
+                <button onClick={() => addNode('aiNode', 'AI Agent')} className="group flex flex-col items-center gap-3 p-4 bg-slate-800/50 hover:bg-indigo-500/10 border border-white/5 hover:border-indigo-500/30 rounded-2xl transition-all active:scale-95">
+                  <div className="w-12 h-12 bg-indigo-500/20 text-indigo-400 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg shadow-indigo-900/20">
+                    <Sparkles className="w-6 h-6" />
+                  </div>
+                  <span className="text-xs font-medium text-slate-300 group-hover:text-indigo-300 text-center">AI Agent</span>
+                </button>
+
+                <button onClick={() => addNode('conditionNode', 'Condition')} className="group flex flex-col items-center gap-3 p-4 bg-slate-800/50 hover:bg-orange-500/10 border border-white/5 hover:border-orange-500/30 rounded-2xl transition-all active:scale-95">
+                  <div className="w-12 h-12 bg-orange-500/20 text-orange-400 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg shadow-orange-900/20">
+                    <GitBranch className="w-6 h-6" />
+                  </div>
+                  <span className="text-xs font-medium text-slate-300 group-hover:text-orange-300 text-center">Condition</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
 
       {/* Configuration Modal */}
       {selectedNode && (
