@@ -1073,6 +1073,14 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
           </button>
         )}
 
+        {/* Mobile: Toggle sidebar button - positioned at left-middle */}
+        <button
+          onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+          className="md:hidden absolute left-0 top-1/2 -translate-y-1/2 z-30 p-3 bg-slate-800/90 hover:bg-slate-700 border border-white/10 rounded-r-xl text-white shadow-lg transition-all"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
+
         {/* Canvas */}
         <div
           ref={reactFlowWrapper}
