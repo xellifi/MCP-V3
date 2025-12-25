@@ -608,15 +608,22 @@ async function executeAutomation(
 
         // Check if trigger matches this page - try both DB ID and Facebook Page ID
         const configPageId = triggerConfig.pageId;
+
+        // If pageId is not configured, treat as "all pages" (backwards compatibility)
+        const pageIdNotConfigured = !configPageId || configPageId === 'undefined' || configPageId === '';
         const matchesDbId = configPageId === pageDbId;
         const matchesFacebookId = configPageId === context.pageId;
 
-        if (!matchesDbId && !matchesFacebookId) {
+        if (!pageIdNotConfigured && !matchesDbId && !matchesFacebookId) {
             console.log(`⊘ Flow "${flow.name}" not configured for this page (no match)`);
             continue;
         }
 
-        console.log(`✓ Page ID matched: ${matchesDbId ? 'DB ID' : 'Facebook ID'}`);
+        if (pageIdNotConfigured) {
+            console.log(`✓ Page ID not configured - flow applies to ALL pages`);
+        } else {
+            console.log(`✓ Page ID matched: ${matchesDbId ? 'DB ID' : 'Facebook ID'}`);
+        }
 
         console.log(`\n✓✓✓ EXECUTING FLOW: "${flow.name}" ✓✓✓`);
 
