@@ -45,7 +45,7 @@ const ALL_NAV_ITEMS: Record<string, { icon: any, label: string }> = {
   '/subscribers': { icon: Users, label: 'Subscribers' },
   '/messages': { icon: MessageSquare, label: 'Inbox' },
   '/flows': { icon: Workflow, label: 'Flows' },
-  '/scheduled': { icon: CalendarDays, label: 'Posts' },
+  '/scheduled': { icon: CalendarDays, label: 'Scheduler' },
   '/settings': { icon: Sliders, label: 'Settings' },
   '/affiliates': { icon: Banknote, label: 'Affiliates' },
   '/support': { icon: LifeBuoy, label: 'Support' },

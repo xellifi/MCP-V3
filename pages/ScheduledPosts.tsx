@@ -86,7 +86,7 @@ const ScheduledPosts: React.FC<ScheduledPostsProps> = ({ workspace }) => {
 
       {/* Header Overlay - Hidden on Mobile */}
       <div className="absolute top-6 left-6 z-10 pointer-events-none hidden md:block">
-        <h1 className="text-3xl font-bold text-white tracking-tight drop-shadow-md">Scheduled Workflows</h1>
+        <h1 className="text-3xl font-bold text-white tracking-tight drop-shadow-md">Scheduler</h1>
         <p className="text-slate-400 text-sm drop-shadow-sm font-medium">Visual Automation Builder</p>
       </div>
 
