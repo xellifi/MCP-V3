@@ -402,9 +402,21 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
       console.log('[FlowBuilder.handleConfigureNode] TextNode config from data:', textNodeConfig);
     }
 
+    // For startNode, extract keywords and matchType from node data
+    let startNodeConfig = {};
+    if (nodeType === 'startNode' || nodeLabel?.toLowerCase().includes('start')) {
+      startNodeConfig = {
+        keywords: nodeData.keywords || savedConfig.keywords || [],
+        matchType: nodeData.matchType || savedConfig.matchType || 'exact',
+        pageId: nodeData.pageId || savedConfig.pageId || flowPageId || ''
+      };
+      console.log('[FlowBuilder.handleConfigureNode] StartNode config from data:', startNodeConfig);
+    }
+
     // Merge saved config with extracted config - saved config takes priority
     // For textNode, merge textNodeConfig as well
-    let mergedConfig = { ...extractedConfig, ...textNodeConfig, ...savedConfig };
+    // For startNode, merge startNodeConfig as well
+    let mergedConfig = { ...extractedConfig, ...textNodeConfig, ...startNodeConfig, ...savedConfig };
 
     // For trigger and start nodes, ALWAYS use flowPageId from header as source of truth
     const needsPageSync = configType === 'triggerNode' || nodeType === 'startNode' || nodeLabel?.toLowerCase().includes('start');
