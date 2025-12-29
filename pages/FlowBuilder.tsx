@@ -695,14 +695,16 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
           x: flowBounds.left + flowBounds.width / 2,
           y: flowBounds.top + flowBounds.height / 2
         });
-        // Offset for template group (approx width 500px / 2 = 250px)
-        baseX = center.x - 220;
-        baseY = center.y - 100;
+        // Offset for template group - better centering on PC
+        // Template total width ~450px, so offset by ~200px to center
+        baseX = center.x - 150;
+        baseY = center.y - 80;
       }
     }
 
-    baseX = baseX || 450;
-    baseY = baseY || 280;
+    // Default positions for PC - more centered in typical workspace
+    baseX = baseX || 550;
+    baseY = baseY || 200;
 
     // Generate unique IDs for the nodes
     const triggerId = `trigger-${Date.now()}`;
