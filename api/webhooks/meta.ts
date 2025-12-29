@@ -850,6 +850,95 @@ async function executeAction(
             .replace(/{last_name}/g, lastName);
     };
 
+    // Image Node - check FIRST before any label-based detection
+    if (nodeType === 'imageNode' || label.toLowerCase() === 'image') {
+        console.log(`    ✓ Detected as Image node`);
+        const imageUrl = config.imageUrl || '';
+        const caption = config.caption || '';
+
+        if (!imageUrl) {
+            console.log('    ⊘ Skipping: No image URL configured');
+            return;
+        }
+
+        console.log(`    🖼️ Image URL: "${imageUrl}"`);
+        if (caption) {
+            console.log(`    📝 Caption: "${caption}"`);
+        }
+
+        try {
+            // Show typing indicator briefly
+            await sendTypingIndicator(context.commenterId, pageAccessToken, 'typing_on');
+            await new Promise(resolve => setTimeout(resolve, 500));
+            await sendTypingIndicator(context.commenterId, pageAccessToken, 'typing_off');
+
+            // Send the image attachment
+            const imageRequestBody = {
+                recipient: { id: context.commenterId },
+                message: {
+                    attachment: {
+                        type: 'image',
+                        payload: {
+                            url: imageUrl,
+                            is_reusable: true
+                        }
+                    }
+                },
+                access_token: pageAccessToken
+            };
+
+            console.log(`    📤 Sending image to user: ${context.commenterName}`);
+
+            const imageResponse = await fetch(
+                `https://graph.facebook.com/v21.0/me/messages`,
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(imageRequestBody)
+                }
+            );
+
+            const imageResult = await imageResponse.json();
+            console.log(`    📤 Facebook API response:`, JSON.stringify(imageResult, null, 2));
+
+            if (imageResult.error) {
+                console.error('    ✗ Facebook API error:', imageResult.error.message);
+            } else {
+                console.log('    ✓ Image sent successfully!');
+                console.log('    ✓ Message ID:', imageResult.message_id);
+
+                // Send caption as a follow-up text message if provided
+                if (caption) {
+                    const captionRequestBody = {
+                        recipient: { id: context.commenterId },
+                        message: { text: caption },
+                        access_token: pageAccessToken
+                    };
+
+                    const captionResponse = await fetch(
+                        `https://graph.facebook.com/v21.0/me/messages`,
+                        {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(captionRequestBody)
+                        }
+                    );
+
+                    const captionResult = await captionResponse.json();
+                    if (captionResult.error) {
+                        console.error('    ✗ Caption send error:', captionResult.error.message);
+                    } else {
+                        console.log('    ✓ Caption sent successfully!');
+                    }
+                }
+            }
+        } catch (error: any) {
+            console.error('    ✗ Exception sending image:', error.message);
+        }
+
+        return;
+    }
+
     // Comment Reply Action - check multiple ways
     const isCommentReply = actionType === 'reply' ||
         label.toLowerCase().includes('reply') ||
