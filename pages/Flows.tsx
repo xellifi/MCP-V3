@@ -141,7 +141,7 @@ const Flows: React.FC<FlowsProps> = ({ workspace }) => {
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid');
   const [currentPage, setCurrentPage] = useState(1);
   const [activeId, setActiveId] = useState<string | null>(null);
-  const ITEMS_PER_PAGE = 10;
+  const ITEMS_PER_PAGE = 12;
   const navigate = useNavigate();
 
   // dnd-kit sensors setup
@@ -460,7 +460,7 @@ const Flows: React.FC<FlowsProps> = ({ workspace }) => {
               items={flows.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE).map(f => f.id)}
               strategy={rectSortingStrategy}
             >
-              <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+              <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
                 {flows.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE).map(flow => {
                   const flowPage = getFlowPage(flow);
                   return (
