@@ -1381,34 +1381,36 @@ async function sendPrivateReply(
     }
 }
 
-// React to a comment with LIKE or LOVE (randomly selected)
+// React to a comment (Like it) - Facebook API only supports liking, not other reactions
 async function reactToComment(commentId: string, pageAccessToken: string) {
     try {
-        // Randomly select between LIKE and LOVE reactions
-        const reactions = ['LIKE', 'LOVE'];
-        const selectedReaction = reactions[Math.floor(Math.random() * reactions.length)];
-
-        console.log(`    💖 Auto-reacting to comment with: ${selectedReaction}`);
+        console.log(`    👍 Auto-liking comment: ${commentId}`);
 
         const response = await fetch(
-            `https://graph.facebook.com/v21.0/${commentId}/reactions?type=${selectedReaction}&access_token=${pageAccessToken}`,
+            `https://graph.facebook.com/v21.0/${commentId}/likes`,
             {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' }
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    access_token: pageAccessToken
+                })
             }
         );
 
         const result = await response.json();
 
         if (result.error) {
-            console.error('    ✗ React error:', result.error.message);
-            // Don't fail the entire flow if reaction fails
+            console.error('    ✗ Like error:', result.error.message);
+            console.error('    ✗ Error code:', result.error.code);
+            // Don't fail the entire flow if liking fails
+        } else if (result.success === true) {
+            console.log(`    ✓ Successfully liked comment`);
         } else {
-            console.log(`    ✓ Successfully reacted with ${selectedReaction}`);
+            console.log(`    ⚠ Like response:`, JSON.stringify(result));
         }
     } catch (error: any) {
-        console.error('    ✗ Exception reacting to comment:', error.message);
-        // Don't fail the entire flow if reaction fails
+        console.error('    ✗ Exception liking comment:', error.message);
+        // Don't fail the entire flow if liking fails
     }
 }
 

@@ -255,15 +255,15 @@ const TriggerNodeForm: React.FC<TriggerNodeFormProps> = ({
                 </label>
             </div>
 
-            {/* Auto React Toggle */}
+            {/* Auto Like Toggle */}
             <div className="flex items-start gap-4 p-4 bg-white/5 rounded-xl border border-white/10">
                 <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
                         <Heart className="w-4 h-4 text-pink-400" />
-                        <h4 className="font-bold text-white">Auto React to Comments</h4>
+                        <h4 className="font-bold text-white">Auto Like Comments</h4>
                     </div>
                     <p className="text-xs md:text-sm text-slate-400">
-                        Automatically react (like/love) to new comments
+                        Automatically like new comments on your posts
                     </p>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
