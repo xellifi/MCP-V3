@@ -18,7 +18,7 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Workspace, ConnectedPage } from '../types';
-import { Save, ArrowLeft, PlayCircle, Menu, X, Grid3x3, MessageCircle, Play, Bot, Send, Clock, MousePointer2, SquareMousePointer, Sparkles, GitBranch, MessageSquare, RectangleEllipsis, Plus, Minus, Maximize, Wrench } from 'lucide-react';
+import { Save, ArrowLeft, PlayCircle, Menu, X, Grid3x3, MessageCircle, Play, Bot, Send, Clock, MousePointer2, SquareMousePointer, Sparkles, GitBranch, MessageSquare, RectangleEllipsis, Plus, Minus, Maximize, Wrench, RotateCcw } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import NodeConfigModal from '../components/NodeConfigModal';
 import TriggerNodeForm from '../components/TriggerNodeForm';
@@ -979,6 +979,140 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
   // Mobile tools operations
   const [isToolsOpen, setIsToolsOpen] = useState(true);
 
+  // Reset/Rearrange nodes function - arranges nodes following edge connections horizontally
+  const handleResetLayout = useCallback(() => {
+    if (nodes.length === 0) {
+      toast.info('No nodes to rearrange');
+      return;
+    }
+
+    // Get viewport center
+    const flowBounds = reactFlowWrapper.current?.getBoundingClientRect();
+    if (!flowBounds || !reactFlowInstance) return;
+
+    const viewportCenter = reactFlowInstance.screenToFlowPosition({
+      x: flowBounds.left + flowBounds.width / 2,
+      y: flowBounds.top + flowBounds.height / 2
+    });
+
+    // Node spacing configuration
+    const horizontalSpacing = 280;
+    const verticalSpacing = 120;
+
+    // Build adjacency map from edges (source -> targets)
+    const adjacencyMap: Map<string, string[]> = new Map();
+    const incomingCount: Map<string, number> = new Map();
+
+    // Initialize all nodes
+    nodes.forEach(node => {
+      adjacencyMap.set(node.id, []);
+      incomingCount.set(node.id, 0);
+    });
+
+    // Build graph from edges
+    edges.forEach(edge => {
+      const targets = adjacencyMap.get(edge.source) || [];
+      targets.push(edge.target);
+      adjacencyMap.set(edge.source, targets);
+      incomingCount.set(edge.target, (incomingCount.get(edge.target) || 0) + 1);
+    });
+
+    // Find root nodes (nodes with no incoming edges - typically trigger/start nodes)
+    const rootNodes = nodes.filter(node => (incomingCount.get(node.id) || 0) === 0);
+
+    // If no clear roots, use trigger/start nodes as roots
+    const effectiveRoots = rootNodes.length > 0 ? rootNodes : nodes.filter(node =>
+      node.type === 'triggerNode' ||
+      node.type === 'startNode' ||
+      node.data?.nodeType === 'triggerNode' ||
+      node.data?.nodeType === 'startNode'
+    );
+
+    // BFS to determine node levels (column positions)
+    const nodeLevel: Map<string, number> = new Map();
+    const nodesAtLevel: Map<number, string[]> = new Map();
+    const visited = new Set<string>();
+    const queue: { nodeId: string; level: number }[] = [];
+
+    // Start BFS from root nodes
+    effectiveRoots.forEach(node => {
+      queue.push({ nodeId: node.id, level: 0 });
+      visited.add(node.id);
+    });
+
+    while (queue.length > 0) {
+      const { nodeId, level } = queue.shift()!;
+
+      // Set level for this node
+      nodeLevel.set(nodeId, level);
+
+      // Add to nodesAtLevel
+      if (!nodesAtLevel.has(level)) {
+        nodesAtLevel.set(level, []);
+      }
+      nodesAtLevel.get(level)!.push(nodeId);
+
+      // Process children
+      const children = adjacencyMap.get(nodeId) || [];
+      children.forEach(childId => {
+        if (!visited.has(childId)) {
+          visited.add(childId);
+          queue.push({ nodeId: childId, level: level + 1 });
+        }
+      });
+    }
+
+    // Add any unvisited nodes (disconnected) to level 0
+    nodes.forEach(node => {
+      if (!visited.has(node.id)) {
+        nodeLevel.set(node.id, 0);
+        if (!nodesAtLevel.has(0)) nodesAtLevel.set(0, []);
+        nodesAtLevel.get(0)!.push(node.id);
+      }
+    });
+
+    // Calculate total width and height for centering
+    const maxLevel = Math.max(...Array.from(nodeLevel.values()), 0);
+    const maxNodesInColumn = Math.max(...Array.from(nodesAtLevel.values()).map(arr => arr.length), 1);
+
+    const totalWidth = maxLevel * horizontalSpacing;
+    const totalHeight = (maxNodesInColumn - 1) * verticalSpacing;
+
+    const startX = viewportCenter.x - totalWidth / 2;
+    const startY = viewportCenter.y - totalHeight / 2;
+
+    // Position nodes based on their level (column) and index within level (row)
+    const nodeIdToNode = new Map(nodes.map(n => [n.id, n]));
+    const newNodes = nodes.map(node => {
+      const level = nodeLevel.get(node.id) || 0;
+      const nodesInThisLevel = nodesAtLevel.get(level) || [node.id];
+      const indexInLevel = nodesInThisLevel.indexOf(node.id);
+      const levelHeight = (nodesInThisLevel.length - 1) * verticalSpacing;
+      const levelStartY = viewportCenter.y - levelHeight / 2;
+
+      return {
+        ...node,
+        position: {
+          x: startX + level * horizontalSpacing,
+          y: levelStartY + indexInLevel * verticalSpacing
+        }
+      };
+    });
+
+    setNodes(newNodes);
+
+    // Fit view to show all nodes
+    setTimeout(() => {
+      reactFlowInstance.fitView({
+        padding: 0.3,
+        duration: 500,
+        maxZoom: 1
+      });
+    }, 50);
+
+    toast.success('Nodes rearranged');
+  }, [nodes, edges, setNodes, reactFlowInstance, toast]);
+
   return (
     <div className="h-[calc(100vh-60px)] w-full -m-6 relative bg-slate-950 overflow-hidden">
 
@@ -1043,6 +1177,15 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
         >
           <Save className="w-3 h-3 md:w-4 md:h-4" />
           <span className="hidden md:inline">{isSaving ? 'Saving...' : 'Save Draft'}</span>
+        </button>
+
+        <button
+          onClick={handleResetLayout}
+          className="flex items-center gap-1.5 md:gap-2 px-3 py-1.5 md:px-5 md:py-2.5 text-xs md:text-sm font-bold bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-lg md:rounded-xl text-white transition-all border border-white/10 shadow-lg active:scale-95"
+          title="Reset layout - Rearrange nodes"
+        >
+          <RotateCcw className="w-3 h-3 md:w-4 md:h-4" />
+          <span className="hidden md:inline">Reset</span>
         </button>
 
         <button
