@@ -185,6 +185,8 @@ const Academy: React.FC<AcademyProps> = ({ user }) => {
                                             <li className="flex items-start gap-2">
                                                 <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
                                                 <span>Ensure <strong>"Auto-Reply to Comments"</strong> is toggled ON.</span>
+                                                <span>Ensure <strong>"Auto-Reply to Comments"</strong> is toggled ON.</span>
+                                                <span>Ensure <strong>"Auto Like Comments"</strong> is toggled ON.</span>
                                             </li>
                                         </ul>
                                     </div>
@@ -245,13 +247,53 @@ const Academy: React.FC<AcademyProps> = ({ user }) => {
                                 </div>
 
                                 {/* Step 4 */}
+                                <div className="relative pl-8 md:pl-12 border-l-2 border-slate-200 dark:border-slate-800 pb-12 last:pb-0">
+                                    <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-indigo-500 ring-4 ring-white dark:ring-slate-900"></div>
+
+                                    <div className="space-y-6">
+                                        <div className="flex items-center gap-3">
+                                            <span className="flex-shrink-0 w-8 h-8 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold text-sm">
+                                                4
+                                            </span>
+                                            <h3 className="text-xl font-bold text-slate-900 dark:text-white">
+                                                Send Message Node (DM) - Optional
+                                            </h3>
+                                        </div>
+
+                                        <p className="text-slate-600 dark:text-slate-400">
+                                            This node sends a <strong>Private Direct Message (DM)</strong> to the user who commented. Great for sending discount codes or starting a private conversation.
+                                        </p>
+
+                                        <div className="grid md:grid-cols-2 gap-6">
+                                            <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-6 border border-slate-200 dark:border-slate-700">
+                                                <h4 className="font-bold text-lg mb-4 text-purple-600 dark:text-purple-400">Manual DM Template</h4>
+                                                <ol className="space-y-3 text-sm text-slate-600 dark:text-slate-400 list-decimal pl-4">
+                                                    <li>Connect it to the Trigger Node (or after a Reply Node).</li>
+                                                    <li>Type your private message.</li>
+                                                    <li>You can add <strong>Buttons</strong> user's next response.</li>
+                                                </ol>
+                                            </div>
+
+                                            <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-6 border border-slate-200 dark:border-slate-700">
+                                                <h4 className="font-bold text-lg mb-4 text-indigo-600 dark:text-indigo-400">AI Generated DM</h4>
+                                                <ol className="space-y-3 text-sm text-slate-600 dark:text-slate-400 list-decimal pl-4">
+                                                    <li>Toggle <strong>"Use AI"</strong> to ON.</li>
+                                                    <li>Set a prompt like: "Privately ask the user for their order number."</li>
+                                                    <li>The AI will draft a polite private message based on the comment.</li>
+                                                </ol>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Step 5 */}
                                 <div className="relative pl-8 md:pl-12 border-l-2 border-slate-200 dark:border-slate-800 pb-2">
                                     <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-green-500 ring-4 ring-white dark:ring-slate-900"></div>
 
                                     <div className="space-y-4">
                                         <div className="flex items-center gap-3">
                                             <span className="flex-shrink-0 w-8 h-8 rounded-lg bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 flex items-center justify-center font-bold text-sm">
-                                                4
+                                                5
                                             </span>
                                             <h3 className="text-xl font-bold text-slate-900 dark:text-white">
                                                 Save and Activate
@@ -273,8 +315,8 @@ const Academy: React.FC<AcademyProps> = ({ user }) => {
                                             <div className="flex items-center gap-3 p-4 bg-indigo-50 dark:bg-indigo-900/10 border border-indigo-100 dark:border-indigo-900/30 rounded-xl flex-1">
                                                 <div className="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center text-white font-bold text-xs">B</div>
                                                 <div className="text-sm">
-                                                    <span className="font-bold text-slate-900 dark:text-white block">Toggle "Active"</span>
-                                                    <span className="text-slate-500">To create the automation live</span>
+                                                    <span className="font-bold text-slate-900 dark:text-white block">Status "Active"</span>
+                                                    <span className="text-slate-500">It means the automation is live</span>
                                                 </div>
                                             </div>
                                         </div>
