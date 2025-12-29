@@ -165,7 +165,30 @@ const Flows: React.FC<FlowsProps> = ({ workspace }) => {
           api.workspace.getFlows(workspace.id),
           api.workspace.getConnectedPages(workspace.id)
         ]);
-        setFlows(flowsData);
+
+        // Load saved order from localStorage and reorder flows
+        const savedOrder = localStorage.getItem(`flows_order_${workspace.id}`);
+        if (savedOrder) {
+          try {
+            const orderArray = JSON.parse(savedOrder) as string[];
+            // Sort flows based on saved order
+            const orderedFlows = [...flowsData].sort((a, b) => {
+              const indexA = orderArray.indexOf(a.id);
+              const indexB = orderArray.indexOf(b.id);
+              // If not in saved order, put at the end
+              if (indexA === -1 && indexB === -1) return 0;
+              if (indexA === -1) return 1;
+              if (indexB === -1) return -1;
+              return indexA - indexB;
+            });
+            setFlows(orderedFlows);
+          } catch (e) {
+            console.error('Error parsing saved flow order:', e);
+            setFlows(flowsData);
+          }
+        } else {
+          setFlows(flowsData);
+        }
         setPages(pagesData);
       } catch (error) {
         console.error('Error loading flows data:', error);
@@ -250,7 +273,13 @@ const Flows: React.FC<FlowsProps> = ({ workspace }) => {
       setFlows((items) => {
         const oldIndex = items.findIndex((item) => item.id === active.id);
         const newIndex = items.findIndex((item) => item.id === over.id);
-        return arrayMove(items, oldIndex, newIndex);
+        const newOrder = arrayMove(items, oldIndex, newIndex);
+
+        // Save the new order to localStorage
+        const orderArray = newOrder.map((flow) => flow.id);
+        localStorage.setItem(`flows_order_${workspace.id}`, JSON.stringify(orderArray));
+
+        return newOrder;
       });
     }
   };

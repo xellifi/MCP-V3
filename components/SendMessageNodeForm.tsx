@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { MessageSquare, Bot, Sparkles, AlertCircle } from 'lucide-react';
+import { MessageSquare, Bot, Sparkles, AlertCircle, ChevronDown, Zap } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import CollapsibleTips from './CollapsibleTips';
 import ClickableVariables, { STANDARD_VARIABLES } from './ClickableVariables';
@@ -46,6 +46,8 @@ const SendMessageNodeForm: React.FC<SendMessageNodeFormProps> = ({
             : []
     );
     const [startFlows, setStartFlows] = useState<any[]>([]);
+    const [pages, setPages] = useState<any[]>([]);
+    const [openFlowDropdown, setOpenFlowDropdown] = useState<number | null>(null);
 
     // AI Reply state
     const [useAiReply, setUseAiReply] = useState(initialConfig?.useAiReply || false);
@@ -78,11 +80,26 @@ const SendMessageNodeForm: React.FC<SendMessageNodeFormProps> = ({
 
     const fetchStartFlows = async () => {
         console.log('Fetching flows for workspace:', workspaceId, 'pageId:', pageId);
-        const { data: flows, error } = await supabase
-            .from('flows')
-            .select('id, name, nodes, configurations')
-            .eq('workspace_id', workspaceId)
-            .eq('status', 'ACTIVE');
+
+        // Fetch flows and pages in parallel
+        const [flowsResult, pagesResult] = await Promise.all([
+            supabase
+                .from('flows')
+                .select('id, name, nodes, configurations')
+                .eq('workspace_id', workspaceId)
+                .eq('status', 'ACTIVE'),
+            supabase
+                .from('connected_pages')
+                .select('id, name, page_image_url')
+                .eq('workspace_id', workspaceId)
+        ]);
+
+        const { data: flows, error } = flowsResult;
+        const { data: pagesData } = pagesResult;
+
+        if (pagesData) {
+            setPages(pagesData);
+        }
 
         console.log('Flows query result:', { flows, error });
 
@@ -120,8 +137,38 @@ const SendMessageNodeForm: React.FC<SendMessageNodeFormProps> = ({
                 });
             }
 
-            console.log('Filtered flows:', filteredFlows);
-            setStartFlows(filteredFlows);
+            // Enrich flows with page info
+            const enrichedFlows = filteredFlows.map(flow => {
+                const nodes = flow.nodes || [];
+                const configurations = flow.configurations || {};
+                let flowPageId = null;
+
+                // Find the page associated with this flow
+                for (const node of nodes) {
+                    const nodeType = node.type || node.data?.nodeType;
+                    const nodeLabel = node.data?.label?.toLowerCase() || '';
+
+                    if (nodeType === 'triggerNode' || nodeType === 'startNode' ||
+                        nodeLabel.includes('trigger') || nodeLabel.includes('start') ||
+                        nodeLabel.includes('new comment')) {
+                        const config = configurations[node.id];
+                        if (config?.pageId) {
+                            flowPageId = config.pageId;
+                            break;
+                        }
+                    }
+                }
+
+                const page = pagesData?.find((p: any) => p.id === flowPageId);
+                return {
+                    ...flow,
+                    pageName: page?.name || 'No page',
+                    pageImageUrl: page?.page_image_url || null
+                };
+            });
+
+            console.log('Enriched flows:', enrichedFlows);
+            setStartFlows(enrichedFlows);
         } else if (error) {
             console.error('Error fetching flows:', error);
         }
@@ -479,24 +526,93 @@ const SendMessageNodeForm: React.FC<SendMessageNodeFormProps> = ({
                                 </div>
                             </div>
 
-                            {/* Start Flow Selector */}
+                            {/* Flow Selector - Custom Dropdown */}
                             {button.type === 'startFlow' && (
-                                <div>
+                                <div className="relative">
                                     <label className="block text-xs text-slate-400 mb-1">Select Flow</label>
-                                    <select
-                                        value={button.flowId || ''}
-                                        onChange={(e) => updateButton(index, { flowId: e.target.value })}
-                                        className="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:ring-2 focus:ring-purple-500/50 outline-none"
+
+                                    {/* Custom Dropdown Trigger */}
+                                    <button
+                                        type="button"
+                                        onClick={() => setOpenFlowDropdown(openFlowDropdown === index ? null : index)}
+                                        className="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2.5 text-left text-sm focus:ring-2 focus:ring-purple-500/50 outline-none flex items-center justify-between hover:bg-white/5 transition-colors"
                                     >
-                                        <option value="">Select a flow...</option>
-                                        {startFlows.map(flow => (
-                                            <option key={flow.id} value={flow.id}>
-                                                {flow.name}
-                                            </option>
-                                        ))}
-                                    </select>
-                                    {startFlows.length === 0 && (
-                                        <p className="text-xs text-amber-400 mt-1">No flows with Start nodes found</p>
+                                        {button.flowId ? (
+                                            <div className="flex items-center gap-2">
+                                                {(() => {
+                                                    const selectedFlow = startFlows.find(f => f.id === button.flowId);
+                                                    return selectedFlow ? (
+                                                        <>
+                                                            {selectedFlow.pageImageUrl ? (
+                                                                <img
+                                                                    src={selectedFlow.pageImageUrl}
+                                                                    alt={selectedFlow.pageName}
+                                                                    className="w-6 h-6 rounded-full object-cover border border-white/20"
+                                                                />
+                                                            ) : (
+                                                                <div className="w-6 h-6 rounded-full bg-purple-500/20 border border-purple-500/30 flex items-center justify-center">
+                                                                    <Zap className="w-3 h-3 text-purple-400" />
+                                                                </div>
+                                                            )}
+                                                            <span className="text-white truncate">{selectedFlow.name}</span>
+                                                        </>
+                                                    ) : (
+                                                        <span className="text-slate-400">Select a flow...</span>
+                                                    );
+                                                })()}
+                                            </div>
+                                        ) : (
+                                            <span className="text-slate-400">Select a flow...</span>
+                                        )}
+                                        <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${openFlowDropdown === index ? 'rotate-180' : ''}`} />
+                                    </button>
+
+                                    {/* Custom Dropdown Options */}
+                                    {openFlowDropdown === index && (
+                                        <div className="absolute z-50 w-full mt-1 bg-slate-800 border border-white/10 rounded-lg shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                                            <div className="max-h-48 overflow-y-auto">
+                                                {startFlows.length === 0 ? (
+                                                    <div className="px-3 py-4 text-center">
+                                                        <Zap className="w-6 h-6 text-slate-500 mx-auto mb-2" />
+                                                        <p className="text-xs text-amber-400">No flows with Start nodes found</p>
+                                                    </div>
+                                                ) : (
+                                                    startFlows.map(flow => (
+                                                        <button
+                                                            key={flow.id}
+                                                            type="button"
+                                                            onClick={() => {
+                                                                updateButton(index, { flowId: flow.id });
+                                                                setOpenFlowDropdown(null);
+                                                            }}
+                                                            className={`w-full px-3 py-2.5 flex items-center gap-3 hover:bg-white/10 transition-colors text-left ${button.flowId === flow.id ? 'bg-purple-500/20' : ''
+                                                                }`}
+                                                        >
+                                                            {flow.pageImageUrl ? (
+                                                                <img
+                                                                    src={flow.pageImageUrl}
+                                                                    alt={flow.pageName}
+                                                                    className="w-8 h-8 rounded-full object-cover border-2 border-white/20 flex-shrink-0"
+                                                                />
+                                                            ) : (
+                                                                <div className="w-8 h-8 rounded-full bg-purple-500/20 border-2 border-purple-500/30 flex items-center justify-center flex-shrink-0">
+                                                                    <Zap className="w-4 h-4 text-purple-400" />
+                                                                </div>
+                                                            )}
+                                                            <div className="flex-1 min-w-0">
+                                                                <p className={`text-sm font-medium truncate ${button.flowId === flow.id ? 'text-purple-300' : 'text-white'}`}>
+                                                                    {flow.name}
+                                                                </p>
+                                                                <p className="text-xs text-slate-500 truncate">{flow.pageName}</p>
+                                                            </div>
+                                                            {button.flowId === flow.id && (
+                                                                <div className="w-2 h-2 rounded-full bg-purple-400 flex-shrink-0" />
+                                                            )}
+                                                        </button>
+                                                    ))
+                                                )}
+                                            </div>
+                                        </div>
                                     )}
                                 </div>
                             )}
