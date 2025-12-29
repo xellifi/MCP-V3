@@ -22,8 +22,7 @@ import {
   Moon,
   ChevronDown,
   ChevronLeft,
-  ChevronRight,
-  GraduationCap
+  ChevronRight
 } from 'lucide-react';
 import { User, Workspace, UserRole } from '../types';
 import { api } from '../services/api';
@@ -49,13 +48,12 @@ const ALL_NAV_ITEMS: Record<string, { icon: any, label: string }> = {
   '/scheduled': { icon: CalendarDays, label: 'Scheduler' },
   '/settings': { icon: Sliders, label: 'Settings' },
   '/affiliates': { icon: Banknote, label: 'Affiliates' },
-  '/academy': { icon: GraduationCap, label: 'Academy' },
   '/support': { icon: LifeBuoy, label: 'Support' },
   // Backward compatibility maps
   '/api-keys': { icon: Sliders, label: 'Settings' }
 };
 
-const DEFAULT_ORDER = ['/', '/connections', '/connected-pages', '/subscribers', '/messages', '/flows', '/scheduled', '/academy', '/settings', '/affiliates', '/support'];
+const DEFAULT_ORDER = ['/', '/connections', '/connected-pages', '/subscribers', '/messages', '/flows', '/scheduled', '/settings', '/affiliates', '/support'];
 
 const Layout: React.FC<LayoutProps> = ({
   children,
