@@ -327,12 +327,11 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
     }, eds));
   }, [setEdges]);
 
-  // Double-click node configuration removed - use gear icon to configure nodes
-  // const onNodeDoubleClick: NodeMouseHandler = useCallback((event, node) => {
-  //   setSelectedNode(node);
-  //   setCurrentConfig(nodeConfigs[node.id] || {});
-  //   setShowConfigModal(true);
-  // }, [nodeConfigs]);
+  const onNodeDoubleClick: NodeMouseHandler = useCallback((event, node) => {
+    setSelectedNode(node);
+    setCurrentConfig(nodeConfigs[node.id] || {});
+    setShowConfigModal(true);
+  }, [nodeConfigs]);
 
   const onEdgeClick: EdgeMouseHandler = useCallback((event, edge) => {
     setSelectedEdge(edge);
@@ -378,20 +377,8 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
     // Get saved config from nodeConfigs (this has pageId and other saved settings)
     const savedConfig = nodeConfigs[node.id] || {};
 
-    // For textNode, also extract config directly from node data
-    let textNodeConfig = {};
-    if (nodeType === 'textNode' || nodeLabel?.toLowerCase().includes('text')) {
-      textNodeConfig = {
-        textContent: nodeData.textContent || '',
-        delaySeconds: nodeData.delaySeconds || 0,
-        buttons: nodeData.buttons || []
-      };
-      console.log('[FlowBuilder.handleConfigureNode] TextNode config from data:', textNodeConfig);
-    }
-
     // Merge saved config with extracted config - saved config takes priority
-    // For textNode, merge textNodeConfig as well
-    let mergedConfig = { ...extractedConfig, ...textNodeConfig, ...savedConfig };
+    let mergedConfig = { ...extractedConfig, ...savedConfig };
 
     // For trigger and start nodes, ALWAYS use flowPageId from header as source of truth
     const needsPageSync = configType === 'triggerNode' || nodeType === 'startNode' || nodeLabel?.toLowerCase().includes('start');
@@ -668,7 +655,7 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
     };
 
     setNodes((nds) => nds.concat(newNode));
-    toast.info(`Added ${label} - Click gear icon to configure`);
+    toast.info(`Added ${label} - Double-click or click gear to configure`);
     setShowMobileNodeGrid(false);
 
     // Mobile adjustment: Zoom out slightly if added on mobile to show node better
@@ -772,7 +759,7 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
     setNodes((nds) => nds.concat([triggerNode, replyNode, messageNode]));
     setEdges((eds) => eds.concat(newEdges));
 
-    toast.success('Comment Reply template added! Click gear icon on each node to configure.');
+    toast.success('Comment Reply template added! Configure each node by double-clicking.');
     setShowMobileNodeGrid(false);
 
     // Mobile adjustment: Zoom out slightly to show full template
@@ -1118,7 +1105,7 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}
-            // onNodeDoubleClick removed - configure via gear icon
+            onNodeDoubleClick={onNodeDoubleClick}
             onEdgeClick={onEdgeClick}
             onPaneClick={() => setIsToolsOpen(false)}
             nodeTypes={nodeTypes}

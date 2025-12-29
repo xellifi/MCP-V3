@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Clock, MessageSquare, Plus, X, Link } from 'lucide-react';
+import CollapsibleTips from './CollapsibleTips';
 
 interface UrlButton {
     title: string;
@@ -193,16 +194,16 @@ const TextNodeForm: React.FC<TextNodeFormProps> = ({
             </div>
 
             {/* Info */}
-            <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl">
-                <p className="text-xs md:text-sm text-amber-300">
+            <CollapsibleTips title="Tips & Info" color="amber">
+                <p className="text-xs md:text-sm">
                     <strong>Use this node to:</strong>
                 </p>
-                <ul className="mt-2 text-xs md:text-sm text-amber-200 space-y-1 list-disc list-inside">
+                <ul className="mt-2 text-xs md:text-sm space-y-1 list-disc list-inside opacity-90">
                     <li>Send a text message to users</li>
                     <li>Add a delay before sending (with typing indicator)</li>
                     <li>Include URL buttons that open websites</li>
                 </ul>
-            </div>
+            </CollapsibleTips>
 
             {/* Preview */}
             {textContent && (

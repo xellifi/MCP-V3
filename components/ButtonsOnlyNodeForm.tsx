@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Plus, X, SquareMousePointer } from 'lucide-react';
+import CollapsibleTips from './CollapsibleTips';
 
 interface ButtonsOnlyNodeFormProps {
     userId: string;
@@ -95,11 +96,11 @@ const ButtonsOnlyNodeForm: React.FC<ButtonsOnlyNodeFormProps> = ({
             </div>
 
             {/* Info */}
-            <div className="p-4 bg-indigo-500/10 border border-indigo-500/20 rounded-xl">
-                <p className="text-sm text-indigo-300">
+            <CollapsibleTips title="Tips & Info" color="indigo">
+                <p className="text-sm">
                     <strong>Buttons Only:</strong> Users will see clickable buttons without any text message. When clicked, the payload is sent back to your bot.
                 </p>
-            </div>
+            </CollapsibleTips>
         </div>
     );
 };

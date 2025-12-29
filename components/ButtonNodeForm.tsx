@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, X, MousePointer2 } from 'lucide-react';
+import CollapsibleTips from './CollapsibleTips';
 
 interface ButtonNodeFormProps {
     userId: string;
@@ -116,11 +117,11 @@ const ButtonNodeForm: React.FC<ButtonNodeFormProps> = ({
             </div>
 
             {/* Info */}
-            <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl">
-                <p className="text-sm text-blue-300">
+            <CollapsibleTips title="Tips & Info" color="blue">
+                <p className="text-sm">
                     <strong>Quick Replies:</strong> Users will see clickable buttons below your message. When clicked, the payload is sent back to your bot.
                 </p>
-            </div>
+            </CollapsibleTips>
         </div>
     );
 };

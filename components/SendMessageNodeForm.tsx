@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { MessageSquare, Bot, Sparkles, AlertCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import CollapsibleTips from './CollapsibleTips';
 
 interface Button {
     title: string;
@@ -533,8 +534,8 @@ const SendMessageNodeForm: React.FC<SendMessageNodeFormProps> = ({
             </div>
 
             {/* Info */}
-            <div className="p-4 bg-purple-500/10 border border-purple-500/20 rounded-xl">
-                <p className="text-xs md:text-sm text-purple-300">
+            <CollapsibleTips title="Tips & Info" color="purple">
+                <p className="text-xs md:text-sm">
                     {useAiReply ? (
                         <>
                             <strong>AI Reply:</strong> The AI will generate a personalized response based on the commenter's message and your instructions.
@@ -545,7 +546,7 @@ const SendMessageNodeForm: React.FC<SendMessageNodeFormProps> = ({
                         </>
                     )}
                 </p>
-            </div>
+            </CollapsibleTips>
         </div>
     );
 };

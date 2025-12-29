@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Bot, Sparkles, AlertCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import CollapsibleTips from './CollapsibleTips';
 
 interface AIProvider {
     id: 'openai' | 'gemini';
@@ -312,8 +313,8 @@ const CommentReplyNodeForm: React.FC<CommentReplyNodeFormProps> = ({
             )}
 
             {/* Info */}
-            <div className="p-4 bg-indigo-500/10 border border-indigo-500/20 rounded-xl">
-                <p className="text-xs md:text-sm text-indigo-300">
+            <CollapsibleTips title="Tips & Info" color="indigo">
+                <p className="text-xs md:text-sm">
                     {useAiReply ? (
                         <>
                             <strong>AI Reply:</strong> The AI will generate a personalized public comment reply based on the commenter's message and your instructions.
@@ -324,7 +325,7 @@ const CommentReplyNodeForm: React.FC<CommentReplyNodeFormProps> = ({
                         </>
                     )}
                 </p>
-            </div>
+            </CollapsibleTips>
         </div>
     );
 };

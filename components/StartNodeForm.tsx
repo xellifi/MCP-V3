@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Plus, X, Play, Facebook, ChevronDown, AlertCircle } from 'lucide-react';
 import { api } from '../services/api';
 import { ConnectedPage } from '../types';
+import CollapsibleTips from './CollapsibleTips';
 
 interface StartNodeFormProps {
     workspaceId: string;
@@ -288,12 +289,12 @@ const StartNodeForm: React.FC<StartNodeFormProps> = ({
             </div>
 
             {/* Info */}
-            <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
-                <p className="text-sm text-emerald-300">
+            <CollapsibleTips title="Tips & Info" color="green">
+                <p className="text-sm">
                     <strong>Start Node:</strong> This flow will be triggered when a user sends a message or clicks a button matching the keywords
                     {selectedPage && <span> on <strong>{selectedPage.name}</strong></span>}.
                 </p>
-            </div>
+            </CollapsibleTips>
         </div>
     );
 };

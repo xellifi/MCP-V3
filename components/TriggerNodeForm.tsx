@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { ConnectedPage } from '../types';
 import { api } from '../services/api';
 import { AlertCircle, CheckCircle2, ChevronDown } from 'lucide-react';
+import CollapsibleTips from './CollapsibleTips';
 
 interface TriggerNodeFormProps {
     workspaceId: string;
@@ -251,12 +252,12 @@ const TriggerNodeForm: React.FC<TriggerNodeFormProps> = ({
             </div>
 
             {/* Info Box */}
-            <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl">
-                <p className="text-xs md:text-sm text-blue-300">
+            <CollapsibleTips title="Tips & Info" color="blue">
+                <p className="text-xs md:text-sm">
                     <strong>Note:</strong> This trigger will activate when someone comments on any post from the selected page.
                     Connect action nodes below to define what happens next.
                 </p>
-            </div>
+            </CollapsibleTips>
         </div>
     );
 };
