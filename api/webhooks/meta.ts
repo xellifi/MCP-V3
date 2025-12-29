@@ -775,11 +775,15 @@ async function executeAction(
 
     // Replace variables in templates
     const replaceVars = (template: string) => {
+        const commenterName = context.commenterName || 'Friend';
+        const nameParts = commenterName.split(' ');
+        const firstName = nameParts[0] || commenterName;
+        const lastName = nameParts.length > 1 ? nameParts[nameParts.length - 1] : '';
+
         return template
-            .replace(/{commenter_name}/g, context.commenterName)
-            .replace(/{comment_text}/g, context.message)
-            .replace(/{page_name}/g, context.pageName || 'Your Page')
-            .replace(/{post_url}/g, context.postUrl || '');
+            .replace(/{commenter_name}/g, commenterName)
+            .replace(/{first_name}/g, firstName)
+            .replace(/{last_name}/g, lastName);
     };
 
     // Comment Reply Action - check multiple ways

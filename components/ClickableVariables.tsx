@@ -75,9 +75,5 @@ export default ClickableVariables;
 export const STANDARD_VARIABLES: Variable[] = [
     { name: '{commenter_name}', description: 'Full name of the person who commented' },
     { name: '{first_name}', description: 'First name only of the commenter' },
-    { name: '{last_name}', description: 'Last name only of the commenter' },
-    { name: '{salutation}', description: 'Sir or Ma\'am based on commenter\'s gender' },
-    { name: '{comment_text}', description: 'The comment message' },
-    { name: '{page_name}', description: 'Your Facebook page name' },
-    { name: '{post_url}', description: 'URL to the post' }
+    { name: '{last_name}', description: 'Last name only of the commenter' }
 ];
