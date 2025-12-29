@@ -2,12 +2,137 @@ import React, { useEffect, useState } from 'react';
 import { Workspace, Flow, ConnectedPage } from '../types';
 import { api } from '../services/api';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search, MoreHorizontal, Play, Edit, Trash, Zap, Facebook, AlertTriangle, X, LayoutGrid, List, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Search, MoreHorizontal, Play, Edit, Trash, Zap, Facebook, AlertTriangle, X, LayoutGrid, List, ChevronLeft, ChevronRight, GripVertical } from 'lucide-react';
 import { format } from 'date-fns';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+  DragStartEvent,
+  DragOverlay,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  rectSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface FlowsProps {
   workspace: Workspace;
 }
+
+// Props interface for the sortable flow card
+interface SortableFlowCardProps {
+  flow: Flow;
+  flowPage: ConnectedPage | null;
+  onEdit: (flowId: string) => void;
+  onDelete: (flowId: string, flowName: string) => void;
+  isDragging?: boolean;
+}
+
+// Sortable Flow Card component for drag-and-drop
+const SortableFlowCard: React.FC<SortableFlowCardProps> = ({ flow, flowPage, onEdit, onDelete, isDragging }) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging: isBeingDragged,
+  } = useSortable({ id: flow.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isBeingDragged ? 0.5 : 1,
+    zIndex: isBeingDragged ? 50 : 'auto' as any,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`relative glass-panel rounded-2xl border border-white/10 overflow-hidden group hover:border-indigo-500/50 hover:shadow-[0_0_30px_rgba(99,102,241,0.2)] hover:scale-[1.03] hover:bg-white/10 transition-all duration-300 ease-out flex flex-col items-center p-6 text-center ${isBeingDragged ? 'shadow-2xl ring-2 ring-indigo-500/50' : ''}`}
+    >
+      {/* Drag Handle */}
+      <div
+        {...attributes}
+        {...listeners}
+        className="absolute top-3 left-3 p-1.5 text-slate-500 hover:text-indigo-400 hover:bg-white/10 rounded-lg cursor-grab active:cursor-grabbing transition-colors"
+        title="Drag to reorder"
+      >
+        <GripVertical className="w-4 h-4" />
+      </div>
+
+      {/* Page Logo Section */}
+      <div className="relative mb-4">
+        {flowPage ? (
+          <div className="relative z-20 transition-transform duration-300">
+            <img
+              src={flowPage.pageImageUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(flowPage.name)}&background=1877F2&color=fff`}
+              alt={flowPage.name}
+              className="w-20 h-20 rounded-full border-4 border-slate-900 shadow-xl object-cover bg-slate-800"
+            />
+            <div className="absolute bottom-0 right-0 bg-slate-900 rounded-full p-1 shadow-md z-30 ring-2 ring-slate-900">
+              <div className="bg-[#1877F2] text-white rounded-full p-1 flex items-center justify-center">
+                <Facebook className="w-3 h-3 fill-current" />
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="w-20 h-20 rounded-full border-4 border-slate-900 shadow-xl bg-slate-800 flex items-center justify-center">
+            <Zap className="w-8 h-8 text-slate-500" />
+          </div>
+        )}
+      </div>
+
+      {/* Flow Details */}
+      <h3 className="text-lg font-bold text-white mb-1 truncate w-full">{flow.name}</h3>
+      <div className="text-sm text-slate-400 mb-4 h-5">
+        {flowPage ? (
+          <span className="truncate max-w-[150px] block mx-auto">{flowPage.name}</span>
+        ) : (
+          <span>No page assigned</span>
+        )}
+      </div>
+
+      {/* Status */}
+      <div className="mb-6">
+        <span className={`inline-flex px-3 py-1 rounded-full text-xs font-bold ${flow.status === 'ACTIVE'
+          ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+          : 'bg-slate-500/20 text-slate-400 border border-slate-500/30'
+          }`}>
+          {flow.status}
+        </span>
+      </div>
+
+      {/* Actions */}
+      <div className="flex items-center gap-2 w-full mt-auto pt-4 border-t border-white/5 justify-center">
+        <button
+          onClick={() => onEdit(flow.id)}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors border border-transparent hover:border-white/10"
+        >
+          <Edit className="w-3.5 h-3.5" />
+          Edit
+        </button>
+        <button
+          onClick={() => onDelete(flow.id, flow.name)}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-300 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors border border-transparent hover:border-red-500/20"
+        >
+          <Trash className="w-3.5 h-3.5" />
+          Delete
+        </button>
+      </div>
+    </div>
+  );
+};
 
 const Flows: React.FC<FlowsProps> = ({ workspace }) => {
   const [flows, setFlows] = useState<Flow[]>([]);
@@ -15,8 +140,21 @@ const Flows: React.FC<FlowsProps> = ({ workspace }) => {
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid');
   const [currentPage, setCurrentPage] = useState(1);
+  const [activeId, setActiveId] = useState<string | null>(null);
   const ITEMS_PER_PAGE = 10;
   const navigate = useNavigate();
+
+  // dnd-kit sensors setup
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8, // Require 8px movement before starting drag
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   useEffect(() => {
     const loadData = async () => {
@@ -98,6 +236,29 @@ const Flows: React.FC<FlowsProps> = ({ workspace }) => {
     // For demo, just go to a new ID
     navigate(`/flows/new-${Date.now()}`);
   };
+
+  // Drag event handlers
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveId(event.active.id as string);
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    setActiveId(null);
+
+    if (over && active.id !== over.id) {
+      setFlows((items) => {
+        const oldIndex = items.findIndex((item) => item.id === active.id);
+        const newIndex = items.findIndex((item) => item.id === over.id);
+        return arrayMove(items, oldIndex, newIndex);
+      });
+    }
+  };
+
+  // Get flow by ID (for DragOverlay)
+  const getFlowById = (id: string) => flows.find((flow) => flow.id === id);
+  const activeFlow = activeId ? getFlowById(activeId) : null;
+  const activeFlowPage = activeFlow ? getFlowPage(activeFlow) : null;
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -259,19 +420,44 @@ const Flows: React.FC<FlowsProps> = ({ workspace }) => {
           </div>
         </div>
       ) : (
-        <div className="space-y-6">
-          <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-            {flows.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE).map(flow => {
-              const flowPage = getFlowPage(flow);
-              return (
-                <div key={flow.id} className="relative glass-panel rounded-2xl border border-white/10 overflow-hidden group hover:border-indigo-500/50 hover:shadow-[0_0_30px_rgba(99,102,241,0.2)] hover:scale-[1.03] hover:bg-white/10 transition-all duration-300 ease-out z-0 hover:z-10 flex flex-col items-center p-6 text-center">
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+        >
+          <div className="space-y-6">
+            <SortableContext
+              items={flows.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE).map(f => f.id)}
+              strategy={rectSortingStrategy}
+            >
+              <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+                {flows.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE).map(flow => {
+                  const flowPage = getFlowPage(flow);
+                  return (
+                    <SortableFlowCard
+                      key={flow.id}
+                      flow={flow}
+                      flowPage={flowPage}
+                      onEdit={(flowId) => navigate(`/flows/${flowId}`)}
+                      onDelete={openDeleteModal}
+                    />
+                  );
+                })}
+              </div>
+            </SortableContext>
+
+            {/* Drag Overlay - shows the dragged item */}
+            <DragOverlay>
+              {activeFlow ? (
+                <div className="relative glass-panel rounded-2xl border-2 border-indigo-500/70 overflow-hidden flex flex-col items-center p-6 text-center shadow-2xl opacity-100 scale-105">
                   {/* Page Logo Section */}
                   <div className="relative mb-4">
-                    {flowPage ? (
-                      <div className="relative z-20 transition-transform duration-300">
+                    {activeFlowPage ? (
+                      <div className="relative z-20">
                         <img
-                          src={flowPage.pageImageUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(flowPage.name)}&background=1877F2&color=fff`}
-                          alt={flowPage.name}
+                          src={activeFlowPage.pageImageUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(activeFlowPage.name)}&background=1877F2&color=fff`}
+                          alt={activeFlowPage.name}
                           className="w-20 h-20 rounded-full border-4 border-slate-900 shadow-xl object-cover bg-slate-800"
                         />
                         <div className="absolute bottom-0 right-0 bg-slate-900 rounded-full p-1 shadow-md z-30 ring-2 ring-slate-900">
@@ -288,10 +474,10 @@ const Flows: React.FC<FlowsProps> = ({ workspace }) => {
                   </div>
 
                   {/* Flow Details */}
-                  <h3 className="text-lg font-bold text-white mb-1 truncate w-full">{flow.name}</h3>
+                  <h3 className="text-lg font-bold text-white mb-1 truncate w-full">{activeFlow.name}</h3>
                   <div className="text-sm text-slate-400 mb-4 h-5">
-                    {flowPage ? (
-                      <span className="truncate max-w-[150px] block mx-auto">{flowPage.name}</span>
+                    {activeFlowPage ? (
+                      <span className="truncate max-w-[150px] block mx-auto">{activeFlowPage.name}</span>
                     ) : (
                       <span>No page assigned</span>
                     )}
@@ -299,84 +485,66 @@ const Flows: React.FC<FlowsProps> = ({ workspace }) => {
 
                   {/* Status */}
                   <div className="mb-6">
-                    <span className={`inline-flex px-3 py-1 rounded-full text-xs font-bold ${flow.status === 'ACTIVE'
+                    <span className={`inline-flex px-3 py-1 rounded-full text-xs font-bold ${activeFlow.status === 'ACTIVE'
                       ? 'bg-green-500/20 text-green-400 border border-green-500/30'
                       : 'bg-slate-500/20 text-slate-400 border border-slate-500/30'
                       }`}>
-                      {flow.status}
+                      {activeFlow.status}
                     </span>
                   </div>
-
-                  {/* Actions */}
-                  <div className="flex items-center gap-2 w-full mt-auto pt-4 border-t border-white/5 justify-center">
-                    <button
-                      onClick={() => navigate(`/flows/${flow.id}`)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors border border-transparent hover:border-white/10"
-                    >
-                      <Edit className="w-3.5 h-3.5" />
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => openDeleteModal(flow.id, flow.name)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-300 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors border border-transparent hover:border-red-500/20"
-                    >
-                      <Trash className="w-3.5 h-3.5" />
-                      Delete
-                    </button>
-                  </div>
                 </div>
-              );
-            })}
-          </div>
+              ) : null}
+            </DragOverlay>
 
-          {/* Pagination Controls */}
-          {Math.ceil(flows.length / ITEMS_PER_PAGE) > 1 && (
-            <div className="flex items-center justify-between border-t border-white/10 pt-4">
-              <p className="text-sm text-slate-400">
-                Showing <span className="font-medium text-white">{((currentPage - 1) * ITEMS_PER_PAGE) + 1}</span> to <span className="font-medium text-white">{Math.min(currentPage * ITEMS_PER_PAGE, flows.length)}</span> of <span className="font-medium text-white">{flows.length}</span> results
-              </p>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => {
-                    setCurrentPage(p => Math.max(1, p - 1));
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                  }}
-                  disabled={currentPage === 1}
-                  className="p-2 rounded-lg bg-white/5 border border-white/10 text-slate-400 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  <ChevronLeft className="w-5 h-5" />
-                </button>
-                <div className="flex items-center gap-1">
-                  {Array.from({ length: Math.ceil(flows.length / ITEMS_PER_PAGE) }, (_, i) => i + 1).map((page) => (
-                    <button
-                      key={page}
-                      onClick={() => {
-                        setCurrentPage(page);
-                        window.scrollTo({ top: 0, behavior: 'smooth' });
-                      }}
-                      className={`w-8 h-8 rounded-lg text-sm font-medium transition-colors ${currentPage === page
+            {/* Pagination Controls */}
+            {Math.ceil(flows.length / ITEMS_PER_PAGE) > 1 && (
+              <div className="flex items-center justify-between border-t border-white/10 pt-4">
+                <p className="text-sm text-slate-400">
+                  Showing <span className="font-medium text-white">{((currentPage - 1) * ITEMS_PER_PAGE) + 1}</span> to <span className="font-medium text-white">{Math.min(currentPage * ITEMS_PER_PAGE, flows.length)}</span> of <span className="font-medium text-white">{flows.length}</span> results
+                </p>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      setCurrentPage(p => Math.max(1, p - 1));
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    disabled={currentPage === 1}
+                    className="p-2 rounded-lg bg-white/5 border border-white/10 text-slate-400 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <ChevronLeft className="w-5 h-5" />
+                  </button>
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: Math.ceil(flows.length / ITEMS_PER_PAGE) }, (_, i) => i + 1).map((page) => (
+                      <button
+                        key={page}
+                        onClick={() => {
+                          setCurrentPage(page);
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }}
+                        className={`w-8 h-8 rounded-lg text-sm font-medium transition-colors ${currentPage === page
                           ? 'bg-indigo-500 text-white'
                           : 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white'
-                        }`}
-                    >
-                      {page}
-                    </button>
-                  ))}
+                          }`}
+                      >
+                        {page}
+                      </button>
+                    ))}
+                  </div>
+                  <button
+                    onClick={() => {
+                      setCurrentPage(p => Math.min(Math.ceil(flows.length / ITEMS_PER_PAGE), p + 1));
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    disabled={currentPage === Math.ceil(flows.length / ITEMS_PER_PAGE)}
+                    className="p-2 rounded-lg bg-white/5 border border-white/10 text-slate-400 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <ChevronRight className="w-5 h-5" />
+                  </button>
                 </div>
-                <button
-                  onClick={() => {
-                    setCurrentPage(p => Math.min(Math.ceil(flows.length / ITEMS_PER_PAGE), p + 1));
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                  }}
-                  disabled={currentPage === Math.ceil(flows.length / ITEMS_PER_PAGE)}
-                  className="p-2 rounded-lg bg-white/5 border border-white/10 text-slate-400 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  <ChevronRight className="w-5 h-5" />
-                </button>
               </div>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        </DndContext>
       )}
 
       {/* Delete Confirmation Modal */}
