@@ -914,6 +914,7 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
       return (
         <SendMessageNodeForm
           workspaceId={workspace?.id || ''}
+          pageId={flowPageId}
           initialConfig={initialConfigRef.current}
           onChange={handleConfigChange}
         />

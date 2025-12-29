@@ -21,6 +21,7 @@ interface AIProvider {
 
 interface SendMessageNodeFormProps {
     workspaceId: string;
+    pageId?: string; // Optional page ID to filter flows
     initialConfig?: {
         messageTemplate?: string;
         buttons?: Button[];
@@ -33,6 +34,7 @@ interface SendMessageNodeFormProps {
 
 const SendMessageNodeForm: React.FC<SendMessageNodeFormProps> = ({
     workspaceId,
+    pageId,
     initialConfig,
     onChange
 }) => {
@@ -68,17 +70,17 @@ const SendMessageNodeForm: React.FC<SendMessageNodeFormProps> = ({
         }
     ];
 
-    // Fetch Start flows and API keys on mount
+    // Fetch flows and API keys on mount
     useEffect(() => {
         fetchStartFlows();
         fetchAvailableProviders();
-    }, [workspaceId]);
+    }, [workspaceId, pageId]);
 
     const fetchStartFlows = async () => {
-        console.log('Fetching Start flows for workspace:', workspaceId);
+        console.log('Fetching flows for workspace:', workspaceId, 'pageId:', pageId);
         const { data: flows, error } = await supabase
             .from('flows')
-            .select('id, name, nodes')
+            .select('id, name, nodes, configurations')
             .eq('workspace_id', workspaceId)
             .eq('status', 'ACTIVE');
 
@@ -86,14 +88,40 @@ const SendMessageNodeForm: React.FC<SendMessageNodeFormProps> = ({
 
         if (!error && flows) {
             // Filter flows that have Start nodes
-            const flowsWithStartNodes = flows.filter(flow => {
+            let filteredFlows = flows.filter(flow => {
                 const nodes = flow.nodes || [];
                 const hasStartNode = nodes.some((n: any) => n.type === 'startNode');
                 console.log(`Flow "${flow.name}" has Start node:`, hasStartNode);
                 return hasStartNode;
             });
-            console.log('Flows with Start nodes:', flowsWithStartNodes);
-            setStartFlows(flowsWithStartNodes);
+
+            // If pageId is provided, further filter by flows that belong to this page
+            if (pageId) {
+                filteredFlows = filteredFlows.filter(flow => {
+                    const nodes = flow.nodes || [];
+                    const configurations = flow.configurations || {};
+
+                    // Check if any trigger or start node is configured for this page
+                    for (const node of nodes) {
+                        const nodeType = node.type || node.data?.nodeType;
+                        const nodeLabel = node.data?.label?.toLowerCase() || '';
+
+                        // Check trigger and start nodes
+                        if (nodeType === 'triggerNode' || nodeType === 'startNode' ||
+                            nodeLabel.includes('trigger') || nodeLabel.includes('start') ||
+                            nodeLabel.includes('new comment')) {
+                            const config = configurations[node.id];
+                            if (config?.pageId === pageId) {
+                                return true;
+                            }
+                        }
+                    }
+                    return false;
+                });
+            }
+
+            console.log('Filtered flows:', filteredFlows);
+            setStartFlows(filteredFlows);
         } else if (error) {
             console.error('Error fetching flows:', error);
         }
@@ -436,7 +464,7 @@ const SendMessageNodeForm: React.FC<SendMessageNodeFormProps> = ({
                                             : 'bg-white/5 text-slate-400 hover:bg-white/10'
                                             }`}
                                     >
-                                        Start Flow
+                                        Flows
                                     </button>
                                     <button
                                         type="button"
