@@ -242,7 +242,7 @@ async function processPostback(messagingEvent: any, pageId: string) {
     // Get page access token from connected_pages table
     const { data: pageData, error: pageError } = await supabase
         .from('connected_pages')
-        .select('page_access_token, workspaces!inner(id)')
+        .select('page_access_token, name, workspaces!inner(id)')
         .eq('page_id', pageId)
         .single();
 
@@ -253,8 +253,66 @@ async function processPostback(messagingEvent: any, pageId: string) {
 
     const pageAccessToken = (pageData as any).page_access_token;
     const workspaceId = (pageData as any).workspaces.id;
+    const pageName = (pageData as any).name || 'Page';
 
-    // Find all active flows for this workspace
+    // Check if payload is a direct flow trigger (FLOW_{flowId})
+    if (payload.startsWith('FLOW_')) {
+        const flowId = payload.replace('FLOW_', '');
+        console.log(`✓ Direct flow trigger detected: ${flowId}`);
+
+        // Find the specific flow
+        const { data: flow, error: flowError } = await supabase
+            .from('flows')
+            .select('*')
+            .eq('id', flowId)
+            .eq('status', 'ACTIVE')
+            .single();
+
+        if (flowError || !flow) {
+            console.error('✗ Flow not found or not active:', flowId);
+            return;
+        }
+
+        console.log(`✓ Flow found: "${flow.name}"`);
+
+        const nodes = flow.nodes || [];
+        const edges = flow.edges || [];
+        const configurations = flow.configurations || {};
+
+        // Find Start node in the flow
+        const startNode = nodes.find((n: any) => n.type === 'startNode');
+
+        if (!startNode) {
+            console.error('✗ No Start node found in flow');
+            return;
+        }
+
+        console.log(`✓ Starting flow from Start node: "${startNode.data?.label}"`);
+
+        // Execute the flow starting from the Start node
+        await executeFlowFromNode(
+            startNode,
+            nodes,
+            edges,
+            configurations,
+            {
+                commenterId: senderId,
+                commenterName: 'User', // We don't have the name from postback
+                commentText: `Clicked button: ${payload}`,
+                pageId: pageId,
+                pageName: pageName,
+                postId: '',
+                commentId: `postback_${senderId}_${Date.now()}` // Generate unique ID for postback
+            },
+            pageAccessToken,
+            flow.id,
+            `postback_${senderId}_${Date.now()}`
+        );
+
+        return; // Flow executed successfully
+    }
+
+    // Find all active flows for this workspace (for keyword matching)
     const { data: flows, error: flowsError } = await supabase
         .from('flows')
         .select('*')
