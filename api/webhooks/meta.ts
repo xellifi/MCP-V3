@@ -958,6 +958,109 @@ async function executeAction(
         return;
     }
 
+    // Video Node - send video as Messenger attachment
+    if (nodeType === 'videoNode' || label.toLowerCase() === 'video') {
+        console.log(`    ✓ Detected as Video node`);
+        const videoUrl = config.videoUrl || '';
+        const caption = config.caption || '';
+
+        if (!videoUrl) {
+            console.log('    ⊘ Skipping: No video URL configured');
+            return;
+        }
+
+        // Validate URL format
+        if (!videoUrl.startsWith('http://') && !videoUrl.startsWith('https://')) {
+            console.error('    ✗ Invalid video URL - must start with http:// or https://');
+            return;
+        }
+
+        console.log(`    🎬 Video URL: "${videoUrl}"`);
+        console.log(`    🔗 URL Protocol: ${videoUrl.startsWith('https://') ? 'HTTPS (✓)' : 'HTTP (⚠ Facebook prefers HTTPS)'}`);
+        if (caption) {
+            console.log(`    📝 Caption: "${caption}"`);
+        }
+
+        try {
+            // Show typing indicator briefly
+            await sendTypingIndicator(context.commenterId, pageAccessToken, 'typing_on');
+            await new Promise(resolve => setTimeout(resolve, 500));
+            await sendTypingIndicator(context.commenterId, pageAccessToken, 'typing_off');
+
+            // Send the video attachment
+            const videoRequestBody = {
+                recipient: { id: context.commenterId },
+                message: {
+                    attachment: {
+                        type: 'video',
+                        payload: {
+                            url: videoUrl,
+                            is_reusable: true
+                        }
+                    }
+                },
+                access_token: pageAccessToken
+            };
+
+            console.log(`    📤 Sending video to user: ${context.commenterName}`);
+            console.log(`    📤 Request body:`, JSON.stringify(videoRequestBody, null, 2));
+
+            const videoResponse = await fetch(
+                `https://graph.facebook.com/v21.0/me/messages`,
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(videoRequestBody)
+                }
+            );
+
+            const videoResult = await videoResponse.json();
+            console.log(`    📤 Facebook API response:`, JSON.stringify(videoResult, null, 2));
+
+            if (videoResult.error) {
+                console.error('    ✗ Facebook API error:', videoResult.error.message);
+                console.error('    ✗ Error code:', videoResult.error.code);
+                console.error('    ✗ Full error:', JSON.stringify(videoResult.error, null, 2));
+
+                if (videoResult.error.code === 100) {
+                    console.error('    💡 Hint: The video URL may not be publicly accessible or is blocked by the host');
+                }
+            } else {
+                console.log('    ✓ Video sent successfully!');
+                console.log('    ✓ Message ID:', videoResult.message_id);
+
+                // Send caption as a follow-up text message if provided
+                if (caption) {
+                    const captionRequestBody = {
+                        recipient: { id: context.commenterId },
+                        message: { text: caption },
+                        access_token: pageAccessToken
+                    };
+
+                    const captionResponse = await fetch(
+                        `https://graph.facebook.com/v21.0/me/messages`,
+                        {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(captionRequestBody)
+                        }
+                    );
+
+                    const captionResult = await captionResponse.json();
+                    if (captionResult.error) {
+                        console.error('    ✗ Caption send error:', captionResult.error.message);
+                    } else {
+                        console.log('    ✓ Caption sent successfully!');
+                    }
+                }
+            }
+        } catch (error: any) {
+            console.error('    ✗ Exception sending video:', error.message);
+        }
+
+        return;
+    }
+
     // Comment Reply Action - check multiple ways
     const isCommentReply = actionType === 'reply' ||
         label.toLowerCase().includes('reply') ||
