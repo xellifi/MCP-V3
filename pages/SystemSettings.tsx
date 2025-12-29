@@ -29,6 +29,7 @@ const DEFAULT_MENU_ORDER = [
   { id: '/messages', label: 'Inbox' },
   { id: '/flows', label: 'Flows' },
   { id: '/scheduled', label: 'Posts' },
+  { id: '/academy', label: 'Academy' },
   { id: '/settings', label: 'Settings' },
   { id: '/affiliates', label: 'Affiliates' },
 ];
