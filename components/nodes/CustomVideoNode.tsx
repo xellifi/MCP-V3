@@ -95,12 +95,20 @@ const CustomVideoNode: React.FC<NodeProps> = ({ data, selected }) => {
                                         <span className="text-[10px]">Preview unavailable</span>
                                     </div>
                                 ) : isFacebookVideo ? (
-                                    <div className="relative bg-gradient-to-br from-blue-900/60 to-blue-600/30 rounded p-3 flex flex-col items-center justify-center">
-                                        <div className="w-10 h-10 bg-blue-500/80 rounded-full flex items-center justify-center mb-1 border-2 border-white/20">
-                                            <div className="w-0 h-0 border-l-[10px] border-l-white border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent ml-0.5" />
+                                    <div className="relative rounded overflow-hidden" style={{ height: '80px' }}>
+                                        <iframe
+                                            src={`https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(data.videoUrl)}&show_text=false&width=200`}
+                                            width="100%"
+                                            height="100%"
+                                            style={{ border: 'none', overflow: 'hidden' }}
+                                            scrolling="no"
+                                            frameBorder="0"
+                                            allowFullScreen={true}
+                                        />
+                                        <div className="absolute top-1 left-1 bg-blue-600/90 text-white text-[8px] px-1.5 py-0.5 rounded flex items-center gap-0.5">
+                                            <Video className="w-2 h-2" />
+                                            FB
                                         </div>
-                                        <span className="text-[10px] text-blue-200 font-medium">Facebook Video</span>
-                                        <span className="text-[8px] text-green-400 mt-0.5">✓ Ready</span>
                                     </div>
                                 ) : (
                                     <video

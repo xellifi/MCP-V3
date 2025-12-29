@@ -145,49 +145,35 @@ const VideoNodeForm: React.FC<VideoNodeFormProps> = ({
                                         const videoIdMatch = videoUrl.match(/\/videos\/(\d+)/);
                                         const videoId = videoIdMatch ? videoIdMatch[1] : null;
 
+                                        // Create Facebook embed URL
+                                        const embedUrl = `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(videoUrl)}&show_text=false&width=500`;
+
                                         return (
                                             <div className="relative border border-blue-500/30 rounded-lg overflow-hidden">
-                                                {/* Thumbnail or Loading */}
-                                                {loadingThumbnail ? (
-                                                    <div className="aspect-video flex flex-col items-center justify-center bg-gradient-to-br from-blue-900/40 to-blue-600/20">
-                                                        <Loader2 className="w-10 h-10 text-blue-400 animate-spin mb-2" />
-                                                        <span className="text-blue-200 text-sm">Loading thumbnail...</span>
-                                                    </div>
-                                                ) : thumbnailUrl ? (
-                                                    <div className="relative">
-                                                        <img
-                                                            src={thumbnailUrl}
-                                                            alt="Facebook Video Thumbnail"
-                                                            className="w-full h-auto max-h-48 object-cover"
-                                                            onError={() => setPreviewError(true)}
-                                                        />
-                                                        {/* Play button overlay */}
-                                                        <div className="absolute inset-0 flex items-center justify-center">
-                                                            <div className="w-16 h-16 bg-blue-500/80 rounded-full flex items-center justify-center shadow-xl border-4 border-white/30">
-                                                                <div className="w-0 h-0 border-l-[20px] border-l-white border-t-[12px] border-t-transparent border-b-[12px] border-b-transparent ml-1" />
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                ) : (
-                                                    <div className="aspect-video flex flex-col items-center justify-center bg-gradient-to-br from-blue-900/40 to-blue-600/20 p-6">
-                                                        <div className="w-16 h-16 bg-blue-500/80 rounded-full flex items-center justify-center shadow-xl mb-3 border-4 border-white/20">
-                                                            <div className="w-0 h-0 border-l-[20px] border-l-white border-t-[12px] border-t-transparent border-b-[12px] border-b-transparent ml-1" />
-                                                        </div>
-                                                        <span className="text-blue-200 font-semibold">Facebook Video</span>
-                                                        {videoId && (
-                                                            <span className="text-blue-300/60 text-xs mt-1">ID: {videoId}</span>
-                                                        )}
+                                                {/* Facebook Video Embed */}
+                                                <div className="aspect-video bg-black">
+                                                    <iframe
+                                                        src={embedUrl}
+                                                        width="100%"
+                                                        height="100%"
+                                                        style={{ border: 'none', overflow: 'hidden' }}
+                                                        scrolling="no"
+                                                        frameBorder="0"
+                                                        allowFullScreen={true}
+                                                        allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
+                                                    />
+                                                </div>
+                                                {/* Facebook badge */}
+                                                <div className="absolute top-3 left-3 bg-blue-600 text-white text-xs px-2 py-1 rounded flex items-center gap-1 shadow-md z-10">
+                                                    <Video className="w-3 h-3" />
+                                                    Facebook Video
+                                                </div>
+                                                {/* Video ID display */}
+                                                {videoId && (
+                                                    <div className="bg-black/50 px-3 py-2 text-xs text-blue-300/70">
+                                                        Video ID: {videoId}
                                                     </div>
                                                 )}
-                                                {/* Facebook badge */}
-                                                <div className="absolute top-3 left-3 bg-blue-600 text-white text-xs px-2 py-1 rounded flex items-center gap-1 shadow-md">
-                                                    <Video className="w-3 h-3" />
-                                                    {thumbnailUrl ? 'Facebook Video' : 'Ready to Send'}
-                                                </div>
-                                                {/* URL preview */}
-                                                <div className="bg-black/30 px-3 py-2 text-xs text-blue-300/70 truncate">
-                                                    {videoUrl}
-                                                </div>
                                             </div>
                                         );
                                     })()

@@ -419,10 +419,33 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
       console.log('[FlowBuilder.handleConfigureNode] StartNode config from data:', startNodeConfig);
     }
 
+    // For imageNode, extract config from node data
+    let imageNodeConfig = {};
+    if (nodeType === 'imageNode' || nodeLabel?.toLowerCase().includes('image')) {
+      imageNodeConfig = {
+        imageUrl: nodeData.imageUrl || savedConfig.imageUrl || '',
+        imageSource: nodeData.imageSource || savedConfig.imageSource || 'url',
+        caption: nodeData.caption || savedConfig.caption || '',
+        delaySeconds: nodeData.delaySeconds || savedConfig.delaySeconds || 0
+      };
+      console.log('[FlowBuilder.handleConfigureNode] ImageNode config from data:', imageNodeConfig);
+    }
+
+    // For videoNode, extract config from node data
+    let videoNodeConfig = {};
+    if (nodeType === 'videoNode' || nodeLabel?.toLowerCase().includes('video')) {
+      videoNodeConfig = {
+        videoUrl: nodeData.videoUrl || savedConfig.videoUrl || '',
+        caption: nodeData.caption || savedConfig.caption || '',
+        delaySeconds: nodeData.delaySeconds || savedConfig.delaySeconds || 0
+      };
+      console.log('[FlowBuilder.handleConfigureNode] VideoNode config from data:', videoNodeConfig);
+    }
+
     // Merge saved config with extracted config - saved config takes priority
     // For textNode, merge textNodeConfig as well
     // For startNode, merge startNodeConfig as well
-    let mergedConfig = { ...extractedConfig, ...textNodeConfig, ...startNodeConfig, ...savedConfig };
+    let mergedConfig = { ...extractedConfig, ...textNodeConfig, ...startNodeConfig, ...imageNodeConfig, ...videoNodeConfig, ...savedConfig };
 
     // For trigger and start nodes, ALWAYS use flowPageId from header as source of truth
     const needsPageSync = configType === 'triggerNode' || nodeType === 'startNode' || nodeLabel?.toLowerCase().includes('start');
