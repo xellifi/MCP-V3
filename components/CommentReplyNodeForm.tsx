@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Bot, Sparkles, AlertCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import CollapsibleTips from './CollapsibleTips';
+import ClickableVariables, { STANDARD_VARIABLES } from './ClickableVariables';
 
 interface AIProvider {
     id: 'openai' | 'gemini';
@@ -27,6 +28,7 @@ const CommentReplyNodeForm: React.FC<CommentReplyNodeFormProps> = ({
     onChange
 }) => {
     const [replyTemplate, setReplyTemplate] = useState(initialConfig?.replyTemplate || '');
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
 
     // AI Reply state
     const [useAiReply, setUseAiReply] = useState(initialConfig?.useAiReply || false);
@@ -136,6 +138,24 @@ const CommentReplyNodeForm: React.FC<CommentReplyNodeFormProps> = ({
     const handleAiPromptChange = (prompt: string) => {
         setAiPrompt(prompt);
         notifyChange(replyTemplate, useAiReply, aiProvider, prompt);
+    };
+
+    const insertVariable = (variable: string) => {
+        const textarea = textareaRef.current;
+        if (!textarea) return;
+
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const newValue = replyTemplate.substring(0, start) + variable + replyTemplate.substring(end);
+
+        setReplyTemplate(newValue);
+        notifyChange(newValue);
+
+        // Restore cursor position after the inserted variable
+        setTimeout(() => {
+            textarea.focus();
+            textarea.setSelectionRange(start + variable.length, start + variable.length);
+        }, 0);
     };
 
     const hasAvailableProviders = availableProviders.some(p => p.available);
@@ -275,26 +295,18 @@ const CommentReplyNodeForm: React.FC<CommentReplyNodeFormProps> = ({
                         Comment Reply Template
                     </label>
                     <textarea
+                        ref={textareaRef}
                         value={replyTemplate}
                         onChange={(e) => handleTemplateChange(e.target.value)}
                         placeholder="Thank you for your comment!"
                         rows={4}
                         className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all placeholder-slate-500 resize-none"
                     />
-                    <div className="mt-2 space-y-1">
-                        <p className="text-xs font-semibold text-slate-300">
-                            Available variables:
-                        </p>
-                        <div className="text-xs text-slate-400 space-y-0.5 pl-2">
-                            <p><code className="px-1.5 py-0.5 bg-white/10 rounded">{'{commenter_name}'}</code> - Name of the person who commented</p>
-                            <p><code className="px-1.5 py-0.5 bg-white/10 rounded">{'{comment_text}'}</code> - The comment message</p>
-                            <p><code className="px-1.5 py-0.5 bg-white/10 rounded">{'{page_name}'}</code> - Your Facebook page name</p>
-                            <p><code className="px-1.5 py-0.5 bg-white/10 rounded">{'{post_url}'}</code> - URL to the post</p>
-                        </div>
-                        <p className="text-xs text-indigo-300 mt-2">
-                            Example: "Hi {'{commenter_name}'}, thanks for your comment!"
-                        </p>
-                    </div>
+                    <ClickableVariables
+                        variables={STANDARD_VARIABLES}
+                        onVariableClick={insertVariable}
+                        accentColor="indigo"
+                    />
                 </div>
             )}
 

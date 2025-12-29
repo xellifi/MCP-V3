@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { MessageSquare, Bot, Sparkles, AlertCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import CollapsibleTips from './CollapsibleTips';
+import ClickableVariables, { STANDARD_VARIABLES } from './ClickableVariables';
 
 interface Button {
     title: string;
@@ -36,6 +37,7 @@ const SendMessageNodeForm: React.FC<SendMessageNodeFormProps> = ({
     onChange
 }) => {
     const [messageTemplate, setMessageTemplate] = useState(initialConfig?.messageTemplate || '');
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
     const [buttons, setButtons] = useState<Button[]>(
         initialConfig?.buttons && initialConfig.buttons.length > 0
             ? initialConfig.buttons
@@ -209,6 +211,24 @@ const SendMessageNodeForm: React.FC<SendMessageNodeFormProps> = ({
         notifyChange(messageTemplate, newButtons);
     };
 
+    const insertVariable = (variable: string) => {
+        const textarea = textareaRef.current;
+        if (!textarea) return;
+
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const newValue = messageTemplate.substring(0, start) + variable + messageTemplate.substring(end);
+
+        setMessageTemplate(newValue);
+        notifyChange(newValue, buttons);
+
+        // Restore cursor position after the inserted variable
+        setTimeout(() => {
+            textarea.focus();
+            textarea.setSelectionRange(start + variable.length, start + variable.length);
+        }, 0);
+    };
+
     const hasAvailableProviders = availableProviders.some(p => p.available);
 
     return (
@@ -347,26 +367,18 @@ const SendMessageNodeForm: React.FC<SendMessageNodeFormProps> = ({
                         Direct Message Template
                     </label>
                     <textarea
+                        ref={textareaRef}
                         value={messageTemplate}
                         onChange={(e) => handleTemplateChange(e.target.value)}
                         placeholder="Hi! Thanks for commenting on our post. We'd love to hear more about your thoughts..."
                         rows={5}
                         className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-purple-500/50 outline-none transition-all placeholder-slate-500 resize-none"
                     />
-                    <div className="mt-2 space-y-1">
-                        <p className="text-xs font-semibold text-slate-300">
-                            Available variables:
-                        </p>
-                        <div className="text-xs text-slate-400 space-y-0.5 pl-2">
-                            <p><code className="px-1.5 py-0.5 bg-white/10 rounded">{'{commenter_name}'}</code> - Name of the person who commented</p>
-                            <p><code className="px-1.5 py-0.5 bg-white/10 rounded">{'{comment_text}'}</code> - The comment message</p>
-                            <p><code className="px-1.5 py-0.5 bg-white/10 rounded">{'{page_name}'}</code> - Your Facebook page name</p>
-                            <p><code className="px-1.5 py-0.5 bg-white/10 rounded">{'{post_url}'}</code> - URL to the post</p>
-                        </div>
-                        <p className="text-xs text-purple-300 mt-2">
-                            Example: "Hi {'{commenter_name}'}, we'd love to chat about your comment!"
-                        </p>
-                    </div>
+                    <ClickableVariables
+                        variables={STANDARD_VARIABLES}
+                        onVariableClick={insertVariable}
+                        accentColor="purple"
+                    />
                 </div>
             )}
 
