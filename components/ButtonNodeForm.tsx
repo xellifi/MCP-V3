@@ -66,7 +66,7 @@ const ButtonNodeForm: React.FC<ButtonNodeFormProps> = ({
                     onChange={(e) => handleMessageChange(e.target.value)}
                     placeholder="Enter your message..."
                     rows={3}
-                    className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500/50 outline-none transition-all placeholder-slate-500 resize-none"
+                    className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500/50 outline-none transition-all placeholder-slate-500 resize-y min-h-[80px]"
                 />
             </div>
 

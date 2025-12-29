@@ -82,7 +82,7 @@ const TextNodeForm: React.FC<TextNodeFormProps> = ({
                     onChange={(e) => handleTextChange(e.target.value)}
                     placeholder="Enter the message you want to send to users..."
                     rows={4}
-                    className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-amber-500/50 outline-none transition-all placeholder-slate-500 resize-none"
+                    className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-amber-500/50 outline-none transition-all placeholder-slate-500 resize-y min-h-[100px]"
                 />
                 <p className="mt-2 text-xs text-green-400">
                     ✓ This text message will be sent to users when this node is executed.
