@@ -861,7 +861,14 @@ async function executeAction(
             return;
         }
 
+        // Validate URL format
+        if (!imageUrl.startsWith('http://') && !imageUrl.startsWith('https://')) {
+            console.error('    ✗ Invalid image URL - must start with http:// or https://');
+            return;
+        }
+
         console.log(`    🖼️ Image URL: "${imageUrl}"`);
+        console.log(`    🔗 URL Protocol: ${imageUrl.startsWith('https://') ? 'HTTPS (✓)' : 'HTTP (⚠ Facebook prefers HTTPS)'}`);
         if (caption) {
             console.log(`    📝 Caption: "${caption}"`);
         }
@@ -888,6 +895,7 @@ async function executeAction(
             };
 
             console.log(`    📤 Sending image to user: ${context.commenterName}`);
+            console.log(`    📤 Request body:`, JSON.stringify(imageRequestBody, null, 2));
 
             const imageResponse = await fetch(
                 `https://graph.facebook.com/v21.0/me/messages`,
@@ -903,6 +911,17 @@ async function executeAction(
 
             if (imageResult.error) {
                 console.error('    ✗ Facebook API error:', imageResult.error.message);
+                console.error('    ✗ Error code:', imageResult.error.code);
+                console.error('    ✗ Error subcode:', imageResult.error.error_subcode);
+                console.error('    ✗ Full error:', JSON.stringify(imageResult.error, null, 2));
+
+                // Common error hints
+                if (imageResult.error.code === 100) {
+                    console.error('    💡 Hint: The image URL may not be publicly accessible or is blocked by the host');
+                }
+                if (imageResult.error.message?.includes('URL')) {
+                    console.error('    💡 Hint: Facebook cannot fetch the image. Make sure the URL is publicly accessible and not behind authentication');
+                }
             } else {
                 console.log('    ✓ Image sent successfully!');
                 console.log('    ✓ Message ID:', imageResult.message_id);
