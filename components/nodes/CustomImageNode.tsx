@@ -116,6 +116,13 @@ const CustomImageNode: React.FC<NodeProps> = ({ data, selected }) => {
                                 </div>
                             </div>
                         )}
+
+                        {/* Delay Display */}
+                        {data.delaySeconds > 0 && (
+                            <div className="text-rose-300 text-xs mt-2 font-semibold">
+                                ⏱️ Delay: {data.delaySeconds}s
+                            </div>
+                        )}
                     </div>
                 )}
 

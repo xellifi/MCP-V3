@@ -874,10 +874,19 @@ async function executeAction(
         }
 
         try {
-            // Show typing indicator briefly
-            await sendTypingIndicator(context.commenterId, pageAccessToken, 'typing_on');
-            await new Promise(resolve => setTimeout(resolve, 500));
-            await sendTypingIndicator(context.commenterId, pageAccessToken, 'typing_off');
+            // Show typing indicator for configured delay (or brief default)
+            const delaySeconds = config.delaySeconds || 0;
+            if (delaySeconds > 0) {
+                console.log(`    ⏱️ Delay: ${delaySeconds} seconds`);
+                await sendTypingIndicator(context.commenterId, pageAccessToken, 'typing_on');
+                await new Promise(resolve => setTimeout(resolve, delaySeconds * 1000));
+                await sendTypingIndicator(context.commenterId, pageAccessToken, 'typing_off');
+            } else {
+                // Brief typing indicator
+                await sendTypingIndicator(context.commenterId, pageAccessToken, 'typing_on');
+                await new Promise(resolve => setTimeout(resolve, 500));
+                await sendTypingIndicator(context.commenterId, pageAccessToken, 'typing_off');
+            }
 
             // Send the image attachment
             const imageRequestBody = {
@@ -982,25 +991,82 @@ async function executeAction(
         }
 
         try {
-            // Show typing indicator briefly
-            await sendTypingIndicator(context.commenterId, pageAccessToken, 'typing_on');
-            await new Promise(resolve => setTimeout(resolve, 500));
-            await sendTypingIndicator(context.commenterId, pageAccessToken, 'typing_off');
+            // Show typing indicator for configured delay (or brief default)
+            const delaySeconds = config.delaySeconds || 0;
+            if (delaySeconds > 0) {
+                console.log(`    ⏱️ Delay: ${delaySeconds} seconds`);
+                await sendTypingIndicator(context.commenterId, pageAccessToken, 'typing_on');
+                await new Promise(resolve => setTimeout(resolve, delaySeconds * 1000));
+                await sendTypingIndicator(context.commenterId, pageAccessToken, 'typing_off');
+            } else {
+                // Brief typing indicator
+                await sendTypingIndicator(context.commenterId, pageAccessToken, 'typing_on');
+                await new Promise(resolve => setTimeout(resolve, 500));
+                await sendTypingIndicator(context.commenterId, pageAccessToken, 'typing_off');
+            }
+            // Check if it's a Facebook video URL
+            const isFacebookVideo = videoUrl.includes('facebook.com') || videoUrl.includes('fb.watch');
 
-            // Send the video attachment
-            const videoRequestBody = {
-                recipient: { id: context.commenterId },
-                message: {
-                    attachment: {
-                        type: 'video',
-                        payload: {
-                            url: videoUrl,
-                            is_reusable: true
-                        }
+            let videoRequestBody: any;
+
+            if (isFacebookVideo) {
+                // Extract Facebook video ID from URL
+                // Formats: .../videos/VIDEO_ID or fb.watch/VIDEO_ID
+                let fbVideoId = '';
+
+                const videoIdMatch = videoUrl.match(/\/videos\/(\d+)/);
+                if (videoIdMatch) {
+                    fbVideoId = videoIdMatch[1];
+                } else {
+                    // Try fb.watch format
+                    const fbWatchMatch = videoUrl.match(/fb\.watch\/(\w+)/);
+                    if (fbWatchMatch) {
+                        fbVideoId = fbWatchMatch[1];
                     }
-                },
-                access_token: pageAccessToken
-            };
+                }
+
+                if (fbVideoId) {
+                    console.log(`    📹 Facebook Video ID: ${fbVideoId}`);
+
+                    // Use Media Template for Facebook-hosted videos
+                    videoRequestBody = {
+                        recipient: { id: context.commenterId },
+                        message: {
+                            attachment: {
+                                type: 'template',
+                                payload: {
+                                    template_type: 'media',
+                                    elements: [
+                                        {
+                                            media_type: 'video',
+                                            url: videoUrl
+                                        }
+                                    ]
+                                }
+                            }
+                        },
+                        access_token: pageAccessToken
+                    };
+                } else {
+                    console.error('    ✗ Could not extract Facebook video ID from URL');
+                    return;
+                }
+            } else {
+                // Use regular video attachment for direct URLs
+                videoRequestBody = {
+                    recipient: { id: context.commenterId },
+                    message: {
+                        attachment: {
+                            type: 'video',
+                            payload: {
+                                url: videoUrl,
+                                is_reusable: true
+                            }
+                        }
+                    },
+                    access_token: pageAccessToken
+                };
+            }
 
             console.log(`    📤 Sending video to user: ${context.commenterName}`);
             console.log(`    📤 Request body:`, JSON.stringify(videoRequestBody, null, 2));

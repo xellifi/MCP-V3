@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Image, Link, Upload, X, AlertCircle } from 'lucide-react';
+import { Image, Link, Upload, X, AlertCircle, Clock } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import CollapsibleTips from './CollapsibleTips';
 
@@ -9,6 +9,7 @@ interface ImageNodeFormProps {
         imageUrl?: string;
         imageSource?: 'url' | 'upload';
         caption?: string;
+        delaySeconds?: number;
     };
     onChange: (config: any) => void;
 }
@@ -21,6 +22,7 @@ const ImageNodeForm: React.FC<ImageNodeFormProps> = ({
     const [imageSource, setImageSource] = useState<'url' | 'upload'>(initialConfig?.imageSource || 'url');
     const [imageUrl, setImageUrl] = useState(initialConfig?.imageUrl || '');
     const [caption, setCaption] = useState(initialConfig?.caption || '');
+    const [delaySeconds, setDelaySeconds] = useState(initialConfig?.delaySeconds || 0);
     const [uploading, setUploading] = useState(false);
     const [uploadError, setUploadError] = useState('');
     const [previewError, setPreviewError] = useState(false);
@@ -29,24 +31,31 @@ const ImageNodeForm: React.FC<ImageNodeFormProps> = ({
     const notifyChange = (
         newImageUrl: string,
         newImageSource: 'url' | 'upload',
-        newCaption: string
+        newCaption: string,
+        newDelay: number
     ) => {
         onChange({
             imageUrl: newImageUrl,
             imageSource: newImageSource,
-            caption: newCaption
+            caption: newCaption,
+            delaySeconds: newDelay
         });
     };
 
     const handleUrlChange = (url: string) => {
         setImageUrl(url);
         setPreviewError(false);
-        notifyChange(url, 'url', caption);
+        notifyChange(url, 'url', caption, delaySeconds);
     };
 
     const handleCaptionChange = (text: string) => {
         setCaption(text);
-        notifyChange(imageUrl, imageSource, text);
+        notifyChange(imageUrl, imageSource, text, delaySeconds);
+    };
+
+    const handleDelayChange = (value: number) => {
+        setDelaySeconds(value);
+        notifyChange(imageUrl, imageSource, caption, value);
     };
 
     const handleSourceChange = (source: 'url' | 'upload') => {
@@ -55,7 +64,7 @@ const ImageNodeForm: React.FC<ImageNodeFormProps> = ({
         if (source !== imageSource) {
             setImageUrl('');
             setPreviewError(false);
-            notifyChange('', source, caption);
+            notifyChange('', source, caption, delaySeconds);
         }
     };
 
@@ -105,7 +114,7 @@ const ImageNodeForm: React.FC<ImageNodeFormProps> = ({
             const publicUrl = urlData.publicUrl;
             setImageUrl(publicUrl);
             setPreviewError(false);
-            notifyChange(publicUrl, 'upload', caption);
+            notifyChange(publicUrl, 'upload', caption, delaySeconds);
         } catch (error: any) {
             console.error('Upload error:', error);
             setUploadError(error.message || 'Failed to upload image');
@@ -120,7 +129,7 @@ const ImageNodeForm: React.FC<ImageNodeFormProps> = ({
         if (fileInputRef.current) {
             fileInputRef.current.value = '';
         }
-        notifyChange('', imageSource, caption);
+        notifyChange('', imageSource, caption, delaySeconds);
     };
 
     return (
@@ -269,6 +278,30 @@ const ImageNodeForm: React.FC<ImageNodeFormProps> = ({
                 />
                 <p className="mt-2 text-xs text-slate-400">
                     Optional text sent as a separate message after the image
+                </p>
+            </div>
+
+            {/* Delay Before Sending */}
+            <div>
+                <label className="block text-xs md:text-sm font-semibold text-slate-300 mb-2">
+                    <Clock className="w-4 h-4 inline mr-2" />
+                    Delay Before Sending
+                </label>
+                <div className="flex items-center gap-4">
+                    <input
+                        type="range"
+                        min="0"
+                        max="30"
+                        value={delaySeconds}
+                        onChange={(e) => handleDelayChange(parseInt(e.target.value))}
+                        className="flex-1 h-2 bg-white/10 rounded-lg appearance-none cursor-pointer accent-rose-500"
+                    />
+                    <span className="text-white font-medium min-w-[60px] text-right">
+                        {delaySeconds}s
+                    </span>
+                </div>
+                <p className="mt-2 text-xs text-slate-400">
+                    Wait time before sending this image (shows typing indicator)
                 </p>
             </div>
 
