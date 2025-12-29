@@ -282,6 +282,19 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
 
         // Extract page info from trigger node config
         extractPageInfo(savedConfigs);
+
+        // Auto-fit view on mobile after nodes load
+        const isMobile = window.innerWidth < 768;
+        if (isMobile && reactFlowInstance && flow.nodes && flow.nodes.length > 0) {
+          setTimeout(() => {
+            reactFlowInstance.fitView({
+              padding: 0.3,
+              duration: 300,
+              maxZoom: 1
+            });
+            console.log('[FlowBuilder.loadFlowData] ✓ Auto-fitted view for mobile');
+          }, 100);
+        }
       } else {
         console.warn('[FlowBuilder.loadFlowData] ✗ Flow not found:', id);
         toast.error('Flow not found');
