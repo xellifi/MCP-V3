@@ -108,11 +108,11 @@ const VideoNodeForm: React.FC<VideoNodeFormProps> = ({
                     type="url"
                     value={videoUrl}
                     onChange={(e) => handleUrlChange(e.target.value)}
-                    placeholder="https://example.com/video.mp4"
+                    placeholder="https://web.facebook.com/yourpage/videos/123456789"
                     className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-cyan-500/50 outline-none transition-all placeholder-slate-500"
                 />
                 <p className="mt-2 text-xs text-slate-400">
-                    Enter a direct link to a video file (MP4 recommended) or Facebook video URL
+                    Paste a Facebook video URL from your page (e.g., facebook.com/page/videos/...)
                 </p>
             </div>
 
@@ -150,12 +150,11 @@ const VideoNodeForm: React.FC<VideoNodeFormProps> = ({
 
                                         return (
                                             <div className="relative border border-blue-500/30 rounded-lg overflow-hidden">
-                                                {/* Facebook Video Embed */}
-                                                <div className="aspect-video bg-black">
+                                                {/* Facebook Video Embed - 16:9 aspect ratio */}
+                                                <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
                                                     <iframe
                                                         src={embedUrl}
-                                                        width="100%"
-                                                        height="100%"
+                                                        className="absolute top-0 left-0 w-full h-full"
                                                         style={{ border: 'none', overflow: 'hidden' }}
                                                         scrolling="no"
                                                         frameBorder="0"
@@ -238,18 +237,18 @@ const VideoNodeForm: React.FC<VideoNodeFormProps> = ({
             {/* Tips */}
             <CollapsibleTips title="Tips & Info" color="blue">
                 <p className="text-xs md:text-sm">
-                    <strong>Use this node to:</strong>
+                    <strong>How to use:</strong>
                 </p>
                 <ul className="mt-2 text-xs md:text-sm space-y-1 list-disc list-inside opacity-90">
-                    <li>Send a video via Messenger to users</li>
-                    <li>Use direct video URLs (MP4 format works best)</li>
-                    <li>Add an optional caption below the video</li>
+                    <li>Copy the video URL from your Facebook page</li>
+                    <li>Paste the URL in the field above</li>
+                    <li>The video will be sent via Messenger</li>
                 </ul>
                 <p className="mt-2 text-xs md:text-sm opacity-90">
-                    <strong>Supported formats:</strong> MP4, MOV (max 25MB via Facebook)
+                    <strong>Supported:</strong> Facebook page video URLs only
                 </p>
                 <p className="mt-2 text-xs md:text-sm opacity-90">
-                    <strong>Note:</strong> The video URL must be publicly accessible for Facebook to fetch it
+                    <strong>Format:</strong> facebook.com/yourpage/videos/123456789
                 </p>
             </CollapsibleTips>
         </div>
