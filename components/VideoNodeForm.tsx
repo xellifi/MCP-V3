@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Video, Link, AlertCircle, Clock } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Video, Link, AlertCircle, Clock, Loader2 } from 'lucide-react';
 import CollapsibleTips from './CollapsibleTips';
 
 interface VideoNodeFormProps {
@@ -8,6 +8,7 @@ interface VideoNodeFormProps {
         videoUrl?: string;
         caption?: string;
         delaySeconds?: number;
+        thumbnailUrl?: string;
     };
     onChange: (config: any) => void;
 }
@@ -21,12 +22,57 @@ const VideoNodeForm: React.FC<VideoNodeFormProps> = ({
     const [caption, setCaption] = useState(initialConfig?.caption || '');
     const [delaySeconds, setDelaySeconds] = useState(initialConfig?.delaySeconds || 0);
     const [previewError, setPreviewError] = useState(false);
+    const [thumbnailUrl, setThumbnailUrl] = useState(initialConfig?.thumbnailUrl || '');
+    const [loadingThumbnail, setLoadingThumbnail] = useState(false);
 
-    const notifyChange = (newVideoUrl: string, newCaption: string, newDelay: number) => {
+    // Fetch Facebook video thumbnail when URL changes
+    useEffect(() => {
+        const fetchThumbnail = async () => {
+            if (!videoUrl) {
+                setThumbnailUrl('');
+                return;
+            }
+
+            // Check if it's a Facebook video URL
+            if (videoUrl.includes('facebook.com') || videoUrl.includes('fb.watch')) {
+                const videoIdMatch = videoUrl.match(/\/videos\/(\d+)/);
+                const videoId = videoIdMatch ? videoIdMatch[1] : null;
+
+                if (videoId) {
+                    setLoadingThumbnail(true);
+                    try {
+                        const response = await fetch(`/api/video-thumbnail?videoId=${videoId}`);
+                        const data = await response.json();
+
+                        if (data.thumbnailUrl) {
+                            setThumbnailUrl(data.thumbnailUrl);
+                            setPreviewError(false);
+                        } else {
+                            setThumbnailUrl('');
+                        }
+                    } catch (error) {
+                        console.error('Failed to fetch thumbnail:', error);
+                        setThumbnailUrl('');
+                    } finally {
+                        setLoadingThumbnail(false);
+                    }
+                }
+            } else {
+                setThumbnailUrl('');
+            }
+        };
+
+        // Debounce the fetch
+        const timeoutId = setTimeout(fetchThumbnail, 500);
+        return () => clearTimeout(timeoutId);
+    }, [videoUrl]);
+
+    const notifyChange = (newVideoUrl: string, newCaption: string, newDelay: number, newThumbnail?: string) => {
         onChange({
             videoUrl: newVideoUrl,
             caption: newCaption,
-            delaySeconds: newDelay
+            delaySeconds: newDelay,
+            thumbnailUrl: newThumbnail || thumbnailUrl
         });
     };
 
@@ -99,39 +145,48 @@ const VideoNodeForm: React.FC<VideoNodeFormProps> = ({
                                         const videoIdMatch = videoUrl.match(/\/videos\/(\d+)/);
                                         const videoId = videoIdMatch ? videoIdMatch[1] : null;
 
-                                        if (videoId) {
-                                            // Facebook video thumbnail URL
-                                            const thumbnailUrl = `https://graph.facebook.com/${videoId}/picture`;
-
-                                            return (
-                                                <div className="relative">
-                                                    <img
-                                                        src={thumbnailUrl}
-                                                        alt="Facebook Video Thumbnail"
-                                                        className="w-full h-auto max-h-48 object-cover rounded-lg"
-                                                        onError={() => setPreviewError(true)}
-                                                    />
-                                                    {/* Play button overlay */}
-                                                    <div className="absolute inset-0 flex items-center justify-center">
-                                                        <div className="w-16 h-16 bg-blue-500/80 rounded-full flex items-center justify-center shadow-lg">
-                                                            <div className="w-0 h-0 border-l-[20px] border-l-white border-t-[12px] border-t-transparent border-b-[12px] border-b-transparent ml-1" />
+                                        return (
+                                            <div className="relative border border-blue-500/30 rounded-lg overflow-hidden">
+                                                {/* Thumbnail or Loading */}
+                                                {loadingThumbnail ? (
+                                                    <div className="aspect-video flex flex-col items-center justify-center bg-gradient-to-br from-blue-900/40 to-blue-600/20">
+                                                        <Loader2 className="w-10 h-10 text-blue-400 animate-spin mb-2" />
+                                                        <span className="text-blue-200 text-sm">Loading thumbnail...</span>
+                                                    </div>
+                                                ) : thumbnailUrl ? (
+                                                    <div className="relative">
+                                                        <img
+                                                            src={thumbnailUrl}
+                                                            alt="Facebook Video Thumbnail"
+                                                            className="w-full h-auto max-h-48 object-cover"
+                                                            onError={() => setPreviewError(true)}
+                                                        />
+                                                        {/* Play button overlay */}
+                                                        <div className="absolute inset-0 flex items-center justify-center">
+                                                            <div className="w-16 h-16 bg-blue-500/80 rounded-full flex items-center justify-center shadow-xl border-4 border-white/30">
+                                                                <div className="w-0 h-0 border-l-[20px] border-l-white border-t-[12px] border-t-transparent border-b-[12px] border-b-transparent ml-1" />
+                                                            </div>
                                                         </div>
                                                     </div>
-                                                    <div className="absolute bottom-2 left-2 bg-blue-600/90 text-white text-xs px-2 py-1 rounded flex items-center gap-1">
-                                                        <Video className="w-3 h-3" />
-                                                        Facebook Video
+                                                ) : (
+                                                    <div className="aspect-video flex flex-col items-center justify-center bg-gradient-to-br from-blue-900/40 to-blue-600/20 p-6">
+                                                        <div className="w-16 h-16 bg-blue-500/80 rounded-full flex items-center justify-center shadow-xl mb-3 border-4 border-white/20">
+                                                            <div className="w-0 h-0 border-l-[20px] border-l-white border-t-[12px] border-t-transparent border-b-[12px] border-b-transparent ml-1" />
+                                                        </div>
+                                                        <span className="text-blue-200 font-semibold">Facebook Video</span>
+                                                        {videoId && (
+                                                            <span className="text-blue-300/60 text-xs mt-1">ID: {videoId}</span>
+                                                        )}
                                                     </div>
+                                                )}
+                                                {/* Facebook badge */}
+                                                <div className="absolute top-3 left-3 bg-blue-600 text-white text-xs px-2 py-1 rounded flex items-center gap-1 shadow-md">
+                                                    <Video className="w-3 h-3" />
+                                                    {thumbnailUrl ? 'Facebook Video' : 'Ready to Send'}
                                                 </div>
-                                            );
-                                        }
-
-                                        // Fallback if no video ID found
-                                        return (
-                                            <div className="flex items-center gap-3 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
-                                                <Video className="w-8 h-8 text-blue-400" />
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="text-sm text-blue-200 font-medium">Facebook Video</p>
-                                                    <p className="text-xs text-blue-300/60 truncate">{videoUrl}</p>
+                                                {/* URL preview */}
+                                                <div className="bg-black/30 px-3 py-2 text-xs text-blue-300/70 truncate">
+                                                    {videoUrl}
                                                 </div>
                                             </div>
                                         );

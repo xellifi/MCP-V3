@@ -95,36 +95,13 @@ const CustomVideoNode: React.FC<NodeProps> = ({ data, selected }) => {
                                         <span className="text-[10px]">Preview unavailable</span>
                                     </div>
                                 ) : isFacebookVideo ? (
-                                    (() => {
-                                        // Extract video ID from Facebook URL
-                                        const videoIdMatch = data.videoUrl.match(/\/videos\/(\d+)/);
-                                        const videoId = videoIdMatch ? videoIdMatch[1] : null;
-
-                                        if (videoId) {
-                                            const thumbnailUrl = `https://graph.facebook.com/${videoId}/picture`;
-                                            return (
-                                                <div className="relative">
-                                                    <img
-                                                        src={thumbnailUrl}
-                                                        alt="FB Video"
-                                                        className="w-full h-auto max-h-[70px] object-cover rounded"
-                                                        onError={() => setVideoError(true)}
-                                                    />
-                                                    <div className="absolute inset-0 flex items-center justify-center">
-                                                        <div className="w-8 h-8 bg-blue-500/80 rounded-full flex items-center justify-center">
-                                                            <div className="w-0 h-0 border-l-[8px] border-l-white border-t-[5px] border-t-transparent border-b-[5px] border-b-transparent ml-0.5" />
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            );
-                                        }
-                                        return (
-                                            <div className="flex items-center gap-2 p-2 bg-blue-500/20 border border-blue-500/30 rounded">
-                                                <Video className="w-5 h-5 text-blue-400" />
-                                                <span className="text-[10px] text-blue-200">Facebook Video</span>
-                                            </div>
-                                        );
-                                    })()
+                                    <div className="relative bg-gradient-to-br from-blue-900/60 to-blue-600/30 rounded p-3 flex flex-col items-center justify-center">
+                                        <div className="w-10 h-10 bg-blue-500/80 rounded-full flex items-center justify-center mb-1 border-2 border-white/20">
+                                            <div className="w-0 h-0 border-l-[10px] border-l-white border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent ml-0.5" />
+                                        </div>
+                                        <span className="text-[10px] text-blue-200 font-medium">Facebook Video</span>
+                                        <span className="text-[8px] text-green-400 mt-0.5">✓ Ready</span>
+                                    </div>
                                 ) : (
                                     <video
                                         src={data.videoUrl}
