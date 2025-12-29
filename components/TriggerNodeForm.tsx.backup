@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ConnectedPage } from '../types';
 import { api } from '../services/api';
-import { AlertCircle, CheckCircle2, ChevronDown, Heart } from 'lucide-react';
+import { AlertCircle, CheckCircle2, ChevronDown } from 'lucide-react';
 import CollapsibleTips from './CollapsibleTips';
 
 interface TriggerNodeFormProps {
@@ -12,7 +12,6 @@ interface TriggerNodeFormProps {
         pageId?: string;
         enableCommentReply?: boolean;
         enableSendMessage?: boolean;
-        enableAutoReact?: boolean;
     };
     onChange: (config: any) => void;
 }
@@ -29,7 +28,6 @@ const TriggerNodeForm: React.FC<TriggerNodeFormProps> = ({
     const [selectedPageId, setSelectedPageId] = useState(flowPageId || initialConfig?.pageId || '');
     const [enableCommentReply, setEnableCommentReply] = useState(initialConfig?.enableCommentReply !== undefined ? initialConfig.enableCommentReply : true);
     const [enableSendMessage, setEnableSendMessage] = useState(initialConfig?.enableSendMessage !== undefined ? initialConfig.enableSendMessage : true);
-    const [enableAutoReact, setEnableAutoReact] = useState(initialConfig?.enableAutoReact !== undefined ? initialConfig.enableAutoReact : true);
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
     const isInitialMount = useRef(true);
@@ -45,7 +43,6 @@ const TriggerNodeForm: React.FC<TriggerNodeFormProps> = ({
             setSelectedPageId(initialConfig.pageId || '');
             setEnableCommentReply(initialConfig.enableCommentReply !== undefined ? initialConfig.enableCommentReply : true);
             setEnableSendMessage(initialConfig.enableSendMessage !== undefined ? initialConfig.enableSendMessage : true);
-            setEnableAutoReact(initialConfig.enableAutoReact !== undefined ? initialConfig.enableAutoReact : true);
         }
         // Mark initial mount complete after first sync
         isInitialMount.current = false;
@@ -70,7 +67,7 @@ const TriggerNodeForm: React.FC<TriggerNodeFormProps> = ({
     // Only call onChange when user makes actual changes, not on initial sync
     useEffect(() => {
         // Skip if this is initial mount or if values haven't actually changed
-        const configKey = `${selectedPageId}-${enableCommentReply}-${enableSendMessage}-${enableAutoReact}`;
+        const configKey = `${selectedPageId}-${enableCommentReply}-${enableSendMessage}`;
         if (lastNotifiedConfig.current === configKey) {
             return;
         }
@@ -79,10 +76,9 @@ const TriggerNodeForm: React.FC<TriggerNodeFormProps> = ({
         onChange({
             pageId: selectedPageId,
             enableCommentReply,
-            enableSendMessage,
-            enableAutoReact
+            enableSendMessage
         });
-    }, [selectedPageId, enableCommentReply, enableSendMessage, enableAutoReact]);
+    }, [selectedPageId, enableCommentReply, enableSendMessage]);
 
     // Close dropdown when clicking outside
     useEffect(() => {
@@ -252,28 +248,6 @@ const TriggerNodeForm: React.FC<TriggerNodeFormProps> = ({
                         className="sr-only peer"
                     />
                     <div className="w-14 h-7 bg-white/10 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-500/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-purple-600"></div>
-                </label>
-            </div>
-
-            {/* Auto React Toggle */}
-            <div className="flex items-start gap-4 p-4 bg-white/5 rounded-xl border border-white/10">
-                <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                        <Heart className="w-4 h-4 text-pink-400" />
-                        <h4 className="font-bold text-white">Auto React to Comments</h4>
-                    </div>
-                    <p className="text-xs md:text-sm text-slate-400">
-                        Automatically react (like/love) to new comments
-                    </p>
-                </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                        type="checkbox"
-                        checked={enableAutoReact}
-                        onChange={(e) => setEnableAutoReact(e.target.checked)}
-                        className="sr-only peer"
-                    />
-                    <div className="w-14 h-7 bg-white/10 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-pink-500/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-pink-600"></div>
                 </label>
             </div>
 
