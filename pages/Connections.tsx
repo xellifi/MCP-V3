@@ -74,47 +74,31 @@ const Connections: React.FC<ConnectionsProps> = ({ workspace }) => {
 
           // Check if we're reconnecting an existing connection
           const reconnectConnectionId = localStorage.getItem('reconnectConnectionId');
-          
+
+          // Clear reconnect flag regardless of outcome
           if (reconnectConnectionId) {
-            // Update existing connection
-            console.log('Reconnecting existing connection:', reconnectConnectionId);
-            const { supabase } = await import('../lib/supabase');
-            const { error: updateError } = await supabase
-              .from('meta_connections')
-              .update({
-                name: userData.name,
-                external_id: userData.id,
-                image_url: userData.picture?.data?.url,
-                access_token: tokenData.access_token,
-                updated_at: new Date().toISOString()
-              })
-              .eq('id', reconnectConnectionId);
-            
-            if (updateError) {
-              console.error('Error updating connection:', updateError);
-              throw new Error('Failed to update connection');
-            }
-            console.log('Connection updated successfully!');
             localStorage.removeItem('reconnectConnectionId');
-          } else {
-            // Save new connection to database
-            console.log('Saving connection to database...', {
-              workspaceId: workspace.id,
-              platform: 'FACEBOOK',
-              name: userData.name,
-              externalId: userData.id
-            });
-
-            await api.workspace.createConnection(workspace.id, {
-              platform: 'FACEBOOK',
-              name: userData.name,
-              externalId: userData.id,
-              imageUrl: userData.picture?.data?.url,
-              accessToken: tokenData.access_token
-            });
-
-            console.log('Connection saved successfully!');
+            console.log('Reconnecting existing connection:', reconnectConnectionId);
           }
+
+          // Use createConnection for both new and reconnect - it handles updates internally
+          // The API checks for existing connections by external_id and updates them
+          console.log('Saving/updating connection to database...', {
+            workspaceId: workspace.id,
+            platform: 'FACEBOOK',
+            name: userData.name,
+            externalId: userData.id
+          });
+
+          await api.workspace.createConnection(workspace.id, {
+            platform: 'FACEBOOK',
+            name: userData.name,
+            externalId: userData.id,
+            imageUrl: userData.picture?.data?.url,
+            accessToken: tokenData.access_token
+          });
+
+          console.log('Connection saved/updated successfully!');
 
           // Show profile immediately - don't wait for pages
           toast.success(`Connected ${userData.name}! Importing pages...`);
@@ -342,7 +326,7 @@ const Connections: React.FC<ConnectionsProps> = ({ workspace }) => {
     try {
       // Store the connection ID we're reconnecting
       localStorage.setItem('reconnectConnectionId', connectionId);
-      
+
       // Fetch Facebook App ID from admin settings
       const settings = await api.admin.getSettings();
 
