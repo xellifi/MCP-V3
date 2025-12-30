@@ -10,6 +10,11 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 const processingCache = new Map<string, number>();
 const PROCESSING_TIMEOUT = 30000; // 30 seconds before allowing reprocessing
 
+// In-memory cache to prevent duplicate postback processing
+// Map of unique postback key -> processing start timestamp
+const postbackProcessingCache = new Map<string, number>();
+const POSTBACK_PROCESSING_TIMEOUT = 10000; // 10 seconds before allowing reprocessing of same postback
+
 // AI Response Generation function
 async function generateAIResponse(
     provider: 'openai' | 'gemini',
@@ -253,9 +258,33 @@ async function processPostback(messagingEvent: any, pageId: string) {
 
     const senderId = messagingEvent.sender.id;
     const payload = messagingEvent.postback.payload;
+    const timestamp = messagingEvent.timestamp || Date.now();
 
     console.log(`Button clicked by user: ${senderId}`);
     console.log(`Button payload: ${payload}`);
+
+    // Create unique key for this postback event to prevent duplicate processing
+    // Use sender + payload + approximate timestamp (rounded to 10 second windows)
+    const postbackKey = `${senderId}_${payload}_${Math.floor(timestamp / 10000)}`;
+
+    // Check if this postback was recently processed (race condition prevention)
+    const now = Date.now();
+    const existingProcessing = postbackProcessingCache.get(postbackKey);
+    if (existingProcessing && (now - existingProcessing) < POSTBACK_PROCESSING_TIMEOUT) {
+        console.log('✓ SKIPPING: This postback is currently being processed (duplicate prevention)');
+        console.log(`  Key: ${postbackKey}, Time since first: ${now - existingProcessing}ms`);
+        return;
+    }
+
+    // Mark this postback as being processed
+    postbackProcessingCache.set(postbackKey, now);
+
+    // Clean up old entries from cache
+    for (const [key, ts] of postbackProcessingCache.entries()) {
+        if (now - ts > POSTBACK_PROCESSING_TIMEOUT) {
+            postbackProcessingCache.delete(key);
+        }
+    }
 
     // Get page access token from connected_pages table
     const { data: pageData, error: pageError } = await supabase
