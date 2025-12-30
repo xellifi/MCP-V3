@@ -432,37 +432,43 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
     }
 
     // For startNode, extract keywords and matchType from node data
+    // IMPORTANT: savedConfig takes priority as it contains what the user actually saved
     let startNodeConfig = {};
     if (nodeType === 'startNode' || nodeLabel?.toLowerCase().includes('start')) {
       startNodeConfig = {
-        keywords: nodeData.keywords || savedConfig.keywords || [],
-        matchType: nodeData.matchType || savedConfig.matchType || 'exact',
-        pageId: nodeData.pageId || savedConfig.pageId || flowPageId || ''
+        keywords: savedConfig.keywords ?? nodeData.keywords ?? [],
+        matchType: savedConfig.matchType ?? nodeData.matchType ?? 'exact',
+        pageId: savedConfig.pageId ?? nodeData.pageId ?? flowPageId ?? ''
       };
-      console.log('[FlowBuilder.handleConfigureNode] StartNode config from data:', startNodeConfig);
+      console.log('[FlowBuilder.handleConfigureNode] StartNode savedConfig:', savedConfig);
+      console.log('[FlowBuilder.handleConfigureNode] StartNode merged config:', startNodeConfig);
     }
 
     // For imageNode, extract config from node data
+    // IMPORTANT: savedConfig takes priority as it contains what the user actually saved
     let imageNodeConfig = {};
     if (nodeType === 'imageNode' || nodeLabel?.toLowerCase().includes('image')) {
       imageNodeConfig = {
-        imageUrl: nodeData.imageUrl || savedConfig.imageUrl || '',
-        imageSource: nodeData.imageSource || savedConfig.imageSource || 'url',
-        caption: nodeData.caption || savedConfig.caption || '',
-        delaySeconds: nodeData.delaySeconds || savedConfig.delaySeconds || 0
+        imageUrl: savedConfig.imageUrl ?? nodeData.imageUrl ?? '',
+        imageSource: savedConfig.imageSource ?? nodeData.imageSource ?? 'url',
+        caption: savedConfig.caption ?? nodeData.caption ?? '',
+        delaySeconds: savedConfig.delaySeconds ?? nodeData.delaySeconds ?? 0
       };
-      console.log('[FlowBuilder.handleConfigureNode] ImageNode config from data:', imageNodeConfig);
+      console.log('[FlowBuilder.handleConfigureNode] ImageNode savedConfig:', savedConfig);
+      console.log('[FlowBuilder.handleConfigureNode] ImageNode merged config:', imageNodeConfig);
     }
 
     // For videoNode, extract config from node data
+    // IMPORTANT: savedConfig takes priority as it contains what the user actually saved
     let videoNodeConfig = {};
     if (nodeType === 'videoNode' || nodeLabel?.toLowerCase().includes('video')) {
       videoNodeConfig = {
-        videoUrl: nodeData.videoUrl || savedConfig.videoUrl || '',
-        caption: nodeData.caption || savedConfig.caption || '',
-        delaySeconds: nodeData.delaySeconds || savedConfig.delaySeconds || 0
+        videoUrl: savedConfig.videoUrl ?? nodeData.videoUrl ?? '',
+        caption: savedConfig.caption ?? nodeData.caption ?? '',
+        delaySeconds: savedConfig.delaySeconds ?? nodeData.delaySeconds ?? 0
       };
-      console.log('[FlowBuilder.handleConfigureNode] VideoNode config from data:', videoNodeConfig);
+      console.log('[FlowBuilder.handleConfigureNode] VideoNode savedConfig:', savedConfig);
+      console.log('[FlowBuilder.handleConfigureNode] VideoNode merged config:', videoNodeConfig);
     }
 
     // Merge saved config with extracted config - saved config takes priority
