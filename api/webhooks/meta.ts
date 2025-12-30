@@ -259,17 +259,31 @@ async function processPostback(messagingEvent: any, pageId: string) {
     const senderId = messagingEvent.sender.id;
     const payload = messagingEvent.postback.payload;
     const mid = messagingEvent.postback.mid; // Facebook's unique message ID for this postback
+    const timestamp = messagingEvent.timestamp || Date.now();
 
     console.log(`Button clicked by user: ${senderId}`);
     console.log(`Button payload: ${payload}`);
     console.log(`Postback mid: ${mid || 'none'}`);
+    console.log(`Page ID: ${pageId}`);
+
+    // CRITICAL: Ignore postbacks that appear to be from the page itself
+    // This can happen when page admins/owners interact with buttons
+    if (String(senderId) === String(pageId)) {
+        console.log('✓ SKIPPING: Postback from page itself (page owner/admin)');
+        return;
+    }
 
     // Create unique key for this postback event to prevent duplicate processing
     // If Facebook provides a mid (message ID), use it as it's unique per postback event
-    // Otherwise, use sender + payload combination for short-duration deduplication
-    const postbackKey = mid ? `mid_${mid}` : `${senderId}_${payload}`;
+    // Otherwise, use sender + payload + timestamp window for deduplication
+    const postbackKey = mid
+        ? `mid_${mid}`
+        : `${senderId}_${payload}_${Math.floor(timestamp / 5000)}`;
+
+    console.log(`Postback dedup key: ${postbackKey}`);
 
     // Check if this postback was recently processed (race condition prevention)
+    // Note: This cache only works within the same serverless instance
     const now = Date.now();
     const existingProcessing = postbackProcessingCache.get(postbackKey);
     if (existingProcessing && (now - existingProcessing) < POSTBACK_PROCESSING_TIMEOUT) {
@@ -340,10 +354,39 @@ async function processPostback(messagingEvent: any, pageId: string) {
 
         // Create a stable comment ID for this postback to enable database-level deduplication
         // Use sender + flow + rounded timestamp (5 second windows) so duplicate webhooks get the same ID
-        const timestamp = messagingEvent.timestamp || Date.now();
         const stablePostbackId = mid
             ? `postback_mid_${mid}`
             : `postback_${senderId}_${flowId}_${Math.floor(timestamp / 5000)}`;
+
+        console.log(`Stable postback ID: ${stablePostbackId}`);
+
+        // DATABASE-LEVEL DEDUPLICATION: Check if this postback was already processed
+        // This works across different serverless instances unlike in-memory cache
+        const { data: existingLog } = await supabase
+            .from('comment_automation_log')
+            .select('id')
+            .eq('comment_id', stablePostbackId)
+            .single();
+
+        if (existingLog) {
+            console.log('✓ SKIPPING: This postback was already processed (database dedup)');
+            console.log(`  Found existing log entry ID: ${existingLog.id}`);
+            return;
+        }
+
+        // Log this postback BEFORE executing to prevent race conditions
+        await supabase
+            .from('comment_automation_log')
+            .insert({
+                comment_id: stablePostbackId,
+                flow_id: flow.id,
+                action_type: 'postback_flow_trigger',
+                success: true,
+                error_message: null,
+                facebook_response: { payload, senderId, mid }
+            });
+
+        console.log('✓ Logged postback trigger to database');
 
         // Execute the flow starting from the Start node
         await executeFlowFromNode(
@@ -404,10 +447,35 @@ async function processPostback(messagingEvent: any, pageId: string) {
                 console.log(`✓ Found matching New Flow node in flow "${flow.name}": "${newFlowNode.data?.label}"`);
 
                 // Create stable ID for deduplication
-                const timestamp = messagingEvent.timestamp || Date.now();
                 const stableNewFlowId = mid
                     ? `newflow_mid_${mid}`
                     : `newflow_${senderId}_${flowName}_${Math.floor(timestamp / 5000)}`;
+
+                console.log(`Stable new flow ID: ${stableNewFlowId}`);
+
+                // DATABASE-LEVEL DEDUPLICATION: Check if already processed
+                const { data: existingNewFlowLog } = await supabase
+                    .from('comment_automation_log')
+                    .select('id')
+                    .eq('comment_id', stableNewFlowId)
+                    .single();
+
+                if (existingNewFlowLog) {
+                    console.log('✓ SKIPPING: This new flow trigger was already processed (database dedup)');
+                    return;
+                }
+
+                // Log BEFORE executing
+                await supabase
+                    .from('comment_automation_log')
+                    .insert({
+                        comment_id: stableNewFlowId,
+                        flow_id: flow.id,
+                        action_type: 'newflow_trigger',
+                        success: true,
+                        error_message: null,
+                        facebook_response: { flowName, senderId, mid }
+                    });
 
                 // Execute the flow starting from the New Flow node
                 await executeFlowFromNode(
@@ -485,10 +553,35 @@ async function processPostback(messagingEvent: any, pageId: string) {
                 console.log(`✓ Match found! Executing flow from Start node`);
 
                 // Create stable ID for deduplication (5 second window)
-                const timestamp = messagingEvent.timestamp || Date.now();
                 const stableKeywordId = mid
                     ? `keyword_mid_${mid}`
                     : `keyword_${senderId}_${payload}_${Math.floor(timestamp / 5000)}`;
+
+                console.log(`Stable keyword ID: ${stableKeywordId}`);
+
+                // DATABASE-LEVEL DEDUPLICATION: Check if already processed
+                const { data: existingKeywordLog } = await supabase
+                    .from('comment_automation_log')
+                    .select('id')
+                    .eq('comment_id', stableKeywordId)
+                    .single();
+
+                if (existingKeywordLog) {
+                    console.log('✓ SKIPPING: This keyword trigger was already processed (database dedup)');
+                    return;
+                }
+
+                // Log BEFORE executing
+                await supabase
+                    .from('comment_automation_log')
+                    .insert({
+                        comment_id: stableKeywordId,
+                        flow_id: flow.id,
+                        action_type: 'keyword_trigger',
+                        success: true,
+                        error_message: null,
+                        facebook_response: { payload, senderId, mid }
+                    });
 
                 // Execute flow starting from this Start node
                 await executeFlowFromNode(
