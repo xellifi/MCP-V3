@@ -258,14 +258,16 @@ async function processPostback(messagingEvent: any, pageId: string) {
 
     const senderId = messagingEvent.sender.id;
     const payload = messagingEvent.postback.payload;
-    const timestamp = messagingEvent.timestamp || Date.now();
+    const mid = messagingEvent.postback.mid; // Facebook's unique message ID for this postback
 
     console.log(`Button clicked by user: ${senderId}`);
     console.log(`Button payload: ${payload}`);
+    console.log(`Postback mid: ${mid || 'none'}`);
 
     // Create unique key for this postback event to prevent duplicate processing
-    // Use sender + payload + approximate timestamp (rounded to 10 second windows)
-    const postbackKey = `${senderId}_${payload}_${Math.floor(timestamp / 10000)}`;
+    // If Facebook provides a mid (message ID), use it as it's unique per postback event
+    // Otherwise, use sender + payload combination for short-duration deduplication
+    const postbackKey = mid ? `mid_${mid}` : `${senderId}_${payload}`;
 
     // Check if this postback was recently processed (race condition prevention)
     const now = Date.now();
@@ -336,6 +338,13 @@ async function processPostback(messagingEvent: any, pageId: string) {
 
         console.log(`✓ Starting flow from Start node: "${startNode.data?.label}"`);
 
+        // Create a stable comment ID for this postback to enable database-level deduplication
+        // Use sender + flow + rounded timestamp (5 second windows) so duplicate webhooks get the same ID
+        const timestamp = messagingEvent.timestamp || Date.now();
+        const stablePostbackId = mid
+            ? `postback_mid_${mid}`
+            : `postback_${senderId}_${flowId}_${Math.floor(timestamp / 5000)}`;
+
         // Execute the flow starting from the Start node
         await executeFlowFromNode(
             startNode,
@@ -349,12 +358,13 @@ async function processPostback(messagingEvent: any, pageId: string) {
                 pageId: pageId,
                 pageName: pageName,
                 postId: '',
-                commentId: `postback_${senderId}_${Date.now()}` // Generate unique ID for postback
+                commentId: stablePostbackId
             },
             pageAccessToken,
             flow.id,
-            `postback_${senderId}_${Date.now()}`
+            stablePostbackId
         );
+
 
         return; // Flow executed successfully
     }
@@ -393,6 +403,12 @@ async function processPostback(messagingEvent: any, pageId: string) {
             if (newFlowNode) {
                 console.log(`✓ Found matching New Flow node in flow "${flow.name}": "${newFlowNode.data?.label}"`);
 
+                // Create stable ID for deduplication
+                const timestamp = messagingEvent.timestamp || Date.now();
+                const stableNewFlowId = mid
+                    ? `newflow_mid_${mid}`
+                    : `newflow_${senderId}_${flowName}_${Math.floor(timestamp / 5000)}`;
+
                 // Execute the flow starting from the New Flow node
                 await executeFlowFromNode(
                     newFlowNode,
@@ -406,11 +422,11 @@ async function processPostback(messagingEvent: any, pageId: string) {
                         pageId: pageId,
                         pageName: pageName,
                         postId: '',
-                        commentId: `newflow_${senderId}_${Date.now()}`
+                        commentId: stableNewFlowId
                     },
                     pageAccessToken,
                     flow.id,
-                    `newflow_${senderId}_${Date.now()}`
+                    stableNewFlowId
                 );
 
                 return; // Flow executed successfully
@@ -468,6 +484,12 @@ async function processPostback(messagingEvent: any, pageId: string) {
             if (isMatch) {
                 console.log(`✓ Match found! Executing flow from Start node`);
 
+                // Create stable ID for deduplication (5 second window)
+                const timestamp = messagingEvent.timestamp || Date.now();
+                const stableKeywordId = mid
+                    ? `keyword_mid_${mid}`
+                    : `keyword_${senderId}_${payload}_${Math.floor(timestamp / 5000)}`;
+
                 // Execute flow starting from this Start node
                 await executeFlowFromNode(
                     startNode,
@@ -480,11 +502,11 @@ async function processPostback(messagingEvent: any, pageId: string) {
                         commentText: `Clicked button: ${payload}`,
                         pageId: pageId,
                         postId: '',
-                        commentId: messagingEvent.sender.id // Use sender ID as reference
+                        commentId: stableKeywordId
                     },
                     pageAccessToken,
                     flow.id,
-                    messagingEvent.sender.id
+                    stableKeywordId
                 );
 
                 return; // Execute only the first matching flow
