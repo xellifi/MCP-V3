@@ -400,12 +400,13 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
     const savedConfig = nodeConfigs[node.id] || {};
 
     // For textNode, also extract config directly from node data
+    // IMPORTANT: savedConfig.buttons takes priority as it contains flowName for newFlow buttons
     let textNodeConfig = {};
     if (nodeType === 'textNode' || nodeLabel?.toLowerCase().includes('text')) {
       textNodeConfig = {
-        textContent: nodeData.textContent || '',
-        delaySeconds: nodeData.delaySeconds || 0,
-        buttons: nodeData.buttons || []
+        textContent: nodeData.textContent || savedConfig.textContent || '',
+        delaySeconds: nodeData.delaySeconds || savedConfig.delaySeconds || 0,
+        buttons: savedConfig.buttons || nodeData.buttons || []
       };
       console.log('[FlowBuilder.handleConfigureNode] TextNode config from data:', textNodeConfig);
     }
