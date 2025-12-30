@@ -43,6 +43,7 @@ import CustomStartNode from '../components/nodes/CustomStartNode';
 import CustomImageNode from '../components/nodes/CustomImageNode';
 import CustomVideoNode from '../components/nodes/CustomVideoNode';
 import { api } from '../services/api';
+import { supabase } from '../lib/supabase';
 // Import node configuration registry
 import '../src/config'; // This initializes all node configs
 import { nodeConfigRegistry } from '../src/utils/nodeConfigRegistry';
@@ -813,19 +814,45 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
             }
           }
 
-          // Create the sub-flow in database
+          // Create or update the sub-flow in database
           try {
-            const createdFlow = await api.workspace.createFlow(workspace.id, subFlowName);
-            await api.workspace.updateFlow(createdFlow.id, {
-              name: subFlowName,
-              nodes: subFlowNodes,
-              edges: subFlowEdges,
-              configurations: subFlowConfigs,
-              status: 'ACTIVE' as const
-            });
-            console.log('[FlowBuilder.saveFlow] ✓ Sub-flow saved:', subFlowName, 'ID:', createdFlow.id);
+            // First check if a flow with this name already exists in the workspace
+            const { data: existingFlows } = await supabase
+              .from('flows')
+              .select('id, name')
+              .eq('workspace_id', workspace.id)
+              .eq('name', subFlowName)
+              .limit(1);
 
-            // Update the parent flow's newFlow button with the created flowId
+            let flowId: string;
+
+            if (existingFlows && existingFlows.length > 0) {
+              // Update existing flow
+              flowId = existingFlows[0].id;
+              console.log('[FlowBuilder.saveFlow] Updating existing sub-flow:', subFlowName, 'ID:', flowId);
+              await api.workspace.updateFlow(flowId, {
+                name: subFlowName,
+                nodes: subFlowNodes,
+                edges: subFlowEdges,
+                configurations: subFlowConfigs,
+                status: 'ACTIVE' as const
+              });
+              console.log('[FlowBuilder.saveFlow] ✓ Sub-flow updated:', subFlowName);
+            } else {
+              // Create new flow
+              const createdFlow = await api.workspace.createFlow(workspace.id, subFlowName);
+              flowId = createdFlow.id;
+              await api.workspace.updateFlow(flowId, {
+                name: subFlowName,
+                nodes: subFlowNodes,
+                edges: subFlowEdges,
+                configurations: subFlowConfigs,
+                status: 'ACTIVE' as const
+              });
+              console.log('[FlowBuilder.saveFlow] ✓ Sub-flow created:', subFlowName, 'ID:', flowId);
+            }
+
+            // Update the parent flow's newFlow button with the flowId
             // This makes the button work like a startFlow button
             const updatedNodeConfigs = { ...nodeConfigs };
             for (const nodeId in updatedNodeConfigs) {
@@ -836,7 +863,7 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
                     return {
                       ...btn,
                       type: 'startFlow', // Convert to startFlow
-                      flowId: createdFlow.id
+                      flowId: flowId
                     };
                   }
                   return btn;

@@ -209,6 +209,24 @@ async function handleWebhookEvent(eventData: any, res: VercelResponse) {
                 console.log('\n--- Messenger Event ---');
                 console.log('Event data:', JSON.stringify(messaging, null, 2));
 
+                // SKIP read receipts - these are not actionable events
+                if (messaging.read) {
+                    console.log('⊘ Skipping: Read receipt event');
+                    continue;
+                }
+
+                // SKIP delivery receipts - these are not actionable events
+                if (messaging.delivery) {
+                    console.log('⊘ Skipping: Delivery receipt event');
+                    continue;
+                }
+
+                // SKIP message echoes (messages sent BY the page itself)
+                if (messaging.message?.is_echo) {
+                    console.log('⊘ Skipping: Message echo (sent by page)');
+                    continue;
+                }
+
                 // Handle postback events (button clicks)
                 if (messaging.postback) {
                     await processPostback(messaging, pageId);
