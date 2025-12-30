@@ -543,18 +543,22 @@ const SendMessageNodeForm: React.FC<SendMessageNodeFormProps> = ({
                                                     const selectedFlow = startFlows.find(f => f.id === button.flowId);
                                                     return selectedFlow ? (
                                                         <>
-                                                            {selectedFlow.pageImageUrl && selectedFlow.pageImageUrl.startsWith('http') ? (
-                                                                <img
-                                                                    src={selectedFlow.pageImageUrl}
-                                                                    alt={selectedFlow.pageName}
-                                                                    className="w-6 h-6 rounded-full object-cover border border-white/20"
-                                                                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                                                                />
-                                                            ) : (
-                                                                <div className="w-6 h-6 rounded-full bg-purple-500/20 border border-purple-500/30 flex items-center justify-center">
+                                                            {/* Image with fallback - always show fallback, image overlays if valid */}
+                                                            <div className="relative w-6 h-6">
+                                                                {/* Fallback icon - always visible behind */}
+                                                                <div className="absolute inset-0 rounded-full bg-purple-500/20 border border-purple-500/30 flex items-center justify-center">
                                                                     <Zap className="w-3 h-3 text-purple-400" />
                                                                 </div>
-                                                            )}
+                                                                {/* Image overlays on top if valid URL */}
+                                                                {selectedFlow.pageImageUrl && selectedFlow.pageImageUrl.startsWith('http') && (
+                                                                    <img
+                                                                        src={selectedFlow.pageImageUrl}
+                                                                        alt={selectedFlow.pageName}
+                                                                        className="absolute inset-0 w-6 h-6 rounded-full object-cover border border-white/20 bg-slate-800"
+                                                                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                                                                    />
+                                                                )}
+                                                            </div>
                                                             <span className="text-white truncate">{selectedFlow.name}</span>
                                                         </>
                                                     ) : (
@@ -589,18 +593,22 @@ const SendMessageNodeForm: React.FC<SendMessageNodeFormProps> = ({
                                                             className={`w-full px-3 py-2.5 flex items-center gap-3 hover:bg-white/10 transition-colors text-left ${button.flowId === flow.id ? 'bg-purple-500/20' : ''
                                                                 }`}
                                                         >
-                                                            {flow.pageImageUrl && flow.pageImageUrl.startsWith('http') ? (
-                                                                <img
-                                                                    src={flow.pageImageUrl}
-                                                                    alt={flow.pageName}
-                                                                    className="w-8 h-8 rounded-full object-cover border-2 border-white/20 flex-shrink-0"
-                                                                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                                                                />
-                                                            ) : (
-                                                                <div className="w-8 h-8 rounded-full bg-purple-500/20 border-2 border-purple-500/30 flex items-center justify-center flex-shrink-0">
+                                                            {/* Image with fallback - always show fallback, image overlays if valid */}
+                                                            <div className="relative w-8 h-8 flex-shrink-0">
+                                                                {/* Fallback icon - always visible behind */}
+                                                                <div className="absolute inset-0 rounded-full bg-purple-500/20 border-2 border-purple-500/30 flex items-center justify-center">
                                                                     <Zap className="w-4 h-4 text-purple-400" />
                                                                 </div>
-                                                            )}
+                                                                {/* Image overlays on top if valid URL */}
+                                                                {flow.pageImageUrl && flow.pageImageUrl.startsWith('http') && (
+                                                                    <img
+                                                                        src={flow.pageImageUrl}
+                                                                        alt={flow.pageName}
+                                                                        className="absolute inset-0 w-8 h-8 rounded-full object-cover border-2 border-white/20 bg-slate-800"
+                                                                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                                                                    />
+                                                                )}
+                                                            </div>
                                                             <div className="flex-1 min-w-0">
                                                                 <p className={`text-sm font-medium truncate ${button.flowId === flow.id ? 'text-purple-300' : 'text-white'}`}>
                                                                     {flow.name}
