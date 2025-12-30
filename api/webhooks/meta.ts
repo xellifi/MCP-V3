@@ -312,6 +312,68 @@ async function processPostback(messagingEvent: any, pageId: string) {
         return; // Flow executed successfully
     }
 
+    // Check if payload is a New Flow trigger (NEWFLOW_{flowName})
+    if (payload.startsWith('NEWFLOW_')) {
+        const flowName = payload.replace('NEWFLOW_', '');
+        console.log(`✓ New Flow payload detected: "${flowName}"`);
+
+        // Find all active flows for this workspace to search for matching New Flow node
+        const { data: flows, error: flowsError } = await supabase
+            .from('flows')
+            .select('*')
+            .eq('workspace_id', workspaceId)
+            .eq('status', 'ACTIVE');
+
+        if (flowsError || !flows) {
+            console.error('✗ Error fetching flows:', flowsError);
+            return;
+        }
+
+        // Search for a New Flow node with matching flowName
+        for (const flow of flows) {
+            const nodes = flow.nodes || [];
+            const edges = flow.edges || [];
+            const configurations = flow.configurations || {};
+
+            // Find the New Flow node that matches
+            const newFlowNode = nodes.find((n: any) => {
+                const nodeLabel = n.data?.label || '';
+                const nodeFlowName = n.data?.flowName || '';
+                return (n.data?.isNewFlowNode || nodeLabel.toLowerCase().includes('new flow:')) &&
+                    (nodeFlowName === flowName || nodeLabel.toLowerCase().includes(flowName.toLowerCase()));
+            });
+
+            if (newFlowNode) {
+                console.log(`✓ Found matching New Flow node in flow "${flow.name}": "${newFlowNode.data?.label}"`);
+
+                // Execute the flow starting from the New Flow node
+                await executeFlowFromNode(
+                    newFlowNode,
+                    nodes,
+                    edges,
+                    configurations,
+                    {
+                        commenterId: senderId,
+                        commenterName: 'User',
+                        commentText: `Clicked New Flow button: ${flowName}`,
+                        pageId: pageId,
+                        pageName: pageName,
+                        postId: '',
+                        commentId: `newflow_${senderId}_${Date.now()}`
+                    },
+                    pageAccessToken,
+                    flow.id,
+                    `newflow_${senderId}_${Date.now()}`
+                );
+
+                return; // Flow executed successfully
+            }
+        }
+
+        console.log(`✗ No matching New Flow node found for: "${flowName}"`);
+        return;
+    }
+
     // Find all active flows for this workspace (for keyword matching)
     const { data: flows, error: flowsError } = await supabase
         .from('flows')
@@ -1324,19 +1386,52 @@ async function executeAction(
             try {
                 let messagePayload: any;
 
-                // Check if there are URL buttons to include
+                // Check if there are buttons to include
                 if (buttons && buttons.length > 0) {
-                    const validButtons = buttons.filter((b: any) => b.title && b.url);
+                    // Filter for valid buttons (URL, startFlow, or newFlow types)
+                    const validButtons = buttons.filter((b: any) => {
+                        if (b.type === 'url' && b.title && b.url) return true;
+                        if (b.type === 'startFlow' && b.title && b.flowId) return true;
+                        if (b.type === 'newFlow' && b.title && b.flowName) return true;
+                        // Also handle legacy buttons without type (URL buttons)
+                        if (!b.type && b.title && b.url) return true;
+                        return false;
+                    });
 
                     if (validButtons.length > 0) {
-                        console.log(`    🔗 Including ${validButtons.length} URL button(s)`);
+                        console.log(`    🔗 Including ${validButtons.length} button(s)`);
 
-                        const fbButtons = validButtons.map((btn: any) => ({
-                            type: 'web_url',
-                            title: btn.title,
-                            url: btn.url,
-                            webview_height_ratio: btn.webviewHeight || 'full'
-                        }));
+                        const fbButtons = validButtons.map((btn: any) => {
+                            // URL button type
+                            if (btn.type === 'url' || (!btn.type && btn.url)) {
+                                console.log(`      → URL button: "${btn.title}" -> ${btn.url}`);
+                                return {
+                                    type: 'web_url',
+                                    title: btn.title,
+                                    url: btn.url,
+                                    webview_height_ratio: btn.webviewHeight || 'full'
+                                };
+                            }
+                            // startFlow button type - use flowId as payload
+                            if (btn.type === 'startFlow' && btn.flowId) {
+                                console.log(`      → Flow button: "${btn.title}" -> FLOW_${btn.flowId}`);
+                                return {
+                                    type: 'postback',
+                                    title: btn.title,
+                                    payload: `FLOW_${btn.flowId}`
+                                };
+                            }
+                            // newFlow button type - use flowName as payload (will be matched via keyword)
+                            if (btn.type === 'newFlow' && btn.flowName) {
+                                console.log(`      → New Flow button: "${btn.title}" -> NEWFLOW_${btn.flowName}`);
+                                return {
+                                    type: 'postback',
+                                    title: btn.title,
+                                    payload: `NEWFLOW_${btn.flowName}`
+                                };
+                            }
+                            return null;
+                        }).filter(Boolean);
 
                         messagePayload = {
                             attachment: {
