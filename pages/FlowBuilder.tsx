@@ -382,10 +382,14 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
   }, [setNodes, setEdges, toast]);
 
   const handleConfigureNode = useCallback((node: Node) => {
-    console.log('[FlowBuilder.handleConfigureNode] Opening config modal for node:', node.id);
-    console.log('[FlowBuilder.handleConfigureNode] Node data:', node.data);
+    // Get the FRESH node data from current nodes state (callback arg might be stale)
+    const currentNodes = nodes;
+    const freshNode = currentNodes.find(n => n.id === node.id) || node;
 
-    const nodeData = node.data;
+    console.log('[FlowBuilder.handleConfigureNode] Opening config modal for node:', freshNode.id);
+    console.log('[FlowBuilder.handleConfigureNode] Node data:', freshNode.data);
+
+    const nodeData = freshNode.data;
     const nodeLabel = nodeData.label as string;
     const nodeType = nodeData.nodeType as string;
 
@@ -471,11 +475,11 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
     console.log('[FlowBuilder.handleConfigureNode] Merged config:', mergedConfig);
     console.log('[FlowBuilder.handleConfigureNode] flowPageId:', flowPageId);
 
-    setSelectedNode(node);
+    setSelectedNode(freshNode);
     setCurrentConfig(mergedConfig);
     initialConfigRef.current = mergedConfig; // Capture initial config for modal
     setShowConfigModal(true);
-  }, [nodeConfigs, flowPageId]);
+  }, [nodeConfigs, flowPageId, nodes]);
 
   const handleSaveConfig = async () => {
     if (selectedNode) {
