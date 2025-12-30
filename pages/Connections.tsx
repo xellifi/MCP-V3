@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Workspace, MetaConnection } from '../types';
 import { api } from '../services/api';
-import { Facebook, CheckCircle, Trash2, Plus, RefreshCw, UserCheck } from 'lucide-react';
+import { Facebook, CheckCircle, Trash2, Plus, RefreshCw, UserCheck, Link2 } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import DeleteConfirmModal from '../components/DeleteConfirmModal';
 import ImportLoading from '../components/ImportLoading';
@@ -72,23 +72,49 @@ const Connections: React.FC<ConnectionsProps> = ({ workspace }) => {
           console.log('Current auth session:', session ? 'Authenticated' : 'Not authenticated');
           console.log('User ID:', session?.user?.id);
 
-          // Save connection to database
-          console.log('Saving connection to database...', {
-            workspaceId: workspace.id,
-            platform: 'FACEBOOK',
-            name: userData.name,
-            externalId: userData.id
-          });
+          // Check if we're reconnecting an existing connection
+          const reconnectConnectionId = localStorage.getItem('reconnectConnectionId');
+          
+          if (reconnectConnectionId) {
+            // Update existing connection
+            console.log('Reconnecting existing connection:', reconnectConnectionId);
+            const { supabase } = await import('../lib/supabase');
+            const { error: updateError } = await supabase
+              .from('meta_connections')
+              .update({
+                name: userData.name,
+                external_id: userData.id,
+                image_url: userData.picture?.data?.url,
+                access_token: tokenData.access_token,
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', reconnectConnectionId);
+            
+            if (updateError) {
+              console.error('Error updating connection:', updateError);
+              throw new Error('Failed to update connection');
+            }
+            console.log('Connection updated successfully!');
+            localStorage.removeItem('reconnectConnectionId');
+          } else {
+            // Save new connection to database
+            console.log('Saving connection to database...', {
+              workspaceId: workspace.id,
+              platform: 'FACEBOOK',
+              name: userData.name,
+              externalId: userData.id
+            });
 
-          await api.workspace.createConnection(workspace.id, {
-            platform: 'FACEBOOK',
-            name: userData.name,
-            externalId: userData.id,
-            imageUrl: userData.picture?.data?.url,
-            accessToken: tokenData.access_token
-          });
+            await api.workspace.createConnection(workspace.id, {
+              platform: 'FACEBOOK',
+              name: userData.name,
+              externalId: userData.id,
+              imageUrl: userData.picture?.data?.url,
+              accessToken: tokenData.access_token
+            });
 
-          console.log('Connection saved successfully!');
+            console.log('Connection saved successfully!');
+          }
 
           // Show profile immediately - don't wait for pages
           toast.success(`Connected ${userData.name}! Importing pages...`);
@@ -312,6 +338,36 @@ const Connections: React.FC<ConnectionsProps> = ({ workspace }) => {
     }
   };
 
+  const handleReconnect = async (connectionId: string) => {
+    try {
+      // Store the connection ID we're reconnecting
+      localStorage.setItem('reconnectConnectionId', connectionId);
+      
+      // Fetch Facebook App ID from admin settings
+      const settings = await api.admin.getSettings();
+
+      if (!settings.facebookAppId) {
+        toast.error('Facebook App ID is not configured. Please contact your administrator.');
+        localStorage.removeItem('reconnectConnectionId');
+        return;
+      }
+
+      toast.info('Reconnecting to Facebook... You can update your page permissions.');
+
+      // Construct Facebook OAuth URL with auth_type=rerequest to show permission dialog again
+      const redirectUri = encodeURIComponent(`${window.location.origin}/connections`);
+      const scope = encodeURIComponent('pages_show_list,pages_read_engagement,pages_manage_metadata,pages_manage_posts,instagram_basic,instagram_manage_comments');
+      const facebookOAuthUrl = `https://www.facebook.com/v18.0/dialog/oauth?client_id=${settings.facebookAppId}&redirect_uri=${redirectUri}&scope=${scope}&response_type=code&auth_type=rerequest`;
+
+      // Redirect to Facebook OAuth
+      window.location.href = facebookOAuthUrl;
+    } catch (error) {
+      console.error('Error initiating Facebook reconnect:', error);
+      localStorage.removeItem('reconnectConnectionId');
+      toast.error('Failed to reconnect. Please try again.');
+    }
+  };
+
   if (loading) return (
     <div className="flex items-center justify-center p-12">
       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"></div>
@@ -386,11 +442,19 @@ const Connections: React.FC<ConnectionsProps> = ({ workspace }) => {
 
               <div className="flex gap-3">
                 <button
+                  onClick={() => handleReconnect(connection.id)}
+                  className="flex-1 py-3 px-4 text-sm font-bold text-blue-300 bg-blue-500/10 hover:bg-blue-500/20 hover:text-blue-200 rounded-xl transition-all border border-blue-500/20 flex items-center justify-center gap-2 group/btn"
+                  title="Reconnect to update pages and permissions"
+                >
+                  <Link2 className="w-4 h-4 group-hover/btn:rotate-12 transition-transform" />
+                  Reconnect
+                </button>
+                <button
                   onClick={handleRefresh}
-                  className="flex-1 py-3 px-4 text-sm font-bold text-slate-300 bg-white/5 hover:bg-white/10 hover:text-white rounded-xl transition-all border border-white/5 flex items-center justify-center gap-2 group/btn"
+                  className="py-3 px-4 text-sm font-bold text-slate-300 bg-white/5 hover:bg-white/10 hover:text-white rounded-xl transition-all border border-white/5 flex items-center justify-center gap-2 group/btn"
+                  title="Refresh connection status"
                 >
                   <RefreshCw className="w-4 h-4 group-hover/btn:rotate-180 transition-transform duration-500" />
-                  Refresh
                 </button>
                 <button
                   onClick={() => handleDeleteClick(connection.id, connection.name)}
