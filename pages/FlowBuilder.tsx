@@ -107,6 +107,13 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
   const [currentConfig, setCurrentConfig] = useState<any>({});
   const initialConfigRef = useRef<any>({});
 
+  // Ref to always have the latest nodeConfigs (avoids stale closure issues)
+  const nodeConfigsRef = useRef<NodeConfig>({});
+  // Keep ref in sync with state
+  useEffect(() => {
+    nodeConfigsRef.current = nodeConfigs;
+  }, [nodeConfigs]);
+
   // Stable callback for form onChange - auto-saves to nodeConfigs on every change
   // This ensures data is preserved even if modal is accidentally closed
   const handleConfigChange = useCallback((config: any) => {
@@ -408,8 +415,8 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
       ? nodeConfigRegistry.extractConfig(configType, nodeData)
       : {};
 
-    // Get saved config from nodeConfigs (this has pageId and other saved settings)
-    const savedConfig = nodeConfigs[node.id] || {};
+    // Get saved config from nodeConfigsRef (ref is always current, avoids stale closure)
+    const savedConfig = nodeConfigsRef.current[freshNode.id] || {};
 
     // For textNode, also extract config directly from node data
     // IMPORTANT: savedConfig takes priority as it contains what the user actually saved
