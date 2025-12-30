@@ -766,6 +766,12 @@ async function executeFlowActions(
 
         for (const edge of outgoingEdges) {
             if (edge.target && !visited.has(edge.target)) {
+                // Check if target node is a "New Flow" node - don't traverse into it
+                const targetNode = nodes.find((n: any) => n.id === edge.target);
+                if (targetNode?.data?.isNewFlowNode || targetNode?.data?.label?.toLowerCase().includes('new flow:')) {
+                    console.log(`  ⊘ Stopping traversal at New Flow node: "${targetNode.data?.label}"`);
+                    continue; // Don't add to queue - this is a separate flow entry point
+                }
                 queue.push(edge.target);
             }
         }
@@ -811,6 +817,12 @@ async function executeFlowFromNode(
 
         for (const edge of outgoingEdges) {
             if (edge.target && !visited.has(edge.target)) {
+                // Check if target node is a "New Flow" node - don't traverse into it
+                const targetNode = nodes.find((n: any) => n.id === edge.target);
+                if (targetNode?.data?.isNewFlowNode || targetNode?.data?.label?.toLowerCase().includes('new flow:')) {
+                    console.log(`  ⊘ Stopping traversal at New Flow node: "${targetNode.data?.label}"`);
+                    continue; // Don't add to queue - this is a separate flow entry point
+                }
                 queue.push(edge.target);
             }
         }

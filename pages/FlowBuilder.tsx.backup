@@ -30,7 +30,6 @@ import VideoNodeForm from '../components/VideoNodeForm';
 import ButtonNodeForm from '../components/ButtonNodeForm';
 import ButtonsOnlyNodeForm from '../components/ButtonsOnlyNodeForm';
 import StartNodeForm from '../components/StartNodeForm';
-import NewFlowNodeForm from '../components/NewFlowNodeForm';
 import CustomEdge from '../components/edges/CustomEdge';
 import CustomTriggerNode from '../components/nodes/CustomTriggerNode';
 import CustomActionNode from '../components/nodes/CustomActionNode';
@@ -521,123 +520,6 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
         return node;
       }));
 
-      // Check if this is a Text Node with 'newFlow' buttons - create connected nodes
-      const isTextNode = selectedNode.type === 'textNode' ||
-        selectedNode.data?.nodeType === 'textNode' ||
-        selectedNode.data?.label?.toLowerCase().includes('text');
-
-      if (isTextNode && configToSave.buttons && Array.isArray(configToSave.buttons)) {
-        // Filter for unprocessed newFlow buttons only
-        const newFlowButtons = configToSave.buttons.filter((btn: any) => btn.type === 'newFlow' && (btn.title || btn.flowName) && !btn.processed);
-
-        if (newFlowButtons.length > 0) {
-          console.log('[FlowBuilder.handleSaveConfig] Creating nodes for newFlow buttons:', newFlowButtons);
-
-          // Get the current node position
-          const currentNode = nodes.find(n => n.id === selectedNode.id);
-          const baseX = currentNode?.position?.x || 300;
-          const baseY = currentNode?.position?.y || 200;
-
-          const newNodes: Node[] = [];
-          const newEdges: Edge[] = [];
-
-          newFlowButtons.forEach((btn: any, index: number) => {
-            const timestamp = Date.now() + index;
-            const startNodeId = `start-${timestamp}`;
-            const textNodeId = `text-${timestamp + 1}`;
-
-            // Calculate offset position (to the right of current node, stacked if multiple)
-            const offsetX = 300;
-            const offsetY = index * 200;
-
-            // Use flowName if provided, otherwise fall back to title
-            const flowLabel = btn.flowName || btn.title || 'New Flow';
-
-            // Create Start Node for the new flow - marked as a sub-flow node
-            const startNode: Node = {
-              id: startNodeId,
-              type: 'startNode',
-              data: {
-                label: `New Flow: ${flowLabel}`,
-                nodeType: 'startNode',
-                isNewFlowNode: true, // Mark this as a sub-flow starting point
-                flowName: flowLabel, // Store the flow name for later saving
-                parentTextNodeId: selectedNode.id, // Reference to parent
-                onConfigure: () => handleConfigureNode({ id: startNodeId, data: { label: `New Flow: ${flowLabel}`, nodeType: 'startNode', isNewFlowNode: true, flowName: flowLabel } } as any),
-                onDelete: () => handleDeleteNode(startNodeId)
-              },
-              position: { x: baseX + offsetX, y: baseY + offsetY }
-            };
-
-            // Create Text Node connected to the start node
-            const textNode: Node = {
-              id: textNodeId,
-              type: 'textNode',
-              data: {
-                label: 'Text',
-                nodeType: 'textNode',
-                onConfigure: () => handleConfigureNode({ id: textNodeId, data: { label: 'Text', nodeType: 'textNode' } } as any),
-                onDelete: () => handleDeleteNode(textNodeId)
-              },
-              position: { x: baseX + offsetX + 250, y: baseY + offsetY }
-            };
-
-            // Create edge from ORIGINAL Text Node to the new Start Node
-            const edgeFromOriginal: Edge = {
-              id: `edge-${selectedNode.id}-${startNodeId}`,
-              source: selectedNode.id,
-              target: startNodeId,
-              type: 'custom',
-              animated: true,
-              style: { stroke: '#64748b', strokeWidth: 2 }
-            };
-
-            // Create edge connecting new start node to new text node
-            const edgeToText: Edge = {
-              id: `edge-${startNodeId}-${textNodeId}`,
-              source: startNodeId,
-              target: textNodeId,
-              type: 'custom',
-              animated: true,
-              style: { stroke: '#64748b', strokeWidth: 2 }
-            };
-
-            newNodes.push(startNode, textNode);
-            newEdges.push(edgeFromOriginal, edgeToText);
-          });
-
-          // Add the new nodes and edges
-          if (newNodes.length > 0) {
-            setNodes((nds) => nds.concat(newNodes));
-            setEdges((eds) => eds.concat(newEdges));
-            toast.success(`Created ${newFlowButtons.length} new flow(s) with connected nodes!`);
-
-            // Mark that these newFlow buttons have been processed (don't create nodes again)
-            const processedButtons = configToSave.buttons.map((btn: any) => {
-              if (btn.type === 'newFlow') {
-                return { ...btn, processed: true };
-              }
-              return btn;
-            });
-            configToSave.buttons = processedButtons;
-
-            // Update the node's buttons to mark as processed
-            setNodes((nds) => nds.map((node) => {
-              if (node.id === selectedNode.id) {
-                return {
-                  ...node,
-                  data: {
-                    ...node.data,
-                    buttons: processedButtons
-                  }
-                };
-              }
-              return node;
-            }));
-          }
-        }
-      }
-
       // Auto-save configurations to database so flows list shows correct page
       if (id && !id.startsWith('new')) {
         const updatedConfigs = {
@@ -710,14 +592,11 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
 
       console.log('Flow data prepared:', flowData);
 
-      let savedFlowId = flowId;
-
       if (flowId.startsWith('new')) {
         // Create new flow
         console.log('Creating new flow...');
         const newFlow = await api.workspace.createFlow(workspace.id, flowData.name);
         console.log('New flow created:', newFlow);
-        savedFlowId = newFlow.id;
 
         await api.workspace.updateFlow(newFlow.id, flowData);
         console.log('Flow updated with data');
@@ -741,118 +620,6 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
 
         toast.success(`Flow "${flowData.name}" published successfully!`);
       }
-
-      // Save sub-flows (nodes marked with isNewFlowNode)
-      const newFlowNodes = nodes.filter(node => node.data?.isNewFlowNode && node.data?.flowName);
-
-      if (newFlowNodes.length > 0) {
-        console.log('[FlowBuilder.saveFlow] Found', newFlowNodes.length, 'sub-flows to save');
-
-        for (const startNode of newFlowNodes) {
-          const subFlowName = startNode.data.flowName;
-          console.log('[FlowBuilder.saveFlow] Saving sub-flow:', subFlowName);
-
-          // Find all nodes connected to this start node (DFS)
-          const connectedNodeIds = new Set<string>();
-          const queue = [startNode.id];
-
-          while (queue.length > 0) {
-            const currentId = queue.shift()!;
-            if (connectedNodeIds.has(currentId)) continue;
-            connectedNodeIds.add(currentId);
-
-            // Find outgoing edges from this node
-            const outgoingEdges = edges.filter(e => e.source === currentId);
-            for (const edge of outgoingEdges) {
-              // Don't follow edges that lead to other "New Flow" nodes
-              const targetNode = nodes.find(n => n.id === edge.target);
-              if (targetNode && !targetNode.data?.isNewFlowNode) {
-                queue.push(edge.target);
-              }
-            }
-          }
-
-          // Get the sub-flow nodes
-          const subFlowNodes = nodes
-            .filter(n => connectedNodeIds.has(n.id))
-            .map(node => ({
-              id: node.id,
-              type: node.id === startNode.id ? 'startNode' : node.type, // Convert the New Flow node to startNode
-              position: node.position,
-              data: {
-                ...node.data,
-                // Remove the isNewFlowNode flag since it's now a proper flow
-                isNewFlowNode: undefined,
-                // Update the label to remove "New Flow:" prefix
-                label: node.id === startNode.id ? subFlowName : node.data.label
-              }
-            }));
-
-          // Get the sub-flow edges (only edges between sub-flow nodes)
-          const subFlowEdges = edges
-            .filter(e => connectedNodeIds.has(e.source) && connectedNodeIds.has(e.target))
-            .map(edge => ({
-              id: edge.id,
-              source: edge.source,
-              target: edge.target,
-              type: edge.type,
-              animated: edge.animated
-            }));
-
-          // Create sub-flow configurations (copy from parent)
-          const subFlowConfigs: Record<string, any> = {};
-          for (const nodeId of connectedNodeIds) {
-            if (nodeConfigs[nodeId]) {
-              subFlowConfigs[nodeId] = {
-                ...nodeConfigs[nodeId],
-                pageId: flowPageId // Use same page as parent
-              };
-            } else if (nodeId === startNode.id) {
-              // Add page config for the start node
-              subFlowConfigs[nodeId] = { pageId: flowPageId };
-            }
-          }
-
-          // Create the sub-flow in database
-          try {
-            const createdFlow = await api.workspace.createFlow(workspace.id, subFlowName);
-            await api.workspace.updateFlow(createdFlow.id, {
-              name: subFlowName,
-              nodes: subFlowNodes,
-              edges: subFlowEdges,
-              configurations: subFlowConfigs,
-              status: 'ACTIVE' as const
-            });
-            console.log('[FlowBuilder.saveFlow] ✓ Sub-flow saved:', subFlowName, 'ID:', createdFlow.id);
-
-            // Update the parent flow's newFlow button with the created flowId
-            // This makes the button work like a startFlow button
-            const updatedNodeConfigs = { ...nodeConfigs };
-            for (const nodeId in updatedNodeConfigs) {
-              const config = updatedNodeConfigs[nodeId];
-              if (config.buttons && Array.isArray(config.buttons)) {
-                config.buttons = config.buttons.map((btn: any) => {
-                  if (btn.type === 'newFlow' && btn.flowName === subFlowName) {
-                    return {
-                      ...btn,
-                      type: 'startFlow', // Convert to startFlow
-                      flowId: createdFlow.id
-                    };
-                  }
-                  return btn;
-                });
-              }
-            }
-            setNodeConfigs(updatedNodeConfigs);
-
-          } catch (subFlowError) {
-            console.error('[FlowBuilder.saveFlow] ✗ Error saving sub-flow:', subFlowName, subFlowError);
-          }
-        }
-
-        toast.success(`${newFlowNodes.length} sub-flow(s) also saved!`);
-      }
-
     } catch (error: any) {
       console.error('Error saving flow:', error);
       console.error('Error details:', {
@@ -1145,21 +912,6 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
     console.log('[FlowBuilder.renderConfigForm] currentConfig:', currentConfig);
     console.log('[FlowBuilder.renderConfigForm] workspace:', workspace);
 
-    // NEW FLOW NODE - Check FIRST before any other node types
-    // This catches "New Flow: xxx" nodes regardless of their type
-    if (selectedNode.data?.isNewFlowNode || nodeLabel.toLowerCase().includes('new flow:')) {
-      return (
-        <NewFlowNodeForm
-          workspaceId={workspace?.id || ''}
-          pageId={flowPageId}
-          initialConfig={{
-            flowName: selectedNode?.data?.flowName || initialConfigRef.current?.flowName || nodeLabel.replace('New Flow:', '').trim() || ''
-          }}
-          onChange={handleConfigChange}
-        />
-      );
-    }
-
     // Trigger Node
     if (nodeLabel.includes('Comment') && nodeType === 'triggerNode') {
       return (
@@ -1203,8 +955,7 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
     if (nodeType === 'textNode' || label.toLowerCase().includes('text') || label.toLowerCase().includes('delay')) {
       return (
         <TextNodeForm
-          workspaceId={workspace?.id || ''}
-          pageId={flowPageId}
+          userId={workspace?.ownerId || ''}
           initialConfig={initialConfigRef.current}
           onChange={handleConfigChange}
         />
@@ -1257,22 +1008,6 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
 
     // Start Node
     if (nodeType === 'startNode' || label.toLowerCase().includes('start')) {
-      // Check if this is a "New Flow" node (sub-flow start point)
-      const isNewFlowNode = selectedNode?.data?.isNewFlowNode || label.toLowerCase().includes('new flow');
-
-      if (isNewFlowNode) {
-        return (
-          <NewFlowNodeForm
-            workspaceId={workspace?.id || ''}
-            pageId={flowPageId}
-            initialConfig={{
-              flowName: selectedNode?.data?.flowName || initialConfigRef.current?.flowName || ''
-            }}
-            onChange={handleConfigChange}
-          />
-        );
-      }
-
       return (
         <StartNodeForm
           workspaceId={workspace?.id || ''}

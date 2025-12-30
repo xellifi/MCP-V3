@@ -151,7 +151,16 @@ const CustomStartNode: React.FC<NodeProps> = ({ data, selected }) => {
                 </div>
             </div>
 
-            {/* Only source handle - Start nodes don't have inputs */}
+            {/* Target handle for New Flow nodes - allows incoming connections from parent */}
+            {data.isNewFlowNode && (
+                <Handle
+                    type="target"
+                    position={Position.Left}
+                    className="w-3 h-3 !bg-emerald-400 !border-2 !border-white"
+                />
+            )}
+
+            {/* Source handle - all start nodes have outputs */}
             <Handle
                 type="source"
                 position={Position.Right}
