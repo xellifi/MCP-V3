@@ -522,16 +522,12 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
         return node;
       }));
 
-      // Check if this is a Text Node OR Send Message Node with 'newFlow' buttons - create connected nodes
+      // Check if this is a Text Node with 'newFlow' buttons - create connected nodes
       const isTextNode = selectedNode.type === 'textNode' ||
         selectedNode.data?.nodeType === 'textNode' ||
         selectedNode.data?.label?.toLowerCase().includes('text');
 
-      const isSendMessageNode = selectedNode.data?.actionType === 'message' ||
-        selectedNode.data?.label?.toLowerCase().includes('message') ||
-        selectedNode.data?.label?.toLowerCase().includes('messenger');
-
-      if ((isTextNode || isSendMessageNode) && configToSave.buttons && Array.isArray(configToSave.buttons)) {
+      if (isTextNode && configToSave.buttons && Array.isArray(configToSave.buttons)) {
         // Filter for unprocessed newFlow buttons only
         const newFlowButtons = configToSave.buttons.filter((btn: any) => btn.type === 'newFlow' && (btn.title || btn.flowName) && !btn.processed);
 

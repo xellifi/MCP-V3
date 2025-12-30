@@ -6,11 +6,10 @@ import ClickableVariables, { STANDARD_VARIABLES } from './ClickableVariables';
 
 interface Button {
     title: string;
-    type: 'startFlow' | 'url' | 'newFlow';
+    type: 'startFlow' | 'url';
     flowId?: string;
     url?: string;
     webviewType?: 'full' | 'compact' | 'tall';
-    flowName?: string; // For newFlow type
 }
 
 interface AIProvider {
@@ -506,7 +505,7 @@ const SendMessageNodeForm: React.FC<SendMessageNodeFormProps> = ({
                                 <div className="flex gap-2">
                                     <button
                                         type="button"
-                                        onClick={() => updateButton(index, { type: 'startFlow', flowId: '', url: undefined, webviewType: undefined, flowName: undefined })}
+                                        onClick={() => updateButton(index, { type: 'startFlow', flowId: '', url: undefined, webviewType: undefined })}
                                         className={`flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-all ${button.type === 'startFlow'
                                             ? 'bg-purple-500 text-white'
                                             : 'bg-white/5 text-slate-400 hover:bg-white/10'
@@ -516,23 +515,13 @@ const SendMessageNodeForm: React.FC<SendMessageNodeFormProps> = ({
                                     </button>
                                     <button
                                         type="button"
-                                        onClick={() => updateButton(index, { type: 'url', url: '', webviewType: 'full', flowId: undefined, flowName: undefined })}
+                                        onClick={() => updateButton(index, { type: 'url', url: '', webviewType: 'full', flowId: undefined })}
                                         className={`flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-all ${button.type === 'url'
                                             ? 'bg-purple-500 text-white'
                                             : 'bg-white/5 text-slate-400 hover:bg-white/10'
                                             }`}
                                     >
                                         URL
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => updateButton(index, { type: 'newFlow', flowName: '', flowId: undefined, url: undefined, webviewType: undefined })}
-                                        className={`flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-all ${button.type === 'newFlow'
-                                            ? 'bg-emerald-500 text-white'
-                                            : 'bg-white/5 text-slate-400 hover:bg-white/10'
-                                            }`}
-                                    >
-                                        New Flow
                                     </button>
                                 </div>
                             </div>
@@ -679,23 +668,6 @@ const SendMessageNodeForm: React.FC<SendMessageNodeFormProps> = ({
                                         </div>
                                     </div>
                                 </>
-                            )}
-
-                            {/* New Flow Input */}
-                            {button.type === 'newFlow' && (
-                                <div>
-                                    <label className="block text-xs text-slate-400 mb-1">Flow Name</label>
-                                    <input
-                                        type="text"
-                                        value={button.flowName || ''}
-                                        onChange={(e) => updateButton(index, { flowName: e.target.value })}
-                                        placeholder="e.g., Pricing Flow"
-                                        className="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:ring-2 focus:ring-emerald-500/50 outline-none"
-                                    />
-                                    <p className="text-xs text-emerald-400 mt-2">
-                                        A new start node will be created connected to this button.
-                                    </p>
-                                </div>
                             )}
 
                             {/* Remove Button */}
