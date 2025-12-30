@@ -259,29 +259,68 @@ async function processPostback(messagingEvent: any, pageId: string) {
     const senderId = messagingEvent.sender.id;
     const payload = messagingEvent.postback.payload;
     const mid = messagingEvent.postback.mid; // Facebook's unique message ID for this postback
+    const timestamp = messagingEvent.timestamp || Date.now();
 
     console.log(`Button clicked by user: ${senderId}`);
     console.log(`Button payload: ${payload}`);
     console.log(`Postback mid: ${mid || 'none'}`);
+    console.log(`Timestamp: ${timestamp}`);
 
-    // Create unique key for this postback event to prevent duplicate processing
-    // If Facebook provides a mid (message ID), use it as it's unique per postback event
-    // Otherwise, use sender + payload combination for short-duration deduplication
-    const postbackKey = mid ? `mid_${mid}` : `${senderId}_${payload}`;
+    // Create unique key for deduplication
+    // Use mid if available (unique per postback), otherwise use sender + payload + 10-second window
+    const postbackKey = mid
+        ? `mid_${mid}`
+        : `pb_${senderId}_${payload}_${Math.floor(timestamp / 10000)}`;
 
-    // Check if this postback was recently processed (race condition prevention)
+    console.log(`Postback dedup key: ${postbackKey}`);
+
+    // STEP 1: In-memory cache check (fast, works within same instance)
     const now = Date.now();
     const existingProcessing = postbackProcessingCache.get(postbackKey);
     if (existingProcessing && (now - existingProcessing) < POSTBACK_PROCESSING_TIMEOUT) {
-        console.log('✓ SKIPPING: This postback is currently being processed (duplicate prevention)');
-        console.log(`  Key: ${postbackKey}, Time since first: ${now - existingProcessing}ms`);
+        console.log('✓ SKIPPING: Duplicate detected (in-memory cache)');
+        return;
+    }
+    postbackProcessingCache.set(postbackKey, now);
+
+    // STEP 2: Database check (works across serverless instances)
+    // Try to find if this postback was already processed
+    const { data: existingLog } = await supabase
+        .from('comment_automation_log')
+        .select('id, created_at')
+        .eq('comment_id', postbackKey)
+        .eq('action_type', 'postback_processed')
+        .gte('created_at', new Date(Date.now() - 30000).toISOString()) // Within last 30 seconds
+        .maybeSingle();
+
+    if (existingLog) {
+        console.log('✓ SKIPPING: Duplicate detected (database check)');
+        console.log(`  Existing log ID: ${existingLog.id}`);
         return;
     }
 
-    // Mark this postback as being processed
-    postbackProcessingCache.set(postbackKey, now);
+    // Log this postback BEFORE processing to prevent race conditions
+    const { error: insertError } = await supabase
+        .from('comment_automation_log')
+        .insert({
+            comment_id: postbackKey,
+            flow_id: payload.replace('FLOW_', '').replace('NEWFLOW_', '') || 'unknown',
+            action_type: 'postback_processed',
+            success: true,
+            error_message: null,
+            facebook_response: { senderId, payload, mid, timestamp }
+        });
 
-    // Clean up old entries from cache
+    if (insertError) {
+        // If insert fails due to duplicate, another instance already processed this
+        console.log('✓ SKIPPING: Insert failed (likely duplicate from another instance)');
+        console.log(`  Error: ${insertError.message}`);
+        return;
+    }
+
+    console.log('✓ Postback logged, proceeding with execution...');
+
+    // Clean up old in-memory cache entries
     for (const [key, ts] of postbackProcessingCache.entries()) {
         if (now - ts > POSTBACK_PROCESSING_TIMEOUT) {
             postbackProcessingCache.delete(key);
