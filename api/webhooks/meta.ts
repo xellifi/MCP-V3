@@ -289,7 +289,6 @@ async function processPostback(messagingEvent: any, pageId: string) {
         .from('comment_automation_log')
         .select('id, created_at')
         .eq('comment_id', postbackKey)
-        .eq('action_type', 'postback_processed')
         .gte('created_at', new Date(Date.now() - 30000).toISOString()) // Within last 30 seconds
         .maybeSingle();
 
@@ -300,25 +299,29 @@ async function processPostback(messagingEvent: any, pageId: string) {
     }
 
     // Log this postback BEFORE processing to prevent race conditions
+    // Use 'dm_sent' as action_type since it's allowed by database constraint
     const { error: insertError } = await supabase
         .from('comment_automation_log')
         .insert({
             comment_id: postbackKey,
-            flow_id: payload.replace('FLOW_', '').replace('NEWFLOW_', '') || 'unknown',
-            action_type: 'postback_processed',
+            flow_id: payload.replace('FLOW_', '').replace('NEWFLOW_', '') || null,
+            action_type: 'dm_sent',
             success: true,
             error_message: null,
-            facebook_response: { senderId, payload, mid, timestamp }
+            facebook_response: { senderId, payload, mid, timestamp, type: 'postback_dedup' }
         });
 
     if (insertError) {
-        // If insert fails due to duplicate, another instance already processed this
-        console.log('✓ SKIPPING: Insert failed (likely duplicate from another instance)');
-        console.log(`  Error: ${insertError.message}`);
-        return;
+        // Check if it's a duplicate key error (another instance already processed)
+        if (insertError.message.includes('duplicate') || insertError.code === '23505') {
+            console.log('✓ SKIPPING: Duplicate detected (concurrent insert from another instance)');
+            return;
+        }
+        // For other errors, log but continue processing
+        console.log(`⚠️ Insert warning (continuing anyway): ${insertError.message}`);
+    } else {
+        console.log('✓ Postback logged, proceeding with execution...');
     }
-
-    console.log('✓ Postback logged, proceeding with execution...');
 
     // Clean up old in-memory cache entries
     for (const [key, ts] of postbackProcessingCache.entries()) {
