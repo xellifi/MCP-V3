@@ -107,10 +107,18 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
   const [currentConfig, setCurrentConfig] = useState<any>({});
   const initialConfigRef = useRef<any>({});
 
-  // Stable callback for form onChange to prevent re-render loops
+  // Stable callback for form onChange - auto-saves to nodeConfigs on every change
+  // This ensures data is preserved even if modal is accidentally closed
   const handleConfigChange = useCallback((config: any) => {
     setCurrentConfig(config);
-  }, []);
+    // Auto-save to nodeConfigs so config is preserved if modal closes
+    if (selectedNode) {
+      setNodeConfigs(prev => ({
+        ...prev,
+        [selectedNode.id]: config
+      }));
+    }
+  }, [selectedNode]);
 
   // Selected edge for deletion
   const [selectedEdge, setSelectedEdge] = useState<Edge | null>(null);
