@@ -782,8 +782,9 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
               position: node.position,
               data: {
                 ...node.data,
-                // Remove the isNewFlowNode flag since it's now a proper flow
-                isNewFlowNode: undefined,
+                // KEEP the isNewFlowNode flag so the correct form is shown when reopening
+                isNewFlowNode: node.id === startNode.id ? true : node.data?.isNewFlowNode,
+                flowName: node.id === startNode.id ? subFlowName : node.data?.flowName,
                 // Update the label to remove "New Flow:" prefix
                 label: node.id === startNode.id ? subFlowName : node.data.label
               }
