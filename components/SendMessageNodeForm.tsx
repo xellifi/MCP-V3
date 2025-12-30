@@ -543,11 +543,12 @@ const SendMessageNodeForm: React.FC<SendMessageNodeFormProps> = ({
                                                     const selectedFlow = startFlows.find(f => f.id === button.flowId);
                                                     return selectedFlow ? (
                                                         <>
-                                                            {selectedFlow.pageImageUrl ? (
+                                                            {selectedFlow.pageImageUrl && selectedFlow.pageImageUrl.startsWith('http') ? (
                                                                 <img
                                                                     src={selectedFlow.pageImageUrl}
                                                                     alt={selectedFlow.pageName}
                                                                     className="w-6 h-6 rounded-full object-cover border border-white/20"
+                                                                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                                                                 />
                                                             ) : (
                                                                 <div className="w-6 h-6 rounded-full bg-purple-500/20 border border-purple-500/30 flex items-center justify-center">
@@ -588,11 +589,12 @@ const SendMessageNodeForm: React.FC<SendMessageNodeFormProps> = ({
                                                             className={`w-full px-3 py-2.5 flex items-center gap-3 hover:bg-white/10 transition-colors text-left ${button.flowId === flow.id ? 'bg-purple-500/20' : ''
                                                                 }`}
                                                         >
-                                                            {flow.pageImageUrl ? (
+                                                            {flow.pageImageUrl && flow.pageImageUrl.startsWith('http') ? (
                                                                 <img
                                                                     src={flow.pageImageUrl}
                                                                     alt={flow.pageName}
                                                                     className="w-8 h-8 rounded-full object-cover border-2 border-white/20 flex-shrink-0"
+                                                                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                                                                 />
                                                             ) : (
                                                                 <div className="w-8 h-8 rounded-full bg-purple-500/20 border-2 border-purple-500/30 flex items-center justify-center flex-shrink-0">
