@@ -37,10 +37,12 @@ async function saveOrUpdateSubscriber(
 
         const now = new Date().toISOString();
 
-        // Fetch profile picture URL from Facebook API (with redirect=false to get the actual URL)
+        // Fetch profile data from Facebook API (picture, email, etc.)
         let avatarUrl = '';
+        let email = '';
         if (pageAccessToken) {
             try {
+                // Fetch profile picture
                 const picResponse = await fetch(
                     `https://graph.facebook.com/${userId}/picture?type=large&redirect=false&access_token=${pageAccessToken}`
                 );
@@ -51,6 +53,20 @@ async function saveOrUpdateSubscriber(
                 }
             } catch (picError) {
                 console.log(`    ⚠️ Could not fetch profile picture for ${userId}`);
+            }
+
+            // Try to fetch email (requires email permission)
+            try {
+                const emailResponse = await fetch(
+                    `https://graph.facebook.com/${userId}?fields=email&access_token=${pageAccessToken}`
+                );
+                const emailData = await emailResponse.json();
+                if (emailData?.email) {
+                    email = emailData.email;
+                    console.log(`    📧 Got email for ${userName}: ${email}`);
+                }
+            } catch (emailError) {
+                console.log(`    ⚠️ Could not fetch email for ${userId}`);
             }
         }
 
@@ -107,6 +123,7 @@ async function saveOrUpdateSubscriber(
                     page_id: pageId,
                     external_id: userId,
                     name: userName,
+                    email: email || null,
                     platform: 'FACEBOOK',
                     avatar_url: avatarUrl,
                     status: 'SUBSCRIBED',

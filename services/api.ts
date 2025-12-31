@@ -53,6 +53,7 @@ const mapSubscriber = (row: any): Subscriber => ({
   workspaceId: row.workspace_id,
   pageId: row.page_id,
   name: row.name,
+  email: row.email,
   platform: row.platform,
   externalId: row.external_id,
   avatarUrl: row.avatar_url,

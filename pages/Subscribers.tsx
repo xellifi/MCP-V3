@@ -104,10 +104,17 @@ const Subscribers: React.FC<SubscribersProps> = ({ workspace }) => {
     setLoadingConversations(true);
     try {
       const conversations = await api.workspace.getConversations(workspace.id);
-      const subConversations = conversations.filter(c => c.subscriberId === subscriber.id);
+      // Try to match by subscriber_id or by external_id in subscriber info
+      const subConversations = conversations.filter(c =>
+        c.subscriberId === subscriber.id ||
+        c.subscriberId === subscriber.externalId ||
+        (c as any).participant_id === subscriber.externalId
+      );
       setSubscriberConversations(subConversations);
+      console.log('Loaded conversations:', subConversations.length);
     } catch (error) {
       console.error('Failed to load conversations', error);
+      setSubscriberConversations([]);
     } finally {
       setLoadingConversations(false);
     }
@@ -178,6 +185,14 @@ const Subscribers: React.FC<SubscribersProps> = ({ workspace }) => {
   const formatTimeAgo = (dateString: string) => {
     try {
       return formatDistanceToNow(new Date(dateString), { addSuffix: true });
+    } catch {
+      return 'Unknown';
+    }
+  };
+
+  const formatDateTime = (dateString: string) => {
+    try {
+      return format(new Date(dateString), 'MMM d, yyyy h:mm a');
     } catch {
       return 'Unknown';
     }
@@ -550,6 +565,9 @@ const Subscribers: React.FC<SubscribersProps> = ({ workspace }) => {
                 {/* Name & Info */}
                 <div className="flex-1 text-center sm:text-left">
                   <h2 className="text-2xl sm:text-3xl font-bold text-white mb-1">{selectedSubscriber.name}</h2>
+                  {selectedSubscriber.email && (
+                    <p className="text-sm text-indigo-400 mb-1">📧 {selectedSubscriber.email}</p>
+                  )}
                   <p className="text-sm text-slate-500 font-mono mb-1">ID: {selectedSubscriber.externalId}</p>
                   {selectedSubscriber.pageId && (
                     <p className="text-sm text-slate-400 mb-3">From: {getPageName(selectedSubscriber.pageId)}</p>
@@ -584,7 +602,7 @@ const Subscribers: React.FC<SubscribersProps> = ({ workspace }) => {
                     </div>
                     <div>
                       <p className="text-xs text-slate-400">Last Active</p>
-                      <p className="text-sm font-semibold text-white">{formatDate(selectedSubscriber.lastActiveAt)}</p>
+                      <p className="text-sm font-semibold text-white">{formatDateTime(selectedSubscriber.lastActiveAt)}</p>
                     </div>
                   </div>
                 </div>
@@ -712,13 +730,13 @@ const Subscribers: React.FC<SubscribersProps> = ({ workspace }) => {
               {/* Actions */}
               <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-white/10">
                 <a
-                  href={`https://facebook.com/${selectedSubscriber.externalId}`}
+                  href={`https://www.facebook.com/messages/t/${selectedSubscriber.externalId}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold transition-colors"
                 >
-                  <ExternalLink className="w-4 h-4" />
-                  View Profile
+                  <MessageCircle className="w-4 h-4" />
+                  Open Chat
                 </a>
                 <button
                   type="button"

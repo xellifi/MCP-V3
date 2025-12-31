@@ -13,6 +13,10 @@ ADD COLUMN IF NOT EXISTS labels TEXT[] DEFAULT '{}';
 ALTER TABLE subscribers 
 ADD COLUMN IF NOT EXISTS source TEXT CHECK (source IN ('COMMENT', 'MESSAGE', 'POSTBACK'));
 
+-- Add email column to store subscriber email (from Facebook permission)
+ALTER TABLE subscribers 
+ADD COLUMN IF NOT EXISTS email TEXT;
+
 -- Create index on page_id for faster filtering
 CREATE INDEX IF NOT EXISTS idx_subscribers_page_id ON subscribers(page_id);
 

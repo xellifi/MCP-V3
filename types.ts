@@ -53,6 +53,7 @@ export interface Subscriber {
   workspaceId: string;
   pageId?: string;  // Facebook page ID they came from
   name: string;
+  email?: string;   // Email from Facebook (if granted permission)
   platform: 'FACEBOOK' | 'INSTAGRAM';
   externalId: string;
   avatarUrl?: string;
