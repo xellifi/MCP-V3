@@ -311,7 +311,7 @@ const Connections: React.FC<ConnectionsProps> = ({ workspace }) => {
 
       // Construct Facebook OAuth URL
       const redirectUri = encodeURIComponent(`${window.location.origin}/connections`);
-      const scope = encodeURIComponent('pages_show_list,pages_read_engagement,pages_manage_metadata,pages_manage_posts,instagram_basic,instagram_manage_comments');
+      const scope = encodeURIComponent('email,public_profile,pages_show_list,pages_read_engagement,pages_read_user_content,pages_manage_engagement,pages_manage_metadata,pages_manage_posts,pages_messaging,pages_user_gender,pages_user_locale,pages_user_timezone,read_insights,business_management,instagram_basic,instagram_manage_comments');
       const facebookOAuthUrl = `https://www.facebook.com/v18.0/dialog/oauth?client_id=${settings.facebookAppId}&redirect_uri=${redirectUri}&scope=${scope}&response_type=code`;
 
       // Redirect to Facebook OAuth
@@ -340,7 +340,7 @@ const Connections: React.FC<ConnectionsProps> = ({ workspace }) => {
 
       // Construct Facebook OAuth URL with auth_type=rerequest to show permission dialog again
       const redirectUri = encodeURIComponent(`${window.location.origin}/connections`);
-      const scope = encodeURIComponent('pages_show_list,pages_read_engagement,pages_manage_metadata,pages_manage_posts,instagram_basic,instagram_manage_comments');
+      const scope = encodeURIComponent('email,public_profile,pages_show_list,pages_read_engagement,pages_read_user_content,pages_manage_engagement,pages_manage_metadata,pages_manage_posts,pages_messaging,pages_user_gender,pages_user_locale,pages_user_timezone,read_insights,business_management,instagram_basic,instagram_manage_comments');
       const facebookOAuthUrl = `https://www.facebook.com/v18.0/dialog/oauth?client_id=${settings.facebookAppId}&redirect_uri=${redirectUri}&scope=${scope}&response_type=code&auth_type=rerequest`;
 
       // Redirect to Facebook OAuth
