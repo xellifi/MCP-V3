@@ -27,6 +27,7 @@ const Affiliates = lazy(() => import('./pages/Affiliates'));
 const Support = lazy(() => import('./pages/Support'));
 const Academy = lazy(() => import('./pages/Academy'));
 const FormView = lazy(() => import('./pages/FormView'));
+const Forms = lazy(() => import('./pages/Forms'));
 
 // Admin Pages - Lazy load (rarely accessed)
 const SystemSettings = lazy(() => import('./pages/SystemSettings'));
@@ -157,6 +158,7 @@ const App: React.FC = () => {
                   <Route path="/affiliates" element={<Affiliates user={user} />} />
                   <Route path="/support" element={<Support user={user} workspace={currentWorkspace} />} />
                   <Route path="/academy" element={<Academy user={user} />} />
+                  <Route path="/forms-manager" element={<Forms workspace={currentWorkspace} />} />
 
                   {/* Admin Only Routes */}
                   <Route path="/users" element={<UsersPage user={user} />} />

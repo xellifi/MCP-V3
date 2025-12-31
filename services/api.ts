@@ -767,6 +767,43 @@ export const api = {
       return data;
     },
 
+    getForms: async (workspaceId: string): Promise<any[]> => {
+      const { data, error } = await supabase
+        .from('forms')
+        .select('*')
+        .eq('workspace_id', workspaceId)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching forms:', error);
+        return [];
+      }
+      return data || [];
+    },
+
+    deleteForm: async (formId: string): Promise<void> => {
+      // First delete all submissions for this form
+      const { error: submissionsError } = await supabase
+        .from('form_submissions')
+        .delete()
+        .eq('form_id', formId);
+
+      if (submissionsError) {
+        console.error('Error deleting form submissions:', submissionsError);
+      }
+
+      // Then delete the form itself
+      const { error } = await supabase
+        .from('forms')
+        .delete()
+        .eq('id', formId);
+
+      if (error) {
+        console.error('Error deleting form:', error);
+        throw new Error('Failed to delete form');
+      }
+    },
+
     getFormSubmissions: async (formId: string): Promise<any[]> => {
       const { data, error } = await supabase
         .from('form_submissions')
