@@ -33,6 +33,7 @@ import ButtonNodeForm from '../components/ButtonNodeForm';
 import ButtonsOnlyNodeForm from '../components/ButtonsOnlyNodeForm';
 import StartNodeForm from '../components/StartNodeForm';
 import NewFlowNodeForm from '../components/NewFlowNodeForm';
+import ConditionNodeForm from '../components/ConditionNodeForm';
 import CustomEdge from '../components/edges/CustomEdge';
 import CustomTriggerNode from '../components/nodes/CustomTriggerNode';
 import CustomActionNode from '../components/nodes/CustomActionNode';
@@ -1444,6 +1445,17 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
     if (nodeType === 'sheetsNode' || label.toLowerCase().includes('sheets') || label.toLowerCase().includes('google')) {
       return (
         <GoogleSheetNodeForm
+          workspaceId={workspace?.id || ''}
+          initialConfig={initialConfigRef.current}
+          onChange={handleConfigChange}
+        />
+      );
+    }
+
+    // Condition Node
+    if (nodeType === 'conditionNode' || label.toLowerCase().includes('condition')) {
+      return (
+        <ConditionNodeForm
           workspaceId={workspace?.id || ''}
           initialConfig={initialConfigRef.current}
           onChange={handleConfigChange}
