@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, GripVertical, Image, Type, Mail, Phone, Hash, AlignLeft, ChevronDown, List, CircleDot, CheckSquare } from 'lucide-react';
+import { Plus, Trash2, GripVertical, Image, Type, Mail, Phone, Hash, AlignLeft, ChevronDown, CircleDot, CheckSquare, Timer, Sparkles } from 'lucide-react';
 import { FormField } from '../types';
 
 interface FormNodeFormProps {
@@ -14,6 +14,8 @@ interface FormNodeFormProps {
         googleSheetId?: string;
         googleSheetName?: string;
         fields?: FormField[];
+        countdownMinutes?: number;
+        countdownEnabled?: boolean;
     };
     onChange: (config: any) => void;
 }
@@ -46,8 +48,9 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
     const [fields, setFields] = useState<FormField[]>(initialConfig?.fields || []);
     const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
     const [activeTab, setActiveTab] = useState<'fields' | 'style' | 'settings'>('fields');
+    const [countdownEnabled, setCountdownEnabled] = useState(initialConfig?.countdownEnabled || false);
+    const [countdownMinutes, setCountdownMinutes] = useState(initialConfig?.countdownMinutes || 10);
 
-    // Notify parent of changes
     useEffect(() => {
         onChange({
             formName,
@@ -57,8 +60,10 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
             borderRadius,
             successMessage,
             fields,
+            countdownEnabled,
+            countdownMinutes,
         });
-    }, [formName, headerImageUrl, submitButtonText, submitButtonColor, borderRadius, successMessage, fields]);
+    }, [formName, headerImageUrl, submitButtonText, submitButtonColor, borderRadius, successMessage, fields, countdownEnabled, countdownMinutes]);
 
     const addField = (type: string) => {
         const fieldType = FIELD_TYPES.find(t => t.value === type);
@@ -148,7 +153,6 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
             {/* Fields Tab */}
             {activeTab === 'fields' && (
                 <div className="space-y-3">
-                    {/* Add Field Buttons */}
                     <div className="grid grid-cols-4 gap-2">
                         {FIELD_TYPES.map((type) => {
                             const Icon = type.icon;
@@ -165,8 +169,7 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
                         })}
                     </div>
 
-                    {/* Field List */}
-                    <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
+                    <div className="space-y-2 max-h-[280px] overflow-y-auto pr-1">
                         {fields.length === 0 ? (
                             <div className="text-center py-8 text-slate-500 text-sm">
                                 Click a field type above to add fields
@@ -184,7 +187,6 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
                                         className={`bg-slate-800/40 border border-slate-600/30 rounded-xl p-3 transition-all ${draggedIndex === index ? 'opacity-50 scale-95' : ''
                                             }`}
                                     >
-                                        {/* Field Header */}
                                         <div className="flex items-center gap-2 mb-2">
                                             <GripVertical className="w-4 h-4 text-slate-600 cursor-grab" />
                                             <div className="w-7 h-7 rounded-lg bg-purple-500/20 flex items-center justify-center">
@@ -203,7 +205,7 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
                                                     onChange={(e) => updateField(index, { required: e.target.checked })}
                                                     className="w-3.5 h-3.5 rounded border-slate-600 bg-slate-700 text-purple-500"
                                                 />
-                                                <span className="text-[10px] text-slate-500">Required</span>
+                                                <span className="text-[10px] text-slate-500">Req</span>
                                             </label>
                                             <button
                                                 onClick={() => removeField(index)}
@@ -213,23 +215,21 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
                                             </button>
                                         </div>
 
-                                        {/* Placeholder for input fields */}
                                         {['text', 'email', 'phone', 'number', 'textarea'].includes(field.type) && (
                                             <input
                                                 type="text"
                                                 value={field.placeholder || ''}
                                                 onChange={(e) => updateField(index, { placeholder: e.target.value })}
-                                                placeholder="Placeholder text..."
+                                                placeholder="Placeholder..."
                                                 className="w-full px-3 py-1.5 bg-slate-900/50 border border-slate-700/50 rounded-lg text-xs text-slate-300 placeholder-slate-600 focus:outline-none focus:border-purple-500/50"
                                             />
                                         )}
 
-                                        {/* Options for select/radio */}
                                         {['select', 'radio'].includes(field.type) && (
                                             <textarea
                                                 value={(field.options || []).join('\n')}
                                                 onChange={(e) => updateField(index, { options: e.target.value.split('\n').filter(o => o.trim()) })}
-                                                placeholder="Option 1&#10;Option 2&#10;Option 3"
+                                                placeholder="Option 1&#10;Option 2"
                                                 rows={2}
                                                 className="w-full px-3 py-1.5 bg-slate-900/50 border border-slate-700/50 rounded-lg text-xs text-slate-300 placeholder-slate-600 focus:outline-none focus:border-purple-500/50 resize-none"
                                             />
@@ -245,9 +245,8 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
             {/* Style Tab */}
             {activeTab === 'style' && (
                 <div className="space-y-4">
-                    {/* Header Image */}
                     <div>
-                        <label className="block text-sm font-medium text-slate-300 mb-1.5">Header Image URL</label>
+                        <label className="block text-sm font-medium text-slate-300 mb-1.5">Header Image</label>
                         <div className="flex gap-2">
                             <input
                                 type="text"
@@ -257,35 +256,43 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
                                 className="flex-1 px-4 py-2 bg-slate-800/60 border border-slate-600/50 rounded-xl text-white text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50"
                             />
                             {headerImageUrl && (
-                                <button
-                                    onClick={() => setHeaderImageUrl('')}
-                                    className="p-2 text-red-400 hover:bg-red-500/10 rounded-xl"
-                                >
+                                <button onClick={() => setHeaderImageUrl('')} className="p-2 text-red-400 hover:bg-red-500/10 rounded-xl">
                                     <Trash2 className="w-4 h-4" />
                                 </button>
                             )}
                         </div>
                         {headerImageUrl && (
-                            <img src={headerImageUrl} alt="" className="mt-2 w-full h-24 object-cover rounded-xl border border-slate-700" />
+                            <img src={headerImageUrl} alt="" className="mt-2 w-full h-20 object-cover rounded-xl border border-slate-700" />
                         )}
                     </div>
 
-                    {/* Button Text */}
-                    <div>
-                        <label className="block text-sm font-medium text-slate-300 mb-1.5">Button Text</label>
-                        <input
-                            type="text"
-                            value={submitButtonText}
-                            onChange={(e) => setSubmitButtonText(e.target.value)}
-                            placeholder="Submit"
-                            className="w-full px-4 py-2 bg-slate-800/60 border border-slate-600/50 rounded-xl text-white text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50"
-                        />
+                    <div className="grid grid-cols-2 gap-3">
+                        <div>
+                            <label className="block text-sm font-medium text-slate-300 mb-1.5">Button Text</label>
+                            <input
+                                type="text"
+                                value={submitButtonText}
+                                onChange={(e) => setSubmitButtonText(e.target.value)}
+                                className="w-full px-3 py-2 bg-slate-800/60 border border-slate-600/50 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-slate-300 mb-1.5">Corner Style</label>
+                            <select
+                                value={borderRadius}
+                                onChange={(e) => setBorderRadius(e.target.value as any)}
+                                className="w-full px-3 py-2 bg-slate-800/60 border border-slate-600/50 rounded-xl text-white text-sm focus:outline-none cursor-pointer"
+                            >
+                                <option value="rounded">Rounded</option>
+                                <option value="round">Round</option>
+                                <option value="full">Pill</option>
+                            </select>
+                        </div>
                     </div>
 
-                    {/* Button Color */}
                     <div>
                         <label className="block text-sm font-medium text-slate-300 mb-1.5">Button Color</label>
-                        <div className="grid grid-cols-8 gap-1.5 mb-2">
+                        <div className="grid grid-cols-8 gap-1.5">
                             {COLOR_PRESETS.map((color) => (
                                 <button
                                     key={color}
@@ -298,66 +305,70 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
                         </div>
                     </div>
 
-                    {/* Border Radius */}
-                    <div>
-                        <label className="block text-sm font-medium text-slate-300 mb-1.5">Corner Style</label>
-                        <div className="grid grid-cols-3 gap-2">
-                            {[
-                                { value: 'rounded', label: 'Rounded' },
-                                { value: 'round', label: 'Round' },
-                                { value: 'full', label: 'Pill' },
-                            ].map((option) => (
-                                <button
-                                    key={option.value}
-                                    onClick={() => setBorderRadius(option.value as any)}
-                                    className={`py-2 px-3 text-sm font-medium rounded-xl border transition-all ${borderRadius === option.value
-                                            ? 'bg-purple-500/20 border-purple-500/50 text-purple-300'
-                                            : 'bg-slate-800/40 border-slate-600/30 text-slate-400 hover:border-slate-500'
-                                        }`}
-                                >
-                                    {option.label}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Preview */}
-                    <div>
-                        <label className="block text-sm font-medium text-slate-300 mb-1.5">Preview</label>
-                        <button
-                            className={`w-full py-3 text-white font-semibold text-sm ${borderRadius === 'full' ? 'rounded-full' : borderRadius === 'round' ? 'rounded-2xl' : 'rounded-lg'
-                                }`}
-                            style={{ backgroundColor: submitButtonColor }}
-                        >
-                            {submitButtonText || 'Submit'}
-                        </button>
-                    </div>
+                    <button
+                        className={`w-full py-3 text-white font-semibold text-sm ${borderRadius === 'full' ? 'rounded-full' : borderRadius === 'round' ? 'rounded-2xl' : 'rounded-lg'
+                            }`}
+                        style={{ backgroundColor: submitButtonColor }}
+                    >
+                        {submitButtonText || 'Submit'}
+                    </button>
                 </div>
             )}
 
             {/* Settings Tab */}
             {activeTab === 'settings' && (
                 <div className="space-y-4">
+                    {/* Countdown Timer */}
+                    <div className="p-4 bg-gradient-to-r from-orange-500/10 to-red-500/10 border border-orange-500/30 rounded-xl">
+                        <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-2">
+                                <Timer className="w-5 h-5 text-orange-400" />
+                                <span className="text-sm font-medium text-white">Countdown Timer</span>
+                            </div>
+                            <label className="relative inline-flex items-center cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={countdownEnabled}
+                                    onChange={(e) => setCountdownEnabled(e.target.checked)}
+                                    className="sr-only peer"
+                                />
+                                <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-500"></div>
+                            </label>
+                        </div>
+                        {countdownEnabled && (
+                            <div className="flex items-center gap-3">
+                                <input
+                                    type="number"
+                                    min="1"
+                                    max="60"
+                                    value={countdownMinutes}
+                                    onChange={(e) => setCountdownMinutes(Math.max(1, Math.min(60, parseInt(e.target.value) || 1)))}
+                                    className="w-20 px-3 py-2 bg-slate-800/80 border border-orange-500/30 rounded-lg text-white text-center focus:outline-none focus:border-orange-500"
+                                />
+                                <span className="text-sm text-slate-400">minutes</span>
+                            </div>
+                        )}
+                        <p className="text-xs text-slate-500 mt-2">Creates urgency with a countdown timer on the form</p>
+                    </div>
+
                     {/* Success Message */}
                     <div>
                         <label className="block text-sm font-medium text-slate-300 mb-1.5">Success Message</label>
                         <textarea
                             value={successMessage}
                             onChange={(e) => setSuccessMessage(e.target.value)}
-                            placeholder="Thank you for your submission!"
                             rows={2}
                             className="w-full px-4 py-2 bg-slate-800/60 border border-slate-600/50 rounded-xl text-white text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 resize-none"
                         />
                     </div>
 
-                    {/* Google Sheets - Coming Soon */}
-                    <div className="p-4 bg-slate-800/30 border border-slate-700/50 rounded-xl">
+                    <div className="p-4 bg-slate-800/30 border border-slate-700/50 rounded-xl opacity-60">
                         <div className="flex items-center gap-2 mb-2">
                             <span className="text-lg">📊</span>
                             <span className="text-sm font-medium text-slate-300">Google Sheets</span>
                             <span className="px-2 py-0.5 bg-amber-500/20 text-amber-400 text-[10px] rounded-full">Coming Soon</span>
                         </div>
-                        <p className="text-xs text-slate-500">Automatically save form submissions to Google Sheets</p>
+                        <p className="text-xs text-slate-500">Auto-save submissions to Google Sheets</p>
                     </div>
                 </div>
             )}

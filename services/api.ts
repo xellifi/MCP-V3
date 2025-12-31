@@ -680,6 +680,8 @@ export const api = {
           google_sheet_id: formData.googleSheetId || null,
           google_sheet_name: formData.googleSheetName || null,
           fields: formData.fields || [],
+          countdown_enabled: formData.countdownEnabled || false,
+          countdown_minutes: formData.countdownMinutes || 10,
         })
         .select()
         .single();
@@ -704,6 +706,8 @@ export const api = {
           google_sheet_id: formData.googleSheetId,
           google_sheet_name: formData.googleSheetName,
           fields: formData.fields,
+          countdown_enabled: formData.countdownEnabled || false,
+          countdown_minutes: formData.countdownMinutes || 10,
           updated_at: new Date().toISOString(),
         })
         .eq('id', formId)
