@@ -131,33 +131,60 @@ const FormView: React.FC = () => {
 
     // Sync form submission to Google Sheets
     const syncToGoogleSheets = async (submissionData: any) => {
+        console.log('[FormView Sheets] Starting sync...');
+        console.log('[FormView Sheets] Form data:', { flow_id: form?.flow_id, node_id: form?.node_id });
+
         try {
             // Get the flow this form belongs to
             if (!form?.flow_id) {
-                console.log('[FormView] No flow_id, skipping sheets sync');
+                console.log('[FormView Sheets] ❌ No flow_id on form - form needs to be re-saved from FlowBuilder');
                 return;
             }
 
             // Get the flow configuration
-            const { data: flowData } = await supabase
+            console.log('[FormView Sheets] Fetching flow:', form.flow_id);
+            const { data: flowData, error: flowError } = await supabase
                 .from('flows')
                 .select('configurations, nodes, edges')
                 .eq('id', form.flow_id)
                 .single();
 
+            if (flowError) {
+                console.error('[FormView Sheets] ❌ Error fetching flow:', flowError);
+                return;
+            }
+
+            console.log('[FormView Sheets] Flow data:', {
+                hasConfigs: !!flowData?.configurations,
+                hasNodes: !!flowData?.nodes,
+                hasEdges: !!flowData?.edges,
+                edgesCount: flowData?.edges?.length || 0
+            });
+
             if (!flowData?.configurations || !flowData?.edges) {
-                console.log('[FormView] No flow configurations found');
+                console.log('[FormView Sheets] ❌ No flow configurations or edges found');
                 return;
             }
 
             // Find the form node and its connected sheets node
             const formNodeId = form.node_id;
+            console.log('[FormView Sheets] Looking for sheets edge from form node:', formNodeId);
+            console.log('[FormView Sheets] All edges:', flowData.edges);
+
             const sheetsEdge = (flowData.edges || []).find((edge: any) =>
                 edge.source === formNodeId && edge.sourceHandle === 'sheets'
             );
 
+            // Also try without sourceHandle in case it wasn't saved
+            const anyEdgeFromForm = (flowData.edges || []).find((edge: any) =>
+                edge.source === formNodeId
+            );
+
+            console.log('[FormView Sheets] Sheets edge found:', sheetsEdge);
+            console.log('[FormView Sheets] Any edge from form:', anyEdgeFromForm);
+
             if (!sheetsEdge) {
-                console.log('[FormView] No sheets connection found');
+                console.log('[FormView Sheets] ❌ No sheets connection found (sourceHandle must be "sheets")');
                 return;
             }
 
