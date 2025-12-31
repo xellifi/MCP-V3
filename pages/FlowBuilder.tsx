@@ -1051,9 +1051,10 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
     // Generate unique IDs for the nodes
     const triggerId = `trigger-${Date.now()}`;
     const replyId = `action-${Date.now() + 1}`;
-    const messageId = `action-${Date.now() + 2}`;
+    const imageId = `image-${Date.now() + 2}`;
+    const messageId = `action-${Date.now() + 3}`;
 
-    // Create the 3 nodes
+    // Create the 4 nodes
     const triggerNode = {
       id: triggerId,
       type: 'triggerNode',
@@ -1079,6 +1080,18 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
       position: { x: baseX + 250, y: baseY - 80 },
     };
 
+    const imageNode = {
+      id: imageId,
+      type: 'imageNode',
+      data: {
+        label: 'Image',
+        nodeType: 'imageNode',
+        onConfigure: () => handleConfigureNode({ id: imageId, data: { label: 'Image', nodeType: 'imageNode' } } as any),
+        onDelete: () => handleDeleteNode(imageId)
+      },
+      position: { x: baseX + 250, y: baseY + 80 },
+    };
+
     const messageNode = {
       id: messageId,
       type: 'actionNode',
@@ -1089,10 +1102,10 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
         onConfigure: () => handleConfigureNode({ id: messageId, data: { label: 'Send Message', nodeType: 'actionNode', actionType: 'message' } } as any),
         onDelete: () => handleDeleteNode(messageId)
       },
-      position: { x: baseX + 250, y: baseY + 80 },
+      position: { x: baseX + 500, y: baseY + 80 },
     };
 
-    // Create edges connecting trigger to both action nodes
+    // Create edges: Trigger → Comment Reply (top), Trigger → Image → Send Message (bottom)
     const newEdges = [
       {
         id: `edge-${triggerId}-${replyId}`,
@@ -1103,8 +1116,16 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
         style: { stroke: '#64748b', strokeWidth: 2 }
       },
       {
-        id: `edge-${triggerId}-${messageId}`,
+        id: `edge-${triggerId}-${imageId}`,
         source: triggerId,
+        target: imageId,
+        type: 'custom',
+        animated: true,
+        style: { stroke: '#64748b', strokeWidth: 2 }
+      },
+      {
+        id: `edge-${imageId}-${messageId}`,
+        source: imageId,
         target: messageId,
         type: 'custom',
         animated: true,
@@ -1113,7 +1134,7 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
     ];
 
     // Add all nodes and edges
-    setNodes((nds) => nds.concat([triggerNode, replyNode, messageNode]));
+    setNodes((nds) => nds.concat([triggerNode, replyNode, imageNode, messageNode]));
     setEdges((eds) => eds.concat(newEdges));
 
     toast.success('Comment Reply template added! Click gear icon on each node to configure.');

@@ -207,11 +207,14 @@ const CustomActionNode: React.FC<NodeProps> = ({ data, selected }) => {
                 position={Position.Left}
                 className={`w-3 h-3 ${colors.handleColor} !border-2 !border-white`}
             />
-            <Handle
-                type="source"
-                position={Position.Right}
-                className={`w-3 h-3 ${colors.handleColor} !border-2 !border-white`}
-            />
+            {/* Only show output handle for Send Message nodes, not Comment Reply */}
+            {isMessage && (
+                <Handle
+                    type="source"
+                    position={Position.Right}
+                    className={`w-3 h-3 ${colors.handleColor} !border-2 !border-white`}
+                />
+            )}
         </div>
     );
 };
