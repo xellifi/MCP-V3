@@ -170,13 +170,13 @@ const FormView: React.FC = () => {
         return true;
     };
 
-    // Shared styles based on template
-    const containerBg = isMinimal ? 'bg-gray-50' : 'bg-[#0a0a12]';
-    const cardBg = isMinimal ? 'bg-white shadow-xl' : 'bg-white/[0.06] backdrop-blur-2xl border border-white/10 shadow-2xl';
-    const textColor = isMinimal ? 'text-gray-800' : 'text-white';
+    // Shared styles based on template - Minimal uses pure white/blue/grey
+    const containerBg = isMinimal ? 'bg-white' : 'bg-[#0a0a12]';
+    const cardBg = isMinimal ? 'bg-white shadow-lg border border-gray-100' : 'bg-white/[0.06] backdrop-blur-2xl border border-white/10 shadow-2xl';
+    const textColor = isMinimal ? 'text-gray-900' : 'text-white';
     const textMuted = isMinimal ? 'text-gray-500' : 'text-white/50';
-    const inputBg = isMinimal ? 'bg-gray-100 border-gray-200 focus:border-blue-500' : 'bg-white/5 border-white/10 focus:border-purple-500';
-    const inputText = isMinimal ? 'text-gray-800 placeholder-gray-400' : 'text-white placeholder-white/30';
+    const inputBg = isMinimal ? 'bg-white border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500' : 'bg-white/5 border-white/10 focus:border-purple-500';
+    const inputText = isMinimal ? 'text-gray-900 placeholder-gray-400' : 'text-white placeholder-white/30';
 
     // Loading
     if (loading) return (
@@ -245,15 +245,27 @@ const FormView: React.FC = () => {
                 <div className="w-full max-w-md">
                     {/* Timer */}
                     {form?.countdown_enabled && timeLeft > 0 && (
-                        <div className={`mb-4 ${isMinimal ? 'bg-gradient-to-r from-orange-500 to-red-500' : 'bg-gradient-to-r from-red-600 via-orange-500 to-amber-500'} rounded-2xl p-3 flex items-center justify-center gap-3 shadow-lg`} style={{ borderRadius: getBorderRadius() }}>
+                        <div
+                            className={`mb-4 ${isMinimal ? 'bg-gradient-to-r from-orange-500 to-red-500' : 'bg-gradient-to-r from-red-600 via-orange-500 to-amber-500'} rounded-2xl p-3 flex items-center justify-center gap-3 shadow-lg ${form?.countdown_blink ? 'animate-pulse' : ''}`}
+                            style={{
+                                borderRadius: getBorderRadius(),
+                                animation: form?.countdown_blink ? 'blink 1s ease-in-out infinite' : 'none'
+                            }}
+                        >
                             <span className="text-xl">🔥</span>
                             <div className="text-center">
                                 <p className="text-white/90 text-xs font-medium">OFFER EXPIRES IN</p>
-                                <p className="text-white text-2xl font-bold font-mono">{formatTime(timeLeft)}</p>
+                                <p className={`text-white text-2xl font-bold font-mono ${form?.countdown_blink ? 'animate-pulse' : ''}`}>{formatTime(timeLeft)}</p>
                             </div>
                             <span className="text-xl">🔥</span>
                         </div>
                     )}
+                    <style>{`
+                        @keyframes blink {
+                            0%, 100% { opacity: 1; transform: scale(1); }
+                            50% { opacity: 0.85; transform: scale(1.02); }
+                        }
+                    `}</style>
 
                     {/* Main Card */}
                     <div className={cardBg} style={{ borderRadius: getBorderRadius() }}>
@@ -265,8 +277,10 @@ const FormView: React.FC = () => {
                         )}
 
                         <div className="p-6">
-                            {/* Title */}
-                            <h1 className={`text-2xl font-bold ${textColor} text-center mb-2`}>{form?.name || 'Order Form'}</h1>
+                            {/* Title - Display Product Name for order forms, Form Name otherwise */}
+                            <h1 className={`text-2xl font-bold ${textColor} text-center mb-2`}>
+                                {isOrderForm && form?.product_name ? form.product_name : (form?.name || 'Order Form')}
+                            </h1>
 
                             {/* Step Indicator */}
                             {isOrderForm && (
@@ -274,7 +288,7 @@ const FormView: React.FC = () => {
                                     {[1, 2, 3].map(s => (
                                         <div key={s} className="flex items-center">
                                             <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all ${s === currentStep ? (isMinimal ? 'bg-blue-500 text-white' : 'bg-gradient-to-r from-purple-500 to-pink-500 text-white') :
-                                                    s < currentStep ? 'bg-green-500 text-white' : (isMinimal ? 'bg-gray-200 text-gray-400' : 'bg-white/10 text-white/40')
+                                                s < currentStep ? 'bg-green-500 text-white' : (isMinimal ? 'bg-gray-200 text-gray-400' : 'bg-white/10 text-white/40')
                                                 }`}>{s < currentStep ? '✓' : s}</div>
                                             {s < 3 && <div className={`w-6 h-0.5 ${s < currentStep ? 'bg-green-500' : (isMinimal ? 'bg-gray-200' : 'bg-white/10')}`}></div>}
                                         </div>

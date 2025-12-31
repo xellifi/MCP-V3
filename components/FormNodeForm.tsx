@@ -53,9 +53,11 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
     // Timer settings
     const [countdownEnabled, setCountdownEnabled] = useState(initialConfig?.countdownEnabled || false);
     const [countdownMinutes, setCountdownMinutes] = useState(initialConfig?.countdownMinutes || 10);
+    const [countdownBlink, setCountdownBlink] = useState(initialConfig?.countdownBlink ?? true);
 
     // Order/Product settings
     const [isOrderForm, setIsOrderForm] = useState(initialConfig?.isOrderForm ?? true);
+    const [productName, setProductName] = useState(initialConfig?.productName || '');
     const [productPrice, setProductPrice] = useState(initialConfig?.productPrice || 999);
     const [currency, setCurrency] = useState(initialConfig?.currency || 'PHP');
     const [maxQuantity, setMaxQuantity] = useState(initialConfig?.maxQuantity || 10);
@@ -73,12 +75,12 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
     useEffect(() => {
         onChange({
             formName, headerImageUrl, submitButtonText, submitButtonColor, borderRadius, successMessage, fields,
-            countdownEnabled, countdownMinutes, formTemplate,
-            isOrderForm, productPrice, currency, maxQuantity, couponEnabled, couponCode, couponDiscount,
+            countdownEnabled, countdownMinutes, countdownBlink, formTemplate,
+            isOrderForm, productName, productPrice, currency, maxQuantity, couponEnabled, couponCode, couponDiscount,
             codEnabled, ewalletEnabled, ewalletOptions, ewalletNumbers, requireProofUpload,
         });
     }, [formName, headerImageUrl, submitButtonText, submitButtonColor, borderRadius, successMessage, fields,
-        countdownEnabled, countdownMinutes, formTemplate, isOrderForm, productPrice, currency, maxQuantity,
+        countdownEnabled, countdownMinutes, countdownBlink, formTemplate, isOrderForm, productName, productPrice, currency, maxQuantity,
         couponEnabled, couponCode, couponDiscount, codEnabled, ewalletEnabled, ewalletOptions, ewalletNumbers, requireProofUpload]);
 
     const addField = (type: string) => {
@@ -178,6 +180,18 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
 
                     {isOrderForm && (
                         <>
+                            {/* Product Name */}
+                            <div>
+                                <label className="block text-sm font-medium text-slate-300 mb-1.5">Product Name</label>
+                                <input
+                                    type="text"
+                                    value={productName}
+                                    onChange={(e) => setProductName(e.target.value)}
+                                    placeholder="Enter product name..."
+                                    className="w-full px-4 py-2 bg-slate-800/60 border border-slate-600/50 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                                />
+                            </div>
+
                             {/* Header Image */}
                             <div>
                                 <label className="block text-sm font-medium text-slate-300 mb-1.5">Product Image</label>
@@ -429,10 +443,17 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
                             </label>
                         </div>
                         {countdownEnabled && (
-                            <div className="flex items-center gap-2">
-                                <input type="number" min="1" max="60" value={countdownMinutes} onChange={(e) => setCountdownMinutes(parseInt(e.target.value) || 1)}
-                                    className="w-16 px-2 py-1.5 bg-slate-800/80 border border-orange-500/30 rounded-lg text-white text-center text-sm" />
-                                <span className="text-xs text-slate-400">minutes</span>
+                            <div className="space-y-2">
+                                <div className="flex items-center gap-2">
+                                    <input type="number" min="1" max="60" value={countdownMinutes} onChange={(e) => setCountdownMinutes(parseInt(e.target.value) || 1)}
+                                        className="w-16 px-2 py-1.5 bg-slate-800/80 border border-orange-500/30 rounded-lg text-white text-center text-sm" />
+                                    <span className="text-xs text-slate-400">minutes</span>
+                                </div>
+                                <label className="flex items-center gap-2 cursor-pointer">
+                                    <input type="checkbox" checked={countdownBlink} onChange={(e) => setCountdownBlink(e.target.checked)}
+                                        className="w-4 h-4 rounded text-orange-500 bg-slate-700 border-slate-600" />
+                                    <span className="text-xs text-slate-300">Blink timer to catch attention</span>
+                                </label>
                             </div>
                         )}
                     </div>
