@@ -195,15 +195,59 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
                             {/* Header Image */}
                             <div>
                                 <label className="block text-sm font-medium text-slate-300 mb-1.5">Product Image</label>
-                                <input
-                                    type="text"
-                                    value={headerImageUrl}
-                                    onChange={(e) => setHeaderImageUrl(e.target.value)}
-                                    placeholder="https://..."
-                                    className="w-full px-4 py-2 bg-slate-800/60 border border-slate-600/50 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/50"
-                                />
+                                <div className="flex gap-2">
+                                    <input
+                                        type="text"
+                                        value={headerImageUrl}
+                                        onChange={(e) => setHeaderImageUrl(e.target.value)}
+                                        placeholder="https://... or upload"
+                                        className="flex-1 px-4 py-2 bg-slate-800/60 border border-slate-600/50 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                                    />
+                                    <label className="px-3 py-2 bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/50 rounded-xl cursor-pointer flex items-center gap-1.5 transition">
+                                        <Upload className="w-4 h-4 text-purple-400" />
+                                        <span className="text-purple-300 text-sm">Upload</span>
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            className="hidden"
+                                            onChange={async (e) => {
+                                                const file = e.target.files?.[0];
+                                                if (file) {
+                                                    try {
+                                                        // Import supabase dynamically
+                                                        const { supabase } = await import('../lib/supabase');
+                                                        const fileName = `product_${Date.now()}_${file.name}`;
+                                                        const { data, error } = await supabase.storage
+                                                            .from('product-images')
+                                                            .upload(fileName, file);
+                                                        if (error) {
+                                                            console.error('Upload error:', error);
+                                                            alert('Failed to upload. Make sure the storage bucket exists.');
+                                                        } else if (data) {
+                                                            const { data: urlData } = supabase.storage
+                                                                .from('product-images')
+                                                                .getPublicUrl(fileName);
+                                                            if (urlData?.publicUrl) {
+                                                                setHeaderImageUrl(urlData.publicUrl);
+                                                            }
+                                                        }
+                                                    } catch (err) {
+                                                        console.error('Upload failed:', err);
+                                                        alert('Upload failed. Please try again.');
+                                                    }
+                                                }
+                                            }}
+                                        />
+                                    </label>
+                                </div>
                                 {headerImageUrl && (
-                                    <img src={headerImageUrl} alt="" className="mt-2 w-full h-28 object-cover rounded-xl border border-slate-700" />
+                                    <div className="mt-2 relative">
+                                        <img src={headerImageUrl} alt="" className="w-full h-28 object-cover rounded-xl border border-slate-700" />
+                                        <button
+                                            onClick={() => setHeaderImageUrl('')}
+                                            className="absolute top-1 right-1 w-6 h-6 bg-red-500 hover:bg-red-600 rounded-full flex items-center justify-center text-white text-xs"
+                                        >×</button>
+                                    </div>
                                 )}
                             </div>
 
