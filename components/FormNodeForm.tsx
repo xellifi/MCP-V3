@@ -72,16 +72,22 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
     const [ewalletNumbers, setEwalletNumbers] = useState<Record<string, string>>(initialConfig?.ewalletNumbers || {});
     const [requireProofUpload, setRequireProofUpload] = useState(initialConfig?.requireProofUpload ?? true);
 
+    // Google Sheets settings
+    const [googleSheetId, setGoogleSheetId] = useState(initialConfig?.googleSheetId || '');
+    const [googleSheetName, setGoogleSheetName] = useState(initialConfig?.googleSheetName || 'Sheet1');
+
     useEffect(() => {
         onChange({
             formName, headerImageUrl, submitButtonText, submitButtonColor, borderRadius, successMessage, fields,
             countdownEnabled, countdownMinutes, countdownBlink, formTemplate,
             isOrderForm, productName, productPrice, currency, maxQuantity, couponEnabled, couponCode, couponDiscount,
             codEnabled, ewalletEnabled, ewalletOptions, ewalletNumbers, requireProofUpload,
+            googleSheetId, googleSheetName,
         });
     }, [formName, headerImageUrl, submitButtonText, submitButtonColor, borderRadius, successMessage, fields,
         countdownEnabled, countdownMinutes, countdownBlink, formTemplate, isOrderForm, productName, productPrice, currency, maxQuantity,
-        couponEnabled, couponCode, couponDiscount, codEnabled, ewalletEnabled, ewalletOptions, ewalletNumbers, requireProofUpload]);
+        couponEnabled, couponCode, couponDiscount, codEnabled, ewalletEnabled, ewalletOptions, ewalletNumbers, requireProofUpload,
+        googleSheetId, googleSheetName]);
 
     const addField = (type: string) => {
         const fieldType = FIELD_TYPES.find(t => t.value === type);
@@ -543,6 +549,55 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
                         <label className="block text-sm font-medium text-slate-300 mb-1.5">Success Message</label>
                         <textarea value={successMessage} onChange={(e) => setSuccessMessage(e.target.value)} rows={2}
                             className="w-full px-3 py-2 bg-slate-800/60 border border-slate-600/50 rounded-xl text-white text-sm resize-none focus:outline-none" />
+                    </div>
+
+                    {/* Google Sheets Integration */}
+                    <div className="border-t border-slate-700 pt-4 mt-4">
+                        <div className="flex items-center gap-2 mb-3">
+                            <div className="p-1.5 bg-green-500/20 rounded-lg">
+                                <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none">
+                                    <rect x="3" y="3" width="18" height="18" rx="2" className="fill-green-500" />
+                                    <rect x="6" y="7" width="12" height="2" rx="0.5" className="fill-white" />
+                                    <rect x="6" y="11" width="12" height="2" rx="0.5" className="fill-white" />
+                                </svg>
+                            </div>
+                            <span className="text-green-400 font-medium text-sm">Google Sheets Sync</span>
+                        </div>
+
+                        <div className="space-y-3">
+                            <div>
+                                <label className="block text-xs text-slate-400 mb-1">Spreadsheet ID or URL</label>
+                                <input
+                                    type="text"
+                                    value={googleSheetId}
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        const match = val.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+                                        setGoogleSheetId(match ? match[1] : val);
+                                    }}
+                                    placeholder="Paste Google Sheet URL or ID..."
+                                    className="w-full px-3 py-2 bg-slate-800/60 border border-slate-600/50 rounded-xl text-white text-sm focus:outline-none focus:border-green-500/50"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs text-slate-400 mb-1">Sheet Tab Name</label>
+                                <input
+                                    type="text"
+                                    value={googleSheetName}
+                                    onChange={(e) => setGoogleSheetName(e.target.value)}
+                                    placeholder="Sheet1"
+                                    className="w-full px-3 py-2 bg-slate-800/60 border border-slate-600/50 rounded-xl text-white text-sm focus:outline-none"
+                                />
+                            </div>
+                            {googleSheetId && (
+                                <div className="p-2 bg-green-500/10 border border-green-500/30 rounded-lg">
+                                    <p className="text-green-400 text-xs">✓ Form submissions will sync to Google Sheets</p>
+                                </div>
+                            )}
+                            {!googleSheetId && (
+                                <p className="text-slate-500 text-xs">Paste your Google Sheet URL to enable sync</p>
+                            )}
+                        </div>
                     </div>
                 </div>
             )}
