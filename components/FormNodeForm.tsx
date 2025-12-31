@@ -1,22 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, GripVertical, Image, Type, Mail, Phone, Hash, AlignLeft, ChevronDown, CircleDot, CheckSquare, Timer, Sparkles } from 'lucide-react';
+import { Plus, Trash2, GripVertical, Type, Mail, Phone, Hash, AlignLeft, ChevronDown, CircleDot, CheckSquare, Timer, DollarSign, ShoppingCart, CreditCard, Wallet, Upload } from 'lucide-react';
 import { FormField } from '../types';
 
 interface FormNodeFormProps {
     workspaceId: string;
-    initialConfig?: {
-        formName?: string;
-        headerImageUrl?: string;
-        submitButtonText?: string;
-        submitButtonColor?: string;
-        borderRadius?: 'rounded' | 'round' | 'full';
-        successMessage?: string;
-        googleSheetId?: string;
-        googleSheetName?: string;
-        fields?: FormField[];
-        countdownMinutes?: number;
-        countdownEnabled?: boolean;
-    };
+    initialConfig?: any;
     onChange: (config: any) => void;
 }
 
@@ -38,32 +26,59 @@ const COLOR_PRESETS = [
     '#06b6d4', '#0ea5e9', '#3b82f6', '#1e293b',
 ];
 
+const CURRENCIES = [
+    { code: 'PHP', symbol: '₱', name: 'Philippine Peso' },
+    { code: 'USD', symbol: '$', name: 'US Dollar' },
+    { code: 'EUR', symbol: '€', name: 'Euro' },
+    { code: 'GBP', symbol: '£', name: 'British Pound' },
+    { code: 'JPY', symbol: '¥', name: 'Japanese Yen' },
+];
+
 const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig, onChange }) => {
-    const [formName, setFormName] = useState(initialConfig?.formName || 'My Form');
+    const [formName, setFormName] = useState(initialConfig?.formName || 'Order Form');
     const [headerImageUrl, setHeaderImageUrl] = useState(initialConfig?.headerImageUrl || '');
-    const [submitButtonText, setSubmitButtonText] = useState(initialConfig?.submitButtonText || 'Submit');
+    const [submitButtonText, setSubmitButtonText] = useState(initialConfig?.submitButtonText || 'Place Order');
     const [submitButtonColor, setSubmitButtonColor] = useState(initialConfig?.submitButtonColor || '#6366f1');
     const [borderRadius, setBorderRadius] = useState<'rounded' | 'round' | 'full'>(initialConfig?.borderRadius || 'round');
-    const [successMessage, setSuccessMessage] = useState(initialConfig?.successMessage || 'Thank you for your submission!');
-    const [fields, setFields] = useState<FormField[]>(initialConfig?.fields || []);
+    const [successMessage, setSuccessMessage] = useState(initialConfig?.successMessage || 'Order placed successfully! We will contact you soon.');
+    const [fields, setFields] = useState<FormField[]>(initialConfig?.fields || [
+        { id: 'name', type: 'text', label: 'Full Name', placeholder: 'Enter your name', required: true },
+        { id: 'address', type: 'textarea', label: 'Delivery Address', placeholder: 'Enter complete address', required: true },
+        { id: 'phone', type: 'phone', label: 'Phone Number', placeholder: 'Enter phone number', required: true },
+    ]);
     const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
-    const [activeTab, setActiveTab] = useState<'fields' | 'style' | 'settings'>('fields');
+    const [activeTab, setActiveTab] = useState<'fields' | 'product' | 'payment' | 'settings'>('product');
+
+    // Timer settings
     const [countdownEnabled, setCountdownEnabled] = useState(initialConfig?.countdownEnabled || false);
     const [countdownMinutes, setCountdownMinutes] = useState(initialConfig?.countdownMinutes || 10);
 
+    // Order/Product settings
+    const [isOrderForm, setIsOrderForm] = useState(initialConfig?.isOrderForm ?? true);
+    const [productPrice, setProductPrice] = useState(initialConfig?.productPrice || 999);
+    const [currency, setCurrency] = useState(initialConfig?.currency || 'PHP');
+    const [maxQuantity, setMaxQuantity] = useState(initialConfig?.maxQuantity || 10);
+    const [couponEnabled, setCouponEnabled] = useState(initialConfig?.couponEnabled || false);
+    const [couponCode, setCouponCode] = useState(initialConfig?.couponCode || '');
+    const [couponDiscount, setCouponDiscount] = useState(initialConfig?.couponDiscount || 10);
+
+    // Payment settings
+    const [codEnabled, setCodEnabled] = useState(initialConfig?.codEnabled ?? true);
+    const [ewalletEnabled, setEwalletEnabled] = useState(initialConfig?.ewalletEnabled ?? true);
+    const [ewalletOptions, setEwalletOptions] = useState<string[]>(initialConfig?.ewalletOptions || ['GCash', 'Maya', 'PayPal']);
+    const [ewalletNumbers, setEwalletNumbers] = useState<Record<string, string>>(initialConfig?.ewalletNumbers || {});
+    const [requireProofUpload, setRequireProofUpload] = useState(initialConfig?.requireProofUpload ?? true);
+
     useEffect(() => {
         onChange({
-            formName,
-            headerImageUrl,
-            submitButtonText,
-            submitButtonColor,
-            borderRadius,
-            successMessage,
-            fields,
-            countdownEnabled,
-            countdownMinutes,
+            formName, headerImageUrl, submitButtonText, submitButtonColor, borderRadius, successMessage, fields,
+            countdownEnabled, countdownMinutes,
+            isOrderForm, productPrice, currency, maxQuantity, couponEnabled, couponCode, couponDiscount,
+            codEnabled, ewalletEnabled, ewalletOptions, ewalletNumbers, requireProofUpload,
         });
-    }, [formName, headerImageUrl, submitButtonText, submitButtonColor, borderRadius, successMessage, fields, countdownEnabled, countdownMinutes]);
+    }, [formName, headerImageUrl, submitButtonText, submitButtonColor, borderRadius, successMessage, fields,
+        countdownEnabled, countdownMinutes, isOrderForm, productPrice, currency, maxQuantity,
+        couponEnabled, couponCode, couponDiscount, codEnabled, ewalletEnabled, ewalletOptions, ewalletNumbers, requireProofUpload]);
 
     const addField = (type: string) => {
         const fieldType = FIELD_TYPES.find(t => t.value === type);
@@ -84,31 +99,23 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
         setFields(newFields);
     };
 
-    const removeField = (index: number) => {
-        setFields(fields.filter((_, i) => i !== index));
-    };
-
-    const moveField = (fromIndex: number, toIndex: number) => {
-        const newFields = [...fields];
-        const [removed] = newFields.splice(fromIndex, 1);
-        newFields.splice(toIndex, 0, removed);
-        setFields(newFields);
-    };
+    const removeField = (index: number) => setFields(fields.filter((_, i) => i !== index));
 
     const handleDragStart = (index: number) => setDraggedIndex(index);
     const handleDragOver = (e: React.DragEvent, index: number) => {
         e.preventDefault();
         if (draggedIndex !== null && draggedIndex !== index) {
-            moveField(draggedIndex, index);
+            const newFields = [...fields];
+            const [removed] = newFields.splice(draggedIndex, 1);
+            newFields.splice(index, 0, removed);
+            setFields(newFields);
             setDraggedIndex(index);
         }
     };
     const handleDragEnd = () => setDraggedIndex(null);
 
-    const getFieldIcon = (type: string) => {
-        const field = FIELD_TYPES.find(t => t.value === type);
-        return field?.icon || Type;
-    };
+    const getFieldIcon = (type: string) => FIELD_TYPES.find(t => t.value === type)?.icon || Type;
+    const currencySymbol = CURRENCIES.find(c => c.code === currency)?.symbol || '₱';
 
     return (
         <div className="space-y-4">
@@ -119,40 +126,150 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
                     type="text"
                     value={formName}
                     onChange={(e) => setFormName(e.target.value)}
-                    placeholder="Enter form name..."
-                    className="w-full px-4 py-2.5 bg-slate-800/60 border border-slate-600/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all"
+                    className="w-full px-4 py-2.5 bg-slate-800/60 border border-slate-600/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50"
                 />
             </div>
 
             {/* Tabs */}
-            <div className="flex gap-1 p-1 bg-slate-800/60 rounded-xl">
+            <div className="flex gap-1 p-1 bg-slate-800/60 rounded-xl overflow-x-auto">
                 {[
+                    { id: 'product', label: 'Product', icon: ShoppingCart },
                     { id: 'fields', label: 'Fields', count: fields.length },
-                    { id: 'style', label: 'Style' },
+                    { id: 'payment', label: 'Payment', icon: CreditCard },
                     { id: 'settings', label: 'Settings' },
-                ].map((tab) => (
-                    <button
-                        key={tab.id}
-                        onClick={() => setActiveTab(tab.id as any)}
-                        className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${activeTab === tab.id
-                                ? 'bg-purple-500 text-white shadow-lg'
-                                : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
-                            }`}
-                    >
-                        {tab.label}
-                        {tab.count !== undefined && (
-                            <span className={`px-1.5 py-0.5 rounded text-xs ${activeTab === tab.id ? 'bg-purple-600' : 'bg-slate-700'
-                                }`}>
-                                {tab.count}
-                            </span>
-                        )}
-                    </button>
-                ))}
+                ].map((tab) => {
+                    const Icon = tab.icon;
+                    return (
+                        <button
+                            key={tab.id}
+                            onClick={() => setActiveTab(tab.id as any)}
+                            className={`flex-1 py-2 px-2 rounded-lg text-xs font-medium transition-all flex items-center justify-center gap-1.5 whitespace-nowrap ${activeTab === tab.id
+                                    ? 'bg-purple-500 text-white shadow-lg'
+                                    : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
+                                }`}
+                        >
+                            {Icon && <Icon className="w-3.5 h-3.5" />}
+                            {tab.label}
+                            {tab.count !== undefined && (
+                                <span className={`px-1.5 py-0.5 rounded text-[10px] ${activeTab === tab.id ? 'bg-purple-600' : 'bg-slate-700'}`}>
+                                    {tab.count}
+                                </span>
+                            )}
+                        </button>
+                    );
+                })}
             </div>
+
+            {/* Product Tab */}
+            {activeTab === 'product' && (
+                <div className="space-y-4">
+                    {/* Order Form Toggle */}
+                    <div className="flex items-center justify-between p-3 bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/30 rounded-xl">
+                        <div className="flex items-center gap-2">
+                            <ShoppingCart className="w-5 h-5 text-purple-400" />
+                            <span className="text-sm font-medium text-white">Multi-Step Order Form</span>
+                        </div>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" checked={isOrderForm} onChange={(e) => setIsOrderForm(e.target.checked)} className="sr-only peer" />
+                            <div className="w-11 h-6 bg-slate-700 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-500"></div>
+                        </label>
+                    </div>
+
+                    {isOrderForm && (
+                        <>
+                            {/* Header Image */}
+                            <div>
+                                <label className="block text-sm font-medium text-slate-300 mb-1.5">Product Image</label>
+                                <input
+                                    type="text"
+                                    value={headerImageUrl}
+                                    onChange={(e) => setHeaderImageUrl(e.target.value)}
+                                    placeholder="https://..."
+                                    className="w-full px-4 py-2 bg-slate-800/60 border border-slate-600/50 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                                />
+                                {headerImageUrl && (
+                                    <img src={headerImageUrl} alt="" className="mt-2 w-full h-28 object-cover rounded-xl border border-slate-700" />
+                                )}
+                            </div>
+
+                            {/* Price & Currency */}
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-300 mb-1.5">Price</label>
+                                    <div className="flex">
+                                        <span className="px-3 py-2 bg-slate-700 border border-slate-600 rounded-l-xl text-white text-sm">{currencySymbol}</span>
+                                        <input
+                                            type="number"
+                                            value={productPrice}
+                                            onChange={(e) => setProductPrice(parseFloat(e.target.value) || 0)}
+                                            className="flex-1 px-3 py-2 bg-slate-800/60 border border-slate-600/50 rounded-r-xl text-white text-sm focus:outline-none"
+                                        />
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-300 mb-1.5">Currency</label>
+                                    <select
+                                        value={currency}
+                                        onChange={(e) => setCurrency(e.target.value)}
+                                        className="w-full px-3 py-2 bg-slate-800/60 border border-slate-600/50 rounded-xl text-white text-sm focus:outline-none cursor-pointer"
+                                    >
+                                        {CURRENCIES.map(c => <option key={c.code} value={c.code}>{c.symbol} {c.code}</option>)}
+                                    </select>
+                                </div>
+                            </div>
+
+                            {/* Max Quantity */}
+                            <div>
+                                <label className="block text-sm font-medium text-slate-300 mb-1.5">Max Quantity</label>
+                                <input
+                                    type="number"
+                                    min="1"
+                                    max="100"
+                                    value={maxQuantity}
+                                    onChange={(e) => setMaxQuantity(parseInt(e.target.value) || 1)}
+                                    className="w-full px-4 py-2 bg-slate-800/60 border border-slate-600/50 rounded-xl text-white text-sm focus:outline-none"
+                                />
+                            </div>
+
+                            {/* Coupon */}
+                            <div className="p-3 bg-slate-800/40 border border-slate-700/50 rounded-xl space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-sm font-medium text-white">Enable Coupon Code</span>
+                                    <label className="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" checked={couponEnabled} onChange={(e) => setCouponEnabled(e.target.checked)} className="sr-only peer" />
+                                        <div className="w-9 h-5 bg-slate-700 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-green-500"></div>
+                                    </label>
+                                </div>
+                                {couponEnabled && (
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <input
+                                            type="text"
+                                            value={couponCode}
+                                            onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                                            placeholder="CODE"
+                                            className="px-3 py-2 bg-slate-900/50 border border-slate-600/50 rounded-lg text-white text-sm focus:outline-none uppercase"
+                                        />
+                                        <div className="flex items-center gap-1">
+                                            <input
+                                                type="number"
+                                                value={couponDiscount}
+                                                onChange={(e) => setCouponDiscount(parseInt(e.target.value) || 0)}
+                                                className="w-16 px-2 py-2 bg-slate-900/50 border border-slate-600/50 rounded-lg text-white text-sm focus:outline-none text-center"
+                                            />
+                                            <span className="text-slate-400 text-sm">% off</span>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </>
+                    )}
+                </div>
+            )}
 
             {/* Fields Tab */}
             {activeTab === 'fields' && (
                 <div className="space-y-3">
+                    <p className="text-xs text-slate-500">Buyer information fields (Step 2)</p>
                     <div className="grid grid-cols-4 gap-2">
                         {FIELD_TYPES.map((type) => {
                             const Icon = type.icon;
@@ -160,129 +277,176 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
                                 <button
                                     key={type.value}
                                     onClick={() => addField(type.value)}
-                                    className="flex flex-col items-center gap-1 p-2.5 bg-slate-800/40 hover:bg-purple-500/20 border border-slate-600/30 hover:border-purple-500/50 rounded-xl transition-all group"
+                                    className="flex flex-col items-center gap-1 p-2 bg-slate-800/40 hover:bg-purple-500/20 border border-slate-600/30 hover:border-purple-500/50 rounded-xl transition-all group"
                                 >
                                     <Icon className="w-4 h-4 text-slate-400 group-hover:text-purple-400" />
-                                    <span className="text-[10px] text-slate-500 group-hover:text-purple-300">{type.label}</span>
+                                    <span className="text-[9px] text-slate-500 group-hover:text-purple-300">{type.label}</span>
                                 </button>
                             );
                         })}
                     </div>
 
-                    <div className="space-y-2 max-h-[280px] overflow-y-auto pr-1">
-                        {fields.length === 0 ? (
-                            <div className="text-center py-8 text-slate-500 text-sm">
-                                Click a field type above to add fields
-                            </div>
-                        ) : (
-                            fields.map((field, index) => {
-                                const Icon = getFieldIcon(field.type);
-                                return (
-                                    <div
-                                        key={field.id}
-                                        draggable
-                                        onDragStart={() => handleDragStart(index)}
-                                        onDragOver={(e) => handleDragOver(e, index)}
-                                        onDragEnd={handleDragEnd}
-                                        className={`bg-slate-800/40 border border-slate-600/30 rounded-xl p-3 transition-all ${draggedIndex === index ? 'opacity-50 scale-95' : ''
-                                            }`}
-                                    >
-                                        <div className="flex items-center gap-2 mb-2">
-                                            <GripVertical className="w-4 h-4 text-slate-600 cursor-grab" />
-                                            <div className="w-7 h-7 rounded-lg bg-purple-500/20 flex items-center justify-center">
-                                                <Icon className="w-3.5 h-3.5 text-purple-400" />
-                                            </div>
-                                            <input
-                                                type="text"
-                                                value={field.label}
-                                                onChange={(e) => updateField(index, { label: e.target.value })}
-                                                className="flex-1 px-2 py-1 bg-transparent border-b border-transparent hover:border-slate-600 focus:border-purple-500 text-sm text-white focus:outline-none"
-                                            />
-                                            <label className="flex items-center gap-1.5 cursor-pointer">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={field.required}
-                                                    onChange={(e) => updateField(index, { required: e.target.checked })}
-                                                    className="w-3.5 h-3.5 rounded border-slate-600 bg-slate-700 text-purple-500"
-                                                />
-                                                <span className="text-[10px] text-slate-500">Req</span>
-                                            </label>
-                                            <button
-                                                onClick={() => removeField(index)}
-                                                className="p-1.5 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
-                                            >
-                                                <Trash2 className="w-3.5 h-3.5" />
-                                            </button>
+                    <div className="space-y-2 max-h-[240px] overflow-y-auto pr-1">
+                        {fields.map((field, index) => {
+                            const Icon = getFieldIcon(field.type);
+                            return (
+                                <div
+                                    key={field.id}
+                                    draggable
+                                    onDragStart={() => handleDragStart(index)}
+                                    onDragOver={(e) => handleDragOver(e, index)}
+                                    onDragEnd={handleDragEnd}
+                                    className={`bg-slate-800/40 border border-slate-600/30 rounded-xl p-2.5 transition-all ${draggedIndex === index ? 'opacity-50' : ''}`}
+                                >
+                                    <div className="flex items-center gap-2">
+                                        <GripVertical className="w-3.5 h-3.5 text-slate-600 cursor-grab" />
+                                        <div className="w-6 h-6 rounded-lg bg-purple-500/20 flex items-center justify-center">
+                                            <Icon className="w-3 h-3 text-purple-400" />
                                         </div>
-
-                                        {['text', 'email', 'phone', 'number', 'textarea'].includes(field.type) && (
+                                        <input
+                                            type="text"
+                                            value={field.label}
+                                            onChange={(e) => updateField(index, { label: e.target.value })}
+                                            className="flex-1 px-2 py-1 bg-transparent text-sm text-white focus:outline-none"
+                                        />
+                                        <label className="flex items-center gap-1 cursor-pointer">
                                             <input
-                                                type="text"
-                                                value={field.placeholder || ''}
-                                                onChange={(e) => updateField(index, { placeholder: e.target.value })}
-                                                placeholder="Placeholder..."
-                                                className="w-full px-3 py-1.5 bg-slate-900/50 border border-slate-700/50 rounded-lg text-xs text-slate-300 placeholder-slate-600 focus:outline-none focus:border-purple-500/50"
+                                                type="checkbox"
+                                                checked={field.required}
+                                                onChange={(e) => updateField(index, { required: e.target.checked })}
+                                                className="w-3 h-3 rounded text-purple-500"
                                             />
-                                        )}
-
-                                        {['select', 'radio'].includes(field.type) && (
-                                            <textarea
-                                                value={(field.options || []).join('\n')}
-                                                onChange={(e) => updateField(index, { options: e.target.value.split('\n').filter(o => o.trim()) })}
-                                                placeholder="Option 1&#10;Option 2"
-                                                rows={2}
-                                                className="w-full px-3 py-1.5 bg-slate-900/50 border border-slate-700/50 rounded-lg text-xs text-slate-300 placeholder-slate-600 focus:outline-none focus:border-purple-500/50 resize-none"
-                                            />
-                                        )}
+                                            <span className="text-[9px] text-slate-500">Req</span>
+                                        </label>
+                                        <button onClick={() => removeField(index)} className="p-1 text-slate-500 hover:text-red-400">
+                                            <Trash2 className="w-3 h-3" />
+                                        </button>
                                     </div>
-                                );
-                            })
-                        )}
+                                </div>
+                            );
+                        })}
                     </div>
                 </div>
             )}
 
-            {/* Style Tab */}
-            {activeTab === 'style' && (
+            {/* Payment Tab */}
+            {activeTab === 'payment' && (
                 <div className="space-y-4">
-                    <div>
-                        <label className="block text-sm font-medium text-slate-300 mb-1.5">Header Image</label>
-                        <div className="flex gap-2">
-                            <input
-                                type="text"
-                                value={headerImageUrl}
-                                onChange={(e) => setHeaderImageUrl(e.target.value)}
-                                placeholder="https://..."
-                                className="flex-1 px-4 py-2 bg-slate-800/60 border border-slate-600/50 rounded-xl text-white text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50"
-                            />
-                            {headerImageUrl && (
-                                <button onClick={() => setHeaderImageUrl('')} className="p-2 text-red-400 hover:bg-red-500/10 rounded-xl">
-                                    <Trash2 className="w-4 h-4" />
-                                </button>
-                            )}
+                    <p className="text-xs text-slate-500">Payment options (Step 3)</p>
+
+                    {/* COD */}
+                    <div className="flex items-center justify-between p-3 bg-slate-800/40 border border-slate-700/50 rounded-xl">
+                        <div className="flex items-center gap-2">
+                            <span className="text-lg">💵</span>
+                            <span className="text-sm font-medium text-white">Cash on Delivery</span>
                         </div>
-                        {headerImageUrl && (
-                            <img src={headerImageUrl} alt="" className="mt-2 w-full h-20 object-cover rounded-xl border border-slate-700" />
+                        <label className="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" checked={codEnabled} onChange={(e) => setCodEnabled(e.target.checked)} className="sr-only peer" />
+                            <div className="w-9 h-5 bg-slate-700 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-green-500"></div>
+                        </label>
+                    </div>
+
+                    {/* E-Wallet */}
+                    <div className="p-3 bg-slate-800/40 border border-slate-700/50 rounded-xl space-y-3">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <Wallet className="w-5 h-5 text-blue-400" />
+                                <span className="text-sm font-medium text-white">E-Wallet</span>
+                            </div>
+                            <label className="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" checked={ewalletEnabled} onChange={(e) => setEwalletEnabled(e.target.checked)} className="sr-only peer" />
+                                <div className="w-9 h-5 bg-slate-700 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-green-500"></div>
+                            </label>
+                        </div>
+                        {ewalletEnabled && (
+                            <div className="space-y-2">
+                                {ewalletOptions.map((wallet, i) => (
+                                    <div key={i} className="flex items-center gap-2">
+                                        <input
+                                            type="text"
+                                            value={wallet}
+                                            onChange={(e) => {
+                                                const newOptions = [...ewalletOptions];
+                                                newOptions[i] = e.target.value;
+                                                setEwalletOptions(newOptions);
+                                            }}
+                                            className="flex-1 px-3 py-1.5 bg-slate-900/50 border border-slate-600/50 rounded-lg text-white text-sm"
+                                            placeholder="Wallet name"
+                                        />
+                                        <input
+                                            type="text"
+                                            value={ewalletNumbers[wallet] || ''}
+                                            onChange={(e) => setEwalletNumbers({ ...ewalletNumbers, [wallet]: e.target.value })}
+                                            className="flex-1 px-3 py-1.5 bg-slate-900/50 border border-slate-600/50 rounded-lg text-white text-sm"
+                                            placeholder="Account number"
+                                        />
+                                        <button onClick={() => setEwalletOptions(ewalletOptions.filter((_, idx) => idx !== i))} className="text-red-400">
+                                            <Trash2 className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                ))}
+                                <button
+                                    onClick={() => setEwalletOptions([...ewalletOptions, ''])}
+                                    className="w-full py-2 text-xs text-purple-400 border border-dashed border-slate-600 rounded-lg hover:bg-purple-500/10"
+                                >
+                                    + Add E-Wallet Option
+                                </button>
+                            </div>
                         )}
                     </div>
 
+                    {/* Proof Upload */}
+                    <div className="flex items-center justify-between p-3 bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/30 rounded-xl">
+                        <div className="flex items-center gap-2">
+                            <Upload className="w-5 h-5 text-amber-400" />
+                            <div>
+                                <span className="text-sm font-medium text-white block">Require Payment Proof</span>
+                                <span className="text-[10px] text-slate-400">Screenshot/photo of payment</span>
+                            </div>
+                        </div>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" checked={requireProofUpload} onChange={(e) => setRequireProofUpload(e.target.checked)} className="sr-only peer" />
+                            <div className="w-9 h-5 bg-slate-700 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-500"></div>
+                        </label>
+                    </div>
+                </div>
+            )}
+
+            {/* Settings Tab */}
+            {activeTab === 'settings' && (
+                <div className="space-y-4">
+                    {/* Timer */}
+                    <div className="p-3 bg-gradient-to-r from-orange-500/10 to-red-500/10 border border-orange-500/30 rounded-xl">
+                        <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                                <Timer className="w-5 h-5 text-orange-400" />
+                                <span className="text-sm font-medium text-white">Countdown Timer</span>
+                            </div>
+                            <label className="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" checked={countdownEnabled} onChange={(e) => setCountdownEnabled(e.target.checked)} className="sr-only peer" />
+                                <div className="w-9 h-5 bg-slate-700 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-orange-500"></div>
+                            </label>
+                        </div>
+                        {countdownEnabled && (
+                            <div className="flex items-center gap-2">
+                                <input type="number" min="1" max="60" value={countdownMinutes} onChange={(e) => setCountdownMinutes(parseInt(e.target.value) || 1)}
+                                    className="w-16 px-2 py-1.5 bg-slate-800/80 border border-orange-500/30 rounded-lg text-white text-center text-sm" />
+                                <span className="text-xs text-slate-400">minutes</span>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Button Style */}
                     <div className="grid grid-cols-2 gap-3">
                         <div>
                             <label className="block text-sm font-medium text-slate-300 mb-1.5">Button Text</label>
-                            <input
-                                type="text"
-                                value={submitButtonText}
-                                onChange={(e) => setSubmitButtonText(e.target.value)}
-                                className="w-full px-3 py-2 bg-slate-800/60 border border-slate-600/50 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/50"
-                            />
+                            <input type="text" value={submitButtonText} onChange={(e) => setSubmitButtonText(e.target.value)}
+                                className="w-full px-3 py-2 bg-slate-800/60 border border-slate-600/50 rounded-xl text-white text-sm focus:outline-none" />
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-slate-300 mb-1.5">Corner Style</label>
-                            <select
-                                value={borderRadius}
-                                onChange={(e) => setBorderRadius(e.target.value as any)}
-                                className="w-full px-3 py-2 bg-slate-800/60 border border-slate-600/50 rounded-xl text-white text-sm focus:outline-none cursor-pointer"
-                            >
+                            <select value={borderRadius} onChange={(e) => setBorderRadius(e.target.value as any)}
+                                className="w-full px-3 py-2 bg-slate-800/60 border border-slate-600/50 rounded-xl text-white text-sm cursor-pointer">
                                 <option value="rounded">Rounded</option>
                                 <option value="round">Round</option>
                                 <option value="full">Pill</option>
@@ -294,81 +458,17 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
                         <label className="block text-sm font-medium text-slate-300 mb-1.5">Button Color</label>
                         <div className="grid grid-cols-8 gap-1.5">
                             {COLOR_PRESETS.map((color) => (
-                                <button
-                                    key={color}
-                                    onClick={() => setSubmitButtonColor(color)}
-                                    className={`w-full aspect-square rounded-lg transition-transform hover:scale-110 ${submitButtonColor === color ? 'ring-2 ring-white ring-offset-2 ring-offset-slate-900' : ''
-                                        }`}
-                                    style={{ backgroundColor: color }}
-                                />
+                                <button key={color} onClick={() => setSubmitButtonColor(color)}
+                                    className={`w-full aspect-square rounded-lg transition-transform hover:scale-110 ${submitButtonColor === color ? 'ring-2 ring-white ring-offset-2 ring-offset-slate-900' : ''}`}
+                                    style={{ backgroundColor: color }} />
                             ))}
                         </div>
                     </div>
 
-                    <button
-                        className={`w-full py-3 text-white font-semibold text-sm ${borderRadius === 'full' ? 'rounded-full' : borderRadius === 'round' ? 'rounded-2xl' : 'rounded-lg'
-                            }`}
-                        style={{ backgroundColor: submitButtonColor }}
-                    >
-                        {submitButtonText || 'Submit'}
-                    </button>
-                </div>
-            )}
-
-            {/* Settings Tab */}
-            {activeTab === 'settings' && (
-                <div className="space-y-4">
-                    {/* Countdown Timer */}
-                    <div className="p-4 bg-gradient-to-r from-orange-500/10 to-red-500/10 border border-orange-500/30 rounded-xl">
-                        <div className="flex items-center justify-between mb-3">
-                            <div className="flex items-center gap-2">
-                                <Timer className="w-5 h-5 text-orange-400" />
-                                <span className="text-sm font-medium text-white">Countdown Timer</span>
-                            </div>
-                            <label className="relative inline-flex items-center cursor-pointer">
-                                <input
-                                    type="checkbox"
-                                    checked={countdownEnabled}
-                                    onChange={(e) => setCountdownEnabled(e.target.checked)}
-                                    className="sr-only peer"
-                                />
-                                <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-500"></div>
-                            </label>
-                        </div>
-                        {countdownEnabled && (
-                            <div className="flex items-center gap-3">
-                                <input
-                                    type="number"
-                                    min="1"
-                                    max="60"
-                                    value={countdownMinutes}
-                                    onChange={(e) => setCountdownMinutes(Math.max(1, Math.min(60, parseInt(e.target.value) || 1)))}
-                                    className="w-20 px-3 py-2 bg-slate-800/80 border border-orange-500/30 rounded-lg text-white text-center focus:outline-none focus:border-orange-500"
-                                />
-                                <span className="text-sm text-slate-400">minutes</span>
-                            </div>
-                        )}
-                        <p className="text-xs text-slate-500 mt-2">Creates urgency with a countdown timer on the form</p>
-                    </div>
-
-                    {/* Success Message */}
                     <div>
                         <label className="block text-sm font-medium text-slate-300 mb-1.5">Success Message</label>
-                        <textarea
-                            value={successMessage}
-                            onChange={(e) => setSuccessMessage(e.target.value)}
-                            rows={2}
-                            className="w-full px-4 py-2 bg-slate-800/60 border border-slate-600/50 rounded-xl text-white text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 resize-none"
-                        />
-                    </div>
-
-                    <div className="p-4 bg-slate-800/30 border border-slate-700/50 rounded-xl opacity-60">
-                        <div className="flex items-center gap-2 mb-2">
-                            <span className="text-lg">📊</span>
-                            <span className="text-sm font-medium text-slate-300">Google Sheets</span>
-                            <span className="px-2 py-0.5 bg-amber-500/20 text-amber-400 text-[10px] rounded-full">Coming Soon</span>
-                        </div>
-                        <p className="text-xs text-slate-500">Auto-save submissions to Google Sheets</p>
+                        <textarea value={successMessage} onChange={(e) => setSuccessMessage(e.target.value)} rows={2}
+                            className="w-full px-3 py-2 bg-slate-800/60 border border-slate-600/50 rounded-xl text-white text-sm resize-none focus:outline-none" />
                     </div>
                 </div>
             )}
