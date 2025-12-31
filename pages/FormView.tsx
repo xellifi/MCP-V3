@@ -307,8 +307,19 @@ const FormView: React.FC = () => {
                     <div className={cardBg} style={{ borderRadius: getBorderRadius() }}>
                         {/* Header Image */}
                         {form?.header_image_url && (
-                            <div className={`relative h-48 ${isMinimal ? 'bg-gray-100' : 'bg-gradient-to-br from-purple-900/50 to-pink-900/50'} overflow-hidden`} style={{ borderRadius: `${getBorderRadius()} ${getBorderRadius()} 0 0` }}>
-                                <img src={form.header_image_url} alt="" className="w-full h-full object-contain p-4" style={{ borderRadius: '10px' }} />
+                            <div
+                                className={`relative h-52 ${isMinimal ? '' : 'bg-gradient-to-br from-purple-900/50 to-pink-900/50'} overflow-hidden flex items-center justify-center p-4`}
+                                style={{
+                                    borderRadius: `${getBorderRadius()} ${getBorderRadius()} 0 0`,
+                                    backgroundColor: isMinimal ? '#ffffff' : undefined
+                                }}
+                            >
+                                <img
+                                    src={form.header_image_url}
+                                    alt=""
+                                    className="max-w-full max-h-full object-contain"
+                                    style={{ borderRadius: '12px' }}
+                                />
                             </div>
                         )}
 
