@@ -194,8 +194,18 @@ const FormView: React.FC = () => {
                 }
             }
 
+            // Debug: log form product fields
+            console.log('[FormView] Form product info:', {
+                product_name: form?.product_name,
+                product_price: form?.product_price,
+                currency: form?.currency
+            });
+
             const submissionData = {
                 ...formData,
+                product_name: form?.product_name || '',
+                product_price: form?.product_price || 0,
+                currency: form?.currency || 'PHP',
                 quantity,
                 total: calculateTotal(),
                 coupon_applied: couponApplied ? form?.coupon_code : null,
