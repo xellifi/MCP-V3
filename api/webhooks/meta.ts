@@ -1504,6 +1504,121 @@ async function executeAction(
         return;
     }
 
+    // Form Node - send form as a webview button
+    if (nodeType === 'formNode' || label.toLowerCase() === 'form') {
+        console.log(`    ✓ Detected as Form node`);
+        const formName = config.formName || 'Form';
+        const formId = config.formId || node.id; // Use node ID if no form saved yet
+
+        // Build form URL with subscriber context
+        const baseUrl = process.env.VERCEL_URL
+            ? `https://${process.env.VERCEL_URL}`
+            : process.env.APP_URL || 'https://your-app-url.vercel.app';
+
+        const formUrl = `${baseUrl}/api/forms/${formId}?sid=${encodeURIComponent(context.commenterId)}&sname=${encodeURIComponent(context.commenterName || '')}`;
+
+        console.log(`    📋 Form Name: "${formName}"`);
+        console.log(`    🔗 Form URL: ${formUrl}`);
+
+        try {
+            // Brief typing indicator
+            await sendTypingIndicator(context.commenterId, pageAccessToken, 'typing_on');
+            await new Promise(resolve => setTimeout(resolve, 500));
+            await sendTypingIndicator(context.commenterId, pageAccessToken, 'typing_off');
+
+            // Send as a button template with webview
+            const formRequestBody = {
+                recipient: { id: context.commenterId },
+                message: {
+                    attachment: {
+                        type: 'template',
+                        payload: {
+                            template_type: 'button',
+                            text: `📋 ${formName}\n\nTap below to fill out the form:`,
+                            buttons: [
+                                {
+                                    type: 'web_url',
+                                    url: formUrl,
+                                    title: 'Open Form',
+                                    webview_height_ratio: 'tall',
+                                    messenger_extensions: true
+                                }
+                            ]
+                        }
+                    }
+                },
+                access_token: pageAccessToken
+            };
+
+            console.log(`    📤 Sending form button to Facebook API...`);
+
+            const formResponse = await fetch(
+                `https://graph.facebook.com/v21.0/me/messages`,
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formRequestBody)
+                }
+            );
+
+            const formResult = await formResponse.json();
+
+            if (formResult.error) {
+                console.error('    ✗ Facebook API error:', formResult.error.message);
+                console.error('    ✗ Error code:', formResult.error.code);
+
+                // If webview fails, try sending as regular URL button
+                if (formResult.error.code === 100) {
+                    console.log('    🔄 Retrying with regular URL button...');
+
+                    const fallbackBody = {
+                        recipient: { id: context.commenterId },
+                        message: {
+                            attachment: {
+                                type: 'template',
+                                payload: {
+                                    template_type: 'button',
+                                    text: `📋 ${formName}\n\nTap below to fill out the form:`,
+                                    buttons: [
+                                        {
+                                            type: 'web_url',
+                                            url: formUrl,
+                                            title: 'Open Form'
+                                        }
+                                    ]
+                                }
+                            }
+                        },
+                        access_token: pageAccessToken
+                    };
+
+                    const fallbackResponse = await fetch(
+                        `https://graph.facebook.com/v21.0/me/messages`,
+                        {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(fallbackBody)
+                        }
+                    );
+
+                    const fallbackResult = await fallbackResponse.json();
+                    if (fallbackResult.error) {
+                        console.error('    ✗ Fallback also failed:', fallbackResult.error.message);
+                    } else {
+                        console.log('    ✓ Form button sent successfully (fallback)!');
+                    }
+                }
+            } else {
+                console.log('    ✓ Form button sent successfully!');
+                console.log('    ✓ Message ID:', formResult.message_id);
+            }
+        } catch (error: any) {
+            console.error('    ✗ Exception sending form:', error.message);
+        }
+
+        return;
+    }
+
     // Comment Reply Action - check multiple ways
     const isCommentReply = actionType === 'reply' ||
         label.toLowerCase().includes('reply') ||
