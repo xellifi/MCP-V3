@@ -44,6 +44,8 @@ const Subscribers: React.FC<SubscribersProps> = ({ workspace }) => {
   const [selectedPageId, setSelectedPageId] = useState<string>('');
   const [showLabelManager, setShowLabelManager] = useState(false);
   const [savingLabels, setSavingLabels] = useState(false);
+  const [subscriberToDelete, setSubscriberToDelete] = useState<Subscriber | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const itemsPerPage = 12;
   const toast = useToast();
 
@@ -143,22 +145,25 @@ const Subscribers: React.FC<SubscribersProps> = ({ workspace }) => {
     }
   };
 
-  const deleteSubscriber = async () => {
-    if (!selectedSubscriber) return;
-
-    if (!confirm(`Are you sure you want to delete "${selectedSubscriber.name}"? This cannot be undone.`)) {
-      return;
-    }
-
+  // Handle subscriber deletion
+  const handleDeleteSubscriber = async (subscriberId: string, subscriberName: string) => {
+    console.log('Delete requested for:', subscriberId, subscriberName);
+    setDeleting(true);
     try {
-      await api.workspace.deleteSubscriber(selectedSubscriber.id);
-
+      await api.workspace.deleteSubscriber(subscriberId);
       // Remove from local state
-      setSubscribers(subs => subs.filter(s => s.id !== selectedSubscriber.id));
-      closeProfile();
-      toast.success('Subscriber deleted');
+      setSubscribers(subs => subs.filter(s => s.id !== subscriberId));
+      // Close profile if this subscriber was open
+      if (selectedSubscriber?.id === subscriberId) {
+        closeProfile();
+      }
+      toast.success(`${subscriberName} deleted`);
     } catch (error) {
+      console.error('Delete error:', error);
       toast.error('Failed to delete subscriber');
+    } finally {
+      setDeleting(false);
+      setSubscriberToDelete(null);
     }
   };
 
@@ -347,14 +352,11 @@ const Subscribers: React.FC<SubscribersProps> = ({ workspace }) => {
             >
               {/* Delete Button - Top Right */}
               <button
+                type="button"
                 onClick={(e) => {
                   e.stopPropagation();
-                  if (confirm(`Delete "${subscriber.name}"?`)) {
-                    api.workspace.deleteSubscriber(subscriber.id).then(() => {
-                      setSubscribers(subs => subs.filter(s => s.id !== subscriber.id));
-                      toast.success('Subscriber deleted');
-                    }).catch(() => toast.error('Failed to delete'));
-                  }
+                  e.preventDefault();
+                  handleDeleteSubscriber(subscriber.id, subscriber.name);
                 }}
                 className="absolute top-3 right-3 p-1.5 bg-red-500/20 hover:bg-red-500/40 text-red-400 hover:text-red-300 rounded-lg opacity-0 group-hover:opacity-100 transition-all z-10 border border-red-500/30"
                 title="Delete subscriber"
@@ -719,11 +721,13 @@ const Subscribers: React.FC<SubscribersProps> = ({ workspace }) => {
                   View Profile
                 </a>
                 <button
-                  onClick={deleteSubscriber}
-                  className="flex items-center justify-center gap-2 px-4 py-3 bg-red-500/20 hover:bg-red-500/30 text-red-400 hover:text-red-300 rounded-xl font-semibold transition-colors border border-red-500/30"
+                  type="button"
+                  onClick={() => handleDeleteSubscriber(selectedSubscriber.id, selectedSubscriber.name)}
+                  disabled={deleting}
+                  className="flex items-center justify-center gap-2 px-4 py-3 bg-red-500/20 hover:bg-red-500/30 text-red-400 hover:text-red-300 rounded-xl font-semibold transition-colors border border-red-500/30 disabled:opacity-50"
                 >
                   <Trash2 className="w-4 h-4" />
-                  Delete
+                  {deleting ? 'Deleting...' : 'Delete'}
                 </button>
                 <button
                   onClick={closeProfile}

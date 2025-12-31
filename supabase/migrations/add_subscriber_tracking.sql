@@ -32,5 +32,15 @@ USING (
   )
 );
 
--- Allow service role to insert/update subscribers (for webhook)
+-- Allow authenticated users to delete their own workspace's subscribers
+DROP POLICY IF EXISTS "Users can delete subscribers in their workspace" ON subscribers;
+CREATE POLICY "Users can delete subscribers in their workspace"
+ON subscribers FOR DELETE
+USING (
+  workspace_id IN (
+    SELECT id FROM workspaces WHERE owner_id = auth.uid()
+  )
+);
+
+-- Allow service role to insert/update/delete subscribers (for webhook)
 -- Note: Service role bypasses RLS, so this is mainly for documentation
