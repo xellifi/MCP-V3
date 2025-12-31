@@ -210,32 +210,19 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
                                             type="file"
                                             accept="image/*"
                                             className="hidden"
-                                            onChange={async (e) => {
+                                            onChange={(e) => {
                                                 const file = e.target.files?.[0];
                                                 if (file) {
-                                                    try {
-                                                        // Import supabase dynamically
-                                                        const { supabase } = await import('../lib/supabase');
-                                                        const fileName = `product_${Date.now()}_${file.name}`;
-                                                        const { data, error } = await supabase.storage
-                                                            .from('product-images')
-                                                            .upload(fileName, file);
-                                                        if (error) {
-                                                            console.error('Upload error:', error);
-                                                            alert('Failed to upload. Make sure the storage bucket exists.');
-                                                        } else if (data) {
-                                                            const { data: urlData } = supabase.storage
-                                                                .from('product-images')
-                                                                .getPublicUrl(fileName);
-                                                            if (urlData?.publicUrl) {
-                                                                setHeaderImageUrl(urlData.publicUrl);
-                                                            }
-                                                        }
-                                                    } catch (err) {
-                                                        console.error('Upload failed:', err);
-                                                        alert('Upload failed. Please try again.');
-                                                    }
+                                                    // Immediately show preview using FileReader
+                                                    const reader = new FileReader();
+                                                    reader.onloadend = () => {
+                                                        const base64 = reader.result as string;
+                                                        setHeaderImageUrl(base64);
+                                                    };
+                                                    reader.readAsDataURL(file);
                                                 }
+                                                // Reset the input so same file can be selected again
+                                                e.target.value = '';
                                             }}
                                         />
                                     </label>
@@ -244,6 +231,7 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
                                     <div className="mt-2 relative">
                                         <img src={headerImageUrl} alt="" className="w-full h-28 object-cover rounded-xl border border-slate-700" />
                                         <button
+                                            type="button"
                                             onClick={() => setHeaderImageUrl('')}
                                             className="absolute top-1 right-1 w-6 h-6 bg-red-500 hover:bg-red-600 rounded-full flex items-center justify-center text-white text-xs"
                                         >×</button>
