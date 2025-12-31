@@ -37,8 +37,22 @@ async function saveOrUpdateSubscriber(
 
         const now = new Date().toISOString();
 
-        // Try to get avatar from Facebook if we have a token
-        let avatarUrl = `https://graph.facebook.com/${userId}/picture?type=large`;
+        // Fetch profile picture URL from Facebook API (with redirect=false to get the actual URL)
+        let avatarUrl = '';
+        if (pageAccessToken) {
+            try {
+                const picResponse = await fetch(
+                    `https://graph.facebook.com/${userId}/picture?type=large&redirect=false&access_token=${pageAccessToken}`
+                );
+                const picData = await picResponse.json();
+                if (picData?.data?.url) {
+                    avatarUrl = picData.data.url;
+                    console.log(`    📷 Got profile picture URL for ${userName}`);
+                }
+            } catch (picError) {
+                console.log(`    ⚠️ Could not fetch profile picture for ${userId}`);
+            }
+        }
 
         if (existingSubscriber) {
             // Update existing subscriber - add source to labels if not already there
