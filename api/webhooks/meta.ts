@@ -1515,7 +1515,7 @@ async function executeAction(
             ? `https://${process.env.VERCEL_URL}`
             : process.env.APP_URL || 'https://your-app-url.vercel.app';
 
-        const formUrl = `${baseUrl}/api/forms/view?id=${formId}&sid=${encodeURIComponent(context.commenterId)}&sname=${encodeURIComponent(context.commenterName || '')}`;
+        const formUrl = `${baseUrl}/forms/${formId}?sid=${encodeURIComponent(context.commenterId)}&sname=${encodeURIComponent(context.commenterName || '')}`;
 
         console.log(`    📋 Form Name: "${formName}"`);
         console.log(`    🔗 Form URL: ${formUrl}`);

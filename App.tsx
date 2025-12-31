@@ -26,6 +26,7 @@ const Settings = lazy(() => import('./pages/Settings'));
 const Affiliates = lazy(() => import('./pages/Affiliates'));
 const Support = lazy(() => import('./pages/Support'));
 const Academy = lazy(() => import('./pages/Academy'));
+const FormView = lazy(() => import('./pages/FormView'));
 
 // Admin Pages - Lazy load (rarely accessed)
 const SystemSettings = lazy(() => import('./pages/SystemSettings'));
@@ -125,6 +126,13 @@ const App: React.FC = () => {
           <Route path="/login" element={<Login onLogin={handleLogin} />} />
           <Route path="/register" element={<Register onLogin={handleLogin} />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
+
+          {/* Public Form View - No login required */}
+          <Route path="/forms/:formId" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <FormView />
+            </Suspense>
+          } />
 
           {/* Protected Routes */}
           <Route path="*" element={
