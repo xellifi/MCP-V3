@@ -72,23 +72,16 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
     const [ewalletNumbers, setEwalletNumbers] = useState<Record<string, string>>(initialConfig?.ewalletNumbers || {});
     const [requireProofUpload, setRequireProofUpload] = useState(initialConfig?.requireProofUpload ?? true);
 
-    // Google Sheets settings
-    const [googleSheetId, setGoogleSheetId] = useState(initialConfig?.googleSheetId || '');
-    const [googleSheetName, setGoogleSheetName] = useState(initialConfig?.googleSheetName || 'Sheet1');
-    const [googleWebhookUrl, setGoogleWebhookUrl] = useState(initialConfig?.googleWebhookUrl || '');
-
     useEffect(() => {
         onChange({
             formName, headerImageUrl, submitButtonText, submitButtonColor, borderRadius, successMessage, fields,
             countdownEnabled, countdownMinutes, countdownBlink, formTemplate,
             isOrderForm, productName, productPrice, currency, maxQuantity, couponEnabled, couponCode, couponDiscount,
             codEnabled, ewalletEnabled, ewalletOptions, ewalletNumbers, requireProofUpload,
-            googleSheetId, googleSheetName, googleWebhookUrl,
         });
     }, [formName, headerImageUrl, submitButtonText, submitButtonColor, borderRadius, successMessage, fields,
         countdownEnabled, countdownMinutes, countdownBlink, formTemplate, isOrderForm, productName, productPrice, currency, maxQuantity,
-        couponEnabled, couponCode, couponDiscount, codEnabled, ewalletEnabled, ewalletOptions, ewalletNumbers, requireProofUpload,
-        googleSheetId, googleSheetName, googleWebhookUrl]);
+        couponEnabled, couponCode, couponDiscount, codEnabled, ewalletEnabled, ewalletOptions, ewalletNumbers, requireProofUpload]);
 
     const addField = (type: string) => {
         const fieldType = FIELD_TYPES.find(t => t.value === type);
@@ -550,64 +543,22 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
                             className={`${inputClass} resize-none`} />
                     </div>
 
-                    {/* Google Sheets Integration - More compact */}
+                    {/* Info: Google Sheets moved to standalone node */}
                     <div className="border-t border-slate-700 pt-3">
-                        <div className="flex items-center gap-2 mb-2">
-                            <div className="w-5 h-5 bg-green-500/20 rounded flex items-center justify-center">
-                                <svg viewBox="0 0 24 24" className="w-3 h-3" fill="none">
-                                    <rect x="3" y="3" width="18" height="18" rx="2" className="fill-green-500" />
-                                    <rect x="6" y="7" width="12" height="2" rx="0.5" className="fill-white" />
-                                    <rect x="6" y="11" width="12" height="2" rx="0.5" className="fill-white" />
-                                </svg>
-                            </div>
-                            <span className="text-green-400 font-medium text-xs">Google Sheets</span>
-                        </div>
-
-                        <div className="space-y-2">
-                            <div>
-                                <label className="block text-[10px] text-slate-500 mb-1">Spreadsheet ID/URL</label>
-                                <input
-                                    type="text"
-                                    value={googleSheetId}
-                                    onChange={(e) => {
-                                        const val = e.target.value;
-                                        const match = val.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
-                                        setGoogleSheetId(match ? match[1] : val);
-                                    }}
-                                    placeholder="Paste URL or ID..."
-                                    className={inputClass}
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-[10px] text-slate-500 mb-1">Sheet Tab</label>
-                                <input
-                                    type="text"
-                                    value={googleSheetName}
-                                    onChange={(e) => setGoogleSheetName(e.target.value)}
-                                    placeholder="Sheet1"
-                                    className={inputClass}
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-[10px] text-slate-500 mb-1">Webhook URL</label>
-                                <input
-                                    type="text"
-                                    value={googleWebhookUrl}
-                                    onChange={(e) => setGoogleWebhookUrl(e.target.value)}
-                                    placeholder="https://script.google.com/..."
-                                    className={inputClass}
-                                />
-                            </div>
-                            {googleSheetId && googleWebhookUrl && (
-                                <div className="p-2 bg-green-500/10 border border-green-500/30 rounded-lg">
-                                    <p className="text-green-400 text-[10px]">✓ Sheets sync configured!</p>
+                        <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-xl">
+                            <div className="flex items-center gap-2 mb-1">
+                                <div className="w-5 h-5 bg-green-500/20 rounded flex items-center justify-center">
+                                    <svg viewBox="0 0 24 24" className="w-3 h-3" fill="none">
+                                        <rect x="3" y="3" width="18" height="18" rx="2" className="fill-green-500" />
+                                        <rect x="6" y="7" width="12" height="2" rx="0.5" className="fill-white" />
+                                        <rect x="6" y="11" width="12" height="2" rx="0.5" className="fill-white" />
+                                    </svg>
                                 </div>
-                            )}
-                            {googleSheetId && !googleWebhookUrl && (
-                                <div className="p-2 bg-orange-500/10 border border-orange-500/30 rounded-lg">
-                                    <p className="text-orange-400 text-[10px]">⚠ Add webhook URL</p>
-                                </div>
-                            )}
+                                <span className="text-blue-400 font-medium text-xs">Google Sheets Sync</span>
+                            </div>
+                            <p className="text-slate-400 text-[10px] leading-relaxed">
+                                To sync form data to Google Sheets, drag a <span className="text-green-400 font-medium">Google Sheets</span> node from the sidebar and connect it to this Form node.
+                            </p>
                         </div>
                     </div>
                 </div>

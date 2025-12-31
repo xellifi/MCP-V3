@@ -1,6 +1,6 @@
 import React from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
-import { Settings, Trash2 } from 'lucide-react';
+import { Settings, Trash2, Check, AlertCircle } from 'lucide-react';
 
 // Google Sheets icon as SVG
 const SheetsIcon = () => (
@@ -29,7 +29,10 @@ const CustomGoogleSheetNode: React.FC<NodeProps> = ({ data, selected }) => {
 
     const sheetName = data.sheetName || 'Sheet1';
     const spreadsheetId = data.spreadsheetId || '';
-    const isConfigured = !!spreadsheetId;
+    const webhookUrl = data.webhookUrl || '';
+    const hasSpreadsheet = !!spreadsheetId && spreadsheetId.length > 10;
+    const hasWebhook = !!webhookUrl && webhookUrl.includes('script.google.com');
+    const isFullyConfigured = hasSpreadsheet && hasWebhook;
 
     return (
         <div className="relative group">
@@ -52,24 +55,37 @@ const CustomGoogleSheetNode: React.FC<NodeProps> = ({ data, selected }) => {
                         <div className="text-slate-200 font-bold text-sm truncate">
                             Google Sheets
                         </div>
-                        <div className={`text-xs mt-0.5 ${isConfigured ? 'text-green-400' : 'text-slate-500'}`}>
-                            {isConfigured ? sheetName : 'Not configured'}
+                        <div className={`text-xs mt-0.5 ${isFullyConfigured ? 'text-green-400' : hasSpreadsheet ? 'text-orange-400' : 'text-slate-500'}`}>
+                            {isFullyConfigured ? sheetName : hasSpreadsheet ? 'Missing webhook' : 'Not configured'}
                         </div>
                     </div>
                 </div>
 
                 {/* Status Indicator */}
-                {isConfigured && (
-                    <div className="mt-2 pt-2 border-t border-green-500/20">
+                <div className="mt-2 pt-2 border-t border-green-500/20">
+                    {isFullyConfigured ? (
                         <div className="flex items-center gap-2">
                             <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
                             <span className="text-xs text-green-400">Ready to sync</span>
                         </div>
-                        <div className="text-[10px] text-slate-500 mt-1 truncate" title={spreadsheetId}>
-                            ID: {spreadsheetId.substring(0, 15)}...
+                    ) : hasSpreadsheet ? (
+                        <div className="flex items-center gap-2">
+                            <AlertCircle className="w-3 h-3 text-orange-400" />
+                            <span className="text-xs text-orange-400">Add webhook URL</span>
                         </div>
-                    </div>
-                )}
+                    ) : (
+                        <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 bg-slate-500 rounded-full"></div>
+                            <span className="text-xs text-slate-500">Click ⚙️ to configure</span>
+                        </div>
+                    )}
+
+                    {hasSpreadsheet && (
+                        <div className="text-[10px] text-slate-500 mt-1 truncate" title={spreadsheetId}>
+                            ID: {spreadsheetId.substring(0, 12)}...
+                        </div>
+                    )}
+                </div>
 
                 {/* Action Buttons */}
                 <div className="absolute -top-3 -right-3 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
@@ -90,11 +106,12 @@ const CustomGoogleSheetNode: React.FC<NodeProps> = ({ data, selected }) => {
                 </div>
             </div>
 
-            {/* Handle - Input only (receives data from Form) */}
+            {/* Handle - Input (receives data from Form node) */}
             <Handle
                 type="target"
                 position={Position.Left}
                 className="w-3 h-3 !bg-green-500 !border-2 !border-white"
+                title="Connect from Form node"
             />
         </div>
     );

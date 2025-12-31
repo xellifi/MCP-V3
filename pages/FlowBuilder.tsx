@@ -931,16 +931,46 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
             continue;
           }
 
+          // Find connected Google Sheets node
+          // Look for edges from this formNode to a sheetsNode (via the 'sheets' handle)
+          const sheetsEdge = edges.find(e =>
+            e.source === formNode.id &&
+            (e.sourceHandle === 'sheets' || !e.sourceHandle) // Handle could be undefined for older connections
+          );
+
+          let sheetsConfig = null;
+          if (sheetsEdge) {
+            const sheetsNode = nodes.find(n => n.id === sheetsEdge.target && n.type === 'sheetsNode');
+            if (sheetsNode) {
+              sheetsConfig = updatedConfigs[sheetsNode.id];
+              console.log('[FlowBuilder.saveFlow] Found connected Sheets node:', sheetsNode.id, sheetsConfig);
+            }
+          }
+
+          // Merge sheets config into form config
+          const formConfigWithSheets = {
+            ...formConfig,
+            // Add sheets config if connected
+            ...(sheetsConfig ? {
+              googleSheetId: sheetsConfig.spreadsheetId,
+              googleSheetName: sheetsConfig.sheetName,
+              googleWebhookUrl: sheetsConfig.webhookUrl,
+            } : {})
+          };
+
           try {
             // Check if form already exists (has formId in config)
             if (formConfig.formId) {
               // Update existing form
-              await api.workspace.updateForm(formConfig.formId, formConfig);
+              await api.workspace.updateForm(formConfig.formId, formConfigWithSheets);
               console.log('[FlowBuilder.saveFlow] ✓ Form updated:', formConfig.formName, 'ID:', formConfig.formId);
+              if (sheetsConfig) {
+                console.log('[FlowBuilder.saveFlow] ✓ Form includes connected Sheets config');
+              }
             } else {
               // Create new form
               const newForm = await api.workspace.createForm(workspace.id, {
-                ...formConfig,
+                ...formConfigWithSheets,
                 flowId: savedFlowId,
                 nodeId: formNode.id
               });
@@ -953,6 +983,9 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
               formsCreated = true;
 
               console.log('[FlowBuilder.saveFlow] ✓ Form created:', formConfig.formName, 'ID:', newForm.id);
+              if (sheetsConfig) {
+                console.log('[FlowBuilder.saveFlow] ✓ New form includes connected Sheets config');
+              }
             }
           } catch (formError) {
             console.error('[FlowBuilder.saveFlow] ✗ Error saving form:', formError);
