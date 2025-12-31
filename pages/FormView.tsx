@@ -148,21 +148,23 @@ const FormView: React.FC = () => {
             console.log('[FormView Sheets] ✓ Syncing to spreadsheet via webhook...');
 
             // Call the user's Apps Script webhook directly
-            const response = await fetch(form.google_webhook_url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    spreadsheetId: form.google_sheet_id,
-                    sheetName: form.google_sheet_name || 'Sheet1',
-                    rowData: submissionData
-                })
-            });
+            // Using no-cors mode because Google Apps Script doesn't support CORS
+            try {
+                await fetch(form.google_webhook_url, {
+                    method: 'POST',
+                    mode: 'no-cors', // Required for cross-origin Apps Script calls
+                    headers: { 'Content-Type': 'text/plain' }, // no-cors only allows simple headers
+                    body: JSON.stringify({
+                        spreadsheetId: form.google_sheet_id,
+                        sheetName: form.google_sheet_name || 'Sheet1',
+                        rowData: submissionData
+                    })
+                });
 
-            const resultText = await response.text();
-            console.log('[FormView Sheets] Webhook response:', resultText);
+                // With no-cors, we can't read the response, but if no error was thrown, 
+                // the request was sent successfully
+                console.log('[FormView Sheets] ✓ Request sent to Google Sheets!');
 
-            if (response.ok) {
-                console.log('[FormView Sheets] ✓ Data synced to Google Sheets!');
                 // Update synced_to_sheets flag
                 await supabase
                     .from('form_submissions')
@@ -170,8 +172,8 @@ const FormView: React.FC = () => {
                     .eq('form_id', formId)
                     .order('created_at', { ascending: false })
                     .limit(1);
-            } else {
-                console.log('[FormView Sheets] ⚠ Sync failed:', resultText);
+            } catch (fetchErr) {
+                console.log('[FormView Sheets] ⚠ Webhook request failed:', fetchErr);
             }
         } catch (err) {
             console.error('[FormView Sheets] Error:', err);
