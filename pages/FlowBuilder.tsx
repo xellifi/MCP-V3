@@ -18,7 +18,7 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Workspace, ConnectedPage } from '../types';
-import { Save, ArrowLeft, PlayCircle, Menu, X, Grid3x3, MessageCircle, Play, Bot, Send, Clock, MousePointer2, SquareMousePointer, Sparkles, GitBranch, MessageSquare, RectangleEllipsis, Plus, Minus, Maximize, Wrench, RotateCcw, Image, Video } from 'lucide-react';
+import { Save, ArrowLeft, PlayCircle, Menu, X, Grid3x3, MessageCircle, Play, Bot, Send, Clock, MousePointer2, SquareMousePointer, Sparkles, GitBranch, MessageSquare, RectangleEllipsis, Plus, Minus, Maximize, Wrench, RotateCcw, Image, Video, FileText } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import NodeConfigModal from '../components/NodeConfigModal';
 import TriggerNodeForm from '../components/TriggerNodeForm';
@@ -27,6 +27,7 @@ import SendMessageNodeForm from '../components/SendMessageNodeForm';
 import TextNodeForm from '../components/TextNodeForm';
 import ImageNodeForm from '../components/ImageNodeForm';
 import VideoNodeForm from '../components/VideoNodeForm';
+import FormNodeForm from '../components/FormNodeForm';
 import ButtonNodeForm from '../components/ButtonNodeForm';
 import ButtonsOnlyNodeForm from '../components/ButtonsOnlyNodeForm';
 import StartNodeForm from '../components/StartNodeForm';
@@ -42,6 +43,7 @@ import CustomButtonsOnlyNode from '../components/nodes/CustomButtonsOnlyNode';
 import CustomStartNode from '../components/nodes/CustomStartNode';
 import CustomImageNode from '../components/nodes/CustomImageNode';
 import CustomVideoNode from '../components/nodes/CustomVideoNode';
+import CustomFormNode from '../components/nodes/CustomFormNode';
 import { api } from '../services/api';
 import { supabase } from '../lib/supabase';
 // Import node configuration registry
@@ -69,6 +71,7 @@ const nodeTypes: NodeTypes = {
   startNode: CustomStartNode,
   imageNode: CustomImageNode,
   videoNode: CustomVideoNode,
+  formNode: CustomFormNode,
 };
 
 // Define custom edge types
@@ -1331,6 +1334,17 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
       );
     }
 
+    // Form Node
+    if (nodeType === 'formNode' || label.toLowerCase().includes('form')) {
+      return (
+        <FormNodeForm
+          workspaceId={workspace?.id || ''}
+          initialConfig={initialConfigRef.current}
+          onChange={handleConfigChange}
+        />
+      );
+    }
+
     // Start Node
     if (nodeType === 'startNode' || label.toLowerCase().includes('start')) {
       // Check if this is a "New Flow" node (sub-flow start point)
@@ -1686,6 +1700,17 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
           >
             <GitBranch className="w-6 h-6" />
             <span className="absolute left-14 bg-black/80 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Condition</span>
+          </div>
+
+          <div
+            draggable
+            onDragStart={(e) => onDragStart(e, 'formNode', 'Form')}
+            onClick={() => addNode('formNode', 'Form')}
+            className="w-12 h-12 bg-purple-500/20 hover:bg-purple-500/40 border border-purple-500/30 rounded-xl flex items-center justify-center text-purple-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing group relative"
+            title="Form"
+          >
+            <FileText className="w-6 h-6" />
+            <span className="absolute left-14 bg-black/80 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Form</span>
           </div>
         </div>
       </div>

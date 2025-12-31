@@ -663,6 +663,86 @@ export const api = {
       }
     },
 
+    // Form CRUD operations
+    createForm: async (workspaceId: string, formData: any): Promise<any> => {
+      const { data, error } = await supabase
+        .from('forms')
+        .insert({
+          workspace_id: workspaceId,
+          name: formData.formName || 'Untitled Form',
+          header_image_url: formData.headerImageUrl || null,
+          submit_button_text: formData.submitButtonText || 'Submit',
+          submit_button_color: formData.submitButtonColor || '#6366f1',
+          border_radius: formData.borderRadius || 'rounded',
+          success_message: formData.successMessage || 'Thank you for your submission!',
+          google_sheet_id: formData.googleSheetId || null,
+          google_sheet_name: formData.googleSheetName || null,
+          fields: formData.fields || [],
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error creating form:', error);
+        throw new Error('Failed to create form');
+      }
+      return data;
+    },
+
+    updateForm: async (formId: string, formData: any): Promise<any> => {
+      const { data, error } = await supabase
+        .from('forms')
+        .update({
+          name: formData.formName,
+          header_image_url: formData.headerImageUrl,
+          submit_button_text: formData.submitButtonText,
+          submit_button_color: formData.submitButtonColor,
+          border_radius: formData.borderRadius,
+          success_message: formData.successMessage,
+          google_sheet_id: formData.googleSheetId,
+          google_sheet_name: formData.googleSheetName,
+          fields: formData.fields,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', formId)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error updating form:', error);
+        throw new Error('Failed to update form');
+      }
+      return data;
+    },
+
+    getForm: async (formId: string): Promise<any> => {
+      const { data, error } = await supabase
+        .from('forms')
+        .select('*')
+        .eq('id', formId)
+        .single();
+
+      if (error) {
+        console.error('Error fetching form:', error);
+        throw new Error('Failed to fetch form');
+      }
+      return data;
+    },
+
+    getFormSubmissions: async (formId: string): Promise<any[]> => {
+      const { data, error } = await supabase
+        .from('form_submissions')
+        .select('*')
+        .eq('form_id', formId)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching submissions:', error);
+        throw new Error('Failed to fetch submissions');
+      }
+      return data || [];
+    },
+
     getConversations: async (workspaceId: string, pageId?: string): Promise<Conversation[]> => {
       let query = supabase
         .from('conversations')

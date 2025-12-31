@@ -227,3 +227,41 @@ export interface TicketMessage {
   createdAt: string;
   isAdmin: boolean;
 }
+
+// Form Node Types
+export interface FormField {
+  id: string;
+  type: 'text' | 'email' | 'phone' | 'number' | 'textarea' | 'select' | 'radio' | 'checkbox';
+  label: string;
+  placeholder?: string;
+  required: boolean;
+  options?: string[]; // For select/radio/checkbox
+}
+
+export interface FormConfig {
+  id: string;
+  workspaceId: string;
+  flowId?: string;
+  nodeId?: string;
+  name: string;
+  headerImageUrl?: string;
+  submitButtonText: string;
+  submitButtonColor: string;
+  borderRadius: 'rounded' | 'round' | 'full';
+  successMessage: string;
+  googleSheetId?: string;
+  googleSheetName?: string;
+  fields: FormField[];
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface FormSubmission {
+  id: string;
+  formId: string;
+  subscriberExternalId?: string;
+  subscriberName?: string;
+  data: Record<string, any>;
+  syncedToSheets: boolean;
+  createdAt: string;
+}
