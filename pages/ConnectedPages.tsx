@@ -206,7 +206,7 @@ const ConnectedPages: React.FC<ConnectedPagesProps> = ({ workspace }) => {
 
       <div className={`grid gap-4 ${viewMode === 'grid' ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5' : 'grid-cols-1'}`}>
         {currentItems.map(page => (
-          <div key={page.id} className="relative glass-panel rounded-2xl border border-white/10 overflow-hidden group hover:border-indigo-500/50 hover:shadow-[0_0_30px_rgba(99,102,241,0.2)] hover:scale-[1.03] hover:bg-white/10 transition-all duration-300 ease-out z-0 hover:z-10">
+          <div key={page.id} className="relative glass-panel rounded-2xl border border-white/10 overflow-hidden group hover:border-indigo-500/50 hover:shadow-[0_0_30px_rgba(99,102,241,0.2)] transition-all duration-300 ease-out isolate">
             {/* Mobile/Grid Open Page Button (Top Right) */}
             <a
               href={`https://facebook.com/${page.pageId}`}
@@ -256,9 +256,9 @@ const ConnectedPages: React.FC<ConnectedPagesProps> = ({ workspace }) => {
               </div>
 
               {/* Info Section */}
-              <div className={`flex-1 text-center ${viewMode === 'list' ? 'md:text-left' : ''} min-w-0`}>
+              <div className={`flex-1 text-center ${viewMode === 'list' ? 'md:text-left' : ''} min-w-0 overflow-hidden w-full`}>
                 <div className={`flex flex-col ${viewMode === 'list' ? 'md:flex-row md:items-center' : ''} gap-2 mb-1`}>
-                  <h3 className="text-lg md:text-xl font-bold text-white truncate">{page.name}</h3>
+                  <h3 className="text-lg md:text-xl font-bold text-white truncate max-w-full">{page.name}</h3>
                   {page.instagram && (
                     <span className="hidden md:inline text-slate-600 mx-1">|</span>
                   )}
