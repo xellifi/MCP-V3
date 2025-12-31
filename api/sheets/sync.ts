@@ -21,32 +21,38 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     try {
-        const { spreadsheetId, sheetName, data } = req.body;
+        const { webhookUrl, spreadsheetId, sheetName, rowData, data } = req.body;
+        const submissionData = rowData || data; // Support both field names
 
-        if (!spreadsheetId || !data) {
+        if (!spreadsheetId || !submissionData) {
             return res.status(400).json({ error: 'Missing spreadsheetId or data' });
         }
 
         console.log('[Sheets Sync] Syncing to spreadsheet:', spreadsheetId);
         console.log('[Sheets Sync] Sheet name:', sheetName);
-        console.log('[Sheets Sync] Data keys:', Object.keys(data));
+        console.log('[Sheets Sync] Data keys:', Object.keys(submissionData));
 
-        // Option 1: Use Google Apps Script Web App (simplest, no API keys needed)
-        const webhookUrl = process.env.GOOGLE_SHEETS_WEBHOOK_URL;
+        // Option 1: Use per-form webhook URL (SaaS approach - each user has their own)
+        const targetWebhookUrl = webhookUrl || process.env.GOOGLE_SHEETS_WEBHOOK_URL;
 
-        if (webhookUrl) {
-            const response = await fetch(webhookUrl, {
+        if (targetWebhookUrl) {
+            console.log('[Sheets Sync] Calling webhook:', targetWebhookUrl.substring(0, 60) + '...');
+
+            const response = await fetch(targetWebhookUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     spreadsheetId,
                     sheetName: sheetName || 'Sheet1',
-                    rowData: data
+                    rowData: submissionData
                 })
             });
 
+            const responseText = await response.text();
+            console.log('[Sheets Sync] Webhook response:', responseText);
+
             if (!response.ok) {
-                throw new Error(`Apps Script error: ${await response.text()}`);
+                throw new Error(`Apps Script error: ${responseText}`);
             }
 
             console.log('[Sheets Sync] ✓ Data synced via Apps Script');
@@ -64,7 +70,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
             if (accessToken) {
                 // Prepare row data (flatten object to array of values)
-                const rowValues = Object.values(data);
+                const rowValues = Object.values(submissionData);
 
                 const appendUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(sheetName || 'Sheet1')}!A:Z:append?valueInputOption=USER_ENTERED`;
 
@@ -99,7 +105,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(200).json({
             success: false,
             message: 'No sync method configured. See server logs for setup instructions.',
-            data_received: Object.keys(data)
+            data_received: Object.keys(submissionData)
         });
 
     } catch (error: any) {

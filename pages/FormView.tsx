@@ -129,7 +129,7 @@ const FormView: React.FC = () => {
         }
     };
 
-    // Sync form submission to Google Sheets (uses per-form webhook URL)
+    // Sync form submission to Google Sheets (uses server-side proxy to avoid CORS)
     const syncToGoogleSheets = async (submissionData: any) => {
         console.log('[FormView Sheets] Starting sync...');
         console.log('[FormView Sheets] Config:', {
@@ -145,26 +145,25 @@ const FormView: React.FC = () => {
                 return;
             }
 
-            console.log('[FormView Sheets] ✓ Syncing to spreadsheet via webhook...');
+            console.log('[FormView Sheets] ✓ Syncing via server-side proxy...');
 
-            // Call the user's Apps Script webhook directly
-            // Using no-cors mode because Google Apps Script doesn't support CORS
-            try {
-                await fetch(form.google_webhook_url, {
-                    method: 'POST',
-                    mode: 'no-cors', // Required for cross-origin Apps Script calls
-                    headers: { 'Content-Type': 'text/plain' }, // no-cors only allows simple headers
-                    body: JSON.stringify({
-                        spreadsheetId: form.google_sheet_id,
-                        sheetName: form.google_sheet_name || 'Sheet1',
-                        rowData: submissionData
-                    })
-                });
+            // Call our server-side API which will proxy to the Apps Script webhook
+            const response = await fetch('/api/sheets/sync', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    webhookUrl: form.google_webhook_url,
+                    spreadsheetId: form.google_sheet_id,
+                    sheetName: form.google_sheet_name || 'Sheet1',
+                    rowData: submissionData
+                })
+            });
 
-                // With no-cors, we can't read the response, but if no error was thrown, 
-                // the request was sent successfully
-                console.log('[FormView Sheets] ✓ Request sent to Google Sheets!');
+            const result = await response.json();
+            console.log('[FormView Sheets] API response:', result);
 
+            if (result.success) {
+                console.log('[FormView Sheets] ✓ Data synced to Google Sheets!');
                 // Update synced_to_sheets flag
                 await supabase
                     .from('form_submissions')
@@ -172,8 +171,8 @@ const FormView: React.FC = () => {
                     .eq('form_id', formId)
                     .order('created_at', { ascending: false })
                     .limit(1);
-            } catch (fetchErr) {
-                console.log('[FormView Sheets] ⚠ Webhook request failed:', fetchErr);
+            } else {
+                console.log('[FormView Sheets] ⚠ Sync issue:', result.message || result.error);
             }
         } catch (err) {
             console.error('[FormView Sheets] Error:', err);
