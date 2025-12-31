@@ -68,16 +68,38 @@ const FormView: React.FC = () => {
     const loadForm = async () => {
         if (!formId) { setError('No form ID'); setLoading(false); return; }
         try {
-            const { data, error: fetchError } = await supabase.from('forms').select('*').eq('id', formId).single();
-            if (fetchError || !data) { setError('Form not found'); }
+            console.log('[FormView] Loading form with ID:', formId);
+
+            // First, try to find by UUID (formId is the Supabase-generated ID)
+            let { data, error: fetchError } = await supabase.from('forms').select('*').eq('id', formId).single();
+
+            // If not found by UUID, try searching by node_id (formId might be the node's timestamp ID)
+            if (fetchError || !data) {
+                console.log('[FormView] Form not found by ID, trying node_id...');
+                const { data: nodeData, error: nodeError } = await supabase.from('forms').select('*').eq('node_id', formId).single();
+                if (nodeData && !nodeError) {
+                    data = nodeData;
+                    fetchError = null;
+                    console.log('[FormView] Found form by node_id:', nodeData.id);
+                }
+            }
+
+            if (fetchError || !data) {
+                console.error('[FormView] Form not found:', fetchError);
+                setError('Form not found');
+            }
             else {
+                console.log('[FormView] Form loaded:', data.name);
                 setForm(data);
                 if (data.countdown_enabled && data.countdown_minutes > 0) setTimeLeft(data.countdown_minutes * 60);
                 const initialData: Record<string, any> = {};
                 (data.fields || []).forEach((f: any) => { initialData[f.id] = f.type === 'checkbox' ? false : ''; });
                 setFormData(initialData);
             }
-        } catch { setError('Failed to load'); }
+        } catch (err) {
+            console.error('[FormView] Error loading form:', err);
+            setError('Failed to load');
+        }
         finally { setLoading(false); }
     };
 
