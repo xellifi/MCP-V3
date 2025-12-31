@@ -650,6 +650,18 @@ export const api = {
       }
     },
 
+    deleteSubscriber: async (subscriberId: string): Promise<void> => {
+      const { error } = await supabase
+        .from('subscribers')
+        .delete()
+        .eq('id', subscriberId);
+
+      if (error) {
+        console.error('Error deleting subscriber:', error);
+        throw new Error('Failed to delete subscriber');
+      }
+    },
+
     getConversations: async (workspaceId: string, pageId?: string): Promise<Conversation[]> => {
       let query = supabase
         .from('conversations')

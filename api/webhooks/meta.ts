@@ -508,12 +508,27 @@ async function processPostback(messagingEvent: any, pageId: string) {
             stablePostbackId
         );
 
+        // Fetch user's actual name from Facebook API
+        let userName = 'Facebook User';
+        try {
+            const userResponse = await fetch(
+                `https://graph.facebook.com/${senderId}?fields=name&access_token=${pageAccessToken}`
+            );
+            const userData = await userResponse.json();
+            if (userData?.name) {
+                userName = userData.name;
+                console.log(`    ✓ Got user name: ${userName}`);
+            }
+        } catch (nameError) {
+            console.log(`    ⚠️ Could not fetch user name for ${senderId}`);
+        }
+
         // Save the user as a bot subscriber when they click a button
         await saveOrUpdateSubscriber(
             workspaceId,
             pageDbId,
             senderId,
-            'Button Click User',
+            userName,
             'POSTBACK',
             pageAccessToken
         );
@@ -780,12 +795,26 @@ async function processTextMessage(messagingEvent: any, pageId: string) {
                     messagingEvent.message.mid
                 );
 
+                // Fetch user's actual name from Facebook API
+                let userName = 'Facebook User';
+                try {
+                    const userResponse = await fetch(
+                        `https://graph.facebook.com/${senderId}?fields=name&access_token=${pageAccessToken}`
+                    );
+                    const userData = await userResponse.json();
+                    if (userData?.name) {
+                        userName = userData.name;
+                    }
+                } catch (nameError) {
+                    console.log(`    ⚠️ Could not fetch user name for ${senderId}`);
+                }
+
                 // Save the user as a bot subscriber when they message the page
                 await saveOrUpdateSubscriber(
                     workspaceId,
                     pageDbId,
                     senderId,
-                    'Messenger User',
+                    userName,
                     'MESSAGE',
                     pageAccessToken
                 );

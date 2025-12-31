@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Workspace, Subscriber, Conversation, ConnectedPage } from '../types';
 import { api } from '../services/api';
-import { Search, Download, User, Facebook, Instagram, X, MessageCircle, Calendar, Tag, ExternalLink, ChevronLeft, ChevronRight, LayoutGrid, List, Clock, Users, Plus, Check, Filter } from 'lucide-react';
+import { Search, Download, User, Facebook, Instagram, X, MessageCircle, Calendar, Tag, ExternalLink, ChevronLeft, ChevronRight, LayoutGrid, List, Clock, Users, Plus, Check, Filter, Trash2 } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
 import { useToast } from '../context/ToastContext';
 
@@ -19,6 +19,10 @@ const LABEL_OPTIONS = [
   { name: 'Customer', color: 'bg-green-500/20 text-green-400 border-green-500/30' },
   { name: 'Hot Lead', color: 'bg-red-500/20 text-red-400 border-red-500/30' },
   { name: 'Cold Lead', color: 'bg-slate-500/20 text-slate-400 border-slate-500/30' },
+  { name: 'Purchased', color: 'bg-teal-500/20 text-teal-400 border-teal-500/30' },
+  { name: 'Fill-up Form', color: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30' },
+  { name: 'Add to Cart', color: 'bg-amber-500/20 text-amber-400 border-amber-500/30' },
+  { name: 'Initiate Checkout', color: 'bg-lime-500/20 text-lime-400 border-lime-500/30' },
 ];
 
 const getLabelColor = (label: string) => {
@@ -136,6 +140,25 @@ const Subscribers: React.FC<SubscribersProps> = ({ workspace }) => {
       toast.error('Failed to update labels');
     } finally {
       setSavingLabels(false);
+    }
+  };
+
+  const deleteSubscriber = async () => {
+    if (!selectedSubscriber) return;
+
+    if (!confirm(`Are you sure you want to delete "${selectedSubscriber.name}"? This cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      await api.workspace.deleteSubscriber(selectedSubscriber.id);
+
+      // Remove from local state
+      setSubscribers(subs => subs.filter(s => s.id !== selectedSubscriber.id));
+      closeProfile();
+      toast.success('Subscriber deleted');
+    } catch (error) {
+      toast.error('Failed to delete subscriber');
     }
   };
 
@@ -362,8 +385,8 @@ const Subscribers: React.FC<SubscribersProps> = ({ workspace }) => {
                 {/* Status & Source Labels */}
                 <div className={`flex flex-wrap items-center gap-1.5 mt-2 ${viewMode === 'grid' ? 'justify-center' : ''}`}>
                   <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${subscriber.status === 'SUBSCRIBED'
-                      ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                      : 'bg-slate-500/20 text-slate-400 border border-slate-500/30'
+                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                    : 'bg-slate-500/20 text-slate-400 border border-slate-500/30'
                     }`}>
                     {subscriber.status === 'SUBSCRIBED' ? 'Active' : 'Inactive'}
                   </span>
@@ -443,8 +466,8 @@ const Subscribers: React.FC<SubscribersProps> = ({ workspace }) => {
                     key={pageNum}
                     onClick={() => setCurrentPage(pageNum)}
                     className={`w-8 h-8 rounded-lg text-sm font-medium transition-colors ${currentPage === pageNum
-                        ? 'bg-indigo-500 text-white'
-                        : 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white'
+                      ? 'bg-indigo-500 text-white'
+                      : 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white'
                       }`}
                   >
                     {pageNum}
@@ -515,8 +538,8 @@ const Subscribers: React.FC<SubscribersProps> = ({ workspace }) => {
 
                   <div className="flex flex-wrap justify-center sm:justify-start gap-2">
                     <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-semibold ${selectedSubscriber.status === 'SUBSCRIBED'
-                        ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                        : 'bg-slate-500/20 text-slate-400 border border-slate-500/30'
+                      ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                      : 'bg-slate-500/20 text-slate-400 border border-slate-500/30'
                       }`}>
                       {selectedSubscriber.status === 'SUBSCRIBED' ? 'Active Subscriber' : 'Inactive'}
                     </span>
@@ -603,8 +626,8 @@ const Subscribers: React.FC<SubscribersProps> = ({ workspace }) => {
                             onClick={() => toggleLabel(labelOption.name)}
                             disabled={savingLabels}
                             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border transition-all ${isActive
-                                ? labelOption.color + ' ring-2 ring-white/20'
-                                : 'bg-white/5 text-slate-400 border-white/10 hover:bg-white/10'
+                              ? labelOption.color + ' ring-2 ring-white/20'
+                              : 'bg-white/5 text-slate-400 border-white/10 hover:bg-white/10'
                               } ${savingLabels ? 'opacity-50 cursor-not-allowed' : ''}`}
                           >
                             {isActive && <Check className="w-3.5 h-3.5" />}
@@ -676,8 +699,15 @@ const Subscribers: React.FC<SubscribersProps> = ({ workspace }) => {
                   className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold transition-colors"
                 >
                   <ExternalLink className="w-4 h-4" />
-                  View on {selectedSubscriber.platform === 'FACEBOOK' ? 'Facebook' : 'Instagram'}
+                  View Profile
                 </a>
+                <button
+                  onClick={deleteSubscriber}
+                  className="flex items-center justify-center gap-2 px-4 py-3 bg-red-500/20 hover:bg-red-500/30 text-red-400 hover:text-red-300 rounded-xl font-semibold transition-colors border border-red-500/30"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Delete
+                </button>
                 <button
                   onClick={closeProfile}
                   className="flex-1 px-4 py-3 bg-white/5 hover:bg-white/10 text-slate-300 rounded-xl font-semibold transition-colors border border-white/10"
