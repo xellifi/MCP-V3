@@ -51,13 +51,16 @@ const mapConnectedPage = (row: any): ConnectedPage => ({
 const mapSubscriber = (row: any): Subscriber => ({
   id: row.id,
   workspaceId: row.workspace_id,
+  pageId: row.page_id,
   name: row.name,
   platform: row.platform,
   externalId: row.external_id,
   avatarUrl: row.avatar_url,
   status: row.status,
   tags: row.tags || [],
-  lastActiveAt: row.last_active_at
+  labels: row.labels || [],
+  lastActiveAt: row.last_active_at,
+  source: row.source
 });
 
 const mapConversation = (row: any): Conversation => ({
@@ -602,12 +605,18 @@ export const api = {
       }
     },
 
-    getSubscribers: async (workspaceId: string): Promise<Subscriber[]> => {
-      const { data, error } = await supabase
+    getSubscribers: async (workspaceId: string, pageId?: string): Promise<Subscriber[]> => {
+      let query = supabase
         .from('subscribers')
         .select('*')
-        .eq('workspace_id', workspaceId)
-        .order('last_active_at', { ascending: false });
+        .eq('workspace_id', workspaceId);
+
+      // Filter by specific page if provided
+      if (pageId) {
+        query = query.eq('page_id', pageId);
+      }
+
+      const { data, error } = await query.order('last_active_at', { ascending: false });
 
       if (error) {
         console.error('Error fetching subscribers:', error);
@@ -615,6 +624,30 @@ export const api = {
       }
 
       return data?.map(mapSubscriber) || [];
+    },
+
+    updateSubscriberLabels: async (subscriberId: string, labels: string[]): Promise<void> => {
+      const { error } = await supabase
+        .from('subscribers')
+        .update({ labels })
+        .eq('id', subscriberId);
+
+      if (error) {
+        console.error('Error updating subscriber labels:', error);
+        throw new Error('Failed to update labels');
+      }
+    },
+
+    updateSubscriberTags: async (subscriberId: string, tags: string[]): Promise<void> => {
+      const { error } = await supabase
+        .from('subscribers')
+        .update({ tags })
+        .eq('id', subscriberId);
+
+      if (error) {
+        console.error('Error updating subscriber tags:', error);
+        throw new Error('Failed to update tags');
+      }
     },
 
     getConversations: async (workspaceId: string, pageId?: string): Promise<Conversation[]> => {

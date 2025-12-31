@@ -15,6 +15,90 @@ const PROCESSING_TIMEOUT = 30000; // 30 seconds before allowing reprocessing
 const postbackProcessingCache = new Map<string, number>();
 const POSTBACK_PROCESSING_TIMEOUT = 10000; // 10 seconds before allowing reprocessing of same postback
 
+// Helper function to save or update a bot subscriber
+async function saveOrUpdateSubscriber(
+    workspaceId: string,
+    pageId: string,
+    userId: string,
+    userName: string,
+    source: 'COMMENT' | 'MESSAGE' | 'POSTBACK',
+    pageAccessToken?: string
+): Promise<void> {
+    console.log(`    👤 Saving/updating subscriber: ${userName} (${userId})`);
+
+    try {
+        // Check if subscriber already exists
+        const { data: existingSubscriber } = await supabase
+            .from('subscribers')
+            .select('id, labels, source')
+            .eq('workspace_id', workspaceId)
+            .eq('external_id', userId)
+            .single();
+
+        const now = new Date().toISOString();
+
+        // Try to get avatar from Facebook if we have a token
+        let avatarUrl = `https://graph.facebook.com/${userId}/picture?type=large`;
+
+        if (existingSubscriber) {
+            // Update existing subscriber - add source to labels if not already there
+            const currentLabels = existingSubscriber.labels || [];
+            const sourceLabel = source === 'COMMENT' ? 'Commenter' : source === 'MESSAGE' ? 'Messaged' : 'Button Click';
+
+            // Add source label if not already present
+            const updatedLabels = currentLabels.includes(sourceLabel)
+                ? currentLabels
+                : [...currentLabels, sourceLabel];
+
+            const { error: updateError } = await supabase
+                .from('subscribers')
+                .update({
+                    name: userName,
+                    last_active_at: now,
+                    status: 'SUBSCRIBED',
+                    labels: updatedLabels
+                })
+                .eq('id', existingSubscriber.id);
+
+            if (updateError) {
+                console.error('    ✗ Error updating subscriber:', updateError);
+            } else {
+                console.log(`    ✓ Subscriber updated: ${userName}`);
+            }
+        } else {
+            // Create new subscriber
+            const sourceLabel = source === 'COMMENT' ? 'Commenter' : source === 'MESSAGE' ? 'Messaged' : 'Button Click';
+
+            const { error: insertError } = await supabase
+                .from('subscribers')
+                .insert({
+                    workspace_id: workspaceId,
+                    page_id: pageId,
+                    external_id: userId,
+                    name: userName,
+                    platform: 'FACEBOOK',
+                    avatar_url: avatarUrl,
+                    status: 'SUBSCRIBED',
+                    tags: [],
+                    labels: [sourceLabel],
+                    source: source,
+                    last_active_at: now
+                });
+
+            if (insertError) {
+                // Could be duplicate key from race condition, ignore
+                if (insertError.code !== '23505') {
+                    console.error('    ✗ Error creating subscriber:', insertError);
+                }
+            } else {
+                console.log(`    ✓ New subscriber created: ${userName}`);
+            }
+        }
+    } catch (error) {
+        console.error('    ✗ Error in saveOrUpdateSubscriber:', error);
+    }
+}
+
 // AI Response Generation function
 async function generateAIResponse(
     provider: 'openai' | 'gemini',
@@ -333,7 +417,7 @@ async function processPostback(messagingEvent: any, pageId: string) {
     // Get page access token from connected_pages table
     const { data: pageData, error: pageError } = await supabase
         .from('connected_pages')
-        .select('page_access_token, name, workspaces!inner(id)')
+        .select('id, page_access_token, name, workspaces!inner(id)')
         .eq('page_id', pageId)
         .single();
 
@@ -345,6 +429,7 @@ async function processPostback(messagingEvent: any, pageId: string) {
     const pageAccessToken = (pageData as any).page_access_token;
     const workspaceId = (pageData as any).workspaces.id;
     const pageName = (pageData as any).name || 'Page';
+    const pageDbId = (pageData as any).id;
 
     // Check if payload is a direct flow trigger (FLOW_{flowId})
     if (payload.startsWith('FLOW_')) {
@@ -400,13 +485,24 @@ async function processPostback(messagingEvent: any, pageId: string) {
                 pageId: pageId,
                 pageName: pageName,
                 postId: '',
-                commentId: stablePostbackId
+                commentId: stablePostbackId,
+                workspaceId,
+                pageDbId
             },
             pageAccessToken,
             flow.id,
             stablePostbackId
         );
 
+        // Save the user as a bot subscriber when they click a button
+        await saveOrUpdateSubscriber(
+            workspaceId,
+            pageDbId,
+            senderId,
+            'Button Click User',
+            'POSTBACK',
+            pageAccessToken
+        );
 
         return; // Flow executed successfully
     }
@@ -661,11 +757,23 @@ async function processTextMessage(messagingEvent: any, pageId: string) {
                         message: messageText,
                         pageId: pageId,
                         postId: '',
-                        commentId: messagingEvent.message.mid // Use message ID as reference
+                        commentId: messagingEvent.message.mid, // Use message ID as reference
+                        workspaceId,
+                        pageDbId
                     },
                     pageAccessToken,
                     flow.id,
                     messagingEvent.message.mid
+                );
+
+                // Save the user as a bot subscriber when they message the page
+                await saveOrUpdateSubscriber(
+                    workspaceId,
+                    pageDbId,
+                    senderId,
+                    'Messenger User',
+                    'MESSAGE',
+                    pageAccessToken
                 );
 
                 return; // Execute only the first matching flow
@@ -885,8 +993,15 @@ async function executeAutomation(
             await reactToComment(context.commentId, pageAccessToken);
         }
 
+        // Add workspaceId and pageDbId to context for subscriber tracking
+        const enrichedContext = {
+            ...context,
+            workspaceId,
+            pageDbId
+        };
+
         // Execute flow actions
-        await executeFlowActions(flow, configurations, context, pageAccessToken, commentId);
+        await executeFlowActions(flow, configurations, enrichedContext, pageAccessToken, commentId);
     }
 
     // Mark comment as processed
@@ -1465,6 +1580,19 @@ async function executeAction(
             commentId,
             config.buttons // Pass buttons from config
         );
+
+        // Save the commenter as a bot subscriber after successfully sending a DM
+        if (context.workspaceId && context.pageDbId) {
+            await saveOrUpdateSubscriber(
+                context.workspaceId,
+                context.pageDbId,
+                context.commenterId,
+                context.commenterName || 'Unknown User',
+                'COMMENT',
+                pageAccessToken
+            );
+        }
+
         return; // Return after executing
     }
 

@@ -1,13 +1,30 @@
 import React, { useEffect, useState } from 'react';
-import { Workspace, Subscriber, Conversation } from '../types';
+import { Workspace, Subscriber, Conversation, ConnectedPage } from '../types';
 import { api } from '../services/api';
-import { Search, Filter, Download, User, Facebook, Instagram, X, MessageCircle, Calendar, Tag, ExternalLink, ChevronLeft, ChevronRight, LayoutGrid, List, Clock, Users } from 'lucide-react';
+import { Search, Download, User, Facebook, Instagram, X, MessageCircle, Calendar, Tag, ExternalLink, ChevronLeft, ChevronRight, LayoutGrid, List, Clock, Users, Plus, Check, Filter } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
 import { useToast } from '../context/ToastContext';
 
 interface SubscribersProps {
   workspace: Workspace;
 }
+
+// Predefined label options with colors
+const LABEL_OPTIONS = [
+  { name: 'Commenter', color: 'bg-blue-500/20 text-blue-400 border-blue-500/30' },
+  { name: 'Messaged', color: 'bg-purple-500/20 text-purple-400 border-purple-500/30' },
+  { name: 'Button Click', color: 'bg-orange-500/20 text-orange-400 border-orange-500/30' },
+  { name: 'VIP', color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' },
+  { name: 'Lead', color: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' },
+  { name: 'Customer', color: 'bg-green-500/20 text-green-400 border-green-500/30' },
+  { name: 'Hot Lead', color: 'bg-red-500/20 text-red-400 border-red-500/30' },
+  { name: 'Cold Lead', color: 'bg-slate-500/20 text-slate-400 border-slate-500/30' },
+];
+
+const getLabelColor = (label: string) => {
+  const found = LABEL_OPTIONS.find(l => l.name === label);
+  return found?.color || 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30';
+};
 
 const Subscribers: React.FC<SubscribersProps> = ({ workspace }) => {
   const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
@@ -19,14 +36,32 @@ const Subscribers: React.FC<SubscribersProps> = ({ workspace }) => {
   const [loadingConversations, setLoadingConversations] = useState(false);
   const [statusFilter, setStatusFilter] = useState<'all' | 'SUBSCRIBED' | 'UNSUBSCRIBED'>('all');
   const [currentPage, setCurrentPage] = useState(1);
+  const [pages, setPages] = useState<ConnectedPage[]>([]);
+  const [selectedPageId, setSelectedPageId] = useState<string>('');
+  const [showLabelManager, setShowLabelManager] = useState(false);
+  const [savingLabels, setSavingLabels] = useState(false);
   const itemsPerPage = 12;
   const toast = useToast();
 
+  // Load connected pages for filter
+  useEffect(() => {
+    const loadPages = async () => {
+      try {
+        const pagesData = await api.workspace.getConnectedPages(workspace.id);
+        setPages(pagesData);
+      } catch (error) {
+        console.error('Failed to load pages');
+      }
+    };
+    loadPages();
+  }, [workspace.id]);
+
+  // Load subscribers
   useEffect(() => {
     const loadSubscribers = async () => {
       setLoading(true);
       try {
-        const data = await api.workspace.getSubscribers(workspace.id);
+        const data = await api.workspace.getSubscribers(workspace.id, selectedPageId || undefined);
         setSubscribers(data);
       } catch (error) {
         toast.error('Failed to load subscribers');
@@ -35,7 +70,7 @@ const Subscribers: React.FC<SubscribersProps> = ({ workspace }) => {
       }
     };
     loadSubscribers();
-  }, [workspace.id]);
+  }, [workspace.id, selectedPageId]);
 
   // Filter subscribers
   const filteredSubscribers = subscribers.filter(sub => {
@@ -55,7 +90,7 @@ const Subscribers: React.FC<SubscribersProps> = ({ workspace }) => {
   // Reset pagination when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, statusFilter]);
+  }, [searchQuery, statusFilter, selectedPageId]);
 
   // Open subscriber profile modal
   const openSubscriberProfile = async (subscriber: Subscriber) => {
@@ -63,7 +98,6 @@ const Subscribers: React.FC<SubscribersProps> = ({ workspace }) => {
     setLoadingConversations(true);
     try {
       const conversations = await api.workspace.getConversations(workspace.id);
-      // Filter conversations for this subscriber
       const subConversations = conversations.filter(c => c.subscriberId === subscriber.id);
       setSubscriberConversations(subConversations);
     } catch (error) {
@@ -76,6 +110,33 @@ const Subscribers: React.FC<SubscribersProps> = ({ workspace }) => {
   const closeProfile = () => {
     setSelectedSubscriber(null);
     setSubscriberConversations([]);
+    setShowLabelManager(false);
+  };
+
+  const toggleLabel = async (label: string) => {
+    if (!selectedSubscriber) return;
+
+    const currentLabels = selectedSubscriber.labels || [];
+    const newLabels = currentLabels.includes(label)
+      ? currentLabels.filter(l => l !== label)
+      : [...currentLabels, label];
+
+    setSavingLabels(true);
+    try {
+      await api.workspace.updateSubscriberLabels(selectedSubscriber.id, newLabels);
+
+      // Update local state
+      setSelectedSubscriber({ ...selectedSubscriber, labels: newLabels });
+      setSubscribers(subs => subs.map(s =>
+        s.id === selectedSubscriber.id ? { ...s, labels: newLabels } : s
+      ));
+
+      toast.success('Labels updated');
+    } catch (error) {
+      toast.error('Failed to update labels');
+    } finally {
+      setSavingLabels(false);
+    }
   };
 
   const formatDate = (dateString: string) => {
@@ -94,6 +155,13 @@ const Subscribers: React.FC<SubscribersProps> = ({ workspace }) => {
     }
   };
 
+  // Get page name by ID
+  const getPageName = (pageId: string | undefined) => {
+    if (!pageId) return 'Unknown Page';
+    const page = pages.find(p => p.id === pageId);
+    return page?.name || 'Unknown Page';
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center p-12">
@@ -108,7 +176,7 @@ const Subscribers: React.FC<SubscribersProps> = ({ workspace }) => {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl md:text-4xl font-bold text-white tracking-tight mb-2">Subscribers</h1>
-          <p className="text-slate-400 text-sm md:text-lg">Manage and view your audience contacts</p>
+          <p className="text-slate-400 text-sm md:text-lg">Users who interacted with your bot automations</p>
         </div>
         <div className="flex items-center gap-3">
           <button
@@ -189,7 +257,7 @@ const Subscribers: React.FC<SubscribersProps> = ({ workspace }) => {
 
       {/* Toolbar */}
       <div className="glass-panel rounded-2xl p-4 border border-white/10">
-        <div className="flex flex-col sm:flex-row gap-4">
+        <div className="flex flex-col lg:flex-row gap-4">
           {/* Search */}
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -200,6 +268,21 @@ const Subscribers: React.FC<SubscribersProps> = ({ workspace }) => {
               placeholder="Search by name or ID..."
               className="w-full pl-10 pr-4 py-2.5 text-sm bg-black/20 border border-white/10 text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-transparent placeholder-slate-500 transition-all"
             />
+          </div>
+
+          {/* Page Filter */}
+          <div className="flex items-center gap-2">
+            <Filter className="w-4 h-4 text-slate-400" />
+            <select
+              value={selectedPageId}
+              onChange={(e) => setSelectedPageId(e.target.value)}
+              className="px-4 py-2.5 bg-black/20 border border-white/10 text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/50 text-sm min-w-[180px]"
+            >
+              <option value="">All Pages</option>
+              {pages.map(page => (
+                <option key={page.id} value={page.id}>{page.name}</option>
+              ))}
+            </select>
           </div>
 
           {/* Status Filter */}
@@ -270,31 +353,29 @@ const Subscribers: React.FC<SubscribersProps> = ({ workspace }) => {
                   }`}>
                   {subscriber.name}
                 </h3>
-                <p className="text-xs text-slate-500 font-mono truncate mt-0.5">ID: {subscriber.externalId}</p>
 
-                {/* Status & Last Active */}
-                <div className={`flex items-center gap-2 mt-2 ${viewMode === 'grid' ? 'justify-center' : ''}`}>
+                {/* Page Name */}
+                {subscriber.pageId && (
+                  <p className="text-xs text-slate-500 truncate mt-0.5">{getPageName(subscriber.pageId)}</p>
+                )}
+
+                {/* Status & Source Labels */}
+                <div className={`flex flex-wrap items-center gap-1.5 mt-2 ${viewMode === 'grid' ? 'justify-center' : ''}`}>
                   <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${subscriber.status === 'SUBSCRIBED'
                       ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
                       : 'bg-slate-500/20 text-slate-400 border border-slate-500/30'
                     }`}>
                     {subscriber.status === 'SUBSCRIBED' ? 'Active' : 'Inactive'}
                   </span>
+                  {subscriber.labels?.slice(0, 2).map(label => (
+                    <span key={label} className={`px-2 py-0.5 rounded-full text-xs font-medium border ${getLabelColor(label)}`}>
+                      {label}
+                    </span>
+                  ))}
+                  {(subscriber.labels?.length || 0) > 2 && (
+                    <span className="text-xs text-slate-500">+{subscriber.labels!.length - 2}</span>
+                  )}
                 </div>
-
-                {/* Tags */}
-                {subscriber.tags.length > 0 && (
-                  <div className={`flex flex-wrap gap-1 mt-2 ${viewMode === 'grid' ? 'justify-center' : ''}`}>
-                    {subscriber.tags.slice(0, 3).map(tag => (
-                      <span key={tag} className="px-2 py-0.5 bg-indigo-500/20 text-indigo-300 rounded text-xs border border-indigo-500/30">
-                        {tag}
-                      </span>
-                    ))}
-                    {subscriber.tags.length > 3 && (
-                      <span className="text-xs text-slate-500">+{subscriber.tags.length - 3}</span>
-                    )}
-                  </div>
-                )}
 
                 {/* Last Active - Grid Only */}
                 {viewMode === 'grid' && (
@@ -322,9 +403,9 @@ const Subscribers: React.FC<SubscribersProps> = ({ workspace }) => {
           </div>
           <h3 className="text-xl font-bold text-white mb-2">No subscribers found</h3>
           <p className="text-slate-400 max-w-sm mx-auto">
-            {searchQuery || statusFilter !== 'all'
+            {searchQuery || statusFilter !== 'all' || selectedPageId
               ? 'Try adjusting your search or filters.'
-              : 'Subscribers will appear here when users interact with your pages.'}
+              : 'Subscribers will appear here when users interact with your bot automations.'}
           </p>
         </div>
       )}
@@ -399,7 +480,6 @@ const Subscribers: React.FC<SubscribersProps> = ({ workspace }) => {
 
             {/* Profile Header */}
             <div className="relative p-6 pb-0">
-              {/* Background Gradient */}
               <div className="absolute inset-0 h-32 bg-gradient-to-b from-indigo-500/20 to-transparent rounded-t-3xl"></div>
 
               <div className="relative flex flex-col sm:flex-row items-center gap-6">
@@ -416,7 +496,6 @@ const Subscribers: React.FC<SubscribersProps> = ({ workspace }) => {
                       <User className="w-12 h-12" />
                     </div>
                   )}
-                  {/* Platform Badge */}
                   <div className="absolute -bottom-2 -right-2 p-1.5 rounded-xl bg-slate-900 border border-slate-700 shadow-lg">
                     {selectedSubscriber.platform === 'FACEBOOK' ? (
                       <Facebook className="w-5 h-5 text-blue-500 fill-current" />
@@ -429,7 +508,10 @@ const Subscribers: React.FC<SubscribersProps> = ({ workspace }) => {
                 {/* Name & Info */}
                 <div className="flex-1 text-center sm:text-left">
                   <h2 className="text-2xl sm:text-3xl font-bold text-white mb-1">{selectedSubscriber.name}</h2>
-                  <p className="text-sm text-slate-500 font-mono mb-3">ID: {selectedSubscriber.externalId}</p>
+                  <p className="text-sm text-slate-500 font-mono mb-1">ID: {selectedSubscriber.externalId}</p>
+                  {selectedSubscriber.pageId && (
+                    <p className="text-sm text-slate-400 mb-3">From: {getPageName(selectedSubscriber.pageId)}</p>
+                  )}
 
                   <div className="flex flex-wrap justify-center sm:justify-start gap-2">
                     <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-semibold ${selectedSubscriber.status === 'SUBSCRIBED'
@@ -438,19 +520,12 @@ const Subscribers: React.FC<SubscribersProps> = ({ workspace }) => {
                       }`}>
                       {selectedSubscriber.status === 'SUBSCRIBED' ? 'Active Subscriber' : 'Inactive'}
                     </span>
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium bg-white/5 text-slate-300 border border-white/10">
-                      {selectedSubscriber.platform === 'FACEBOOK' ? (
-                        <>
-                          <Facebook className="w-3.5 h-3.5 text-blue-400" />
-                          Facebook
-                        </>
-                      ) : (
-                        <>
-                          <Instagram className="w-3.5 h-3.5 text-pink-400" />
-                          Instagram
-                        </>
-                      )}
-                    </span>
+                    {selectedSubscriber.source && (
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium bg-white/5 text-slate-300 border border-white/10">
+                        {selectedSubscriber.source === 'COMMENT' ? 'From Comment' :
+                          selectedSubscriber.source === 'MESSAGE' ? 'From Message' : 'From Button'}
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -486,13 +561,66 @@ const Subscribers: React.FC<SubscribersProps> = ({ workspace }) => {
                 </div>
               </div>
 
-              {/* Tags */}
+              {/* Labels */}
               <div>
-                <h4 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
-                  <Tag className="w-4 h-4" />
-                  Tags
-                </h4>
-                {selectedSubscriber.tags.length > 0 ? (
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="text-sm font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                    <Tag className="w-4 h-4" />
+                    Labels
+                  </h4>
+                  <button
+                    onClick={() => setShowLabelManager(!showLabelManager)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-indigo-400 hover:text-indigo-300 bg-indigo-500/10 hover:bg-indigo-500/20 rounded-lg border border-indigo-500/30 transition-colors"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    Manage Labels
+                  </button>
+                </div>
+
+                {/* Current Labels */}
+                {selectedSubscriber.labels && selectedSubscriber.labels.length > 0 ? (
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {selectedSubscriber.labels.map(label => (
+                      <span key={label} className={`px-3 py-1.5 rounded-lg text-sm border font-medium ${getLabelColor(label)}`}>
+                        {label}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-slate-500 text-sm mb-3">No labels assigned</p>
+                )}
+
+                {/* Label Manager */}
+                {showLabelManager && (
+                  <div className="bg-white/5 rounded-xl p-4 border border-white/10 mt-3">
+                    <p className="text-xs text-slate-400 mb-3">Click to add/remove labels:</p>
+                    <div className="flex flex-wrap gap-2">
+                      {LABEL_OPTIONS.map(labelOption => {
+                        const isActive = selectedSubscriber.labels?.includes(labelOption.name);
+                        return (
+                          <button
+                            key={labelOption.name}
+                            onClick={() => toggleLabel(labelOption.name)}
+                            disabled={savingLabels}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border transition-all ${isActive
+                                ? labelOption.color + ' ring-2 ring-white/20'
+                                : 'bg-white/5 text-slate-400 border-white/10 hover:bg-white/10'
+                              } ${savingLabels ? 'opacity-50 cursor-not-allowed' : ''}`}
+                          >
+                            {isActive && <Check className="w-3.5 h-3.5" />}
+                            {labelOption.name}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Tags */}
+              {selectedSubscriber.tags && selectedSubscriber.tags.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">Tags</h4>
                   <div className="flex flex-wrap gap-2">
                     {selectedSubscriber.tags.map(tag => (
                       <span key={tag} className="px-3 py-1.5 bg-indigo-500/20 text-indigo-300 rounded-lg text-sm border border-indigo-500/30 font-medium">
@@ -500,10 +628,8 @@ const Subscribers: React.FC<SubscribersProps> = ({ workspace }) => {
                       </span>
                     ))}
                   </div>
-                ) : (
-                  <p className="text-slate-500 text-sm">No tags assigned</p>
-                )}
-              </div>
+                </div>
+              )}
 
               {/* Recent Conversations */}
               <div>

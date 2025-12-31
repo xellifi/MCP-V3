@@ -51,13 +51,16 @@ export interface ConnectedPage {
 export interface Subscriber {
   id: string;
   workspaceId: string;
+  pageId?: string;  // Facebook page ID they came from
   name: string;
   platform: 'FACEBOOK' | 'INSTAGRAM';
   externalId: string;
   avatarUrl?: string;
   status: 'SUBSCRIBED' | 'UNSUBSCRIBED';
-  tags: string[];
+  tags: string[];  // User tags
+  labels: string[]; // Bot labels (e.g., "Commenter", "Messaged", "Purchased")
   lastActiveAt: string;
+  source?: 'COMMENT' | 'MESSAGE' | 'POSTBACK'; // How they became a subscriber
 }
 
 export interface Conversation {
