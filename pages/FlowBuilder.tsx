@@ -911,6 +911,48 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
         toast.success(`${newFlowNodes.length} sub-flow(s) also saved!`);
       }
 
+      // Save forms from formNode nodes
+      const formNodes = nodes.filter(node => node.type === 'formNode');
+
+      if (formNodes.length > 0) {
+        console.log('[FlowBuilder.saveFlow] Found', formNodes.length, 'form node(s) to save');
+
+        for (const formNode of formNodes) {
+          const formConfig = nodeConfigs[formNode.id];
+          if (!formConfig) continue;
+
+          try {
+            // Check if form already exists (has formId in config)
+            if (formConfig.formId) {
+              // Update existing form
+              await api.workspace.updateForm(formConfig.formId, formConfig);
+              console.log('[FlowBuilder.saveFlow] ✓ Form updated:', formConfig.formName);
+            } else {
+              // Create new form
+              const newForm = await api.workspace.createForm(workspace.id, {
+                ...formConfig,
+                flowId: savedFlowId,
+                nodeId: formNode.id
+              });
+
+              // Update node config with the new form ID
+              const updatedConfigs = { ...nodeConfigs };
+              updatedConfigs[formNode.id] = {
+                ...formConfig,
+                formId: newForm.id
+              };
+              setNodeConfigs(updatedConfigs);
+
+              console.log('[FlowBuilder.saveFlow] ✓ Form created:', formConfig.formName, 'ID:', newForm.id);
+            }
+          } catch (formError) {
+            console.error('[FlowBuilder.saveFlow] ✗ Error saving form:', formError);
+          }
+        }
+
+        toast.success(`${formNodes.length} form(s) saved!`);
+      }
+
     } catch (error: any) {
       console.error('Error saving flow:', error);
       console.error('Error details:', {

@@ -669,6 +669,8 @@ export const api = {
         .from('forms')
         .insert({
           workspace_id: workspaceId,
+          flow_id: formData.flowId || null,
+          node_id: formData.nodeId || null,
           name: formData.formName || 'Untitled Form',
           header_image_url: formData.headerImageUrl || null,
           submit_button_text: formData.submitButtonText || 'Submit',
