@@ -70,22 +70,36 @@ const FormView: React.FC = () => {
         try {
             console.log('[FormView] Loading form with ID:', formId);
 
-            // First, try to find by UUID (formId is the Supabase-generated ID)
-            let { data, error: fetchError } = await supabase.from('forms').select('*').eq('id', formId).single();
+            // Check if formId is a valid UUID format
+            const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(formId);
 
-            // If not found by UUID, try searching by node_id (formId might be the node's timestamp ID)
-            if (fetchError || !data) {
-                console.log('[FormView] Form not found by ID, trying node_id...');
-                const { data: nodeData, error: nodeError } = await supabase.from('forms').select('*').eq('node_id', formId).single();
-                if (nodeData && !nodeError) {
-                    data = nodeData;
+            let data = null;
+            let fetchError = null;
+
+            if (isValidUUID) {
+                // If it's a UUID, search by id column
+                console.log('[FormView] Searching by UUID id...');
+                const result = await supabase.from('forms').select('*').eq('id', formId).maybeSingle();
+                data = result.data;
+                fetchError = result.error;
+            }
+
+            // If not found by UUID (or wasn't a UUID), try node_id
+            if (!data) {
+                console.log('[FormView] Searching by node_id:', formId);
+                const nodeResult = await supabase.from('forms').select('*').eq('node_id', formId).maybeSingle();
+                if (nodeResult.data && !nodeResult.error) {
+                    data = nodeResult.data;
                     fetchError = null;
-                    console.log('[FormView] Found form by node_id:', nodeData.id);
+                    console.log('[FormView] Found form by node_id:', nodeResult.data.id);
+                } else if (nodeResult.error) {
+                    console.error('[FormView] Error searching by node_id:', nodeResult.error);
+                    fetchError = nodeResult.error;
                 }
             }
 
-            if (fetchError || !data) {
-                console.error('[FormView] Form not found:', fetchError);
+            if (!data) {
+                console.error('[FormView] Form not found');
                 setError('Form not found');
             }
             else {
