@@ -75,6 +75,7 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
     // Google Sheets settings
     const [googleSheetId, setGoogleSheetId] = useState(initialConfig?.googleSheetId || '');
     const [googleSheetName, setGoogleSheetName] = useState(initialConfig?.googleSheetName || 'Sheet1');
+    const [googleWebhookUrl, setGoogleWebhookUrl] = useState(initialConfig?.googleWebhookUrl || '');
 
     useEffect(() => {
         onChange({
@@ -82,12 +83,12 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
             countdownEnabled, countdownMinutes, countdownBlink, formTemplate,
             isOrderForm, productName, productPrice, currency, maxQuantity, couponEnabled, couponCode, couponDiscount,
             codEnabled, ewalletEnabled, ewalletOptions, ewalletNumbers, requireProofUpload,
-            googleSheetId, googleSheetName,
+            googleSheetId, googleSheetName, googleWebhookUrl,
         });
     }, [formName, headerImageUrl, submitButtonText, submitButtonColor, borderRadius, successMessage, fields,
         countdownEnabled, countdownMinutes, countdownBlink, formTemplate, isOrderForm, productName, productPrice, currency, maxQuantity,
         couponEnabled, couponCode, couponDiscount, codEnabled, ewalletEnabled, ewalletOptions, ewalletNumbers, requireProofUpload,
-        googleSheetId, googleSheetName]);
+        googleSheetId, googleSheetName, googleWebhookUrl]);
 
     const addField = (type: string) => {
         const fieldType = FIELD_TYPES.find(t => t.value === type);
@@ -589,13 +590,29 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
                                     className="w-full px-3 py-2 bg-slate-800/60 border border-slate-600/50 rounded-xl text-white text-sm focus:outline-none"
                                 />
                             </div>
-                            {googleSheetId && (
+                            <div>
+                                <label className="block text-xs text-slate-400 mb-1">Apps Script Webhook URL</label>
+                                <input
+                                    type="text"
+                                    value={googleWebhookUrl}
+                                    onChange={(e) => setGoogleWebhookUrl(e.target.value)}
+                                    placeholder="https://script.google.com/macros/s/.../exec"
+                                    className="w-full px-3 py-2 bg-slate-800/60 border border-slate-600/50 rounded-xl text-white text-sm focus:outline-none focus:border-green-500/50"
+                                />
+                                <p className="text-slate-500 text-[10px] mt-1">Create in Google Sheet → Extensions → Apps Script → Deploy</p>
+                            </div>
+                            {googleSheetId && googleWebhookUrl && (
                                 <div className="p-2 bg-green-500/10 border border-green-500/30 rounded-lg">
-                                    <p className="text-green-400 text-xs">✓ Form submissions will sync to Google Sheets</p>
+                                    <p className="text-green-400 text-xs">✓ Google Sheets sync is fully configured!</p>
+                                </div>
+                            )}
+                            {googleSheetId && !googleWebhookUrl && (
+                                <div className="p-2 bg-orange-500/10 border border-orange-500/30 rounded-lg">
+                                    <p className="text-orange-400 text-xs">⚠ Add webhook URL to enable sync</p>
                                 </div>
                             )}
                             {!googleSheetId && (
-                                <p className="text-slate-500 text-xs">Paste your Google Sheet URL to enable sync</p>
+                                <p className="text-slate-500 text-xs">Paste Google Sheet URL to enable sync</p>
                             )}
                         </div>
                     </div>

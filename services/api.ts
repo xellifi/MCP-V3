@@ -679,6 +679,7 @@ export const api = {
           success_message: formData.successMessage || 'Order placed successfully!',
           google_sheet_id: formData.googleSheetId || null,
           google_sheet_name: formData.googleSheetName || null,
+          google_webhook_url: formData.googleWebhookUrl || null,
           fields: formData.fields || [],
           countdown_enabled: formData.countdownEnabled || false,
           countdown_minutes: formData.countdownMinutes || 10,
@@ -738,6 +739,9 @@ export const api = {
           ewallet_numbers: formData.ewalletNumbers || {},
           require_proof_upload: formData.requireProofUpload ?? true,
           form_template: formData.formTemplate || 'modern',
+          google_sheet_id: formData.googleSheetId || null,
+          google_sheet_name: formData.googleSheetName || 'Sheet1',
+          google_webhook_url: formData.googleWebhookUrl || null,
           updated_at: new Date().toISOString(),
         })
         .eq('id', formId)

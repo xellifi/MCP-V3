@@ -129,88 +129,40 @@ const FormView: React.FC = () => {
         }
     };
 
-    // Sync form submission to Google Sheets
+    // Sync form submission to Google Sheets (uses per-form webhook URL)
     const syncToGoogleSheets = async (submissionData: any) => {
         console.log('[FormView Sheets] Starting sync...');
-        console.log('[FormView Sheets] Form data:', { flow_id: form?.flow_id, node_id: form?.node_id });
+        console.log('[FormView Sheets] Config:', {
+            sheet_id: form?.google_sheet_id,
+            sheet_name: form?.google_sheet_name,
+            webhook_url: form?.google_webhook_url ? '✓ Set' : '✗ Not set'
+        });
 
         try {
-            // Get the flow this form belongs to
-            if (!form?.flow_id) {
-                console.log('[FormView Sheets] ❌ No flow_id on form - form needs to be re-saved from FlowBuilder');
+            // Check if form has Google Sheet and webhook configured
+            if (!form?.google_sheet_id || !form?.google_webhook_url) {
+                console.log('[FormView Sheets] ⏭ Missing config, skipping sync');
                 return;
             }
 
-            // Get the flow configuration
-            console.log('[FormView Sheets] Fetching flow:', form.flow_id);
-            const { data: flowData, error: flowError } = await supabase
-                .from('flows')
-                .select('configurations, nodes, edges')
-                .eq('id', form.flow_id)
-                .single();
+            console.log('[FormView Sheets] ✓ Syncing to spreadsheet via webhook...');
 
-            if (flowError) {
-                console.error('[FormView Sheets] ❌ Error fetching flow:', flowError);
-                return;
-            }
-
-            console.log('[FormView Sheets] Flow data:', {
-                hasConfigs: !!flowData?.configurations,
-                hasNodes: !!flowData?.nodes,
-                hasEdges: !!flowData?.edges,
-                edgesCount: flowData?.edges?.length || 0
-            });
-
-            if (!flowData?.configurations || !flowData?.edges) {
-                console.log('[FormView Sheets] ❌ No flow configurations or edges found');
-                return;
-            }
-
-            // Find the form node and its connected sheets node
-            const formNodeId = form.node_id;
-            console.log('[FormView Sheets] Looking for sheets edge from form node:', formNodeId);
-            console.log('[FormView Sheets] All edges:', flowData.edges);
-
-            const sheetsEdge = (flowData.edges || []).find((edge: any) =>
-                edge.source === formNodeId && edge.sourceHandle === 'sheets'
-            );
-
-            // Also try without sourceHandle in case it wasn't saved
-            const anyEdgeFromForm = (flowData.edges || []).find((edge: any) =>
-                edge.source === formNodeId
-            );
-
-            console.log('[FormView Sheets] Sheets edge found:', sheetsEdge);
-            console.log('[FormView Sheets] Any edge from form:', anyEdgeFromForm);
-
-            if (!sheetsEdge) {
-                console.log('[FormView Sheets] ❌ No sheets connection found (sourceHandle must be "sheets")');
-                return;
-            }
-
-            const sheetsNodeId = sheetsEdge.target;
-            const sheetsConfig = flowData.configurations[sheetsNodeId];
-
-            if (!sheetsConfig?.spreadsheetId) {
-                console.log('[FormView] Sheets node not configured');
-                return;
-            }
-
-            console.log('[FormView] Syncing to Google Sheets:', sheetsConfig.spreadsheetId);
-
-            // Call the /api/sheets/sync endpoint
-            const response = await fetch('/api/sheets/sync', {
+            // Call the user's Apps Script webhook directly
+            const response = await fetch(form.google_webhook_url, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    spreadsheetId: sheetsConfig.spreadsheetId,
-                    sheetName: sheetsConfig.sheetName || 'Sheet1',
-                    data: submissionData
+                    spreadsheetId: form.google_sheet_id,
+                    sheetName: form.google_sheet_name || 'Sheet1',
+                    rowData: submissionData
                 })
             });
 
+            const resultText = await response.text();
+            console.log('[FormView Sheets] Webhook response:', resultText);
+
             if (response.ok) {
-                console.log('[FormView] ✓ Synced to Google Sheets');
+                console.log('[FormView Sheets] ✓ Data synced to Google Sheets!');
                 // Update synced_to_sheets flag
                 await supabase
                     .from('form_submissions')
@@ -219,10 +171,10 @@ const FormView: React.FC = () => {
                     .order('created_at', { ascending: false })
                     .limit(1);
             } else {
-                console.error('[FormView] Failed to sync to sheets:', await response.text());
+                console.log('[FormView Sheets] ⚠ Sync failed:', resultText);
             }
         } catch (err) {
-            console.error('[FormView] Error syncing to sheets:', err);
+            console.error('[FormView Sheets] Error:', err);
             // Don't fail the submission if sheets sync fails
         }
     };
