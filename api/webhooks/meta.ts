@@ -30,7 +30,7 @@ async function saveOrUpdateSubscriber(
         // Check if subscriber already exists
         const { data: existingSubscriber } = await supabase
             .from('subscribers')
-            .select('id, labels, source')
+            .select('id, name, avatar_url, labels, source')
             .eq('workspace_id', workspaceId)
             .eq('external_id', userId)
             .single();
@@ -64,20 +64,37 @@ async function saveOrUpdateSubscriber(
                 ? currentLabels
                 : [...currentLabels, sourceLabel];
 
+            // Only update name if the new name is a real name (not a fallback)
+            // and the current name is generic or missing
+            const genericNames = ['Facebook User', 'Messenger User', 'Button Click User', 'User', 'Unknown User', ''];
+            const currentName = existingSubscriber.name || '';
+            const shouldUpdateName = !genericNames.includes(userName) || genericNames.includes(currentName);
+
+            const updateData: any = {
+                last_active_at: now,
+                status: 'SUBSCRIBED',
+                labels: updatedLabels
+            };
+
+            // Only update name if we have a better name
+            if (shouldUpdateName && userName && !genericNames.includes(userName)) {
+                updateData.name = userName;
+            }
+
+            // Update avatar if we have one and current is empty
+            if (avatarUrl && !existingSubscriber.avatar_url) {
+                updateData.avatar_url = avatarUrl;
+            }
+
             const { error: updateError } = await supabase
                 .from('subscribers')
-                .update({
-                    name: userName,
-                    last_active_at: now,
-                    status: 'SUBSCRIBED',
-                    labels: updatedLabels
-                })
+                .update(updateData)
                 .eq('id', existingSubscriber.id);
 
             if (updateError) {
                 console.error('    ✗ Error updating subscriber:', updateError);
             } else {
-                console.log(`    ✓ Subscriber updated: ${userName}`);
+                console.log(`    ✓ Subscriber updated: ${existingSubscriber.name}`);
             }
         } else {
             // Create new subscriber

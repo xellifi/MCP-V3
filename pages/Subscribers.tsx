@@ -342,9 +342,26 @@ const Subscribers: React.FC<SubscribersProps> = ({ workspace }) => {
             <div
               key={subscriber.id}
               onClick={() => openSubscriberProfile(subscriber)}
-              className={`glass-panel border border-white/10 rounded-2xl overflow-hidden cursor-pointer group hover:border-indigo-500/50 hover:shadow-[0_0_30px_rgba(99,102,241,0.15)] transition-all duration-300 ${viewMode === 'grid' ? 'p-5' : 'p-4 flex items-center gap-4'
+              className={`glass-panel border border-white/10 rounded-2xl overflow-hidden cursor-pointer group hover:border-indigo-500/50 hover:shadow-[0_0_30px_rgba(99,102,241,0.15)] transition-all duration-300 relative ${viewMode === 'grid' ? 'p-5' : 'p-4 flex items-center gap-4'
                 }`}
             >
+              {/* Delete Button - Top Right */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (confirm(`Delete "${subscriber.name}"?`)) {
+                    api.workspace.deleteSubscriber(subscriber.id).then(() => {
+                      setSubscribers(subs => subs.filter(s => s.id !== subscriber.id));
+                      toast.success('Subscriber deleted');
+                    }).catch(() => toast.error('Failed to delete'));
+                  }
+                }}
+                className="absolute top-3 right-3 p-1.5 bg-red-500/20 hover:bg-red-500/40 text-red-400 hover:text-red-300 rounded-lg opacity-0 group-hover:opacity-100 transition-all z-10 border border-red-500/30"
+                title="Delete subscriber"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+
               {/* Avatar */}
               <div className={`relative ${viewMode === 'grid' ? 'flex justify-center mb-4' : 'flex-shrink-0'}`}>
                 {subscriber.avatarUrl ? (
