@@ -91,6 +91,7 @@ export const MOCK_SUBSCRIBERS: Subscriber[] = [
     avatarUrl: 'https://picsum.photos/150',
     status: 'SUBSCRIBED',
     tags: ['vip', 'new'],
+    labels: ['Commenter', 'VIP'],
     lastActiveAt: new Date().toISOString()
   },
   {
@@ -101,9 +102,10 @@ export const MOCK_SUBSCRIBERS: Subscriber[] = [
     externalId: 'ig_456',
     status: 'SUBSCRIBED',
     tags: ['lead'],
+    labels: ['Messaged', 'Lead'],
     lastActiveAt: new Date(Date.now() - 86400000).toISOString()
   },
-   {
+  {
     id: 's3',
     workspaceId: 'w1',
     name: 'Sarah Connor',
@@ -111,6 +113,7 @@ export const MOCK_SUBSCRIBERS: Subscriber[] = [
     externalId: 'fb_789',
     status: 'UNSUBSCRIBED',
     tags: [],
+    labels: [],
     lastActiveAt: new Date(Date.now() - 86400000 * 5).toISOString()
   }
 ];
