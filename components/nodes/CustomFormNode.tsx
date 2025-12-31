@@ -158,11 +158,26 @@ const CustomFormNode: React.FC<NodeProps> = ({ data, selected }) => {
                 position={Position.Left}
                 className="w-3 h-3 !bg-purple-400 !border-2 !border-white"
             />
+            {/* Main flow output */}
             <Handle
                 type="source"
                 position={Position.Right}
+                id="flow"
                 className="w-3 h-3 !bg-purple-400 !border-2 !border-white"
+                style={{ top: '30%' }}
             />
+            {/* Google Sheets output */}
+            <Handle
+                type="source"
+                position={Position.Right}
+                id="sheets"
+                className="w-3 h-3 !bg-green-500 !border-2 !border-white"
+                style={{ top: '70%' }}
+                title="Connect to Google Sheets"
+            />
+            {/* Labels for handles */}
+            <div className="absolute right-[-45px] top-[25%] text-[9px] text-slate-400">Flow</div>
+            <div className="absolute right-[-55px] top-[65%] text-[9px] text-green-400">Sheets</div>
         </div>
     );
 };
