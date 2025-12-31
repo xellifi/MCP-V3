@@ -39,7 +39,8 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
     const [headerImageUrl, setHeaderImageUrl] = useState(initialConfig?.headerImageUrl || '');
     const [submitButtonText, setSubmitButtonText] = useState(initialConfig?.submitButtonText || 'Place Order');
     const [submitButtonColor, setSubmitButtonColor] = useState(initialConfig?.submitButtonColor || '#6366f1');
-    const [borderRadius, setBorderRadius] = useState<'rounded' | 'round' | 'full'>(initialConfig?.borderRadius || 'round');
+    const [borderRadius, setBorderRadius] = useState<'normal' | 'rounded' | 'round' | 'full'>(initialConfig?.borderRadius || 'round');
+    const [formTemplate, setFormTemplate] = useState<'modern' | 'minimal'>(initialConfig?.formTemplate || 'modern');
     const [successMessage, setSuccessMessage] = useState(initialConfig?.successMessage || 'Order placed successfully! We will contact you soon.');
     const [fields, setFields] = useState<FormField[]>(initialConfig?.fields || [
         { id: 'name', type: 'text', label: 'Full Name', placeholder: 'Enter your name', required: true },
@@ -72,12 +73,12 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
     useEffect(() => {
         onChange({
             formName, headerImageUrl, submitButtonText, submitButtonColor, borderRadius, successMessage, fields,
-            countdownEnabled, countdownMinutes,
+            countdownEnabled, countdownMinutes, formTemplate,
             isOrderForm, productPrice, currency, maxQuantity, couponEnabled, couponCode, couponDiscount,
             codEnabled, ewalletEnabled, ewalletOptions, ewalletNumbers, requireProofUpload,
         });
     }, [formName, headerImageUrl, submitButtonText, submitButtonColor, borderRadius, successMessage, fields,
-        countdownEnabled, countdownMinutes, isOrderForm, productPrice, currency, maxQuantity,
+        countdownEnabled, countdownMinutes, formTemplate, isOrderForm, productPrice, currency, maxQuantity,
         couponEnabled, couponCode, couponDiscount, codEnabled, ewalletEnabled, ewalletOptions, ewalletNumbers, requireProofUpload]);
 
     const addField = (type: string) => {
@@ -144,8 +145,8 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id as any)}
                             className={`flex-1 py-2 px-2 rounded-lg text-xs font-medium transition-all flex items-center justify-center gap-1.5 whitespace-nowrap ${activeTab === tab.id
-                                    ? 'bg-purple-500 text-white shadow-lg'
-                                    : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
+                                ? 'bg-purple-500 text-white shadow-lg'
+                                : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
                                 }`}
                         >
                             {Icon && <Icon className="w-3.5 h-3.5" />}
@@ -436,6 +437,25 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
                         )}
                     </div>
 
+                    {/* Template Style */}
+                    <div>
+                        <label className="block text-sm font-medium text-slate-300 mb-1.5">Form Template</label>
+                        <div className="grid grid-cols-2 gap-2">
+                            <button onClick={() => setFormTemplate('modern')}
+                                className={`p-3 rounded-xl border-2 text-center transition ${formTemplate === 'modern' ? 'border-purple-500 bg-purple-500/10' : 'border-slate-600/50 hover:border-slate-500'}`}>
+                                <span className="text-lg">✨</span>
+                                <p className="text-white text-sm font-medium">Modern</p>
+                                <p className="text-slate-500 text-[10px]">Dark, animated</p>
+                            </button>
+                            <button onClick={() => setFormTemplate('minimal')}
+                                className={`p-3 rounded-xl border-2 text-center transition ${formTemplate === 'minimal' ? 'border-purple-500 bg-purple-500/10' : 'border-slate-600/50 hover:border-slate-500'}`}>
+                                <span className="text-lg">📝</span>
+                                <p className="text-white text-sm font-medium">Minimal</p>
+                                <p className="text-slate-500 text-[10px]">Light, simple</p>
+                            </button>
+                        </div>
+                    </div>
+
                     {/* Button Style */}
                     <div className="grid grid-cols-2 gap-3">
                         <div>
@@ -447,6 +467,7 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
                             <label className="block text-sm font-medium text-slate-300 mb-1.5">Corner Style</label>
                             <select value={borderRadius} onChange={(e) => setBorderRadius(e.target.value as any)}
                                 className="w-full px-3 py-2 bg-slate-800/60 border border-slate-600/50 rounded-xl text-white text-sm cursor-pointer">
+                                <option value="normal">Normal</option>
                                 <option value="rounded">Rounded</option>
                                 <option value="round">Round</option>
                                 <option value="full">Pill</option>

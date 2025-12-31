@@ -694,6 +694,7 @@ export const api = {
           ewallet_options: formData.ewalletOptions || [],
           ewallet_numbers: formData.ewalletNumbers || {},
           require_proof_upload: formData.requireProofUpload ?? true,
+          form_template: formData.formTemplate || 'modern',
         })
         .select()
         .single();
@@ -732,6 +733,7 @@ export const api = {
           ewallet_options: formData.ewalletOptions || [],
           ewallet_numbers: formData.ewalletNumbers || {},
           require_proof_upload: formData.requireProofUpload ?? true,
+          form_template: formData.formTemplate || 'modern',
           updated_at: new Date().toISOString(),
         })
         .eq('id', formId)
