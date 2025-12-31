@@ -113,6 +113,13 @@ const CustomGoogleSheetNode: React.FC<NodeProps> = ({ data, selected }) => {
                 className="w-3 h-3 !bg-green-500 !border-2 !border-white"
                 title="Connect from Form node"
             />
+            {/* Handle - Output (connect to next flow) */}
+            <Handle
+                type="source"
+                position={Position.Right}
+                className="w-3 h-3 !bg-green-500 !border-2 !border-white"
+                title="Connect to next node"
+            />
         </div>
     );
 };

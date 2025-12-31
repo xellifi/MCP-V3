@@ -932,10 +932,9 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
           }
 
           // Find connected Google Sheets node
-          // Look for edges from this formNode to a sheetsNode (via the 'sheets' handle)
+          // Look for edges from this formNode to a sheetsNode
           const sheetsEdge = edges.find(e =>
-            e.source === formNode.id &&
-            (e.sourceHandle === 'sheets' || !e.sourceHandle) // Handle could be undefined for older connections
+            e.source === formNode.id
           );
 
           let sheetsConfig = null;
