@@ -129,6 +129,77 @@ const FormView: React.FC = () => {
         }
     };
 
+    // Sync form submission to Google Sheets
+    const syncToGoogleSheets = async (submissionData: any) => {
+        try {
+            // Get the flow this form belongs to
+            if (!form?.flow_id) {
+                console.log('[FormView] No flow_id, skipping sheets sync');
+                return;
+            }
+
+            // Get the flow configuration
+            const { data: flowData } = await supabase
+                .from('flows')
+                .select('configurations, nodes, edges')
+                .eq('id', form.flow_id)
+                .single();
+
+            if (!flowData?.configurations || !flowData?.edges) {
+                console.log('[FormView] No flow configurations found');
+                return;
+            }
+
+            // Find the form node and its connected sheets node
+            const formNodeId = form.node_id;
+            const sheetsEdge = (flowData.edges || []).find((edge: any) =>
+                edge.source === formNodeId && edge.sourceHandle === 'sheets'
+            );
+
+            if (!sheetsEdge) {
+                console.log('[FormView] No sheets connection found');
+                return;
+            }
+
+            const sheetsNodeId = sheetsEdge.target;
+            const sheetsConfig = flowData.configurations[sheetsNodeId];
+
+            if (!sheetsConfig?.spreadsheetId) {
+                console.log('[FormView] Sheets node not configured');
+                return;
+            }
+
+            console.log('[FormView] Syncing to Google Sheets:', sheetsConfig.spreadsheetId);
+
+            // Call the /api/sheets/sync endpoint
+            const response = await fetch('/api/sheets/sync', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    spreadsheetId: sheetsConfig.spreadsheetId,
+                    sheetName: sheetsConfig.sheetName || 'Sheet1',
+                    data: submissionData
+                })
+            });
+
+            if (response.ok) {
+                console.log('[FormView] ✓ Synced to Google Sheets');
+                // Update synced_to_sheets flag
+                await supabase
+                    .from('form_submissions')
+                    .update({ synced_to_sheets: true })
+                    .eq('form_id', formId)
+                    .order('created_at', { ascending: false })
+                    .limit(1);
+            } else {
+                console.error('[FormView] Failed to sync to sheets:', await response.text());
+            }
+        } catch (err) {
+            console.error('[FormView] Error syncing to sheets:', err);
+            // Don't fail the submission if sheets sync fails
+        }
+    };
+
     const handleSubmit = async () => {
         if (expired) return;
         setSubmitting(true);
@@ -143,13 +214,28 @@ const FormView: React.FC = () => {
                 }
             }
 
+            const submissionData = {
+                ...formData,
+                quantity,
+                total: calculateTotal(),
+                coupon_applied: couponApplied ? form?.coupon_code : null,
+                payment_method: paymentMethod,
+                ewallet_selected: selectedWallet,
+                proof_url: proofUrl,
+                subscriber_name: subscriberName,
+                submitted_at: new Date().toISOString()
+            };
+
             await supabase.from('form_submissions').insert({
                 form_id: formId,
                 subscriber_external_id: subscriberId,
                 subscriber_name: subscriberName,
-                data: { ...formData, quantity, total: calculateTotal(), coupon_applied: couponApplied ? form?.coupon_code : null, payment_method: paymentMethod, ewallet_selected: selectedWallet, proof_url: proofUrl },
+                data: submissionData,
                 synced_to_sheets: false,
             });
+
+            // Sync to Google Sheets if connected
+            await syncToGoogleSheets(submissionData);
 
             setSubmitted(true);
         } catch (err) { alert('Failed to submit. Please try again.'); }
