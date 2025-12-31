@@ -917,16 +917,23 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
       if (formNodes.length > 0) {
         console.log('[FlowBuilder.saveFlow] Found', formNodes.length, 'form node(s) to save');
 
+        // Track updated configs
+        const updatedConfigs = { ...nodeConfigs };
+        let formsCreated = false;
+
         for (const formNode of formNodes) {
-          const formConfig = nodeConfigs[formNode.id];
-          if (!formConfig) continue;
+          const formConfig = updatedConfigs[formNode.id];
+          if (!formConfig) {
+            console.log('[FlowBuilder.saveFlow] ⚠ No config for form node:', formNode.id);
+            continue;
+          }
 
           try {
             // Check if form already exists (has formId in config)
             if (formConfig.formId) {
               // Update existing form
               await api.workspace.updateForm(formConfig.formId, formConfig);
-              console.log('[FlowBuilder.saveFlow] ✓ Form updated:', formConfig.formName);
+              console.log('[FlowBuilder.saveFlow] ✓ Form updated:', formConfig.formName, 'ID:', formConfig.formId);
             } else {
               // Create new form
               const newForm = await api.workspace.createForm(workspace.id, {
@@ -935,19 +942,30 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
                 nodeId: formNode.id
               });
 
-              // Update node config with the new form ID
-              const updatedConfigs = { ...nodeConfigs };
+              // Update config with the new form ID
               updatedConfigs[formNode.id] = {
                 ...formConfig,
                 formId: newForm.id
               };
-              setNodeConfigs(updatedConfigs);
+              formsCreated = true;
 
               console.log('[FlowBuilder.saveFlow] ✓ Form created:', formConfig.formName, 'ID:', newForm.id);
             }
           } catch (formError) {
             console.error('[FlowBuilder.saveFlow] ✗ Error saving form:', formError);
           }
+        }
+
+        // If new forms were created, update the flow with new formIds
+        if (formsCreated) {
+          console.log('[FlowBuilder.saveFlow] Updating flow with new form IDs...');
+          setNodeConfigs(updatedConfigs);
+
+          // Update flow in database with new configurations
+          await api.workspace.updateFlow(savedFlowId, {
+            configurations: updatedConfigs
+          });
+          console.log('[FlowBuilder.saveFlow] ✓ Flow updated with form IDs');
         }
 
         toast.success(`${formNodes.length} form(s) saved!`);
