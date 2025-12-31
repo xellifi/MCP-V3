@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, GripVertical, Type, Mail, Phone, Hash, AlignLeft, ChevronDown, CircleDot, CheckSquare, Timer, DollarSign, ShoppingCart, CreditCard, Wallet, Upload } from 'lucide-react';
+import { Plus, Trash2, GripVertical, Type, Mail, Phone, Hash, AlignLeft, ChevronDown, CircleDot, CheckSquare, Timer, DollarSign, ShoppingCart, CreditCard, Wallet, Upload, X } from 'lucide-react';
 import { FormField } from '../types';
 
 interface FormNodeFormProps {
@@ -13,10 +13,10 @@ const FIELD_TYPES = [
     { value: 'email', label: 'Email', icon: Mail },
     { value: 'phone', label: 'Phone', icon: Phone },
     { value: 'number', label: 'Number', icon: Hash },
-    { value: 'textarea', label: 'Long Text', icon: AlignLeft },
+    { value: 'textarea', label: 'Long', icon: AlignLeft },
     { value: 'select', label: 'Dropdown', icon: ChevronDown },
     { value: 'radio', label: 'Radio', icon: CircleDot },
-    { value: 'checkbox', label: 'Checkbox', icon: CheckSquare },
+    { value: 'checkbox', label: 'Check', icon: CheckSquare },
 ];
 
 const COLOR_PRESETS = [
@@ -127,61 +127,58 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
     const getFieldIcon = (type: string) => FIELD_TYPES.find(t => t.value === type)?.icon || Type;
     const currencySymbol = CURRENCIES.find(c => c.code === currency)?.symbol || '₱';
 
+    // Shared input class for consistency
+    const inputClass = "w-full px-3 py-2 bg-slate-800/60 border border-slate-600/50 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/50";
+    const labelClass = "block text-xs font-medium text-slate-400 mb-1.5";
+
     return (
-        <div className="space-y-4">
-            {/* Form Name */}
+        <div className="space-y-3">
+            {/* Form Name - Compact */}
             <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1.5">Form Name</label>
+                <label className={labelClass}>Form Name</label>
                 <input
                     type="text"
                     value={formName}
                     onChange={(e) => setFormName(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-slate-800/60 border border-slate-600/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                    className={inputClass}
+                    placeholder="Enter form name..."
                 />
             </div>
 
-            {/* Tabs */}
-            <div className="flex gap-1 p-1 bg-slate-800/60 rounded-xl overflow-x-auto">
+            {/* Tabs - Mobile Optimized */}
+            <div className="flex gap-1 p-1 bg-slate-800/60 rounded-xl">
                 {[
-                    { id: 'product', label: 'Product', icon: ShoppingCart },
-                    { id: 'fields', label: 'Fields', count: fields.length },
-                    { id: 'payment', label: 'Payment', icon: CreditCard },
-                    { id: 'settings', label: 'Settings' },
-                ].map((tab) => {
-                    const Icon = tab.icon;
-                    return (
-                        <button
-                            key={tab.id}
-                            onClick={() => setActiveTab(tab.id as any)}
-                            className={`flex-1 py-2 px-2 rounded-lg text-xs font-medium transition-all flex items-center justify-center gap-1.5 whitespace-nowrap ${activeTab === tab.id
-                                ? 'bg-purple-500 text-white shadow-lg'
-                                : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
-                                }`}
-                        >
-                            {Icon && <Icon className="w-3.5 h-3.5" />}
-                            {tab.label}
-                            {tab.count !== undefined && (
-                                <span className={`px-1.5 py-0.5 rounded text-[10px] ${activeTab === tab.id ? 'bg-purple-600' : 'bg-slate-700'}`}>
-                                    {tab.count}
-                                </span>
-                            )}
-                        </button>
-                    );
-                })}
+                    { id: 'product', label: '📦', fullLabel: 'Product' },
+                    { id: 'fields', label: '📝', fullLabel: `Fields (${fields.length})` },
+                    { id: 'payment', label: '💳', fullLabel: 'Payment' },
+                    { id: 'settings', label: '⚙️', fullLabel: 'Settings' },
+                ].map((tab) => (
+                    <button
+                        key={tab.id}
+                        onClick={() => setActiveTab(tab.id as any)}
+                        className={`flex-1 py-2 px-1.5 rounded-lg text-xs font-medium transition-all flex items-center justify-center gap-1 ${activeTab === tab.id
+                            ? 'bg-purple-500 text-white shadow-lg'
+                            : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
+                            }`}
+                    >
+                        <span className="text-sm">{tab.label}</span>
+                        <span className="hidden sm:inline truncate">{tab.fullLabel.split(' ')[0]}</span>
+                    </button>
+                ))}
             </div>
 
             {/* Product Tab */}
             {activeTab === 'product' && (
-                <div className="space-y-4">
+                <div className="space-y-3">
                     {/* Order Form Toggle */}
                     <div className="flex items-center justify-between p-3 bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/30 rounded-xl">
-                        <div className="flex items-center gap-2">
-                            <ShoppingCart className="w-5 h-5 text-purple-400" />
-                            <span className="text-sm font-medium text-white">Multi-Step Order Form</span>
+                        <div className="flex items-center gap-2 min-w-0">
+                            <ShoppingCart className="w-4 h-4 text-purple-400 flex-shrink-0" />
+                            <span className="text-xs sm:text-sm font-medium text-white truncate">Multi-Step Order</span>
                         </div>
-                        <label className="relative inline-flex items-center cursor-pointer">
+                        <label className="relative inline-flex items-center cursor-pointer flex-shrink-0">
                             <input type="checkbox" checked={isOrderForm} onChange={(e) => setIsOrderForm(e.target.checked)} className="sr-only peer" />
-                            <div className="w-11 h-6 bg-slate-700 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-500"></div>
+                            <div className="w-10 h-5 bg-slate-700 rounded-full peer peer-checked:after:translate-x-5 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-500"></div>
                         </label>
                     </div>
 
@@ -189,30 +186,29 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
                         <>
                             {/* Product Name */}
                             <div>
-                                <label className="block text-sm font-medium text-slate-300 mb-1.5">Product Name</label>
+                                <label className={labelClass}>Product Name</label>
                                 <input
                                     type="text"
                                     value={productName}
                                     onChange={(e) => setProductName(e.target.value)}
                                     placeholder="Enter product name..."
-                                    className="w-full px-4 py-2 bg-slate-800/60 border border-slate-600/50 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                                    className={inputClass}
                                 />
                             </div>
 
                             {/* Header Image */}
                             <div>
-                                <label className="block text-sm font-medium text-slate-300 mb-1.5">Product Image</label>
+                                <label className={labelClass}>Product Image</label>
                                 <div className="flex gap-2">
                                     <input
                                         type="text"
                                         value={headerImageUrl}
                                         onChange={(e) => setHeaderImageUrl(e.target.value)}
-                                        placeholder="https://... or upload"
-                                        className="flex-1 px-4 py-2 bg-slate-800/60 border border-slate-600/50 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                                        placeholder="Image URL..."
+                                        className={`${inputClass} flex-1 min-w-0`}
                                     />
-                                    <label className="px-3 py-2 bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/50 rounded-xl cursor-pointer flex items-center gap-1.5 transition">
+                                    <label className="px-3 py-2 bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/50 rounded-xl cursor-pointer flex items-center gap-1 transition flex-shrink-0">
                                         <Upload className="w-4 h-4 text-purple-400" />
-                                        <span className="text-purple-300 text-sm">Upload</span>
                                         <input
                                             type="file"
                                             accept="image/*"
@@ -220,15 +216,10 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
                                             onChange={(e) => {
                                                 const file = e.target.files?.[0];
                                                 if (file) {
-                                                    // Immediately show preview using FileReader
                                                     const reader = new FileReader();
-                                                    reader.onloadend = () => {
-                                                        const base64 = reader.result as string;
-                                                        setHeaderImageUrl(base64);
-                                                    };
+                                                    reader.onloadend = () => setHeaderImageUrl(reader.result as string);
                                                     reader.readAsDataURL(file);
                                                 }
-                                                // Reset the input so same file can be selected again
                                                 e.target.value = '';
                                             }}
                                         />
@@ -236,36 +227,36 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
                                 </div>
                                 {headerImageUrl && (
                                     <div className="mt-2 relative">
-                                        <img src={headerImageUrl} alt="" className="w-full h-28 object-cover rounded-xl border border-slate-700" />
+                                        <img src={headerImageUrl} alt="" className="w-full h-24 object-cover rounded-xl border border-slate-700" />
                                         <button
                                             type="button"
                                             onClick={() => setHeaderImageUrl('')}
-                                            className="absolute top-1 right-1 w-6 h-6 bg-red-500 hover:bg-red-600 rounded-full flex items-center justify-center text-white text-xs"
-                                        >×</button>
+                                            className="absolute top-1 right-1 w-6 h-6 bg-red-500 hover:bg-red-600 rounded-full flex items-center justify-center text-white"
+                                        ><X className="w-3 h-3" /></button>
                                     </div>
                                 )}
                             </div>
 
-                            {/* Price & Currency */}
-                            <div className="grid grid-cols-2 gap-3">
+                            {/* Price & Currency - Stack on mobile */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-300 mb-1.5">Price</label>
+                                    <label className={labelClass}>Price</label>
                                     <div className="flex">
-                                        <span className="px-3 py-2 bg-slate-700 border border-slate-600 rounded-l-xl text-white text-sm">{currencySymbol}</span>
+                                        <span className="px-2.5 py-2 bg-slate-700 border border-slate-600 rounded-l-xl text-white text-sm flex-shrink-0">{currencySymbol}</span>
                                         <input
                                             type="number"
                                             value={productPrice}
                                             onChange={(e) => setProductPrice(parseFloat(e.target.value) || 0)}
-                                            className="flex-1 px-3 py-2 bg-slate-800/60 border border-slate-600/50 rounded-r-xl text-white text-sm focus:outline-none"
+                                            className="flex-1 min-w-0 px-3 py-2 bg-slate-800/60 border border-slate-600/50 rounded-r-xl text-white text-sm focus:outline-none"
                                         />
                                     </div>
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-300 mb-1.5">Currency</label>
+                                    <label className={labelClass}>Currency</label>
                                     <select
                                         value={currency}
                                         onChange={(e) => setCurrency(e.target.value)}
-                                        className="w-full px-3 py-2 bg-slate-800/60 border border-slate-600/50 rounded-xl text-white text-sm focus:outline-none cursor-pointer"
+                                        className={inputClass}
                                     >
                                         {CURRENCIES.map(c => <option key={c.code} value={c.code}>{c.symbol} {c.code}</option>)}
                                     </select>
@@ -274,43 +265,43 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
 
                             {/* Max Quantity */}
                             <div>
-                                <label className="block text-sm font-medium text-slate-300 mb-1.5">Max Quantity</label>
+                                <label className={labelClass}>Max Quantity</label>
                                 <input
                                     type="number"
                                     min="1"
                                     max="100"
                                     value={maxQuantity}
                                     onChange={(e) => setMaxQuantity(parseInt(e.target.value) || 1)}
-                                    className="w-full px-4 py-2 bg-slate-800/60 border border-slate-600/50 rounded-xl text-white text-sm focus:outline-none"
+                                    className={inputClass}
                                 />
                             </div>
 
-                            {/* Coupon */}
-                            <div className="p-3 bg-slate-800/40 border border-slate-700/50 rounded-xl space-y-3">
+                            {/* Coupon - Compact */}
+                            <div className="p-3 bg-slate-800/40 border border-slate-700/50 rounded-xl space-y-2">
                                 <div className="flex items-center justify-between">
-                                    <span className="text-sm font-medium text-white">Enable Coupon Code</span>
+                                    <span className="text-xs font-medium text-white">Coupon Code</span>
                                     <label className="relative inline-flex items-center cursor-pointer">
                                         <input type="checkbox" checked={couponEnabled} onChange={(e) => setCouponEnabled(e.target.checked)} className="sr-only peer" />
-                                        <div className="w-9 h-5 bg-slate-700 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-green-500"></div>
+                                        <div className="w-9 h-5 bg-slate-700 rounded-full peer peer-checked:after:translate-x-4 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-green-500"></div>
                                     </label>
                                 </div>
                                 {couponEnabled && (
-                                    <div className="grid grid-cols-2 gap-2">
+                                    <div className="flex flex-col sm:flex-row gap-2">
                                         <input
                                             type="text"
                                             value={couponCode}
                                             onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
                                             placeholder="CODE"
-                                            className="px-3 py-2 bg-slate-900/50 border border-slate-600/50 rounded-lg text-white text-sm focus:outline-none uppercase"
+                                            className="flex-1 px-3 py-1.5 bg-slate-900/50 border border-slate-600/50 rounded-lg text-white text-xs uppercase"
                                         />
                                         <div className="flex items-center gap-1">
                                             <input
                                                 type="number"
                                                 value={couponDiscount}
                                                 onChange={(e) => setCouponDiscount(parseInt(e.target.value) || 0)}
-                                                className="w-16 px-2 py-2 bg-slate-900/50 border border-slate-600/50 rounded-lg text-white text-sm focus:outline-none text-center"
+                                                className="w-14 px-2 py-1.5 bg-slate-900/50 border border-slate-600/50 rounded-lg text-white text-xs text-center"
                                             />
-                                            <span className="text-slate-400 text-sm">% off</span>
+                                            <span className="text-slate-400 text-xs">% off</span>
                                         </div>
                                     </div>
                                 )}
@@ -323,24 +314,27 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
             {/* Fields Tab */}
             {activeTab === 'fields' && (
                 <div className="space-y-3">
-                    <p className="text-xs text-slate-500">Buyer information fields (Step 2)</p>
-                    <div className="grid grid-cols-4 gap-2">
+                    <p className="text-[10px] text-slate-500">Buyer info fields (Step 2)</p>
+
+                    {/* Field type buttons - 4 cols on mobile, wrap nicely */}
+                    <div className="grid grid-cols-4 gap-1.5">
                         {FIELD_TYPES.map((type) => {
                             const Icon = type.icon;
                             return (
                                 <button
                                     key={type.value}
                                     onClick={() => addField(type.value)}
-                                    className="flex flex-col items-center gap-1 p-2 bg-slate-800/40 hover:bg-purple-500/20 border border-slate-600/30 hover:border-purple-500/50 rounded-xl transition-all group"
+                                    className="flex flex-col items-center gap-0.5 p-1.5 bg-slate-800/40 hover:bg-purple-500/20 border border-slate-600/30 hover:border-purple-500/50 rounded-lg transition-all group"
                                 >
-                                    <Icon className="w-4 h-4 text-slate-400 group-hover:text-purple-400" />
-                                    <span className="text-[9px] text-slate-500 group-hover:text-purple-300">{type.label}</span>
+                                    <Icon className="w-3.5 h-3.5 text-slate-400 group-hover:text-purple-400" />
+                                    <span className="text-[8px] text-slate-500 group-hover:text-purple-300 truncate w-full text-center">{type.label}</span>
                                 </button>
                             );
                         })}
                     </div>
 
-                    <div className="space-y-2 max-h-[240px] overflow-y-auto pr-1">
+                    {/* Field list */}
+                    <div className="space-y-1.5 max-h-[200px] overflow-y-auto">
                         {fields.map((field, index) => {
                             const Icon = getFieldIcon(field.type);
                             return (
@@ -350,29 +344,29 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
                                     onDragStart={() => handleDragStart(index)}
                                     onDragOver={(e) => handleDragOver(e, index)}
                                     onDragEnd={handleDragEnd}
-                                    className={`bg-slate-800/40 border border-slate-600/30 rounded-xl p-2.5 transition-all ${draggedIndex === index ? 'opacity-50' : ''}`}
+                                    className={`bg-slate-800/40 border border-slate-600/30 rounded-lg p-2 transition-all ${draggedIndex === index ? 'opacity-50' : ''}`}
                                 >
-                                    <div className="flex items-center gap-2">
-                                        <GripVertical className="w-3.5 h-3.5 text-slate-600 cursor-grab" />
-                                        <div className="w-6 h-6 rounded-lg bg-purple-500/20 flex items-center justify-center">
-                                            <Icon className="w-3 h-3 text-purple-400" />
+                                    <div className="flex items-center gap-1.5">
+                                        <GripVertical className="w-3 h-3 text-slate-600 cursor-grab flex-shrink-0" />
+                                        <div className="w-5 h-5 rounded bg-purple-500/20 flex items-center justify-center flex-shrink-0">
+                                            <Icon className="w-2.5 h-2.5 text-purple-400" />
                                         </div>
                                         <input
                                             type="text"
                                             value={field.label}
                                             onChange={(e) => updateField(index, { label: e.target.value })}
-                                            className="flex-1 px-2 py-1 bg-transparent text-sm text-white focus:outline-none"
+                                            className="flex-1 min-w-0 px-1.5 py-0.5 bg-transparent text-xs text-white focus:outline-none truncate"
                                         />
-                                        <label className="flex items-center gap-1 cursor-pointer">
+                                        <label className="flex items-center gap-0.5 cursor-pointer flex-shrink-0">
                                             <input
                                                 type="checkbox"
                                                 checked={field.required}
                                                 onChange={(e) => updateField(index, { required: e.target.checked })}
                                                 className="w-3 h-3 rounded text-purple-500"
                                             />
-                                            <span className="text-[9px] text-slate-500">Req</span>
+                                            <span className="text-[8px] text-slate-500 hidden sm:inline">Req</span>
                                         </label>
-                                        <button onClick={() => removeField(index)} className="p-1 text-slate-500 hover:text-red-400">
+                                        <button onClick={() => removeField(index)} className="p-0.5 text-slate-500 hover:text-red-400 flex-shrink-0">
                                             <Trash2 className="w-3 h-3" />
                                         </button>
                                     </div>
@@ -385,65 +379,67 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
 
             {/* Payment Tab */}
             {activeTab === 'payment' && (
-                <div className="space-y-4">
-                    <p className="text-xs text-slate-500">Payment options (Step 3)</p>
+                <div className="space-y-3">
+                    <p className="text-[10px] text-slate-500">Payment options (Step 3)</p>
 
                     {/* COD */}
                     <div className="flex items-center justify-between p-3 bg-slate-800/40 border border-slate-700/50 rounded-xl">
                         <div className="flex items-center gap-2">
-                            <span className="text-lg">💵</span>
-                            <span className="text-sm font-medium text-white">Cash on Delivery</span>
+                            <span className="text-base">💵</span>
+                            <span className="text-xs sm:text-sm font-medium text-white">Cash on Delivery</span>
                         </div>
                         <label className="relative inline-flex items-center cursor-pointer">
                             <input type="checkbox" checked={codEnabled} onChange={(e) => setCodEnabled(e.target.checked)} className="sr-only peer" />
-                            <div className="w-9 h-5 bg-slate-700 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-green-500"></div>
+                            <div className="w-9 h-5 bg-slate-700 rounded-full peer peer-checked:after:translate-x-4 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-green-500"></div>
                         </label>
                     </div>
 
                     {/* E-Wallet */}
-                    <div className="p-3 bg-slate-800/40 border border-slate-700/50 rounded-xl space-y-3">
+                    <div className="p-3 bg-slate-800/40 border border-slate-700/50 rounded-xl space-y-2">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
-                                <Wallet className="w-5 h-5 text-blue-400" />
-                                <span className="text-sm font-medium text-white">E-Wallet</span>
+                                <Wallet className="w-4 h-4 text-blue-400" />
+                                <span className="text-xs sm:text-sm font-medium text-white">E-Wallet</span>
                             </div>
                             <label className="relative inline-flex items-center cursor-pointer">
                                 <input type="checkbox" checked={ewalletEnabled} onChange={(e) => setEwalletEnabled(e.target.checked)} className="sr-only peer" />
-                                <div className="w-9 h-5 bg-slate-700 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-green-500"></div>
+                                <div className="w-9 h-5 bg-slate-700 rounded-full peer peer-checked:after:translate-x-4 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-green-500"></div>
                             </label>
                         </div>
                         {ewalletEnabled && (
                             <div className="space-y-2">
                                 {ewalletOptions.map((wallet, i) => (
-                                    <div key={i} className="flex items-center gap-2">
-                                        <input
-                                            type="text"
-                                            value={wallet}
-                                            onChange={(e) => {
-                                                const newOptions = [...ewalletOptions];
-                                                newOptions[i] = e.target.value;
-                                                setEwalletOptions(newOptions);
-                                            }}
-                                            className="flex-1 px-3 py-1.5 bg-slate-900/50 border border-slate-600/50 rounded-lg text-white text-sm"
-                                            placeholder="Wallet name"
-                                        />
+                                    <div key={i} className="space-y-1.5">
+                                        <div className="flex items-center gap-1.5">
+                                            <input
+                                                type="text"
+                                                value={wallet}
+                                                onChange={(e) => {
+                                                    const newOptions = [...ewalletOptions];
+                                                    newOptions[i] = e.target.value;
+                                                    setEwalletOptions(newOptions);
+                                                }}
+                                                className="flex-1 min-w-0 px-2 py-1.5 bg-slate-900/50 border border-slate-600/50 rounded-lg text-white text-xs"
+                                                placeholder="Wallet name"
+                                            />
+                                            <button onClick={() => setEwalletOptions(ewalletOptions.filter((_, idx) => idx !== i))} className="text-red-400 p-1 flex-shrink-0">
+                                                <Trash2 className="w-3.5 h-3.5" />
+                                            </button>
+                                        </div>
                                         <input
                                             type="text"
                                             value={ewalletNumbers[wallet] || ''}
                                             onChange={(e) => setEwalletNumbers({ ...ewalletNumbers, [wallet]: e.target.value })}
-                                            className="flex-1 px-3 py-1.5 bg-slate-900/50 border border-slate-600/50 rounded-lg text-white text-sm"
+                                            className="w-full px-2 py-1.5 bg-slate-900/50 border border-slate-600/50 rounded-lg text-white text-xs"
                                             placeholder="Account number"
                                         />
-                                        <button onClick={() => setEwalletOptions(ewalletOptions.filter((_, idx) => idx !== i))} className="text-red-400">
-                                            <Trash2 className="w-4 h-4" />
-                                        </button>
                                     </div>
                                 ))}
                                 <button
                                     onClick={() => setEwalletOptions([...ewalletOptions, ''])}
-                                    className="w-full py-2 text-xs text-purple-400 border border-dashed border-slate-600 rounded-lg hover:bg-purple-500/10"
+                                    className="w-full py-1.5 text-[10px] text-purple-400 border border-dashed border-slate-600 rounded-lg hover:bg-purple-500/10"
                                 >
-                                    + Add E-Wallet Option
+                                    + Add E-Wallet
                                 </button>
                             </div>
                         )}
@@ -451,16 +447,16 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
 
                     {/* Proof Upload */}
                     <div className="flex items-center justify-between p-3 bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/30 rounded-xl">
-                        <div className="flex items-center gap-2">
-                            <Upload className="w-5 h-5 text-amber-400" />
-                            <div>
-                                <span className="text-sm font-medium text-white block">Require Payment Proof</span>
-                                <span className="text-[10px] text-slate-400">Screenshot/photo of payment</span>
+                        <div className="flex items-center gap-2 min-w-0">
+                            <Upload className="w-4 h-4 text-amber-400 flex-shrink-0" />
+                            <div className="min-w-0">
+                                <span className="text-xs font-medium text-white block truncate">Payment Proof</span>
+                                <span className="text-[9px] text-slate-400 hidden sm:block">Screenshot upload</span>
                             </div>
                         </div>
-                        <label className="relative inline-flex items-center cursor-pointer">
+                        <label className="relative inline-flex items-center cursor-pointer flex-shrink-0">
                             <input type="checkbox" checked={requireProofUpload} onChange={(e) => setRequireProofUpload(e.target.checked)} className="sr-only peer" />
-                            <div className="w-9 h-5 bg-slate-700 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-500"></div>
+                            <div className="w-9 h-5 bg-slate-700 rounded-full peer peer-checked:after:translate-x-4 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-500"></div>
                         </label>
                     </div>
                 </div>
@@ -468,30 +464,30 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
 
             {/* Settings Tab */}
             {activeTab === 'settings' && (
-                <div className="space-y-4">
+                <div className="space-y-3">
                     {/* Timer */}
                     <div className="p-3 bg-gradient-to-r from-orange-500/10 to-red-500/10 border border-orange-500/30 rounded-xl">
                         <div className="flex items-center justify-between mb-2">
                             <div className="flex items-center gap-2">
-                                <Timer className="w-5 h-5 text-orange-400" />
-                                <span className="text-sm font-medium text-white">Countdown Timer</span>
+                                <Timer className="w-4 h-4 text-orange-400" />
+                                <span className="text-xs font-medium text-white">Countdown Timer</span>
                             </div>
                             <label className="relative inline-flex items-center cursor-pointer">
                                 <input type="checkbox" checked={countdownEnabled} onChange={(e) => setCountdownEnabled(e.target.checked)} className="sr-only peer" />
-                                <div className="w-9 h-5 bg-slate-700 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-orange-500"></div>
+                                <div className="w-9 h-5 bg-slate-700 rounded-full peer peer-checked:after:translate-x-4 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-orange-500"></div>
                             </label>
                         </div>
                         {countdownEnabled && (
                             <div className="space-y-2">
                                 <div className="flex items-center gap-2">
                                     <input type="number" min="1" max="60" value={countdownMinutes} onChange={(e) => setCountdownMinutes(parseInt(e.target.value) || 1)}
-                                        className="w-16 px-2 py-1.5 bg-slate-800/80 border border-orange-500/30 rounded-lg text-white text-center text-sm" />
-                                    <span className="text-xs text-slate-400">minutes</span>
+                                        className="w-14 px-2 py-1 bg-slate-800/80 border border-orange-500/30 rounded-lg text-white text-center text-xs" />
+                                    <span className="text-[10px] text-slate-400">minutes</span>
                                 </div>
                                 <label className="flex items-center gap-2 cursor-pointer">
                                     <input type="checkbox" checked={countdownBlink} onChange={(e) => setCountdownBlink(e.target.checked)}
-                                        className="w-4 h-4 rounded text-orange-500 bg-slate-700 border-slate-600" />
-                                    <span className="text-xs text-slate-300">Blink timer to catch attention</span>
+                                        className="w-3.5 h-3.5 rounded text-orange-500 bg-slate-700 border-slate-600" />
+                                    <span className="text-[10px] text-slate-300">Blink timer</span>
                                 </label>
                             </div>
                         )}
@@ -499,34 +495,34 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
 
                     {/* Template Style */}
                     <div>
-                        <label className="block text-sm font-medium text-slate-300 mb-1.5">Form Template</label>
+                        <label className={labelClass}>Form Template</label>
                         <div className="grid grid-cols-2 gap-2">
                             <button onClick={() => setFormTemplate('modern')}
-                                className={`p-3 rounded-xl border-2 text-center transition ${formTemplate === 'modern' ? 'border-purple-500 bg-purple-500/10' : 'border-slate-600/50 hover:border-slate-500'}`}>
-                                <span className="text-lg">✨</span>
-                                <p className="text-white text-sm font-medium">Modern</p>
-                                <p className="text-slate-500 text-[10px]">Dark, animated</p>
+                                className={`p-2.5 rounded-xl border-2 text-center transition ${formTemplate === 'modern' ? 'border-purple-500 bg-purple-500/10' : 'border-slate-600/50 hover:border-slate-500'}`}>
+                                <span className="text-base">✨</span>
+                                <p className="text-white text-xs font-medium">Modern</p>
+                                <p className="text-slate-500 text-[9px]">Dark theme</p>
                             </button>
                             <button onClick={() => setFormTemplate('minimal')}
-                                className={`p-3 rounded-xl border-2 text-center transition ${formTemplate === 'minimal' ? 'border-purple-500 bg-purple-500/10' : 'border-slate-600/50 hover:border-slate-500'}`}>
-                                <span className="text-lg">📝</span>
-                                <p className="text-white text-sm font-medium">Minimal</p>
-                                <p className="text-slate-500 text-[10px]">Light, simple</p>
+                                className={`p-2.5 rounded-xl border-2 text-center transition ${formTemplate === 'minimal' ? 'border-purple-500 bg-purple-500/10' : 'border-slate-600/50 hover:border-slate-500'}`}>
+                                <span className="text-base">📝</span>
+                                <p className="text-white text-xs font-medium">Minimal</p>
+                                <p className="text-slate-500 text-[9px]">Light theme</p>
                             </button>
                         </div>
                     </div>
 
-                    {/* Button Style */}
-                    <div className="grid grid-cols-2 gap-3">
+                    {/* Button Style - Stack on mobile */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         <div>
-                            <label className="block text-sm font-medium text-slate-300 mb-1.5">Button Text</label>
+                            <label className={labelClass}>Button Text</label>
                             <input type="text" value={submitButtonText} onChange={(e) => setSubmitButtonText(e.target.value)}
-                                className="w-full px-3 py-2 bg-slate-800/60 border border-slate-600/50 rounded-xl text-white text-sm focus:outline-none" />
+                                className={inputClass} />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-slate-300 mb-1.5">Corner Style</label>
+                            <label className={labelClass}>Corner Style</label>
                             <select value={borderRadius} onChange={(e) => setBorderRadius(e.target.value as any)}
-                                className="w-full px-3 py-2 bg-slate-800/60 border border-slate-600/50 rounded-xl text-white text-sm cursor-pointer">
+                                className={inputClass}>
                                 <option value="normal">Normal</option>
                                 <option value="rounded">Rounded</option>
                                 <option value="round">Round</option>
@@ -535,39 +531,41 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
                         </div>
                     </div>
 
+                    {/* Button Color - More compact grid */}
                     <div>
-                        <label className="block text-sm font-medium text-slate-300 mb-1.5">Button Color</label>
-                        <div className="grid grid-cols-8 gap-1.5">
+                        <label className={labelClass}>Button Color</label>
+                        <div className="grid grid-cols-8 gap-1">
                             {COLOR_PRESETS.map((color) => (
                                 <button key={color} onClick={() => setSubmitButtonColor(color)}
-                                    className={`w-full aspect-square rounded-lg transition-transform hover:scale-110 ${submitButtonColor === color ? 'ring-2 ring-white ring-offset-2 ring-offset-slate-900' : ''}`}
+                                    className={`w-full aspect-square rounded-lg transition-transform hover:scale-110 ${submitButtonColor === color ? 'ring-2 ring-white ring-offset-1 ring-offset-slate-900' : ''}`}
                                     style={{ backgroundColor: color }} />
                             ))}
                         </div>
                     </div>
 
+                    {/* Success Message */}
                     <div>
-                        <label className="block text-sm font-medium text-slate-300 mb-1.5">Success Message</label>
+                        <label className={labelClass}>Success Message</label>
                         <textarea value={successMessage} onChange={(e) => setSuccessMessage(e.target.value)} rows={2}
-                            className="w-full px-3 py-2 bg-slate-800/60 border border-slate-600/50 rounded-xl text-white text-sm resize-none focus:outline-none" />
+                            className={`${inputClass} resize-none`} />
                     </div>
 
-                    {/* Google Sheets Integration */}
-                    <div className="border-t border-slate-700 pt-4 mt-4">
-                        <div className="flex items-center gap-2 mb-3">
-                            <div className="p-1.5 bg-green-500/20 rounded-lg">
-                                <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none">
+                    {/* Google Sheets Integration - More compact */}
+                    <div className="border-t border-slate-700 pt-3">
+                        <div className="flex items-center gap-2 mb-2">
+                            <div className="w-5 h-5 bg-green-500/20 rounded flex items-center justify-center">
+                                <svg viewBox="0 0 24 24" className="w-3 h-3" fill="none">
                                     <rect x="3" y="3" width="18" height="18" rx="2" className="fill-green-500" />
                                     <rect x="6" y="7" width="12" height="2" rx="0.5" className="fill-white" />
                                     <rect x="6" y="11" width="12" height="2" rx="0.5" className="fill-white" />
                                 </svg>
                             </div>
-                            <span className="text-green-400 font-medium text-sm">Google Sheets Sync</span>
+                            <span className="text-green-400 font-medium text-xs">Google Sheets</span>
                         </div>
 
-                        <div className="space-y-3">
+                        <div className="space-y-2">
                             <div>
-                                <label className="block text-xs text-slate-400 mb-1">Spreadsheet ID or URL</label>
+                                <label className="block text-[10px] text-slate-500 mb-1">Spreadsheet ID/URL</label>
                                 <input
                                     type="text"
                                     value={googleSheetId}
@@ -576,43 +574,39 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
                                         const match = val.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
                                         setGoogleSheetId(match ? match[1] : val);
                                     }}
-                                    placeholder="Paste Google Sheet URL or ID..."
-                                    className="w-full px-3 py-2 bg-slate-800/60 border border-slate-600/50 rounded-xl text-white text-sm focus:outline-none focus:border-green-500/50"
+                                    placeholder="Paste URL or ID..."
+                                    className={inputClass}
                                 />
                             </div>
                             <div>
-                                <label className="block text-xs text-slate-400 mb-1">Sheet Tab Name</label>
+                                <label className="block text-[10px] text-slate-500 mb-1">Sheet Tab</label>
                                 <input
                                     type="text"
                                     value={googleSheetName}
                                     onChange={(e) => setGoogleSheetName(e.target.value)}
                                     placeholder="Sheet1"
-                                    className="w-full px-3 py-2 bg-slate-800/60 border border-slate-600/50 rounded-xl text-white text-sm focus:outline-none"
+                                    className={inputClass}
                                 />
                             </div>
                             <div>
-                                <label className="block text-xs text-slate-400 mb-1">Apps Script Webhook URL</label>
+                                <label className="block text-[10px] text-slate-500 mb-1">Webhook URL</label>
                                 <input
                                     type="text"
                                     value={googleWebhookUrl}
                                     onChange={(e) => setGoogleWebhookUrl(e.target.value)}
-                                    placeholder="https://script.google.com/macros/s/.../exec"
-                                    className="w-full px-3 py-2 bg-slate-800/60 border border-slate-600/50 rounded-xl text-white text-sm focus:outline-none focus:border-green-500/50"
+                                    placeholder="https://script.google.com/..."
+                                    className={inputClass}
                                 />
-                                <p className="text-slate-500 text-[10px] mt-1">Create in Google Sheet → Extensions → Apps Script → Deploy</p>
                             </div>
                             {googleSheetId && googleWebhookUrl && (
                                 <div className="p-2 bg-green-500/10 border border-green-500/30 rounded-lg">
-                                    <p className="text-green-400 text-xs">✓ Google Sheets sync is fully configured!</p>
+                                    <p className="text-green-400 text-[10px]">✓ Sheets sync configured!</p>
                                 </div>
                             )}
                             {googleSheetId && !googleWebhookUrl && (
                                 <div className="p-2 bg-orange-500/10 border border-orange-500/30 rounded-lg">
-                                    <p className="text-orange-400 text-xs">⚠ Add webhook URL to enable sync</p>
+                                    <p className="text-orange-400 text-[10px]">⚠ Add webhook URL</p>
                                 </div>
-                            )}
-                            {!googleSheetId && (
-                                <p className="text-slate-500 text-xs">Paste Google Sheet URL to enable sync</p>
                             )}
                         </div>
                     </div>
