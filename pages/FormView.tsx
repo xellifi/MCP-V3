@@ -308,7 +308,7 @@ const FormView: React.FC = () => {
                         {/* Header Image */}
                         {form?.header_image_url && (
                             <div className={`relative h-48 ${isMinimal ? 'bg-gray-100' : 'bg-gradient-to-br from-purple-900/50 to-pink-900/50'} overflow-hidden`} style={{ borderRadius: `${getBorderRadius()} ${getBorderRadius()} 0 0` }}>
-                                <img src={form.header_image_url} alt="" className="w-full h-full object-contain p-4" />
+                                <img src={form.header_image_url} alt="" className="w-full h-full object-contain p-4" style={{ borderRadius: '10px' }} />
                             </div>
                         )}
 
