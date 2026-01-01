@@ -673,18 +673,16 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
         }
       }
 
-      // Auto-save configurations to database so flows list shows correct page
+      // Auto-save configurations to database in background (non-blocking for instant UI response)
       if (id && !id.startsWith('new')) {
         const updatedConfigs = {
           ...nodeConfigs,
           [selectedNode.id]: configToSave
         };
-        try {
-          await api.workspace.updateFlow(id, { configurations: updatedConfigs });
-          console.log('[FlowBuilder.handleSaveConfig] ✓ Configurations auto-saved to database');
-        } catch (error) {
-          console.error('[FlowBuilder.handleSaveConfig] ✗ Failed to auto-save:', error);
-        }
+        // Fire-and-forget - don't block UI while saving
+        api.workspace.updateFlow(id, { configurations: updatedConfigs })
+          .then(() => console.log('[FlowBuilder.handleSaveConfig] ✓ Configurations auto-saved to database'))
+          .catch((error) => console.error('[FlowBuilder.handleSaveConfig] ✗ Failed to auto-save:', error));
       }
 
       toast.success(`Configuration saved for ${selectedNode.data.label}`);
