@@ -41,25 +41,32 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             return res.status(400).json({ error: 'Missing subscriberId' });
         }
 
-        // Check if this subscriber already has an open record for this form
-        // within the last 24 hours (avoid duplicate entries)
+        // Only deduplicate if same subscriber opened this form within last 5 minutes
+        // and hasn't submitted yet. This allows re-orders to be tracked separately.
+        const DEDUP_MINUTES = 5;
         const { data: existing } = await supabase
             .from('form_opens')
-            .select('id, submitted_at')
+            .select('id, submitted_at, opened_at')
             .eq('form_id', formId || '')
             .eq('subscriber_id', subscriberId)
-            .gte('opened_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
+            .is('submitted_at', null) // Only check unsubmitted forms
+            .gte('opened_at', new Date(Date.now() - DEDUP_MINUTES * 60 * 1000).toISOString())
             .order('opened_at', { ascending: false })
             .limit(1)
             .maybeSingle();
 
         if (existing) {
-            console.log('[Log Form Open] Already tracked, ID:', existing.id);
+            // Recent unsubmitted open exists - just update the timestamp
+            console.log('[Log Form Open] Recent open exists, updating:', existing.id);
+            await supabase
+                .from('form_opens')
+                .update({ opened_at: new Date().toISOString() })
+                .eq('id', existing.id);
+
             return res.status(200).json({
                 success: true,
-                message: 'Already tracked',
-                formOpenId: existing.id,
-                alreadySubmitted: !!existing.submitted_at
+                message: 'Updated existing open',
+                formOpenId: existing.id
             });
         }
 

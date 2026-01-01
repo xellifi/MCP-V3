@@ -175,6 +175,48 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
                         </label>
                     </div>
 
+                    {/* Header Image - Always Available */}
+                    <div>
+                        <label className={labelClass}>Form Header Image</label>
+                        <div className="flex gap-2">
+                            <input
+                                type="text"
+                                value={headerImageUrl}
+                                onChange={(e) => setHeaderImageUrl(e.target.value)}
+                                placeholder="Image URL..."
+                                className={`${inputClass} flex-1 min-w-0`}
+                            />
+                            <label className="px-3 py-2 bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/50 rounded-xl cursor-pointer flex items-center gap-1 transition flex-shrink-0">
+                                <Upload className="w-4 h-4 text-purple-400" />
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    className="hidden"
+                                    onChange={(e) => {
+                                        const file = e.target.files?.[0];
+                                        if (file) {
+                                            const reader = new FileReader();
+                                            reader.onloadend = () => setHeaderImageUrl(reader.result as string);
+                                            reader.readAsDataURL(file);
+                                        }
+                                        e.target.value = '';
+                                    }}
+                                />
+                            </label>
+                        </div>
+                        {headerImageUrl && (
+                            <div className="mt-2 relative">
+                                <img src={headerImageUrl} alt="" className="w-full h-24 object-cover rounded-xl border border-slate-700" />
+                                <button
+                                    type="button"
+                                    onClick={() => setHeaderImageUrl('')}
+                                    className="absolute top-1 right-1 w-6 h-6 bg-red-500 hover:bg-red-600 rounded-full flex items-center justify-center text-white"
+                                ><X className="w-3 h-3" /></button>
+                            </div>
+                        )}
+                        <p className="text-[9px] text-slate-500 mt-1">Shows at the top of your form</p>
+                    </div>
+
                     {isOrderForm && (
                         <>
                             {/* Product Name */}
@@ -187,47 +229,6 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
                                     placeholder="Enter product name..."
                                     className={inputClass}
                                 />
-                            </div>
-
-                            {/* Header Image */}
-                            <div>
-                                <label className={labelClass}>Product Image</label>
-                                <div className="flex gap-2">
-                                    <input
-                                        type="text"
-                                        value={headerImageUrl}
-                                        onChange={(e) => setHeaderImageUrl(e.target.value)}
-                                        placeholder="Image URL..."
-                                        className={`${inputClass} flex-1 min-w-0`}
-                                    />
-                                    <label className="px-3 py-2 bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/50 rounded-xl cursor-pointer flex items-center gap-1 transition flex-shrink-0">
-                                        <Upload className="w-4 h-4 text-purple-400" />
-                                        <input
-                                            type="file"
-                                            accept="image/*"
-                                            className="hidden"
-                                            onChange={(e) => {
-                                                const file = e.target.files?.[0];
-                                                if (file) {
-                                                    const reader = new FileReader();
-                                                    reader.onloadend = () => setHeaderImageUrl(reader.result as string);
-                                                    reader.readAsDataURL(file);
-                                                }
-                                                e.target.value = '';
-                                            }}
-                                        />
-                                    </label>
-                                </div>
-                                {headerImageUrl && (
-                                    <div className="mt-2 relative">
-                                        <img src={headerImageUrl} alt="" className="w-full h-24 object-cover rounded-xl border border-slate-700" />
-                                        <button
-                                            type="button"
-                                            onClick={() => setHeaderImageUrl('')}
-                                            className="absolute top-1 right-1 w-6 h-6 bg-red-500 hover:bg-red-600 rounded-full flex items-center justify-center text-white"
-                                        ><X className="w-3 h-3" /></button>
-                                    </div>
-                                )}
                             </div>
 
                             {/* Price & Currency - Stack on mobile */}

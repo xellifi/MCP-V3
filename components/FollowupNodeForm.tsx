@@ -10,6 +10,11 @@ interface ScheduledFollowup {
     messageTag: string;
     message: string;
     enabled: boolean;
+    // Button for call-to-action
+    buttonEnabled: boolean;
+    buttonText: string;
+    buttonType: 'form' | 'url';
+    buttonUrl: string;
 }
 
 interface FollowupNodeFormProps {
@@ -74,6 +79,10 @@ const FollowupNodeForm: React.FC<FollowupNodeFormProps> = ({ config, onChange })
             messageTag: '',
             message: '',
             enabled: true,
+            buttonEnabled: true,
+            buttonText: 'Complete Order 🛒',
+            buttonType: 'form',
+            buttonUrl: '',
         };
         const updated = [...scheduledFollowups, newFollowup];
         onChange({ ...config, scheduledFollowups: updated });
@@ -353,6 +362,37 @@ const FollowupNodeForm: React.FC<FollowupNodeFormProps> = ({ config, onChange })
                                                 <p className="text-xs text-slate-500 mt-1">
                                                     Variables: {'{commenter_name}'}, {'{followup_number}'}
                                                 </p>
+                                            </div>
+
+                                            {/* Button CTA */}
+                                            <div className="p-3 bg-slate-800/40 border border-slate-600/30 rounded-lg space-y-3">
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-xs font-medium text-white">🔗 Add Button</span>
+                                                    <label className="relative inline-flex items-center cursor-pointer">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={followup.buttonEnabled ?? true}
+                                                            onChange={(e) => handleUpdateFollowup(followup.id, 'buttonEnabled', e.target.checked)}
+                                                            className="sr-only peer"
+                                                        />
+                                                        <div className="w-9 h-5 bg-slate-700 rounded-full peer peer-checked:after:translate-x-4 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-rose-500"></div>
+                                                    </label>
+                                                </div>
+
+                                                {(followup.buttonEnabled ?? true) && (
+                                                    <div className="space-y-2">
+                                                        <input
+                                                            type="text"
+                                                            value={followup.buttonText || 'Complete Order 🛒'}
+                                                            onChange={(e) => handleUpdateFollowup(followup.id, 'buttonText', e.target.value)}
+                                                            placeholder="Button text..."
+                                                            className="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-rose-500/50"
+                                                        />
+                                                        <p className="text-[10px] text-slate-500">
+                                                            Button opens the form so they can complete their order
+                                                        </p>
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                     )}

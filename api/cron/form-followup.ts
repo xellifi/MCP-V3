@@ -16,6 +16,10 @@ interface ScheduledFollowup {
     messageTag: string;
     message: string;
     enabled: boolean;
+    buttonEnabled?: boolean;
+    buttonText?: string;
+    buttonType?: 'form' | 'url';
+    buttonUrl?: string;
 }
 
 /**
@@ -170,12 +174,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     continue;
                 }
 
+                // Build form URL for button
+                let buttonUrl = '';
+                if (followup.buttonEnabled !== false && formOpen.flow_id) {
+                    // Construct the form URL based on the flow and form node
+                    const baseUrl = process.env.VITE_APP_URL || 'https://your-app.vercel.app';
+                    buttonUrl = `${baseUrl}/form/${formOpen.flow_id}?psid=${formOpen.subscriber_id}&name=${encodeURIComponent(formOpen.subscriber_name || '')}`;
+                }
+
                 // Send the message
                 const success = await sendMessage(
                     formOpen.subscriber_id,
                     message,
                     page.page_access_token,
-                    isOutside24hr ? followup.messageTag : undefined
+                    isOutside24hr ? followup.messageTag : undefined,
+                    followup.buttonEnabled !== false ? {
+                        text: followup.buttonText || 'Complete Order 🛒',
+                        url: buttonUrl
+                    } : undefined
                 );
 
                 if (success) {
@@ -211,19 +227,45 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 }
 
-// Send message via Messenger with optional Message Tag
+// Send message via Messenger with optional Message Tag and Button
 async function sendMessage(
     userId: string,
     text: string,
     pageAccessToken: string,
-    messageTag?: string
+    messageTag?: string,
+    button?: { text: string; url: string }
 ): Promise<boolean> {
-    console.log('[Form Followup Cron] Sending to:', userId, 'Tag:', messageTag || 'none');
+    console.log('[Form Followup Cron] Sending to:', userId, 'Tag:', messageTag || 'none', 'Button:', button ? 'yes' : 'no');
 
     try {
+        // Build message payload
+        let messagePayload: any = { text };
+
+        // Add button if provided and URL is valid
+        if (button && button.url && button.url.includes('http')) {
+            messagePayload = {
+                attachment: {
+                    type: 'template',
+                    payload: {
+                        template_type: 'button',
+                        text: text,
+                        buttons: [
+                            {
+                                type: 'web_url',
+                                url: button.url,
+                                title: button.text,
+                                webview_height_ratio: 'full'
+                            }
+                        ]
+                    }
+                }
+            };
+            console.log('[Form Followup Cron] Using button template with URL:', button.url);
+        }
+
         const body: any = {
             recipient: { id: userId },
-            message: { text },
+            message: messagePayload,
             access_token: pageAccessToken
         };
 
