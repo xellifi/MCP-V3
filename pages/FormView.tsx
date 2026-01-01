@@ -419,7 +419,7 @@ const FormView: React.FC = () => {
 
             <div className="relative min-h-screen flex items-center justify-center p-4 py-6">
                 {/* Two-column for minimal on desktop when image exists */}
-                <div className={`w-full ${isMinimal && form?.header_image_url ? 'max-w-4xl' : 'max-w-md'}`}>
+                <div className={`w-full ${isMinimal && form?.header_image_url ? 'max-w-5xl' : 'max-w-md'}`}>
                     {/* Timer */}
                     {form?.countdown_enabled && timeLeft > 0 && (
                         <div
@@ -452,7 +452,7 @@ const FormView: React.FC = () => {
                         {/* Image Section - Left column on lg for minimal */}
                         {form?.header_image_url && (
                             <div
-                                className={`relative ${isMinimal ? 'lg:w-1/2 lg:min-h-[400px]' : 'h-52'} overflow-hidden flex items-center justify-center`}
+                                className={`relative ${isMinimal ? 'lg:w-1/2 lg:min-h-[450px]' : 'h-52'} overflow-hidden flex items-center justify-center`}
                                 style={{
                                     padding: '15px',
                                     backgroundColor: isMinimal ? '#f8fafc' : undefined,
@@ -466,10 +466,9 @@ const FormView: React.FC = () => {
                                 <img
                                     src={form.header_image_url}
                                     alt=""
-                                    className={`w-full h-full object-cover ${isMinimal ? 'rounded-xl shadow-lg' : 'rounded-xl'}`}
+                                    className={`w-full h-full ${isMinimal ? 'rounded-xl shadow-lg object-contain' : 'rounded-xl object-contain'}`}
                                     style={{
-                                        maxHeight: isMinimal ? 'none' : '180px',
-                                        objectFit: isMinimal ? 'cover' : 'contain'
+                                        maxHeight: isMinimal ? 'none' : '180px'
                                     }}
                                 />
                             </div>
