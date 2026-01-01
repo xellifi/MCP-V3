@@ -18,7 +18,7 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Workspace, ConnectedPage } from '../types';
-import { Save, ArrowLeft, PlayCircle, Menu, X, Grid3x3, MessageCircle, Play, Bot, Send, Clock, MousePointer2, SquareMousePointer, Sparkles, GitBranch, MessageSquare, RectangleEllipsis, Plus, Minus, Maximize, Wrench, RotateCcw, Image, Video, FileText, Table } from 'lucide-react';
+import { Save, ArrowLeft, PlayCircle, Menu, X, Grid3x3, MessageCircle, Play, Bot, Send, Clock, MousePointer2, SquareMousePointer, Sparkles, GitBranch, MessageSquare, RectangleEllipsis, Plus, Minus, Maximize, Wrench, RotateCcw, Image, Video, FileText, Table, RefreshCw } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import NodeConfigModal from '../components/NodeConfigModal';
 import TriggerNodeForm from '../components/TriggerNodeForm';
@@ -34,6 +34,7 @@ import ButtonsOnlyNodeForm from '../components/ButtonsOnlyNodeForm';
 import StartNodeForm from '../components/StartNodeForm';
 import NewFlowNodeForm from '../components/NewFlowNodeForm';
 import ConditionNodeForm from '../components/ConditionNodeForm';
+import FollowupNodeForm from '../components/FollowupNodeForm';
 import CustomEdge from '../components/edges/CustomEdge';
 import CustomTriggerNode from '../components/nodes/CustomTriggerNode';
 import CustomActionNode from '../components/nodes/CustomActionNode';
@@ -47,6 +48,7 @@ import CustomImageNode from '../components/nodes/CustomImageNode';
 import CustomVideoNode from '../components/nodes/CustomVideoNode';
 import CustomFormNode from '../components/nodes/CustomFormNode';
 import CustomGoogleSheetNode from '../components/nodes/CustomGoogleSheetNode';
+import CustomFollowupNode from '../components/nodes/CustomFollowupNode';
 import { api } from '../services/api';
 import { supabase } from '../lib/supabase';
 // Import node configuration registry
@@ -76,6 +78,7 @@ const nodeTypes: NodeTypes = {
   videoNode: CustomVideoNode,
   formNode: CustomFormNode,
   sheetsNode: CustomGoogleSheetNode,
+  followupNode: CustomFollowupNode,
 };
 
 // Define custom edge types
@@ -1472,6 +1475,16 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
       );
     }
 
+    // Follow-up Node (Abandoned Form Recovery)
+    if (nodeType === 'followupNode' || label.toLowerCase().includes('follow')) {
+      return (
+        <FollowupNodeForm
+          config={currentConfig}
+          onChange={handleConfigChange}
+        />
+      );
+    }
+
     // Start Node
     if (nodeType === 'startNode' || label.toLowerCase().includes('start')) {
       // Check if this is a "New Flow" node (sub-flow start point)
@@ -1849,6 +1862,17 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
           >
             <Table className="w-6 h-6" />
             <span className="absolute left-14 bg-black/80 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Sheets</span>
+          </div>
+
+          <div
+            draggable
+            onDragStart={(e) => onDragStart(e, 'followupNode', 'Follow-up')}
+            onClick={() => addNode('followupNode', 'Follow-up')}
+            className="w-12 h-12 bg-rose-500/20 hover:bg-rose-500/40 border border-rose-500/30 rounded-xl flex items-center justify-center text-rose-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing group relative"
+            title="Follow-up"
+          >
+            <RefreshCw className="w-6 h-6" />
+            <span className="absolute left-14 bg-black/80 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Follow-up</span>
           </div>
         </div>
       </div>
