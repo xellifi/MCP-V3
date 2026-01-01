@@ -443,16 +443,16 @@ const FormView: React.FC = () => {
                         {/* Header Row - Promo (left) and Product Name (right) aligned */}
                         {form?.header_image_url && (
                             <div className="lg:flex lg:flex-row">
-                                {/* Promo Banner - Left side (blinking) */}
-                                <div className={`lg:w-1/2 py-3 px-4 ${isMinimal ? 'bg-gradient-to-r from-rose-500 to-red-500' : 'bg-gradient-to-r from-rose-500 to-red-500'} ${form?.countdown_blink ? 'blink-animation' : ''}`}>
+                                {/* Promo Banner - Left side (coral/salmon gradient, blinking) */}
+                                <div className={`lg:w-1/2 py-3 px-4 bg-gradient-to-r from-red-400 via-rose-400 to-pink-300 ${form?.countdown_blink ? 'blink-animation' : ''}`}>
                                     <div className="flex items-center justify-center gap-2">
                                         <span className="text-lg">🔥</span>
-                                        <span className="text-white text-base font-bold">Promo Only!</span>
+                                        <span className="text-white text-base font-bold drop-shadow">Promo Only!</span>
                                         <span className="text-lg">🔥</span>
                                     </div>
                                 </div>
-                                {/* Product Name Header - Right side */}
-                                <div className={`lg:w-1/2 py-3 px-4 ${isMinimal ? 'bg-indigo-600' : 'bg-indigo-600'}`}>
+                                {/* Product Name Header - Right side (indigo/blue) */}
+                                <div className="lg:w-1/2 py-3 px-4 bg-indigo-600">
                                     <h1 className="text-lg font-bold text-white text-center uppercase tracking-wide">
                                         {isOrderForm && form?.product_name ? form.product_name : (form?.name || 'Order Form')}
                                     </h1>
@@ -462,30 +462,28 @@ const FormView: React.FC = () => {
 
                         {/* Content Row - Image (left) and Form (right) */}
                         <div className={`${form?.header_image_url ? 'lg:flex lg:flex-row' : ''}`}>
-                            {/* Image Section - Left column on lg */}
+                            {/* Image Section - Left column on lg (light pink background) */}
                             {form?.header_image_url && (
                                 <div
-                                    className={`relative lg:w-1/2 flex flex-col`}
-                                    style={{
-                                        backgroundColor: isMinimal ? '#fef2f2' : '#0a0a12'
-                                    }}
+                                    className="relative lg:w-1/2 flex flex-col"
+                                    style={{ backgroundColor: '#fce4ec' }}
                                 >
                                     {/* Image - fills available space */}
-                                    <div className="flex-1 flex items-center justify-center p-3">
+                                    <div className="flex-1 flex items-center justify-center p-4">
                                         <img
                                             src={form.header_image_url}
                                             alt=""
-                                            className="w-full h-full object-contain max-h-[260px]"
+                                            className="w-full h-full object-contain max-h-[240px]"
                                         />
                                     </div>
-                                    {/* Countdown Timer - Full width at bottom (blinking) */}
+                                    {/* Countdown Timer - Full width at bottom (dark gray, NO blink) */}
                                     {form?.countdown_enabled && timeLeft > 0 && (
-                                        <div className={`w-full py-3 px-4 bg-slate-800 flex items-center justify-center gap-3 ${form?.countdown_blink ? 'blink-animation' : ''}`}>
+                                        <div className="w-full py-3 px-4 bg-slate-700 flex items-center justify-center gap-3">
                                             <span className="text-xl">⏰</span>
                                             <div className="flex items-center gap-2">
-                                                <span className="text-white text-2xl font-bold font-mono bg-slate-700 px-2 py-1 rounded">{formatTime(timeLeft).hrs}</span>
-                                                <span className="text-white text-2xl font-bold font-mono bg-slate-700 px-2 py-1 rounded">{formatTime(timeLeft).mins}</span>
-                                                <span className="text-white text-2xl font-bold font-mono bg-slate-700 px-2 py-1 rounded">{formatTime(timeLeft).secs}</span>
+                                                <span className="text-white text-2xl font-bold font-mono bg-slate-600 px-3 py-1 rounded">{formatTime(timeLeft).hrs}</span>
+                                                <span className="text-white text-2xl font-bold font-mono bg-slate-600 px-3 py-1 rounded">{formatTime(timeLeft).mins}</span>
+                                                <span className="text-white text-2xl font-bold font-mono bg-slate-600 px-3 py-1 rounded">{formatTime(timeLeft).secs}</span>
                                             </div>
                                         </div>
                                     )}
