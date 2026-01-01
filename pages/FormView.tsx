@@ -292,7 +292,7 @@ const FormView: React.FC = () => {
         const hrs = Math.floor(s / 3600);
         const mins = Math.floor((s % 3600) / 60);
         const secs = s % 60;
-        return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        return { hrs: hrs.toString().padStart(2, '0'), mins: mins.toString().padStart(2, '0'), secs: secs.toString().padStart(2, '0') };
     };
     const getCurrencySymbol = () => ({ PHP: '₱', USD: '$', EUR: '€', GBP: '£', JPY: '¥' }[form?.currency] || '₱');
     const calculateTotal = () => {
@@ -427,8 +427,11 @@ const FormView: React.FC = () => {
                 <div className={`w-full ${form?.header_image_url ? 'max-w-3xl' : 'max-w-xs'}`}>
                     <style>{`
                         @keyframes blink {
-                            0%, 100% { opacity: 1; transform: scale(1); }
-                            50% { opacity: 0.85; transform: scale(1.02); }
+                            0%, 100% { opacity: 1; }
+                            50% { opacity: 0.6; }
+                        }
+                        .blink-animation {
+                            animation: blink 1s ease-in-out infinite;
                         }
                     `}</style>
 
@@ -437,20 +440,20 @@ const FormView: React.FC = () => {
                         className={`${cardBg} overflow-hidden`}
                         style={{ borderRadius: getBorderRadius() }}
                     >
-                        {/* Header Row - Timer (left) and Product Name (right) aligned */}
+                        {/* Header Row - Promo (left) and Product Name (right) aligned */}
                         {form?.header_image_url && (
                             <div className="lg:flex lg:flex-row">
-                                {/* Timer Header - Left side */}
-                                <div className={`lg:w-1/2 py-4 px-5 ${isMinimal ? 'bg-gradient-to-r from-indigo-500 to-purple-600' : 'bg-gradient-to-r from-purple-600 via-pink-500 to-rose-500'}`}>
+                                {/* Promo Banner - Left side (blinking) */}
+                                <div className={`lg:w-1/2 py-3 px-4 ${isMinimal ? 'bg-gradient-to-r from-rose-500 to-red-500' : 'bg-gradient-to-r from-rose-500 to-red-500'} ${form?.countdown_blink ? 'blink-animation' : ''}`}>
                                     <div className="flex items-center justify-center gap-2">
-                                        <span className="text-base">🔥</span>
-                                        <span className="text-white/90 text-sm font-medium">OFFER EXPIRES IN</span>
-                                        <span className="text-base">🔥</span>
+                                        <span className="text-lg">🔥</span>
+                                        <span className="text-white text-base font-bold">Promo Only!</span>
+                                        <span className="text-lg">🔥</span>
                                     </div>
                                 </div>
                                 {/* Product Name Header - Right side */}
-                                <div className={`lg:w-1/2 py-4 px-5 ${isMinimal ? 'bg-indigo-600' : 'bg-gradient-to-r from-fuchsia-500 to-purple-600'}`}>
-                                    <h1 className="text-xl font-bold text-white text-center">
+                                <div className={`lg:w-1/2 py-3 px-4 ${isMinimal ? 'bg-indigo-600' : 'bg-indigo-600'}`}>
+                                    <h1 className="text-lg font-bold text-white text-center uppercase tracking-wide">
                                         {isOrderForm && form?.product_name ? form.product_name : (form?.name || 'Order Form')}
                                     </h1>
                                 </div>
@@ -462,26 +465,27 @@ const FormView: React.FC = () => {
                             {/* Image Section - Left column on lg */}
                             {form?.header_image_url && (
                                 <div
-                                    className={`relative lg:w-1/2 lg:min-h-[280px] flex flex-col p-3`}
+                                    className={`relative lg:w-1/2 flex flex-col`}
                                     style={{
-                                        backgroundColor: isMinimal ? '#ffffff' : '#0a0a12'
+                                        backgroundColor: isMinimal ? '#fef2f2' : '#0a0a12'
                                     }}
                                 >
-                                    {/* Image */}
-                                    <div className="flex-1 flex items-center justify-center">
-                                        <div className={`absolute inset-0 pointer-events-none ${isMinimal ? 'bg-gradient-to-br from-slate-50/80 via-transparent to-indigo-50/50' : 'bg-gradient-to-br from-purple-900/30 via-transparent to-pink-900/20'}`}></div>
+                                    {/* Image - fills available space */}
+                                    <div className="flex-1 flex items-center justify-center p-3">
                                         <img
                                             src={form.header_image_url}
                                             alt=""
-                                            className={`w-full h-full object-contain rounded-xl ${isMinimal ? 'shadow-lg' : 'shadow-2xl shadow-purple-500/20'}`}
+                                            className="w-full h-full object-contain max-h-[260px]"
                                         />
                                     </div>
-                                    {/* Countdown Timer - Below image, right aligned */}
+                                    {/* Countdown Timer - Full width at bottom (blinking) */}
                                     {form?.countdown_enabled && timeLeft > 0 && (
-                                        <div className="mt-3 flex justify-end">
-                                            <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg ${isMinimal ? 'bg-rose-500' : 'bg-gradient-to-r from-rose-500 to-pink-500'} shadow-lg ${form?.countdown_blink ? 'animate-pulse' : ''}`}>
-                                                <span className="text-white/80 text-xs">⏱</span>
-                                                <span className="text-white text-lg font-bold font-mono">{formatTime(timeLeft)}</span>
+                                        <div className={`w-full py-3 px-4 bg-slate-800 flex items-center justify-center gap-3 ${form?.countdown_blink ? 'blink-animation' : ''}`}>
+                                            <span className="text-xl">⏰</span>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-white text-2xl font-bold font-mono bg-slate-700 px-2 py-1 rounded">{formatTime(timeLeft).hrs}</span>
+                                                <span className="text-white text-2xl font-bold font-mono bg-slate-700 px-2 py-1 rounded">{formatTime(timeLeft).mins}</span>
+                                                <span className="text-white text-2xl font-bold font-mono bg-slate-700 px-2 py-1 rounded">{formatTime(timeLeft).secs}</span>
                                             </div>
                                         </div>
                                     )}
@@ -489,29 +493,29 @@ const FormView: React.FC = () => {
                             )}
 
                             {/* Form Content - Right column on lg */}
-                            <div className={`${form?.header_image_url ? 'lg:w-1/2 lg:flex lg:flex-col lg:justify-center' : ''}`}>
+                            <div className={`${form?.header_image_url ? 'lg:w-1/2 lg:flex lg:flex-col' : ''} bg-white`}>
                                 {/* Product Name (only show if no image) */}
                                 {!form?.header_image_url && (
-                                    <div className="px-5 pt-5">
-                                        <div className={`w-full py-4 px-5 rounded-xl ${isMinimal ? 'bg-indigo-600' : 'bg-gradient-to-r from-purple-600 via-fuchsia-500 to-pink-500'}`}>
-                                            <h1 className="text-2xl font-bold text-white text-center">
+                                    <div className="px-4 pt-4">
+                                        <div className={`w-full py-3 px-4 rounded-lg ${isMinimal ? 'bg-indigo-600' : 'bg-indigo-600'}`}>
+                                            <h1 className="text-xl font-bold text-white text-center uppercase">
                                                 {isOrderForm && form?.product_name ? form.product_name : (form?.name || 'Order Form')}
                                             </h1>
                                         </div>
                                     </div>
                                 )}
 
-                                <div className="p-5 pt-4">
+                                <div className="p-4">
 
                                     {/* Step Indicator */}
                                     {isOrderForm && (
-                                        <div className="flex items-center justify-center gap-2 mb-6">
+                                        <div className="flex items-center justify-center gap-2 mb-5">
                                             {[1, 2, 3].map(s => (
                                                 <div key={s} className="flex items-center">
-                                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all ${s === currentStep ? (isMinimal ? 'bg-blue-500 text-white' : 'bg-gradient-to-r from-purple-500 to-pink-500 text-white') :
-                                                        s < currentStep ? 'bg-green-500 text-white' : (isMinimal ? 'bg-gray-200 text-gray-400' : 'bg-white/10 text-white/40')
+                                                    <div className={`w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold transition-all ${s === currentStep ? 'bg-indigo-600 text-white' :
+                                                        s < currentStep ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-400'
                                                         }`}>{s < currentStep ? '✓' : s}</div>
-                                                    {s < 3 && <div className={`w-6 h-0.5 ${s < currentStep ? 'bg-green-500' : (isMinimal ? 'bg-gray-200' : 'bg-white/10')}`}></div>}
+                                                    {s < 3 && <div className={`w-6 h-0.5 ${s < currentStep ? 'bg-green-500' : 'bg-gray-200'}`}></div>}
                                                 </div>
                                             ))}
                                         </div>
@@ -658,19 +662,17 @@ const FormView: React.FC = () => {
                                     )}
 
                                     {/* Navigation */}
-                                    <div className="mt-6 space-y-3">
+                                    <div className="mt-5 space-y-3">
                                         {isOrderForm && currentStep < 3 && (
                                             <button onClick={() => setCurrentStep(currentStep + 1)} disabled={!canProceed()}
-                                                className="w-full py-4 text-white font-bold text-lg transition disabled:opacity-50"
-                                                style={{ background: buttonColor, borderRadius: getBorderRadius() }}>Continue</button>
+                                                className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-base uppercase tracking-wide transition disabled:opacity-50 rounded-lg">Continue</button>
                                         )}
 
                                         {(!isOrderForm || currentStep === 3) && (
                                             <button onClick={handleSubmit} disabled={submitting || !canProceed()}
-                                                className="w-full py-4 text-white font-bold text-lg transition disabled:opacity-50 flex items-center justify-center gap-2"
-                                                style={{ background: buttonColor, borderRadius: getBorderRadius() }}>
+                                                className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-base uppercase tracking-wide transition disabled:opacity-50 flex items-center justify-center gap-2 rounded-lg">
                                                 {submitting && <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>}
-                                                {submitting ? 'Processing...' : (form?.submit_button_text || 'Place Order')}
+                                                {submitting ? 'Processing...' : (form?.submit_button_text || 'ORDER NOW')}
                                             </button>
                                         )}
 
