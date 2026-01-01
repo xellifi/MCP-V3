@@ -14,7 +14,7 @@ interface DashboardProps {
 interface DashboardStats {
   connectedPages: number;
   totalConversations: number;
-  totalMessages: number;
+  totalFlows: number;
   activeSubscribers: number;
 }
 
@@ -50,7 +50,7 @@ const Dashboard: React.FC<DashboardProps> = ({ workspace }) => {
   const [stats, setStats] = useState<DashboardStats>({
     connectedPages: 0,
     totalConversations: 0,
-    totalMessages: 0,
+    totalFlows: 0,
     activeSubscribers: 0
   });
   const [chartData, setChartData] = useState<ChartData[]>([]);
@@ -71,17 +71,17 @@ const Dashboard: React.FC<DashboardProps> = ({ workspace }) => {
         api.workspace.getSubscribers(workspace.id)
       ]);
 
-      // Get total message count
-      const { count: messageCount } = await supabase
-        .from('messages')
+      // Get total flow count
+      const { count: flowCount } = await supabase
+        .from('flows')
         .select('*', { count: 'exact', head: true })
-        .in('conversation_id', conversations.map(c => c.id));
+        .eq('workspace_id', workspace.id);
 
       // Update stats
       setStats({
         connectedPages: pages.length,
         totalConversations: conversations.length,
-        totalMessages: messageCount || 0,
+        totalFlows: flowCount || 0,
         activeSubscribers: subscribers.filter(s => s.status === 'SUBSCRIBED').length
       });
 
@@ -176,8 +176,8 @@ const Dashboard: React.FC<DashboardProps> = ({ workspace }) => {
           loading={loading}
         />
         <StatCard
-          title="Total Messages"
-          value={stats.totalMessages}
+          title="Total Flows"
+          value={stats.totalFlows}
           icon={Activity}
           gradient="from-emerald-400 to-teal-500"
           loading={loading}
