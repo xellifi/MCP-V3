@@ -251,6 +251,8 @@ export interface FormConfig {
   successMessage: string;
   googleSheetId?: string;
   googleSheetName?: string;
+  promoText?: string;
+  promoIcon?: string;
   fields: FormField[];
   createdAt?: string;
   updatedAt?: string;
