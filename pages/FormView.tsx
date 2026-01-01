@@ -288,7 +288,12 @@ const FormView: React.FC = () => {
         finally { setSubmitting(false); }
     };
 
-    const formatTime = (s: number) => `${Math.floor(s / 60).toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`;
+    const formatTime = (s: number) => {
+        const hrs = Math.floor(s / 3600);
+        const mins = Math.floor((s % 3600) / 60);
+        const secs = s % 60;
+        return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    };
     const getCurrencySymbol = () => ({ PHP: '₱', USD: '$', EUR: '€', GBP: '£', JPY: '¥' }[form?.currency] || '₱');
     const calculateTotal = () => {
         let total = (form?.product_price || 0) * quantity;
@@ -429,234 +434,255 @@ const FormView: React.FC = () => {
 
                     {/* Main Card - Two column on lg screens for both themes */}
                     <div
-                        className={`${cardBg} overflow-hidden ${form?.header_image_url ? 'lg:flex lg:flex-row' : ''}`}
+                        className={`${cardBg} overflow-hidden`}
                         style={{ borderRadius: getBorderRadius() }}
                     >
-                        {/* Image Section - Left column on lg */}
+                        {/* Header Row - Timer (left) and Product Name (right) aligned */}
                         {form?.header_image_url && (
-                            <div
-                                className={`relative lg:w-1/2 lg:min-h-[300px] flex items-center justify-center p-3`}
-                                style={{
-                                    backgroundColor: isMinimal ? '#ffffff' : '#0a0a12'
-                                }}
-                            >
-                                {/* Timer Badge - Inside card on top of image */}
-                                {form?.countdown_enabled && timeLeft > 0 && (
-                                    <div
-                                        className={`absolute top-3 left-3 right-3 z-10 ${isMinimal ? 'bg-gradient-to-r from-indigo-500 to-purple-600' : 'bg-gradient-to-r from-purple-600 via-pink-500 to-rose-500'} rounded-xl py-2 px-4 flex items-center justify-center gap-2 shadow-lg ${form?.countdown_blink ? 'animate-pulse' : ''}`}
-                                        style={{
-                                            animation: form?.countdown_blink ? 'blink 1s ease-in-out infinite' : 'none'
-                                        }}
-                                    >
+                            <div className="lg:flex lg:flex-row">
+                                {/* Timer Header - Left side */}
+                                <div className={`lg:w-1/2 py-4 px-5 ${isMinimal ? 'bg-gradient-to-r from-indigo-500 to-purple-600' : 'bg-gradient-to-r from-purple-600 via-pink-500 to-rose-500'}`}>
+                                    <div className="flex items-center justify-center gap-2">
                                         <span className="text-base">🔥</span>
-                                        <div className="text-center">
-                                            <p className="text-white/90 text-[10px] font-medium leading-tight">OFFER EXPIRES IN</p>
-                                            <p className={`text-white text-lg font-bold font-mono leading-tight ${form?.countdown_blink ? 'animate-pulse' : ''}`}>{formatTime(timeLeft)}</p>
-                                        </div>
+                                        <span className="text-white/90 text-sm font-medium">OFFER EXPIRES IN</span>
                                         <span className="text-base">🔥</span>
                                     </div>
-                                )}
-                                {/* Subtle gradient overlay */}
-                                <div className={`absolute inset-0 pointer-events-none ${isMinimal ? 'bg-gradient-to-br from-slate-50/80 via-transparent to-indigo-50/50' : 'bg-gradient-to-br from-purple-900/30 via-transparent to-pink-900/20'}`}></div>
-                                <img
-                                    src={form.header_image_url}
-                                    alt=""
-                                    className={`w-full h-full object-contain rounded-xl ${isMinimal ? 'shadow-lg' : 'shadow-2xl shadow-purple-500/20'}`}
-                                />
-                            </div>
-                        )}
-
-                        {/* Form Content - Right column on lg */}
-                        <div className={`${form?.header_image_url ? 'lg:w-1/2 lg:flex lg:flex-col lg:justify-center' : ''}`}>
-                            {/* Product Name with Solid Background - with margin to align with buttons */}
-                            <div className="px-5 pt-5">
-                                <div className={`w-full py-4 px-5 rounded-xl ${isMinimal ? 'bg-indigo-600' : 'bg-gradient-to-r from-purple-600 via-fuchsia-500 to-pink-500'}`}>
-                                    <h1 className="text-2xl font-bold text-white text-center">
+                                </div>
+                                {/* Product Name Header - Right side */}
+                                <div className={`lg:w-1/2 py-4 px-5 ${isMinimal ? 'bg-indigo-600' : 'bg-gradient-to-r from-fuchsia-500 to-purple-600'}`}>
+                                    <h1 className="text-xl font-bold text-white text-center">
                                         {isOrderForm && form?.product_name ? form.product_name : (form?.name || 'Order Form')}
                                     </h1>
                                 </div>
                             </div>
+                        )}
 
-                            <div className="p-5 pt-4">
-
-                                {/* Step Indicator */}
-                                {isOrderForm && (
-                                    <div className="flex items-center justify-center gap-2 mb-6">
-                                        {[1, 2, 3].map(s => (
-                                            <div key={s} className="flex items-center">
-                                                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all ${s === currentStep ? (isMinimal ? 'bg-blue-500 text-white' : 'bg-gradient-to-r from-purple-500 to-pink-500 text-white') :
-                                                    s < currentStep ? 'bg-green-500 text-white' : (isMinimal ? 'bg-gray-200 text-gray-400' : 'bg-white/10 text-white/40')
-                                                    }`}>{s < currentStep ? '✓' : s}</div>
-                                                {s < 3 && <div className={`w-6 h-0.5 ${s < currentStep ? 'bg-green-500' : (isMinimal ? 'bg-gray-200' : 'bg-white/10')}`}></div>}
-                                            </div>
-                                        ))}
+                        {/* Content Row - Image (left) and Form (right) */}
+                        <div className={`${form?.header_image_url ? 'lg:flex lg:flex-row' : ''}`}>
+                            {/* Image Section - Left column on lg */}
+                            {form?.header_image_url && (
+                                <div
+                                    className={`relative lg:w-1/2 lg:min-h-[280px] flex flex-col p-3`}
+                                    style={{
+                                        backgroundColor: isMinimal ? '#ffffff' : '#0a0a12'
+                                    }}
+                                >
+                                    {/* Image */}
+                                    <div className="flex-1 flex items-center justify-center">
+                                        <div className={`absolute inset-0 pointer-events-none ${isMinimal ? 'bg-gradient-to-br from-slate-50/80 via-transparent to-indigo-50/50' : 'bg-gradient-to-br from-purple-900/30 via-transparent to-pink-900/20'}`}></div>
+                                        <img
+                                            src={form.header_image_url}
+                                            alt=""
+                                            className={`w-full h-full object-contain rounded-xl ${isMinimal ? 'shadow-lg' : 'shadow-2xl shadow-purple-500/20'}`}
+                                        />
                                     </div>
-                                )}
-
-                                {/* Step 1: Product */}
-                                {isOrderForm && currentStep === 1 && (
-                                    <div className="space-y-5">
-                                        <div>
-                                            <label className={`block ${textMuted} text-sm mb-2`}>Quantity</label>
-                                            <div className="flex items-center gap-3 justify-center">
-                                                <button onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                                                    className={`w-12 h-12 rounded-xl ${isMinimal ? 'bg-gray-100 hover:bg-gray-200 text-gray-800' : 'bg-white/10 hover:bg-white/20 text-white'} text-xl font-bold transition`} style={{ borderRadius: getInputRadius() }}>−</button>
-                                                <span className={`text-3xl font-bold ${textColor} w-16 text-center`}>{quantity}</span>
-                                                <button onClick={() => setQuantity(Math.min(form?.max_quantity || 10, quantity + 1))}
-                                                    className={`w-12 h-12 rounded-xl ${isMinimal ? 'bg-gray-100 hover:bg-gray-200 text-gray-800' : 'bg-white/10 hover:bg-white/20 text-white'} text-xl font-bold transition`} style={{ borderRadius: getInputRadius() }}>+</button>
+                                    {/* Countdown Timer - Below image, right aligned */}
+                                    {form?.countdown_enabled && timeLeft > 0 && (
+                                        <div className="mt-3 flex justify-end">
+                                            <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg ${isMinimal ? 'bg-rose-500' : 'bg-gradient-to-r from-rose-500 to-pink-500'} shadow-lg ${form?.countdown_blink ? 'animate-pulse' : ''}`}>
+                                                <span className="text-white/80 text-xs">⏱</span>
+                                                <span className="text-white text-lg font-bold font-mono">{formatTime(timeLeft)}</span>
                                             </div>
                                         </div>
-
-                                        <div className={`${isMinimal ? 'bg-blue-50 border-blue-100' : 'bg-purple-500/10 border-purple-500/20'} border rounded-xl p-4`} style={{ borderRadius: getInputRadius() }}>
-                                            <div className="flex justify-between items-center mb-2">
-                                                <span className={textMuted}>Price</span>
-                                                <span className={textColor}>{getCurrencySymbol()}{(form?.product_price || 0).toLocaleString()} × {quantity}</span>
-                                            </div>
-                                            {couponApplied && (
-                                                <div className="flex justify-between items-center mb-2 text-green-500">
-                                                    <span>Discount ({form?.coupon_discount}%)</span>
-                                                    <span>-{getCurrencySymbol()}{((form?.product_price || 0) * quantity * (form?.coupon_discount / 100)).toLocaleString()}</span>
-                                                </div>
-                                            )}
-                                            <div className={`border-t ${isMinimal ? 'border-blue-100' : 'border-white/10'} pt-2 flex justify-between items-center`}>
-                                                <span className={`${textColor} font-semibold`}>Total</span>
-                                                <span className={`text-2xl font-bold ${textColor}`}>{getCurrencySymbol()}{calculateTotal().toLocaleString()}</span>
-                                            </div>
-                                        </div>
-
-                                        {form?.coupon_enabled && !couponApplied && (
-                                            <div className="flex gap-2">
-                                                <input type="text" value={couponInput} onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
-                                                    placeholder="Coupon" className={`flex-1 min-w-0 px-3 py-2.5 ${inputBg} border ${inputText} text-sm uppercase`} style={{ borderRadius: getInputRadius() }} />
-                                                <button onClick={applyCoupon} className="px-4 py-2.5 bg-purple-500 text-white font-medium hover:bg-purple-600 whitespace-nowrap" style={{ borderRadius: getInputRadius() }}>Apply</button>
-                                            </div>
-                                        )}
-                                        {couponApplied && <p className="text-green-500 text-sm text-center">✓ Coupon applied!</p>}
-                                    </div>
-                                )}
-
-                                {/* Step 2: Buyer Info */}
-                                {(!isOrderForm || currentStep === 2) && (
-                                    <div className="space-y-4">
-                                        {(form?.fields || []).map((field: any) => (
-                                            <div key={field.id}>
-                                                {field.type !== 'checkbox' && (
-                                                    <label className={`block ${textMuted} text-sm mb-1.5`}>
-                                                        {field.label}{field.required && <span className="text-red-500 ml-1">*</span>}
-                                                    </label>
-                                                )}
-                                                {['text', 'email', 'phone', 'number'].includes(field.type) && (
-                                                    <input type={field.type === 'phone' ? 'tel' : field.type} value={formData[field.id] || ''}
-                                                        onChange={(e) => handleInputChange(field.id, e.target.value)} placeholder={field.placeholder}
-                                                        className={`w-full px-4 py-3 ${inputBg} border ${inputText} transition`} style={{ borderRadius: getInputRadius() }} />
-                                                )}
-                                                {field.type === 'textarea' && (
-                                                    <textarea value={formData[field.id] || ''} onChange={(e) => handleInputChange(field.id, e.target.value)}
-                                                        placeholder={field.placeholder} rows={3}
-                                                        className={`w-full px-4 py-3 ${inputBg} border ${inputText} resize-none transition`} style={{ borderRadius: getInputRadius() }} />
-                                                )}
-                                                {field.type === 'select' && (
-                                                    <select value={formData[field.id] || ''} onChange={(e) => handleInputChange(field.id, e.target.value)}
-                                                        className={`w-full px-4 py-3 ${inputBg} border ${inputText} transition`} style={{ borderRadius: getInputRadius() }}>
-                                                        <option value="">Select...</option>
-                                                        {(field.options || []).map((o: string, i: number) => <option key={i} value={o}>{o}</option>)}
-                                                    </select>
-                                                )}
-                                                {field.type === 'checkbox' && (
-                                                    <label className={`flex items-center gap-3 p-3 ${inputBg} border cursor-pointer`} style={{ borderRadius: getInputRadius() }}>
-                                                        <input type="checkbox" checked={formData[field.id] || false}
-                                                            onChange={(e) => handleInputChange(field.id, e.target.checked)} className="w-5 h-5" style={{ accentColor: buttonColor }} />
-                                                        <span className={isMinimal ? 'text-gray-700' : 'text-white/80'}>{field.label}</span>
-                                                    </label>
-                                                )}
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-
-                                {/* Step 3: Payment */}
-                                {isOrderForm && currentStep === 3 && (
-                                    <div className="space-y-4">
-                                        <p className={`${textMuted} text-sm text-center`}>Select payment method</p>
-
-                                        {form?.cod_enabled && (
-                                            <button onClick={() => { setPaymentMethod('cod'); setSelectedWallet(''); }}
-                                                className={`w-full p-4 border-2 flex items-center gap-4 transition ${paymentMethod === 'cod' ? 'border-purple-500 bg-purple-500/10' : (isMinimal ? 'border-gray-200 hover:border-gray-300' : 'border-white/10 hover:border-white/30')}`} style={{ borderRadius: getInputRadius() }}>
-                                                <span className="text-3xl">💵</span>
-                                                <div className="text-left">
-                                                    <p className={`${textColor} font-semibold`}>Cash on Delivery</p>
-                                                    <p className={`${textMuted} text-sm`}>Pay when you receive</p>
-                                                </div>
-                                            </button>
-                                        )}
-
-                                        {form?.ewallet_enabled && (form?.ewallet_options || []).map((wallet: string) => (
-                                            <button key={wallet} onClick={() => { setPaymentMethod('ewallet'); setSelectedWallet(wallet); }}
-                                                className={`w-full p-4 border-2 flex items-center gap-4 transition ${selectedWallet === wallet ? 'border-blue-500 bg-blue-500/10' : (isMinimal ? 'border-gray-200 hover:border-gray-300' : 'border-white/10 hover:border-white/30')}`} style={{ borderRadius: getInputRadius() }}>
-                                                <span className="text-3xl">📱</span>
-                                                <div className="text-left flex-1">
-                                                    <p className={`${textColor} font-semibold`}>{wallet}</p>
-                                                    {form?.ewallet_numbers?.[wallet] && <p className={`${textMuted} text-sm`}>{form.ewallet_numbers[wallet]}</p>}
-                                                </div>
-                                            </button>
-                                        ))}
-
-                                        {paymentMethod === 'ewallet' && selectedWallet && (
-                                            <div className={`${isMinimal ? 'bg-blue-50 border-blue-100' : 'bg-blue-500/10 border-blue-500/30'} border p-4 space-y-2`} style={{ borderRadius: getInputRadius() }}>
-                                                <p className="text-blue-500 text-sm">Send payment to:</p>
-                                                <p className={`${textColor} font-mono text-lg text-center ${isMinimal ? 'bg-white' : 'bg-white/10'} py-2`} style={{ borderRadius: getInputRadius() }}>
-                                                    {form?.ewallet_numbers?.[selectedWallet] || selectedWallet}
-                                                </p>
-                                                <p className={`${textColor} text-lg font-bold text-center`}>{getCurrencySymbol()}{calculateTotal().toLocaleString()}</p>
-                                            </div>
-                                        )}
-
-                                        {form?.require_proof_upload && paymentMethod === 'ewallet' && (
-                                            <div className="space-y-2">
-                                                <p className={`${textMuted} text-sm`}>Upload payment proof <span className="text-red-500">*</span></p>
-                                                <input type="file" ref={fileInputRef} accept="image/*" onChange={handleFileChange} className="hidden" />
-                                                {proofPreview ? (
-                                                    <div className="relative">
-                                                        <img src={proofPreview} alt="Proof" className={`w-full h-40 object-cover ${isMinimal ? 'border-gray-200' : 'border-white/20'} border`} style={{ borderRadius: getInputRadius() }} />
-                                                        <button onClick={() => { setProofFile(null); setProofPreview(''); }}
-                                                            className="absolute top-2 right-2 w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center">×</button>
-                                                    </div>
-                                                ) : (
-                                                    <button onClick={() => fileInputRef.current?.click()}
-                                                        className={`w-full py-8 border-2 border-dashed ${isMinimal ? 'border-gray-300 hover:border-gray-400' : 'border-white/20 hover:border-white/40'} flex flex-col items-center gap-2 transition`} style={{ borderRadius: getInputRadius() }}>
-                                                        <span className="text-3xl">📤</span>
-                                                        <span className={textMuted}>Tap to upload</span>
-                                                    </button>
-                                                )}
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
-
-                                {/* Navigation */}
-                                <div className="mt-6 space-y-3">
-                                    {isOrderForm && currentStep < 3 && (
-                                        <button onClick={() => setCurrentStep(currentStep + 1)} disabled={!canProceed()}
-                                            className="w-full py-4 text-white font-bold text-lg transition disabled:opacity-50"
-                                            style={{ background: buttonColor, borderRadius: getBorderRadius() }}>Continue</button>
-                                    )}
-
-                                    {(!isOrderForm || currentStep === 3) && (
-                                        <button onClick={handleSubmit} disabled={submitting || !canProceed()}
-                                            className="w-full py-4 text-white font-bold text-lg transition disabled:opacity-50 flex items-center justify-center gap-2"
-                                            style={{ background: buttonColor, borderRadius: getBorderRadius() }}>
-                                            {submitting && <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>}
-                                            {submitting ? 'Processing...' : (form?.submit_button_text || 'Place Order')}
-                                        </button>
-                                    )}
-
-                                    {isOrderForm && currentStep > 1 && (
-                                        <button onClick={() => setCurrentStep(currentStep - 1)}
-                                            className={`w-full py-3 ${textMuted} font-medium hover:opacity-80 transition`}>← Back</button>
                                     )}
                                 </div>
+                            )}
+
+                            {/* Form Content - Right column on lg */}
+                            <div className={`${form?.header_image_url ? 'lg:w-1/2 lg:flex lg:flex-col lg:justify-center' : ''}`}>
+                                {/* Product Name (only show if no image) */}
+                                {!form?.header_image_url && (
+                                    <div className="px-5 pt-5">
+                                        <div className={`w-full py-4 px-5 rounded-xl ${isMinimal ? 'bg-indigo-600' : 'bg-gradient-to-r from-purple-600 via-fuchsia-500 to-pink-500'}`}>
+                                            <h1 className="text-2xl font-bold text-white text-center">
+                                                {isOrderForm && form?.product_name ? form.product_name : (form?.name || 'Order Form')}
+                                            </h1>
+                                        </div>
+                                    </div>
+                                )}
+
+                                <div className="p-5 pt-4">
+
+                                    {/* Step Indicator */}
+                                    {isOrderForm && (
+                                        <div className="flex items-center justify-center gap-2 mb-6">
+                                            {[1, 2, 3].map(s => (
+                                                <div key={s} className="flex items-center">
+                                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all ${s === currentStep ? (isMinimal ? 'bg-blue-500 text-white' : 'bg-gradient-to-r from-purple-500 to-pink-500 text-white') :
+                                                        s < currentStep ? 'bg-green-500 text-white' : (isMinimal ? 'bg-gray-200 text-gray-400' : 'bg-white/10 text-white/40')
+                                                        }`}>{s < currentStep ? '✓' : s}</div>
+                                                    {s < 3 && <div className={`w-6 h-0.5 ${s < currentStep ? 'bg-green-500' : (isMinimal ? 'bg-gray-200' : 'bg-white/10')}`}></div>}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    {/* Step 1: Product */}
+                                    {isOrderForm && currentStep === 1 && (
+                                        <div className="space-y-5">
+                                            <div>
+                                                <label className={`block ${textMuted} text-sm mb-2`}>Quantity</label>
+                                                <div className="flex items-center gap-3 justify-center">
+                                                    <button onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                                                        className={`w-12 h-12 rounded-xl ${isMinimal ? 'bg-gray-100 hover:bg-gray-200 text-gray-800' : 'bg-white/10 hover:bg-white/20 text-white'} text-xl font-bold transition`} style={{ borderRadius: getInputRadius() }}>−</button>
+                                                    <span className={`text-3xl font-bold ${textColor} w-16 text-center`}>{quantity}</span>
+                                                    <button onClick={() => setQuantity(Math.min(form?.max_quantity || 10, quantity + 1))}
+                                                        className={`w-12 h-12 rounded-xl ${isMinimal ? 'bg-gray-100 hover:bg-gray-200 text-gray-800' : 'bg-white/10 hover:bg-white/20 text-white'} text-xl font-bold transition`} style={{ borderRadius: getInputRadius() }}>+</button>
+                                                </div>
+                                            </div>
+
+                                            <div className={`${isMinimal ? 'bg-blue-50 border-blue-100' : 'bg-purple-500/10 border-purple-500/20'} border rounded-xl p-4`} style={{ borderRadius: getInputRadius() }}>
+                                                <div className="flex justify-between items-center mb-2">
+                                                    <span className={textMuted}>Price</span>
+                                                    <span className={textColor}>{getCurrencySymbol()}{(form?.product_price || 0).toLocaleString()} × {quantity}</span>
+                                                </div>
+                                                {couponApplied && (
+                                                    <div className="flex justify-between items-center mb-2 text-green-500">
+                                                        <span>Discount ({form?.coupon_discount}%)</span>
+                                                        <span>-{getCurrencySymbol()}{((form?.product_price || 0) * quantity * (form?.coupon_discount / 100)).toLocaleString()}</span>
+                                                    </div>
+                                                )}
+                                                <div className={`border-t ${isMinimal ? 'border-blue-100' : 'border-white/10'} pt-2 flex justify-between items-center`}>
+                                                    <span className={`${textColor} font-semibold`}>Total</span>
+                                                    <span className={`text-2xl font-bold ${textColor}`}>{getCurrencySymbol()}{calculateTotal().toLocaleString()}</span>
+                                                </div>
+                                            </div>
+
+                                            {form?.coupon_enabled && !couponApplied && (
+                                                <div className="flex gap-2">
+                                                    <input type="text" value={couponInput} onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
+                                                        placeholder="Coupon" className={`flex-1 min-w-0 px-3 py-2.5 ${inputBg} border ${inputText} text-sm uppercase`} style={{ borderRadius: getInputRadius() }} />
+                                                    <button onClick={applyCoupon} className="px-4 py-2.5 bg-purple-500 text-white font-medium hover:bg-purple-600 whitespace-nowrap" style={{ borderRadius: getInputRadius() }}>Apply</button>
+                                                </div>
+                                            )}
+                                            {couponApplied && <p className="text-green-500 text-sm text-center">✓ Coupon applied!</p>}
+                                        </div>
+                                    )}
+
+                                    {/* Step 2: Buyer Info */}
+                                    {(!isOrderForm || currentStep === 2) && (
+                                        <div className="space-y-4">
+                                            {(form?.fields || []).map((field: any) => (
+                                                <div key={field.id}>
+                                                    {field.type !== 'checkbox' && (
+                                                        <label className={`block ${textMuted} text-sm mb-1.5`}>
+                                                            {field.label}{field.required && <span className="text-red-500 ml-1">*</span>}
+                                                        </label>
+                                                    )}
+                                                    {['text', 'email', 'phone', 'number'].includes(field.type) && (
+                                                        <input type={field.type === 'phone' ? 'tel' : field.type} value={formData[field.id] || ''}
+                                                            onChange={(e) => handleInputChange(field.id, e.target.value)} placeholder={field.placeholder}
+                                                            className={`w-full px-4 py-3 ${inputBg} border ${inputText} transition`} style={{ borderRadius: getInputRadius() }} />
+                                                    )}
+                                                    {field.type === 'textarea' && (
+                                                        <textarea value={formData[field.id] || ''} onChange={(e) => handleInputChange(field.id, e.target.value)}
+                                                            placeholder={field.placeholder} rows={3}
+                                                            className={`w-full px-4 py-3 ${inputBg} border ${inputText} resize-none transition`} style={{ borderRadius: getInputRadius() }} />
+                                                    )}
+                                                    {field.type === 'select' && (
+                                                        <select value={formData[field.id] || ''} onChange={(e) => handleInputChange(field.id, e.target.value)}
+                                                            className={`w-full px-4 py-3 ${inputBg} border ${inputText} transition`} style={{ borderRadius: getInputRadius() }}>
+                                                            <option value="">Select...</option>
+                                                            {(field.options || []).map((o: string, i: number) => <option key={i} value={o}>{o}</option>)}
+                                                        </select>
+                                                    )}
+                                                    {field.type === 'checkbox' && (
+                                                        <label className={`flex items-center gap-3 p-3 ${inputBg} border cursor-pointer`} style={{ borderRadius: getInputRadius() }}>
+                                                            <input type="checkbox" checked={formData[field.id] || false}
+                                                                onChange={(e) => handleInputChange(field.id, e.target.checked)} className="w-5 h-5" style={{ accentColor: buttonColor }} />
+                                                            <span className={isMinimal ? 'text-gray-700' : 'text-white/80'}>{field.label}</span>
+                                                        </label>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    {/* Step 3: Payment */}
+                                    {isOrderForm && currentStep === 3 && (
+                                        <div className="space-y-4">
+                                            <p className={`${textMuted} text-sm text-center`}>Select payment method</p>
+
+                                            {form?.cod_enabled && (
+                                                <button onClick={() => { setPaymentMethod('cod'); setSelectedWallet(''); }}
+                                                    className={`w-full p-4 border-2 flex items-center gap-4 transition ${paymentMethod === 'cod' ? 'border-purple-500 bg-purple-500/10' : (isMinimal ? 'border-gray-200 hover:border-gray-300' : 'border-white/10 hover:border-white/30')}`} style={{ borderRadius: getInputRadius() }}>
+                                                    <span className="text-3xl">💵</span>
+                                                    <div className="text-left">
+                                                        <p className={`${textColor} font-semibold`}>Cash on Delivery</p>
+                                                        <p className={`${textMuted} text-sm`}>Pay when you receive</p>
+                                                    </div>
+                                                </button>
+                                            )}
+
+                                            {form?.ewallet_enabled && (form?.ewallet_options || []).map((wallet: string) => (
+                                                <button key={wallet} onClick={() => { setPaymentMethod('ewallet'); setSelectedWallet(wallet); }}
+                                                    className={`w-full p-4 border-2 flex items-center gap-4 transition ${selectedWallet === wallet ? 'border-blue-500 bg-blue-500/10' : (isMinimal ? 'border-gray-200 hover:border-gray-300' : 'border-white/10 hover:border-white/30')}`} style={{ borderRadius: getInputRadius() }}>
+                                                    <span className="text-3xl">📱</span>
+                                                    <div className="text-left flex-1">
+                                                        <p className={`${textColor} font-semibold`}>{wallet}</p>
+                                                        {form?.ewallet_numbers?.[wallet] && <p className={`${textMuted} text-sm`}>{form.ewallet_numbers[wallet]}</p>}
+                                                    </div>
+                                                </button>
+                                            ))}
+
+                                            {paymentMethod === 'ewallet' && selectedWallet && (
+                                                <div className={`${isMinimal ? 'bg-blue-50 border-blue-100' : 'bg-blue-500/10 border-blue-500/30'} border p-4 space-y-2`} style={{ borderRadius: getInputRadius() }}>
+                                                    <p className="text-blue-500 text-sm">Send payment to:</p>
+                                                    <p className={`${textColor} font-mono text-lg text-center ${isMinimal ? 'bg-white' : 'bg-white/10'} py-2`} style={{ borderRadius: getInputRadius() }}>
+                                                        {form?.ewallet_numbers?.[selectedWallet] || selectedWallet}
+                                                    </p>
+                                                    <p className={`${textColor} text-lg font-bold text-center`}>{getCurrencySymbol()}{calculateTotal().toLocaleString()}</p>
+                                                </div>
+                                            )}
+
+                                            {form?.require_proof_upload && paymentMethod === 'ewallet' && (
+                                                <div className="space-y-2">
+                                                    <p className={`${textMuted} text-sm`}>Upload payment proof <span className="text-red-500">*</span></p>
+                                                    <input type="file" ref={fileInputRef} accept="image/*" onChange={handleFileChange} className="hidden" />
+                                                    {proofPreview ? (
+                                                        <div className="relative">
+                                                            <img src={proofPreview} alt="Proof" className={`w-full h-40 object-cover ${isMinimal ? 'border-gray-200' : 'border-white/20'} border`} style={{ borderRadius: getInputRadius() }} />
+                                                            <button onClick={() => { setProofFile(null); setProofPreview(''); }}
+                                                                className="absolute top-2 right-2 w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center">×</button>
+                                                        </div>
+                                                    ) : (
+                                                        <button onClick={() => fileInputRef.current?.click()}
+                                                            className={`w-full py-8 border-2 border-dashed ${isMinimal ? 'border-gray-300 hover:border-gray-400' : 'border-white/20 hover:border-white/40'} flex flex-col items-center gap-2 transition`} style={{ borderRadius: getInputRadius() }}>
+                                                            <span className="text-3xl">📤</span>
+                                                            <span className={textMuted}>Tap to upload</span>
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {/* Navigation */}
+                                    <div className="mt-6 space-y-3">
+                                        {isOrderForm && currentStep < 3 && (
+                                            <button onClick={() => setCurrentStep(currentStep + 1)} disabled={!canProceed()}
+                                                className="w-full py-4 text-white font-bold text-lg transition disabled:opacity-50"
+                                                style={{ background: buttonColor, borderRadius: getBorderRadius() }}>Continue</button>
+                                        )}
+
+                                        {(!isOrderForm || currentStep === 3) && (
+                                            <button onClick={handleSubmit} disabled={submitting || !canProceed()}
+                                                className="w-full py-4 text-white font-bold text-lg transition disabled:opacity-50 flex items-center justify-center gap-2"
+                                                style={{ background: buttonColor, borderRadius: getBorderRadius() }}>
+                                                {submitting && <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>}
+                                                {submitting ? 'Processing...' : (form?.submit_button_text || 'Place Order')}
+                                            </button>
+                                        )}
+
+                                        {isOrderForm && currentStep > 1 && (
+                                            <button onClick={() => setCurrentStep(currentStep - 1)}
+                                                className={`w-full py-3 ${textMuted} font-medium hover:opacity-80 transition`}>← Back</button>
+                                        )}
+                                    </div>
+                                    {/* Close p-6 wrapper */}
+                                </div>
                             </div>
-                            {/* Close p-6 wrapper */}
+                            {/* Close Content Row */}
                         </div>
                     </div>
                 </div>
