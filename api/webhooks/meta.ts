@@ -1510,12 +1510,13 @@ async function executeAction(
         const formName = config.formName || 'Form';
         const formId = config.formId || node.id; // Use node ID if no form saved yet
 
-        // Build form URL with subscriber context
+        // Build form URL with subscriber context AND flow context for continuation
         const baseUrl = process.env.VERCEL_URL
             ? `https://${process.env.VERCEL_URL}`
             : process.env.APP_URL || 'https://your-app-url.vercel.app';
 
-        const formUrl = `${baseUrl}/forms/${formId}?sid=${encodeURIComponent(context.commenterId)}&sname=${encodeURIComponent(context.commenterName || '')}`;
+        // Include flow context for continuation after form submission
+        const formUrl = `${baseUrl}/forms/${formId}?sid=${encodeURIComponent(context.commenterId)}&sname=${encodeURIComponent(context.commenterName || '')}&flowId=${flowId}&nodeId=${node.id}&pageId=${context.pageId}`;
 
         console.log(`    📋 Form Name: "${formName}"`);
         console.log(`    🔗 Form URL: ${formUrl}`);

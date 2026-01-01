@@ -28,6 +28,10 @@ const FormView: React.FC = () => {
     const urlParams = new URLSearchParams(window.location.search);
     const subscriberId = urlParams.get('sid') || '';
     const subscriberName = urlParams.get('sname') || '';
+    // Flow context for continuation after submission
+    const flowId = urlParams.get('flowId') || '';
+    const nodeId = urlParams.get('nodeId') || '';
+    const pageId = urlParams.get('pageId') || '';
 
     useEffect(() => { loadForm(); }, [formId]);
 
@@ -226,6 +230,30 @@ const FormView: React.FC = () => {
 
             // Sync to Google Sheets if connected
             await syncToGoogleSheets(submissionData);
+
+            // Continue the flow after form submission (sends confirmation messages, etc.)
+            if (flowId && nodeId) {
+                try {
+                    console.log('[FormView] Continuing flow:', flowId, 'from node:', nodeId);
+                    await fetch('/api/forms/continue-flow', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            flowId,
+                            nodeId,
+                            pageId,
+                            subscriberId,
+                            subscriberName,
+                            formSubmitted: true,
+                            submissionData
+                        })
+                    });
+                    console.log('[FormView] Flow continuation triggered');
+                } catch (flowErr) {
+                    console.error('[FormView] Flow continuation error:', flowErr);
+                    // Don't fail the submission if flow continuation fails
+                }
+            }
 
             setSubmitted(true);
         } catch (err) { alert('Failed to submit. Please try again.'); }
