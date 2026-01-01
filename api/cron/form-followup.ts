@@ -6,9 +6,9 @@ const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SU
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Default configuration (fallback if no followupNode configured)
-const DEFAULT_DELAY_MINUTES = 30;
-const DEFAULT_INTERVAL_MINUTES = 120;
-const DEFAULT_MAX_FOLLOWUPS = 3;
+const DEFAULT_DELAY_MINUTES = 1; // Fast for testing
+const DEFAULT_INTERVAL_MINUTES = 2; // Fast for testing
+const DEFAULT_MAX_FOLLOWUPS = 30; // High for testing
 const MAX_WINDOW_HOURS = 23; // Stay within Facebook's 24-hour policy
 
 /**
@@ -95,8 +95,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 ? (now.getTime() - lastFollowupAt.getTime()) / (60 * 1000)
                 : null;
 
-            // Check timing conditions (use small tolerance for floating-point precision)
-            const TOLERANCE = 0.1; // 6 seconds tolerance
+            // Check timing conditions (use tolerance for borderline cases)
+            const TOLERANCE = 0.5; // 30 seconds tolerance
             let shouldFollowup = false;
 
             if (followupCount === 0) {
