@@ -734,6 +734,8 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
           id: edge.id,
           source: edge.source,
           target: edge.target,
+          sourceHandle: edge.sourceHandle, // Preserve handle for condition nodes (true/false)
+          targetHandle: edge.targetHandle,
           type: edge.type,
           animated: edge.animated
         })),
