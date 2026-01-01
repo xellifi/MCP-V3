@@ -233,11 +233,14 @@ async function processConditionAndSend(
             e.source === nodeId && e.sourceHandle === 'false'
         );
 
+        console.log('[Form Followup Cron] Found', falseEdges.length, 'FALSE path edges');
+
         for (const falseEdge of falseEdges) {
             const targetNode = nodes.find((n: any) => n.id === falseEdge.target);
             if (!targetNode) continue;
 
             const config = configurations[falseEdge.target] || {};
+            console.log('[Form Followup Cron] FALSE path target:', targetNode.type);
 
             // Handle text node
             if (targetNode.type === 'textNode') {
@@ -256,6 +259,49 @@ async function processConditionAndSend(
                     );
                 }
             }
+
+            // Handle follow-up node (use its configured message)
+            if (targetNode.type === 'followupNode') {
+                let message = config.followupMessage || '';
+
+                // Replace variables
+                message = message.replace(/{commenter_name}/g, formOpen.subscriber_name || 'Friend');
+                message = message.replace(/{followup_number}/g, String(followupNumber));
+
+                if (message.trim()) {
+                    console.log('[Form Followup Cron] Sending followupNode message');
+                    await sendMessage(
+                        formOpen.subscriber_id,
+                        message,
+                        [],
+                        pageAccessToken
+                    );
+                } else {
+                    console.log('[Form Followup Cron] No message configured in followupNode');
+                }
+            }
+        }
+    }
+
+    // If the node itself is a followupNode (directly connected), use its message
+    if (node.type === 'followupNode') {
+        const config = configurations[nodeId] || {};
+        let message = config.followupMessage || '';
+
+        // Replace variables
+        message = message.replace(/{commenter_name}/g, formOpen.subscriber_name || 'Friend');
+        message = message.replace(/{followup_number}/g, String(followupNumber));
+
+        if (message.trim()) {
+            console.log('[Form Followup Cron] Sending followupNode message directly');
+            await sendMessage(
+                formOpen.subscriber_id,
+                message,
+                [],
+                pageAccessToken
+            );
+        } else {
+            console.log('[Form Followup Cron] No message configured in followupNode');
         }
     }
 }
