@@ -128,6 +128,23 @@ const Layout: React.FC<LayoutProps> = ({
     loadMenuSettings();
   }, []);
 
+  // Auto-collapse sidebar when in Flow Builder (PC view only)
+  useEffect(() => {
+    const isFlowBuilder = location.pathname.startsWith('/flows/');
+    const isDesktop = window.innerWidth >= 1024; // lg breakpoint
+
+    if (isFlowBuilder && isDesktop && !isSidebarCollapsed) {
+      setSidebarCollapsed(true);
+      // Don't save to localStorage - this is temporary for Flow Builder
+    } else if (!isFlowBuilder && isDesktop) {
+      // Restore from localStorage when leaving Flow Builder
+      const stored = localStorage.getItem('sidebarCollapsed');
+      if (stored !== null) {
+        setSidebarCollapsed(stored === 'true');
+      }
+    }
+  }, [location.pathname]);
+
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {

@@ -1535,8 +1535,8 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
     </button>
   );
 
-  // Mobile tools operations
-  const [isToolsOpen, setIsToolsOpen] = useState(true);
+  // Mobile tools operations (collapsed by default for PC)
+  const [isToolsOpen, setIsToolsOpen] = useState(false);
 
   // Reset/Rearrange nodes function - arranges nodes following edge connections horizontally
   const handleResetLayout = useCallback(() => {
@@ -1729,6 +1729,16 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
           {isToolsOpen ? <X className="w-4 h-4" /> : <Wrench className="w-4 h-4" />}
         </button>
 
+        {/* Desktop Tools Toggle */}
+        <button
+          onClick={() => setIsToolsOpen(!isToolsOpen)}
+          className="hidden md:flex items-center gap-1.5 px-3 py-1.5 md:px-4 md:py-2.5 text-xs md:text-sm font-bold bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-lg md:rounded-xl text-white transition-all border border-white/10 shadow-lg active:scale-95"
+          title="Toggle node toolbar"
+        >
+          <Grid3x3 className="w-4 h-4" />
+          <span className="hidden lg:inline">{isToolsOpen ? 'Hide' : 'Nodes'}</span>
+        </button>
+
         <button
           onClick={handleSave}
           disabled={isSaving}
@@ -1755,124 +1765,109 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
         </button>
       </div>
 
-      {/* Floating Toolbar (Tools) - List Only */}
-      <div className={`absolute left-6 top-20 md:top-28 z-10 flex flex-col gap-3 transition-opacity duration-300 ${!isToolsOpen ? 'opacity-0 pointer-events-none md:opacity-100 md:pointer-events-auto' : 'opacity-100'}`}>
+      {/* Floating Toolbar - Horizontal for Desktop (when open), Vertical for Mobile */}
+      <div className={`absolute z-10 transition-all duration-300 ease-out
+        ${isToolsOpen
+          ? 'opacity-100 pointer-events-auto'
+          : 'opacity-0 pointer-events-none'
+        }
+        md:left-1/2 md:-translate-x-1/2 md:top-6
+        left-6 top-20
+      `}>
+        {/* Desktop: Horizontal toolbar at top center */}
+        <div className={`
+          hidden md:flex
+          glass-panel px-4 py-2 rounded-2xl border border-white/10 shadow-2xl backdrop-blur-xl
+          items-center gap-2
+          transition-all duration-300 origin-top
+          ${isToolsOpen ? 'scale-100' : 'scale-95'}
+        `}>
+          <div className="flex items-center gap-2">
+            <div draggable onDragStart={(e) => onDragStart(e, 'startNode', 'Start')} onClick={() => addNode('startNode', 'Start')}
+              className="w-10 h-10 bg-emerald-500/20 hover:bg-emerald-500/40 border border-emerald-500/30 rounded-xl flex items-center justify-center text-emerald-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing" title="Start">
+              <Play className="w-5 h-5 fill-current" />
+            </div>
+            <div draggable onDragStart={(e) => { e.dataTransfer.setData('application/reactflow-template', 'commentReply'); e.dataTransfer.effectAllowed = 'move'; }} onClick={() => addCommentReplyTemplate()}
+              className="w-10 h-10 bg-blue-500/20 hover:bg-blue-500/40 border border-blue-500/30 rounded-xl flex items-center justify-center text-blue-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing" title="Comment">
+              <MessageCircle className="w-5 h-5" />
+            </div>
+            <div draggable onDragStart={(e) => onDragStart(e, 'textNode', 'Text')} onClick={() => addNode('textNode', 'Text')}
+              className="w-10 h-10 bg-amber-500/20 hover:bg-amber-500/40 border border-amber-500/30 rounded-xl flex items-center justify-center text-amber-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing" title="Text">
+              <MessageSquare className="w-5 h-5" />
+            </div>
+            <div draggable onDragStart={(e) => onDragStart(e, 'imageNode', 'Image')} onClick={() => addNode('imageNode', 'Image')}
+              className="w-10 h-10 bg-rose-500/20 hover:bg-rose-500/40 border border-rose-500/30 rounded-xl flex items-center justify-center text-rose-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing" title="Image">
+              <Image className="w-5 h-5" />
+            </div>
+            <div draggable onDragStart={(e) => onDragStart(e, 'videoNode', 'Video')} onClick={() => addNode('videoNode', 'Video')}
+              className="w-10 h-10 bg-cyan-500/20 hover:bg-cyan-500/40 border border-cyan-500/30 rounded-xl flex items-center justify-center text-cyan-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing" title="Video">
+              <Video className="w-5 h-5" />
+            </div>
+            <div draggable onDragStart={(e) => onDragStart(e, 'aiNode', 'AI Agent')} onClick={() => addNode('aiNode', 'AI Agent')}
+              className="w-10 h-10 bg-indigo-500/20 hover:bg-indigo-500/40 border border-indigo-500/30 rounded-xl flex items-center justify-center text-indigo-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing" title="AI">
+              <Sparkles className="w-5 h-5" />
+            </div>
+            <div draggable onDragStart={(e) => onDragStart(e, 'conditionNode', 'Condition')} onClick={() => addNode('conditionNode', 'Condition')}
+              className="w-10 h-10 bg-orange-500/20 hover:bg-orange-500/40 border border-orange-500/30 rounded-xl flex items-center justify-center text-orange-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing" title="Condition">
+              <GitBranch className="w-5 h-5" />
+            </div>
+            <div draggable onDragStart={(e) => onDragStart(e, 'formNode', 'Form')} onClick={() => addNode('formNode', 'Form')}
+              className="w-10 h-10 bg-purple-500/20 hover:bg-purple-500/40 border border-purple-500/30 rounded-xl flex items-center justify-center text-purple-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing" title="Form">
+              <FileText className="w-5 h-5" />
+            </div>
+            <div draggable onDragStart={(e) => onDragStart(e, 'sheetsNode', 'Google Sheets')} onClick={() => addNode('sheetsNode', 'Google Sheets')}
+              className="w-10 h-10 bg-green-500/20 hover:bg-green-500/40 border border-green-500/30 rounded-xl flex items-center justify-center text-green-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing" title="Sheets">
+              <Table className="w-5 h-5" />
+            </div>
+            <div draggable onDragStart={(e) => onDragStart(e, 'followupNode', 'Follow-up')} onClick={() => addNode('followupNode', 'Follow-up')}
+              className="w-10 h-10 bg-rose-500/20 hover:bg-rose-500/40 border border-rose-500/30 rounded-xl flex items-center justify-center text-rose-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing" title="Follow-up">
+              <RefreshCw className="w-5 h-5" />
+            </div>
+          </div>
+        </div>
 
-        {/* Tools List */}
-        <div className={`glass-panel p-3 rounded-2xl border border-white/10 shadow-2xl space-y-3 backdrop-blur-xl transition-all duration-300 origin-top-left ${isToolsOpen ? 'scale-100' : 'scale-95 pointer-events-none md:scale-100 md:pointer-events-auto'}`}>
+        {/* Mobile: Vertical toolbar on left */}
+        <div className={`md:hidden glass-panel p-3 rounded-2xl border border-white/10 shadow-2xl space-y-3 backdrop-blur-xl transition-all duration-300 origin-top-left ${isToolsOpen ? 'scale-100' : 'scale-95'}`}>
           <p className="text-xs font-bold text-slate-500 uppercase tracking-wider text-center mb-2">Build</p>
-
-          <div
-            draggable
-            onDragStart={(e) => onDragStart(e, 'startNode', 'Start')}
-            onClick={() => addNode('startNode', 'Start')}
-            className="w-12 h-12 bg-emerald-500/20 hover:bg-emerald-500/40 border border-emerald-500/30 rounded-xl flex items-center justify-center text-emerald-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing group relative"
-            title="Start Node"
-          >
+          <div draggable onDragStart={(e) => onDragStart(e, 'startNode', 'Start')} onClick={() => addNode('startNode', 'Start')}
+            className="w-12 h-12 bg-emerald-500/20 hover:bg-emerald-500/40 border border-emerald-500/30 rounded-xl flex items-center justify-center text-emerald-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
             <Play className="w-6 h-6 fill-current" />
-            <span className="absolute left-14 bg-black/80 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Start</span>
           </div>
-
-          <div
-            draggable
-            onDragStart={(e) => {
-              e.dataTransfer.setData('application/reactflow-template', 'commentReply');
-              e.dataTransfer.effectAllowed = 'move';
-            }}
-            onClick={() => addCommentReplyTemplate()}
-            className="w-12 h-12 bg-blue-500/20 hover:bg-blue-500/40 border border-blue-500/30 rounded-xl flex items-center justify-center text-blue-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing group relative"
-            title="New Comment"
-          >
+          <div draggable onDragStart={(e) => { e.dataTransfer.setData('application/reactflow-template', 'commentReply'); e.dataTransfer.effectAllowed = 'move'; }} onClick={() => addCommentReplyTemplate()}
+            className="w-12 h-12 bg-blue-500/20 hover:bg-blue-500/40 border border-blue-500/30 rounded-xl flex items-center justify-center text-blue-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
             <MessageCircle className="w-6 h-6" />
-            <span className="absolute left-14 bg-black/80 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">New Comment</span>
           </div>
-
-          <div
-            draggable
-            onDragStart={(e) => onDragStart(e, 'textNode', 'Text')}
-            onClick={() => addNode('textNode', 'Text')}
-            className="w-12 h-12 bg-amber-500/20 hover:bg-amber-500/40 border border-amber-500/30 rounded-xl flex items-center justify-center text-amber-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing group relative"
-            title="Send Text"
-          >
+          <div draggable onDragStart={(e) => onDragStart(e, 'textNode', 'Text')} onClick={() => addNode('textNode', 'Text')}
+            className="w-12 h-12 bg-amber-500/20 hover:bg-amber-500/40 border border-amber-500/30 rounded-xl flex items-center justify-center text-amber-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
             <MessageSquare className="w-6 h-6" />
-            <span className="absolute left-14 bg-black/80 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Send Text</span>
           </div>
-
-          <div
-            draggable
-            onDragStart={(e) => onDragStart(e, 'imageNode', 'Image')}
-            onClick={() => addNode('imageNode', 'Image')}
-            className="w-12 h-12 bg-rose-500/20 hover:bg-rose-500/40 border border-rose-500/30 rounded-xl flex items-center justify-center text-rose-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing group relative"
-            title="Send Image"
-          >
+          <div draggable onDragStart={(e) => onDragStart(e, 'imageNode', 'Image')} onClick={() => addNode('imageNode', 'Image')}
+            className="w-12 h-12 bg-rose-500/20 hover:bg-rose-500/40 border border-rose-500/30 rounded-xl flex items-center justify-center text-rose-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
             <Image className="w-6 h-6" />
-            <span className="absolute left-14 bg-black/80 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Send Image</span>
           </div>
-
-          <div
-            draggable
-            onDragStart={(e) => onDragStart(e, 'videoNode', 'Video')}
-            onClick={() => addNode('videoNode', 'Video')}
-            className="w-12 h-12 bg-cyan-500/20 hover:bg-cyan-500/40 border border-cyan-500/30 rounded-xl flex items-center justify-center text-cyan-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing group relative"
-            title="Send Video"
-          >
+          <div draggable onDragStart={(e) => onDragStart(e, 'videoNode', 'Video')} onClick={() => addNode('videoNode', 'Video')}
+            className="w-12 h-12 bg-cyan-500/20 hover:bg-cyan-500/40 border border-cyan-500/30 rounded-xl flex items-center justify-center text-cyan-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
             <Video className="w-6 h-6" />
-            <span className="absolute left-14 bg-black/80 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Send Video</span>
           </div>
-
-          <div
-            draggable
-            onDragStart={(e) => onDragStart(e, 'aiNode', 'AI Agent')}
-            onClick={() => addNode('aiNode', 'AI Agent')}
-            className="w-12 h-12 bg-indigo-500/20 hover:bg-indigo-500/40 border border-indigo-500/30 rounded-xl flex items-center justify-center text-indigo-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing group relative"
-            title="AI Agent"
-          >
+          <div draggable onDragStart={(e) => onDragStart(e, 'aiNode', 'AI Agent')} onClick={() => addNode('aiNode', 'AI Agent')}
+            className="w-12 h-12 bg-indigo-500/20 hover:bg-indigo-500/40 border border-indigo-500/30 rounded-xl flex items-center justify-center text-indigo-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
             <Sparkles className="w-6 h-6" />
-            <span className="absolute left-14 bg-black/80 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">AI Agent</span>
           </div>
-
-          <div
-            draggable
-            onDragStart={(e) => onDragStart(e, 'conditionNode', 'Condition')}
-            onClick={() => addNode('conditionNode', 'Condition')}
-            className="w-12 h-12 bg-orange-500/20 hover:bg-orange-500/40 border border-orange-500/30 rounded-xl flex items-center justify-center text-orange-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing group relative"
-            title="Condition"
-          >
+          <div draggable onDragStart={(e) => onDragStart(e, 'conditionNode', 'Condition')} onClick={() => addNode('conditionNode', 'Condition')}
+            className="w-12 h-12 bg-orange-500/20 hover:bg-orange-500/40 border border-orange-500/30 rounded-xl flex items-center justify-center text-orange-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
             <GitBranch className="w-6 h-6" />
-            <span className="absolute left-14 bg-black/80 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Condition</span>
           </div>
-
-          <div
-            draggable
-            onDragStart={(e) => onDragStart(e, 'formNode', 'Form')}
-            onClick={() => addNode('formNode', 'Form')}
-            className="w-12 h-12 bg-purple-500/20 hover:bg-purple-500/40 border border-purple-500/30 rounded-xl flex items-center justify-center text-purple-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing group relative"
-            title="Form"
-          >
+          <div draggable onDragStart={(e) => onDragStart(e, 'formNode', 'Form')} onClick={() => addNode('formNode', 'Form')}
+            className="w-12 h-12 bg-purple-500/20 hover:bg-purple-500/40 border border-purple-500/30 rounded-xl flex items-center justify-center text-purple-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
             <FileText className="w-6 h-6" />
-            <span className="absolute left-14 bg-black/80 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Form</span>
           </div>
-
-          <div
-            draggable
-            onDragStart={(e) => onDragStart(e, 'sheetsNode', 'Google Sheets')}
-            onClick={() => addNode('sheetsNode', 'Google Sheets')}
-            className="w-12 h-12 bg-green-500/20 hover:bg-green-500/40 border border-green-500/30 rounded-xl flex items-center justify-center text-green-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing group relative"
-            title="Google Sheets"
-          >
+          <div draggable onDragStart={(e) => onDragStart(e, 'sheetsNode', 'Google Sheets')} onClick={() => addNode('sheetsNode', 'Google Sheets')}
+            className="w-12 h-12 bg-green-500/20 hover:bg-green-500/40 border border-green-500/30 rounded-xl flex items-center justify-center text-green-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
             <Table className="w-6 h-6" />
-            <span className="absolute left-14 bg-black/80 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Sheets</span>
           </div>
-
-          <div
-            draggable
-            onDragStart={(e) => onDragStart(e, 'followupNode', 'Follow-up')}
-            onClick={() => addNode('followupNode', 'Follow-up')}
-            className="w-12 h-12 bg-rose-500/20 hover:bg-rose-500/40 border border-rose-500/30 rounded-xl flex items-center justify-center text-rose-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing group relative"
-            title="Follow-up"
-          >
+          <div draggable onDragStart={(e) => onDragStart(e, 'followupNode', 'Follow-up')} onClick={() => addNode('followupNode', 'Follow-up')}
+            className="w-12 h-12 bg-rose-500/20 hover:bg-rose-500/40 border border-rose-500/30 rounded-xl flex items-center justify-center text-rose-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
             <RefreshCw className="w-6 h-6" />
-            <span className="absolute left-14 bg-black/80 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Follow-up</span>
           </div>
         </div>
       </div>
@@ -1914,6 +1909,7 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
             <Controls className="hidden md:block !bg-slate-800 !border-white/10 !shadow-xl [&>button]:!fill-slate-400 [&>button:hover]:!fill-white" />
             <MiniMap
               className="hidden md:block !bg-slate-900/80 !backdrop-blur-sm !border-slate-700 !shadow-xl !rounded-lg overflow-hidden"
+              style={{ width: 120, height: 80 }}
               maskColor="rgba(15, 23, 42, 0.7)"
               nodeColor={(n) => {
                 if (n.type === 'triggerNode') return '#10b981';
