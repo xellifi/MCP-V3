@@ -5,44 +5,36 @@ const supabaseUrl = process.env.VITE_SUPABASE_URL!;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY!;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-// Configuration
-const FOLLOWUP_DELAY_MINUTES = 30;  // Wait 30 minutes before first follow-up
-const FOLLOWUP_INTERVAL_MINUTES = 120; // 2 hours between follow-ups
-const MAX_FOLLOWUPS = 3;
+// Default configuration (fallback if no followupNode configured)
+const DEFAULT_DELAY_MINUTES = 30;
+const DEFAULT_INTERVAL_MINUTES = 120;
+const DEFAULT_MAX_FOLLOWUPS = 3;
 const MAX_WINDOW_HOURS = 23; // Stay within Facebook's 24-hour policy
 
 /**
  * Form Follow-up Cron Job
  * 
  * Runs periodically to check for abandoned forms and trigger follow-up messages.
- * This sends to the FALSE path of condition nodes.
+ * Reads timing settings from the followupNode in each flow.
  */
 export default async function handler(req: VercelRequest, res: VercelResponse) {
     console.log('[Form Followup Cron] Starting...');
     console.log('[Form Followup Cron] Time:', new Date().toISOString());
 
     try {
-        // Calculate time windows
         const now = new Date();
         const minOpenTime = new Date(now.getTime() - MAX_WINDOW_HOURS * 60 * 60 * 1000);
-        const maxOpenTimeForFirst = new Date(now.getTime() - FOLLOWUP_DELAY_MINUTES * 60 * 1000);
-        const maxLastFollowup = new Date(now.getTime() - FOLLOWUP_INTERVAL_MINUTES * 60 * 1000);
 
         // Find form opens that need follow-up:
         // - submitted_at IS NULL (not submitted)
-        // - followup_count < MAX_FOLLOWUPS
-        // - opened_at > minOpenTime (within 24hr window)
-        // - Either: no follow-ups yet AND opened_at < maxOpenTimeForFirst
-        // - Or: has follow-ups AND last_followup_at < maxLastFollowup
-
+        // - within the 24hr window
         const { data: pendingFollowups, error: fetchError } = await supabase
             .from('form_opens')
             .select('*')
             .is('submitted_at', null)
-            .lt('followup_count', MAX_FOLLOWUPS)
             .gt('opened_at', minOpenTime.toISOString())
             .order('opened_at', { ascending: true })
-            .limit(50); // Process in batches
+            .limit(50);
 
         if (fetchError) {
             console.error('[Form Followup Cron] Error fetching:', fetchError);
@@ -57,19 +49,63 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         for (const formOpen of pendingFollowups || []) {
             processedCount++;
 
+            // Get the flow to check for followupNode settings
+            const { data: flow } = await supabase
+                .from('flows')
+                .select('*')
+                .eq('id', formOpen.flow_id)
+                .single();
+
+            if (!flow) {
+                console.log(`[Form Followup Cron] Flow not found for ${formOpen.subscriber_id}`);
+                continue;
+            }
+
+            // Find followupNode in the flow and get its settings
+            const nodes = flow.nodes || [];
+            const configurations = flow.configurations || {};
+
+            let followupDelayMinutes = DEFAULT_DELAY_MINUTES;
+            let followupIntervalMinutes = DEFAULT_INTERVAL_MINUTES;
+            let maxFollowups = DEFAULT_MAX_FOLLOWUPS;
+
+            // Look for a followupNode
+            const followupNode = nodes.find((n: any) => n.type === 'followupNode');
+            if (followupNode) {
+                const config = configurations[followupNode.id] || {};
+                followupDelayMinutes = config.firstDelayMinutes || DEFAULT_DELAY_MINUTES;
+                followupIntervalMinutes = config.intervalMinutes || DEFAULT_INTERVAL_MINUTES;
+                maxFollowups = config.maxFollowups || DEFAULT_MAX_FOLLOWUPS;
+                console.log(`[Form Followup Cron] Using node config: delay=${followupDelayMinutes}m, interval=${followupIntervalMinutes}m, max=${maxFollowups}`);
+            }
+
             const openedAt = new Date(formOpen.opened_at);
             const lastFollowupAt = formOpen.last_followup_at ? new Date(formOpen.last_followup_at) : null;
             const followupCount = formOpen.followup_count || 0;
+
+            // Check if max reached
+            if (followupCount >= maxFollowups) {
+                console.log(`[Form Followup Cron] Skipping ${formOpen.subscriber_id} - max followups reached (${followupCount}/${maxFollowups})`);
+                continue;
+            }
+
+            // Calculate time thresholds
+            const minutesSinceOpen = (now.getTime() - openedAt.getTime()) / (60 * 1000);
+            const minutesSinceLastFollowup = lastFollowupAt
+                ? (now.getTime() - lastFollowupAt.getTime()) / (60 * 1000)
+                : null;
 
             // Check timing conditions
             let shouldFollowup = false;
 
             if (followupCount === 0) {
-                // First follow-up: wait FOLLOWUP_DELAY_MINUTES after open
-                shouldFollowup = openedAt < maxOpenTimeForFirst;
+                // First follow-up: wait followupDelayMinutes after open
+                shouldFollowup = minutesSinceOpen >= followupDelayMinutes;
+                console.log(`[Form Followup Cron] ${formOpen.subscriber_id} - First check: ${minutesSinceOpen.toFixed(1)}m since open, need ${followupDelayMinutes}m`);
             } else {
-                // Subsequent follow-ups: wait FOLLOWUP_INTERVAL_MINUTES after last
-                shouldFollowup = lastFollowupAt && lastFollowupAt < maxLastFollowup;
+                // Subsequent follow-ups: wait followupIntervalMinutes after last
+                shouldFollowup = minutesSinceLastFollowup !== null && minutesSinceLastFollowup >= followupIntervalMinutes;
+                console.log(`[Form Followup Cron] ${formOpen.subscriber_id} - Interval check: ${minutesSinceLastFollowup?.toFixed(1)}m since last, need ${followupIntervalMinutes}m`);
             }
 
             if (!shouldFollowup) {
@@ -81,7 +117,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
             // Trigger the FALSE path via continue-flow
             try {
-                const response = await triggerFollowup(formOpen, followupCount + 1);
+                const response = await triggerFollowup(formOpen, followupCount + 1, flow, configurations);
 
                 if (response.success) {
                     // Update the form_opens record
@@ -116,7 +152,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 }
 
 // Trigger the FALSE path for a form open
-async function triggerFollowup(formOpen: any, followupNumber: number): Promise<{ success: boolean }> {
+async function triggerFollowup(formOpen: any, followupNumber: number, flow: any, configurations: any): Promise<{ success: boolean }> {
     if (!formOpen.flow_id || !formOpen.node_id || !formOpen.page_id) {
         console.log('[Form Followup Cron] Missing flow context, skipping');
         return { success: false };
@@ -134,21 +170,8 @@ async function triggerFollowup(formOpen: any, followupNumber: number): Promise<{
         return { success: false };
     }
 
-    // Get the flow
-    const { data: flow } = await supabase
-        .from('flows')
-        .select('*')
-        .eq('id', formOpen.flow_id)
-        .single();
-
-    if (!flow) {
-        console.log('[Form Followup Cron] Flow not found');
-        return { success: false };
-    }
-
     const nodes = flow.nodes || [];
     const edges = flow.edges || [];
-    const configurations = flow.configurations || {};
 
     // Find nodes after the form node, then find condition nodes
     const formNodeEdges = edges.filter((e: any) => e.source === formOpen.node_id);
