@@ -95,16 +95,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 ? (now.getTime() - lastFollowupAt.getTime()) / (60 * 1000)
                 : null;
 
-            // Check timing conditions
+            // Check timing conditions (use small tolerance for floating-point precision)
+            const TOLERANCE = 0.1; // 6 seconds tolerance
             let shouldFollowup = false;
 
             if (followupCount === 0) {
                 // First follow-up: wait followupDelayMinutes after open
-                shouldFollowup = minutesSinceOpen >= followupDelayMinutes;
+                shouldFollowup = minutesSinceOpen >= (followupDelayMinutes - TOLERANCE);
                 console.log(`[Form Followup Cron] ${formOpen.subscriber_id} - First check: ${minutesSinceOpen.toFixed(1)}m since open, need ${followupDelayMinutes}m`);
             } else {
                 // Subsequent follow-ups: wait followupIntervalMinutes after last
-                shouldFollowup = minutesSinceLastFollowup !== null && minutesSinceLastFollowup >= followupIntervalMinutes;
+                shouldFollowup = minutesSinceLastFollowup !== null && minutesSinceLastFollowup >= (followupIntervalMinutes - TOLERANCE);
                 console.log(`[Form Followup Cron] ${formOpen.subscriber_id} - Interval check: ${minutesSinceLastFollowup?.toFixed(1)}m since last, need ${followupIntervalMinutes}m`);
             }
 
