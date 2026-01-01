@@ -127,6 +127,7 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
   // Stable callback for form onChange - auto-saves to nodeConfigs on every change
   // This ensures data is preserved even if modal is accidentally closed
   const handleConfigChange = useCallback((config: any) => {
+    console.log('[FlowBuilder.handleConfigChange] Received config with promoText:', config.promoText, 'promoIcon:', config.promoIcon);
     setCurrentConfig(config);
     // Auto-save to nodeConfigs so config is preserved if modal closes
     if (selectedNode) {
