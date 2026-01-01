@@ -452,8 +452,8 @@ const FormView: React.FC = () => {
                                         <span className="text-lg">🔥</span>
                                     </div>
                                 </div>
-                                {/* Product Name Header - Right side (indigo/blue) */}
-                                <div className="lg:w-1/2 py-3 px-4 bg-indigo-600">
+                                {/* Product Name Header - Right side (indigo/blue) - hidden on mobile */}
+                                <div className="hidden lg:block lg:w-1/2 py-3 px-4 bg-indigo-600">
                                     <h1 className="text-lg font-bold text-white text-center uppercase tracking-wide">
                                         {isOrderForm && form?.product_name ? form.product_name : (form?.name || 'Order Form')}
                                     </h1>
@@ -463,18 +463,18 @@ const FormView: React.FC = () => {
 
                         {/* Content Row - Image (left) and Form (right) - equal height on lg */}
                         <div className={`${form?.header_image_url ? 'lg:flex lg:flex-row lg:items-stretch' : ''}`}>
-                            {/* Image Section - Left column on lg (light pink background) */}
+                            {/* Image Section - Left column on lg (light blue background) */}
                             {form?.header_image_url && (
                                 <div
                                     className="relative lg:w-1/2 flex flex-col"
-                                    style={{ backgroundColor: '#fce4ec' }}
+                                    style={{ backgroundColor: '#e0f2fe' }}
                                 >
-                                    {/* Image - reduced size for PC alignment */}
+                                    {/* Image - enlarged for PC */}
                                     <div className="flex-1 flex items-center justify-center p-4 lg:p-3">
                                         <img
                                             src={form.header_image_url}
                                             alt=""
-                                            className="w-full h-full object-contain max-h-[320px] lg:max-h-[240px]"
+                                            className="w-full h-full object-contain max-h-[320px] lg:max-h-[300px]"
                                         />
                                     </div>
 
