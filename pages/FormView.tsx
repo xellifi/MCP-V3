@@ -417,26 +417,9 @@ const FormView: React.FC = () => {
                 </div>
             )}
 
-            <div className="relative min-h-screen flex items-center justify-center p-3 py-4">
-                {/* Two-column on desktop when image exists (both themes) */}
-                <div className={`w-full ${form?.header_image_url ? 'max-w-4xl' : 'max-w-sm'}`}>
-                    {/* Timer */}
-                    {form?.countdown_enabled && timeLeft > 0 && (
-                        <div
-                            className={`mb-4 ${isMinimal ? 'bg-gradient-to-r from-indigo-500 to-purple-600' : 'bg-gradient-to-r from-purple-600 via-pink-500 to-rose-500'} rounded-2xl p-3 flex items-center justify-center gap-3 shadow-lg ${form?.countdown_blink ? 'animate-pulse' : ''}`}
-                            style={{
-                                borderRadius: getBorderRadius(),
-                                animation: form?.countdown_blink ? 'blink 1s ease-in-out infinite' : 'none'
-                            }}
-                        >
-                            <span className="text-xl">🔥</span>
-                            <div className="text-center">
-                                <p className="text-white/90 text-xs font-medium">OFFER EXPIRES IN</p>
-                                <p className={`text-white text-2xl font-bold font-mono ${form?.countdown_blink ? 'animate-pulse' : ''}`}>{formatTime(timeLeft)}</p>
-                            </div>
-                            <span className="text-xl">🔥</span>
-                        </div>
-                    )}
+            <div className="relative min-h-screen flex items-center justify-center p-2 py-3">
+                {/* Two-column on desktop when image exists (both themes) - 85% smaller */}
+                <div className={`w-full ${form?.header_image_url ? 'max-w-3xl' : 'max-w-xs'}`}>
                     <style>{`
                         @keyframes blink {
                             0%, 100% { opacity: 1; transform: scale(1); }
@@ -452,11 +435,27 @@ const FormView: React.FC = () => {
                         {/* Image Section - Left column on lg */}
                         {form?.header_image_url && (
                             <div
-                                className={`relative lg:w-1/2 lg:min-h-[350px] flex items-center justify-center p-3`}
+                                className={`relative lg:w-1/2 lg:min-h-[300px] flex items-center justify-center p-3`}
                                 style={{
                                     backgroundColor: isMinimal ? '#ffffff' : '#0a0a12'
                                 }}
                             >
+                                {/* Timer Badge - Inside card on top of image */}
+                                {form?.countdown_enabled && timeLeft > 0 && (
+                                    <div
+                                        className={`absolute top-3 left-3 right-3 z-10 ${isMinimal ? 'bg-gradient-to-r from-indigo-500 to-purple-600' : 'bg-gradient-to-r from-purple-600 via-pink-500 to-rose-500'} rounded-xl py-2 px-4 flex items-center justify-center gap-2 shadow-lg ${form?.countdown_blink ? 'animate-pulse' : ''}`}
+                                        style={{
+                                            animation: form?.countdown_blink ? 'blink 1s ease-in-out infinite' : 'none'
+                                        }}
+                                    >
+                                        <span className="text-base">🔥</span>
+                                        <div className="text-center">
+                                            <p className="text-white/90 text-[10px] font-medium leading-tight">OFFER EXPIRES IN</p>
+                                            <p className={`text-white text-lg font-bold font-mono leading-tight ${form?.countdown_blink ? 'animate-pulse' : ''}`}>{formatTime(timeLeft)}</p>
+                                        </div>
+                                        <span className="text-base">🔥</span>
+                                    </div>
+                                )}
                                 {/* Subtle gradient overlay */}
                                 <div className={`absolute inset-0 pointer-events-none ${isMinimal ? 'bg-gradient-to-br from-slate-50/80 via-transparent to-indigo-50/50' : 'bg-gradient-to-br from-purple-900/30 via-transparent to-pink-900/20'}`}></div>
                                 <img
