@@ -698,6 +698,8 @@ export const api = {
           ewallet_numbers: formData.ewalletNumbers || {},
           require_proof_upload: formData.requireProofUpload ?? true,
           form_template: formData.formTemplate || 'modern',
+          promo_text: formData.promoText || 'Promo Only!',
+          promo_icon: formData.promoIcon || '🔥',
         })
         .select()
         .single();
@@ -740,6 +742,8 @@ export const api = {
           require_proof_upload: formData.requireProofUpload ?? true,
           form_template: formData.formTemplate || 'modern',
           google_webhook_url: formData.googleWebhookUrl || null,
+          promo_text: formData.promoText || 'Promo Only!',
+          promo_icon: formData.promoIcon || '🔥',
           updated_at: new Date().toISOString(),
         })
         .eq('id', formId)
