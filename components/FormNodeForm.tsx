@@ -77,6 +77,7 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
     const [requireProofUpload, setRequireProofUpload] = useState(initialConfig?.requireProofUpload ?? true);
 
     useEffect(() => {
+        console.log('[FormNodeForm] onChange called with promoText:', promoText, 'promoIcon:', promoIcon);
         onChange({
             formName, headerImageUrl, submitButtonText, submitButtonColor, borderRadius, successMessage, fields,
             countdownEnabled, countdownMinutes, countdownBlink, promoText, promoIcon, formTemplate,
