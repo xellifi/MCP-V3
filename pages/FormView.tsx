@@ -469,23 +469,23 @@ const FormView: React.FC = () => {
                                     className="relative lg:w-1/2 flex flex-col"
                                     style={{ backgroundColor: '#fce4ec' }}
                                 >
-                                    {/* Image - fills available space with 5px padding */}
-                                    <div className="flex-1 flex items-center justify-center p-5">
+                                    {/* Image - fills available space with more padding */}
+                                    <div className="flex-1 flex items-center justify-center p-6">
                                         <img
                                             src={form.header_image_url}
                                             alt=""
-                                            className="w-full h-full object-contain max-h-[280px]"
+                                            className="w-full h-full object-contain max-h-[320px]"
                                         />
                                     </div>
-                                    {/* Countdown Timer - Blue background, black text, same padding as button */}
+                                    {/* Countdown Timer - Blue background, black text, matches button height */}
                                     {form?.countdown_enabled && timeLeft > 0 && (
-                                        <div className="w-full mx-4 mb-4" style={{ width: 'calc(100% - 32px)' }}>
-                                            <div className="py-3 px-4 bg-blue-500 flex items-center justify-center gap-3 rounded-lg">
+                                        <div className="px-4 pb-4">
+                                            <div className="py-3 bg-blue-500 flex items-center justify-center gap-3 rounded-lg">
                                                 <span className="text-xl">⏰</span>
                                                 <div className="flex items-center gap-2">
-                                                    <span className="text-slate-800 text-2xl font-bold font-mono bg-blue-400 px-3 py-1 rounded">{formatTime(timeLeft).hrs}</span>
-                                                    <span className="text-slate-800 text-2xl font-bold font-mono bg-blue-400 px-3 py-1 rounded">{formatTime(timeLeft).mins}</span>
-                                                    <span className="text-slate-800 text-2xl font-bold font-mono bg-blue-400 px-3 py-1 rounded">{formatTime(timeLeft).secs}</span>
+                                                    <span className="text-slate-800 text-xl font-bold font-mono bg-blue-400 px-3 py-1 rounded">{formatTime(timeLeft).hrs}</span>
+                                                    <span className="text-slate-800 text-xl font-bold font-mono bg-blue-400 px-3 py-1 rounded">{formatTime(timeLeft).mins}</span>
+                                                    <span className="text-slate-800 text-xl font-bold font-mono bg-blue-400 px-3 py-1 rounded">{formatTime(timeLeft).secs}</span>
                                                 </div>
                                             </div>
                                         </div>
