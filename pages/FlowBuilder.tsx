@@ -915,7 +915,7 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
         toast.success(`${newFlowNodes.length} sub-flow(s) also saved!`);
       }
 
-      // Save forms from formNode nodes
+      // Save forms from formNode nodes (OPTIMIZED: parallel saves)
       const formNodes = nodes.filter(node => node.type === 'formNode');
 
       if (formNodes.length > 0) {
@@ -925,18 +925,17 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
         const updatedConfigs = { ...nodeConfigs };
         let formsCreated = false;
 
-        for (const formNode of formNodes) {
+        // Prepare form save operations for parallel execution
+        const formSavePromises = formNodes.map(async (formNode) => {
           const formConfig = updatedConfigs[formNode.id];
           if (!formConfig) {
             console.log('[FlowBuilder.saveFlow] ⚠ No config for form node:', formNode.id);
-            continue;
+            return null;
           }
 
           // Find connected Google Sheets node
           // Look for edges from this formNode to a sheetsNode
-          const sheetsEdge = edges.find(e =>
-            e.source === formNode.id
-          );
+          const sheetsEdge = edges.find(e => e.source === formNode.id);
 
           let sheetsConfig = null;
           if (sheetsEdge) {
@@ -967,6 +966,7 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
               if (sheetsConfig) {
                 console.log('[FlowBuilder.saveFlow] ✓ Form includes connected Sheets config');
               }
+              return { nodeId: formNode.id, formId: formConfig.formId, isNew: false };
             } else {
               // Create new form
               const newForm = await api.workspace.createForm(workspace.id, {
@@ -975,20 +975,29 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
                 nodeId: formNode.id
               });
 
-              // Update config with the new form ID
-              updatedConfigs[formNode.id] = {
-                ...formConfig,
-                formId: newForm.id
-              };
-              formsCreated = true;
-
               console.log('[FlowBuilder.saveFlow] ✓ Form created:', formConfig.formName, 'ID:', newForm.id);
               if (sheetsConfig) {
                 console.log('[FlowBuilder.saveFlow] ✓ New form includes connected Sheets config');
               }
+              return { nodeId: formNode.id, formId: newForm.id, isNew: true, formConfig };
             }
           } catch (formError) {
             console.error('[FlowBuilder.saveFlow] ✗ Error saving form:', formError);
+            return null;
+          }
+        });
+
+        // Execute all form saves in parallel
+        const results = await Promise.all(formSavePromises);
+
+        // Process results and update configs with new form IDs
+        for (const result of results) {
+          if (result && result.isNew && result.formId) {
+            updatedConfigs[result.nodeId] = {
+              ...result.formConfig,
+              formId: result.formId
+            };
+            formsCreated = true;
           }
         }
 
