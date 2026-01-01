@@ -76,15 +76,19 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
     const [ewalletNumbers, setEwalletNumbers] = useState<Record<string, string>>(initialConfig?.ewalletNumbers || {});
     const [requireProofUpload, setRequireProofUpload] = useState(initialConfig?.requireProofUpload ?? true);
 
+    // CRITICAL: Preserve formId from initialConfig for updates (not creating new)
+    const formId = initialConfig?.formId;
+
     useEffect(() => {
-        console.log('[FormNodeForm] onChange called with promoText:', promoText, 'promoIcon:', promoIcon);
+        console.log('[FormNodeForm] onChange called with formId:', formId, 'promoText:', promoText, 'promoIcon:', promoIcon);
         onChange({
+            formId, // IMPORTANT: Pass formId so updates work instead of creating new
             formName, headerImageUrl, submitButtonText, submitButtonColor, borderRadius, successMessage, fields,
             countdownEnabled, countdownMinutes, countdownBlink, promoText, promoIcon, formTemplate,
             isOrderForm, productName, productPrice, currency, maxQuantity, couponEnabled, couponCode, couponDiscount,
             codEnabled, ewalletEnabled, ewalletOptions, ewalletNumbers, requireProofUpload,
         });
-    }, [formName, headerImageUrl, submitButtonText, submitButtonColor, borderRadius, successMessage, fields,
+    }, [formId, formName, headerImageUrl, submitButtonText, submitButtonColor, borderRadius, successMessage, fields,
         countdownEnabled, countdownMinutes, countdownBlink, promoText, promoIcon, formTemplate, isOrderForm, productName, productPrice, currency, maxQuantity,
         couponEnabled, couponCode, couponDiscount, codEnabled, ewalletEnabled, ewalletOptions, ewalletNumbers, requireProofUpload]);
 
