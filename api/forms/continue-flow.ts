@@ -71,11 +71,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         let workspaceId = '';
 
         if (pageId) {
-            const { data: page } = await supabase
+            console.log('[Continue Flow] Looking up page with page_id:', pageId);
+
+            // Try to find by Facebook page_id first
+            let { data: page, error: pageError } = await supabase
                 .from('connected_pages')
                 .select('*, workspaces!inner(id)')
                 .eq('page_id', pageId)
                 .single();
+
+            // If not found, also log what pages exist for debugging
+            if (!page) {
+                console.log('[Continue Flow] Page not found by page_id, checking available pages...');
+                const { data: allPages } = await supabase
+                    .from('connected_pages')
+                    .select('id, page_id, name')
+                    .limit(5);
+                console.log('[Continue Flow] Available pages:', allPages);
+            }
 
             if (page) {
                 pageAccessToken = (page as any).page_access_token;
@@ -86,8 +99,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
 
         if (!pageAccessToken) {
-            console.error('[Continue Flow] No page access token found');
-            return res.status(400).json({ error: 'No page access token' });
+            console.error('[Continue Flow] No page access token found for pageId:', pageId);
+            return res.status(400).json({ error: 'No page access token', pageId });
         }
 
         // Create context for flow execution
@@ -111,6 +124,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         // Find all edges FROM the form node (direct connections)
         const formNodeEdges = edges.filter((e: any) => e.source === nodeId);
         console.log('[Continue Flow] Found', formNodeEdges.length, 'edge(s) from form node');
+        console.log('[Continue Flow] Form node edges:', formNodeEdges.map((e: any) => ({ target: e.target, sourceHandle: e.sourceHandle })));
 
         // Find nodes to execute (skip the form node itself, start from its successors)
         const nodesToExecute: string[] = [];
@@ -122,6 +136,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         for (const edge of formNodeEdges) {
             const targetNode = nodes.find((n: any) => n.id === edge.target);
+            console.log('[Continue Flow] Checking edge target:', edge.target, '-> type:', targetNode?.type);
             if (!targetNode) continue;
 
             // If it's a sheetsNode, skip it and find nodes after it
@@ -129,10 +144,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 console.log('[Continue Flow] Found sheets node, looking for nodes after it');
                 const sheetsEdges = edges.filter((e: any) => e.source === edge.target);
                 for (const sheetsEdge of sheetsEdges) {
+                    console.log('[Continue Flow] Adding sheets successor:', sheetsEdge.target);
                     queue.push({ nodeId: sheetsEdge.target });
                 }
                 visited.add(edge.target);
             } else {
+                console.log('[Continue Flow] Adding direct successor:', edge.target);
                 queue.push({ nodeId: edge.target });
             }
         }
