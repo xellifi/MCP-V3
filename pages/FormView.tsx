@@ -417,9 +417,9 @@ const FormView: React.FC = () => {
                 </div>
             )}
 
-            <div className="relative min-h-screen flex items-center justify-center p-4 py-6">
+            <div className="relative min-h-screen flex items-center justify-center p-3 py-4">
                 {/* Two-column on desktop when image exists (both themes) */}
-                <div className={`w-full ${form?.header_image_url ? 'max-w-5xl' : 'max-w-md'}`}>
+                <div className={`w-full ${form?.header_image_url ? 'max-w-4xl' : 'max-w-sm'}`}>
                     {/* Timer */}
                     {form?.countdown_enabled && timeLeft > 0 && (
                         <div
@@ -452,9 +452,9 @@ const FormView: React.FC = () => {
                         {/* Image Section - Left column on lg */}
                         {form?.header_image_url && (
                             <div
-                                className={`relative lg:w-1/2 lg:min-h-[450px] overflow-hidden flex items-center justify-center`}
+                                className={`relative lg:w-1/2 lg:min-h-[350px] overflow-hidden flex items-center justify-center`}
                                 style={{
-                                    padding: '15px',
+                                    padding: '12px',
                                     backgroundColor: isMinimal ? '#ffffff' : '#0a0a12',
                                     borderRadius: `${getBorderRadius()} ${getBorderRadius()} 0 0`
                                 }}
@@ -474,14 +474,14 @@ const FormView: React.FC = () => {
 
                         {/* Form Content - Right column on lg */}
                         <div className={`${form?.header_image_url ? 'lg:w-1/2 lg:flex lg:flex-col lg:justify-center' : ''}`}>
-                            {/* Product Name with Full-Width Background */}
-                            <div className={`w-full py-5 px-6 ${isMinimal ? 'bg-gradient-to-r from-indigo-50 via-white to-purple-50' : 'bg-gradient-to-r from-purple-900/40 via-slate-900/60 to-pink-900/40'} ${form?.header_image_url ? '' : 'rounded-t-2xl'}`}>
-                                <h1 className={`text-3xl font-bold ${textColor} text-center`}>
+                            {/* Product Name with Solid Background */}
+                            <div className={`w-full py-4 px-5 ${isMinimal ? 'bg-indigo-600' : 'bg-gradient-to-r from-purple-600 via-fuchsia-500 to-pink-500'} ${form?.header_image_url ? '' : 'rounded-t-2xl'}`}>
+                                <h1 className="text-2xl font-bold text-white text-center">
                                     {isOrderForm && form?.product_name ? form.product_name : (form?.name || 'Order Form')}
                                 </h1>
                             </div>
 
-                            <div className="p-6">
+                            <div className="p-5">
 
                                 {/* Step Indicator */}
                                 {isOrderForm && (
