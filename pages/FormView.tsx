@@ -35,6 +35,25 @@ const FormView: React.FC = () => {
 
     useEffect(() => { loadForm(); }, [formId]);
 
+    // Log form open for abandoned form tracking
+    useEffect(() => {
+        if (formId && subscriberId && flowId) {
+            console.log('[FormView] Logging form open for follow-up tracking');
+            fetch('/api/forms/log-open', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    formId,
+                    flowId,
+                    nodeId,
+                    pageId,
+                    subscriberId,
+                    subscriberName
+                })
+            }).catch(err => console.error('[FormView] Error logging open:', err));
+        }
+    }, [formId, subscriberId, flowId]);
+
     // Countdown timer
     useEffect(() => {
         if (form?.countdown_enabled && form?.countdown_minutes > 0 && timeLeft > 0 && !expired) {
@@ -253,6 +272,15 @@ const FormView: React.FC = () => {
                     console.error('[FormView] Flow continuation error:', flowErr);
                     // Don't fail the submission if flow continuation fails
                 }
+            }
+
+            // Mark form as submitted to prevent follow-up messages
+            if (subscriberId) {
+                fetch('/api/forms/mark-submitted', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ formId, subscriberId })
+                }).catch(err => console.error('[FormView] Mark submitted error:', err));
             }
 
             setSubmitted(true);
