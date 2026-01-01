@@ -461,20 +461,20 @@ const FormView: React.FC = () => {
                             </div>
                         )}
 
-                        {/* Content Row - Image (left) and Form (right) */}
-                        <div className={`${form?.header_image_url ? 'lg:flex lg:flex-row' : ''}`}>
+                        {/* Content Row - Image (left) and Form (right) - equal height on lg */}
+                        <div className={`${form?.header_image_url ? 'lg:flex lg:flex-row lg:items-stretch' : ''}`}>
                             {/* Image Section - Left column on lg (light pink background) */}
                             {form?.header_image_url && (
                                 <div
                                     className="relative lg:w-1/2 flex flex-col"
                                     style={{ backgroundColor: '#fce4ec' }}
                                 >
-                                    {/* Image - fills available space with more padding */}
-                                    <div className="flex-1 flex items-center justify-center p-6">
+                                    {/* Image - reduced size for PC alignment */}
+                                    <div className="flex-1 flex items-center justify-center p-4 lg:p-3">
                                         <img
                                             src={form.header_image_url}
                                             alt=""
-                                            className="w-full h-full object-contain max-h-[320px]"
+                                            className="w-full h-full object-contain max-h-[320px] lg:max-h-[240px]"
                                         />
                                     </div>
 
@@ -487,16 +487,16 @@ const FormView: React.FC = () => {
                                         </div>
                                     </div>
 
-                                    {/* Countdown Timer - Blue background, black text */}
+                                    {/* Countdown Timer - pushed to bottom with mt-auto on lg */}
                                     {form?.countdown_enabled && timeLeft > 0 && (
-                                        <div className="px-4 pb-4">
-                                            {/* Desktop timer */}
+                                        <div className="px-4 pb-4 lg:mt-auto">
+                                            {/* Desktop timer - matches button height */}
                                             <div className="hidden lg:flex py-3 bg-blue-500 items-center justify-center gap-3 rounded-lg">
-                                                <span className="text-xl">⏰</span>
+                                                <span className="text-lg">⏰</span>
                                                 <div className="flex items-center gap-2">
-                                                    <span className="text-slate-800 text-xl font-bold font-mono bg-blue-400 px-3 py-1 rounded">{formatTime(timeLeft).hrs}</span>
-                                                    <span className="text-slate-800 text-xl font-bold font-mono bg-blue-400 px-3 py-1 rounded">{formatTime(timeLeft).mins}</span>
-                                                    <span className="text-slate-800 text-xl font-bold font-mono bg-blue-400 px-3 py-1 rounded">{formatTime(timeLeft).secs}</span>
+                                                    <span className="text-slate-800 text-lg font-bold font-mono bg-blue-400 px-2 py-0.5 rounded">{formatTime(timeLeft).hrs}</span>
+                                                    <span className="text-slate-800 text-lg font-bold font-mono bg-blue-400 px-2 py-0.5 rounded">{formatTime(timeLeft).mins}</span>
+                                                    <span className="text-slate-800 text-lg font-bold font-mono bg-blue-400 px-2 py-0.5 rounded">{formatTime(timeLeft).secs}</span>
                                                 </div>
                                             </div>
                                             {/* Mobile/Tablet timer (smaller) */}
