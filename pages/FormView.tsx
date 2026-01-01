@@ -443,9 +443,10 @@ const FormView: React.FC = () => {
                         {/* Header Row - Promo (left) and Product Name (right) aligned */}
                         {form?.header_image_url && (
                             <div className="lg:flex lg:flex-row">
-                                {/* Promo Banner - Left side (coral/salmon gradient, blinking) */}
-                                <div className={`lg:w-1/2 py-3 px-4 bg-gradient-to-r from-red-400 via-rose-400 to-pink-300 ${form?.countdown_blink ? 'blink-animation' : ''}`}>
-                                    <div className="flex items-center justify-center gap-2">
+                                {/* Promo Banner - Left side (coral/salmon gradient) */}
+                                <div className="lg:w-1/2 py-3 px-4 bg-gradient-to-r from-red-400 via-rose-400 to-pink-300">
+                                    {/* Only the text and icons blink */}
+                                    <div className={`flex items-center justify-center gap-2 ${form?.countdown_blink ? 'blink-animation' : ''}`}>
                                         <span className="text-lg">🔥</span>
                                         <span className="text-white text-base font-bold drop-shadow">Promo Only!</span>
                                         <span className="text-lg">🔥</span>
@@ -468,22 +469,24 @@ const FormView: React.FC = () => {
                                     className="relative lg:w-1/2 flex flex-col"
                                     style={{ backgroundColor: '#fce4ec' }}
                                 >
-                                    {/* Image - fills available space */}
-                                    <div className="flex-1 flex items-center justify-center p-4">
+                                    {/* Image - fills available space with 5px padding */}
+                                    <div className="flex-1 flex items-center justify-center p-5">
                                         <img
                                             src={form.header_image_url}
                                             alt=""
-                                            className="w-full h-full object-contain max-h-[240px]"
+                                            className="w-full h-full object-contain max-h-[280px]"
                                         />
                                     </div>
-                                    {/* Countdown Timer - Full width at bottom (dark gray, NO blink) */}
+                                    {/* Countdown Timer - Blue background, black text, same padding as button */}
                                     {form?.countdown_enabled && timeLeft > 0 && (
-                                        <div className="w-full py-3 px-4 bg-slate-700 flex items-center justify-center gap-3">
-                                            <span className="text-xl">⏰</span>
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-white text-2xl font-bold font-mono bg-slate-600 px-3 py-1 rounded">{formatTime(timeLeft).hrs}</span>
-                                                <span className="text-white text-2xl font-bold font-mono bg-slate-600 px-3 py-1 rounded">{formatTime(timeLeft).mins}</span>
-                                                <span className="text-white text-2xl font-bold font-mono bg-slate-600 px-3 py-1 rounded">{formatTime(timeLeft).secs}</span>
+                                        <div className="w-full mx-4 mb-4" style={{ width: 'calc(100% - 32px)' }}>
+                                            <div className="py-3 px-4 bg-blue-500 flex items-center justify-center gap-3 rounded-lg">
+                                                <span className="text-xl">⏰</span>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-slate-800 text-2xl font-bold font-mono bg-blue-400 px-3 py-1 rounded">{formatTime(timeLeft).hrs}</span>
+                                                    <span className="text-slate-800 text-2xl font-bold font-mono bg-blue-400 px-3 py-1 rounded">{formatTime(timeLeft).mins}</span>
+                                                    <span className="text-slate-800 text-2xl font-bold font-mono bg-blue-400 px-3 py-1 rounded">{formatTime(timeLeft).secs}</span>
+                                                </div>
                                             </div>
                                         </div>
                                     )}
