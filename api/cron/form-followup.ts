@@ -176,14 +176,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
                 // Build form URL for button
                 let buttonUrl = '';
-                if (followup.buttonEnabled !== false && formOpen.flow_id) {
+                if (followup.buttonEnabled !== false && formOpen.form_id) {
                     // Use VERCEL_URL (auto-set by Vercel) or APP_URL env var
                     const vercelUrl = process.env.VERCEL_URL;
                     const appUrl = process.env.APP_URL || process.env.VITE_APP_URL;
                     const baseUrl = appUrl || (vercelUrl ? `https://${vercelUrl}` : '');
 
                     if (baseUrl) {
-                        buttonUrl = `${baseUrl}/form/${formOpen.flow_id}?psid=${formOpen.subscriber_id}&name=${encodeURIComponent(formOpen.subscriber_name || '')}`;
+                        // Build URL with correct path and query params for FormView
+                        const params = new URLSearchParams({
+                            sid: formOpen.subscriber_id || '',
+                            sname: formOpen.subscriber_name || '',
+                            flowId: formOpen.flow_id || '',
+                            nodeId: formOpen.node_id || '',
+                            pageId: formOpen.page_id || ''
+                        });
+                        buttonUrl = `${baseUrl}/forms/${formOpen.form_id}?${params.toString()}`;
                         console.log('[Form Followup Cron] Button URL:', buttonUrl);
                     } else {
                         console.log('[Form Followup Cron] No APP_URL or VERCEL_URL set, button will be skipped');
