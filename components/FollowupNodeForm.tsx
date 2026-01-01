@@ -95,14 +95,28 @@ const FollowupNodeForm: React.FC<FollowupNodeFormProps> = ({ config, onChange })
                     <select
                         value={config.maxFollowups || 3}
                         onChange={(e) => handleChange('maxFollowups', parseInt(e.target.value))}
-                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-rose-500/50 focus:border-rose-500/50"
+                        className="w-full bg-slate-800 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-rose-500/50 focus:border-rose-500/50 appearance-none cursor-pointer"
+                        style={{
+                            backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%239ca3af' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
+                            backgroundPosition: 'right 0.75rem center',
+                            backgroundRepeat: 'no-repeat',
+                            backgroundSize: '1.5em 1.5em',
+                            paddingRight: '2.5rem'
+                        }}
                     >
-                        <option value={1}>1 reminder</option>
-                        <option value={2}>2 reminders</option>
-                        <option value={3}>3 reminders (recommended)</option>
+                        <option value={1} className="bg-slate-800 text-white">1 reminder</option>
+                        <option value={2} className="bg-slate-800 text-white">2 reminders</option>
+                        <option value={3} className="bg-slate-800 text-white">3 reminders (recommended)</option>
+                        <option value={4} className="bg-slate-800 text-white">4 reminders</option>
+                        <option value={5} className="bg-slate-800 text-white">5 reminders</option>
+                        <option value={6} className="bg-slate-800 text-white">6 reminders</option>
+                        <option value={7} className="bg-slate-800 text-white">7 reminders</option>
+                        <option value={8} className="bg-slate-800 text-white">8 reminders</option>
+                        <option value={9} className="bg-slate-800 text-white">9 reminders</option>
+                        <option value={10} className="bg-slate-800 text-white">10 reminders (max)</option>
                     </select>
                     <p className="text-xs text-slate-500 mt-1">
-                        Don't spam - 3 is recommended max
+                        3 reminders is recommended for best results
                     </p>
                 </div>
             </div>
