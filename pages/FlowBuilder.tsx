@@ -496,7 +496,9 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
     console.log('[FlowBuilder.handleConfigureNode] Config type:', configType);
     console.log('[FlowBuilder.handleConfigureNode] Extracted config:', extractedConfig);
     console.log('[FlowBuilder.handleConfigureNode] Saved config (nodeConfigs):', savedConfig);
+    console.log('[FlowBuilder.handleConfigureNode] Saved config has formId?', savedConfig?.formId);
     console.log('[FlowBuilder.handleConfigureNode] Merged config:', mergedConfig);
+    console.log('[FlowBuilder.handleConfigureNode] Merged config has formId?', mergedConfig?.formId);
     console.log('[FlowBuilder.handleConfigureNode] flowPageId:', flowPageId);
 
     setSelectedNode(freshNode);
