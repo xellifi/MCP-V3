@@ -452,11 +452,9 @@ const FormView: React.FC = () => {
                         {/* Image Section - Left column on lg */}
                         {form?.header_image_url && (
                             <div
-                                className={`relative lg:w-1/2 lg:min-h-[350px] overflow-hidden flex items-center justify-center`}
+                                className={`relative lg:w-1/2 lg:min-h-[350px] flex items-center justify-center p-3`}
                                 style={{
-                                    padding: '12px',
-                                    backgroundColor: isMinimal ? '#ffffff' : '#0a0a12',
-                                    borderRadius: `${getBorderRadius()} ${getBorderRadius()} 0 0`
+                                    backgroundColor: isMinimal ? '#ffffff' : '#0a0a12'
                                 }}
                             >
                                 {/* Subtle gradient overlay */}
@@ -465,23 +463,22 @@ const FormView: React.FC = () => {
                                     src={form.header_image_url}
                                     alt=""
                                     className={`w-full h-full object-contain rounded-xl ${isMinimal ? 'shadow-lg' : 'shadow-2xl shadow-purple-500/20'}`}
-                                    style={{
-                                        maxHeight: 'none'
-                                    }}
                                 />
                             </div>
                         )}
 
                         {/* Form Content - Right column on lg */}
                         <div className={`${form?.header_image_url ? 'lg:w-1/2 lg:flex lg:flex-col lg:justify-center' : ''}`}>
-                            {/* Product Name with Solid Background */}
-                            <div className={`w-full py-4 px-5 ${isMinimal ? 'bg-indigo-600' : 'bg-gradient-to-r from-purple-600 via-fuchsia-500 to-pink-500'} ${form?.header_image_url ? '' : 'rounded-t-2xl'}`}>
-                                <h1 className="text-2xl font-bold text-white text-center">
-                                    {isOrderForm && form?.product_name ? form.product_name : (form?.name || 'Order Form')}
-                                </h1>
+                            {/* Product Name with Solid Background - with margin to align with buttons */}
+                            <div className="px-5 pt-5">
+                                <div className={`w-full py-4 px-5 rounded-xl ${isMinimal ? 'bg-indigo-600' : 'bg-gradient-to-r from-purple-600 via-fuchsia-500 to-pink-500'}`}>
+                                    <h1 className="text-2xl font-bold text-white text-center">
+                                        {isOrderForm && form?.product_name ? form.product_name : (form?.name || 'Order Form')}
+                                    </h1>
+                                </div>
                             </div>
 
-                            <div className="p-5">
+                            <div className="p-5 pt-4">
 
                                 {/* Step Indicator */}
                                 {isOrderForm && (
