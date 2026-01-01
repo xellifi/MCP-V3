@@ -477,15 +477,35 @@ const FormView: React.FC = () => {
                                             className="w-full h-full object-contain max-h-[320px]"
                                         />
                                     </div>
-                                    {/* Countdown Timer - Blue background, black text, matches button height */}
+
+                                    {/* Product Name - Mobile/Tablet only (above timer) */}
+                                    <div className="lg:hidden px-4 pb-2">
+                                        <div className="py-2 px-4 bg-indigo-600 rounded-lg">
+                                            <h1 className="text-base font-bold text-white text-center uppercase tracking-wide">
+                                                {isOrderForm && form?.product_name ? form.product_name : (form?.name || 'Order Form')}
+                                            </h1>
+                                        </div>
+                                    </div>
+
+                                    {/* Countdown Timer - Blue background, black text */}
                                     {form?.countdown_enabled && timeLeft > 0 && (
                                         <div className="px-4 pb-4">
-                                            <div className="py-3 bg-blue-500 flex items-center justify-center gap-3 rounded-lg">
+                                            {/* Desktop timer */}
+                                            <div className="hidden lg:flex py-3 bg-blue-500 items-center justify-center gap-3 rounded-lg">
                                                 <span className="text-xl">⏰</span>
                                                 <div className="flex items-center gap-2">
                                                     <span className="text-slate-800 text-xl font-bold font-mono bg-blue-400 px-3 py-1 rounded">{formatTime(timeLeft).hrs}</span>
                                                     <span className="text-slate-800 text-xl font-bold font-mono bg-blue-400 px-3 py-1 rounded">{formatTime(timeLeft).mins}</span>
                                                     <span className="text-slate-800 text-xl font-bold font-mono bg-blue-400 px-3 py-1 rounded">{formatTime(timeLeft).secs}</span>
+                                                </div>
+                                            </div>
+                                            {/* Mobile/Tablet timer (smaller) */}
+                                            <div className="lg:hidden flex py-2 bg-blue-500 items-center justify-center gap-2 rounded-lg">
+                                                <span className="text-base">⏰</span>
+                                                <div className="flex items-center gap-1">
+                                                    <span className="text-slate-800 text-lg font-bold font-mono bg-blue-400 px-2 py-0.5 rounded">{formatTime(timeLeft).hrs}</span>
+                                                    <span className="text-slate-800 text-lg font-bold font-mono bg-blue-400 px-2 py-0.5 rounded">{formatTime(timeLeft).mins}</span>
+                                                    <span className="text-slate-800 text-lg font-bold font-mono bg-blue-400 px-2 py-0.5 rounded">{formatTime(timeLeft).secs}</span>
                                                 </div>
                                             </div>
                                         </div>
