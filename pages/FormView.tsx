@@ -447,9 +447,9 @@ const FormView: React.FC = () => {
                                 <div className="lg:w-1/2 py-3 px-4 bg-gradient-to-r from-red-400 via-rose-400 to-pink-300">
                                     {/* Only the text and icons blink */}
                                     <div className={`flex items-center justify-center gap-2 ${form?.countdown_blink ? 'blink-animation' : ''}`}>
-                                        <span className="text-lg">🔥</span>
-                                        <span className="text-white text-base font-bold drop-shadow">Promo Only!</span>
-                                        <span className="text-lg">🔥</span>
+                                        <span className="text-lg">{form?.promo_icon || '🔥'}</span>
+                                        <span className="text-white text-base font-bold drop-shadow">{form?.promo_text || 'Promo Only!'}</span>
+                                        <span className="text-lg">{form?.promo_icon || '🔥'}</span>
                                     </div>
                                 </div>
                                 {/* Product Name Header - Right side (indigo/blue) - hidden on mobile */}
@@ -467,7 +467,7 @@ const FormView: React.FC = () => {
                             {form?.header_image_url && (
                                 <div
                                     className="relative lg:w-1/2 flex flex-col"
-                                    style={{ backgroundColor: '#e0f2fe' }}
+                                    style={{ backgroundColor: '#ffffff' }}
                                 >
                                     {/* Image - enlarged for PC */}
                                     <div className="flex-1 flex items-center justify-center p-4 lg:p-3">

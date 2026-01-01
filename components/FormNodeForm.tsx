@@ -55,6 +55,10 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
     const [countdownMinutes, setCountdownMinutes] = useState(initialConfig?.countdownMinutes || 10);
     const [countdownBlink, setCountdownBlink] = useState(initialConfig?.countdownBlink ?? true);
 
+    // Promo Banner settings
+    const [promoText, setPromoText] = useState(initialConfig?.promoText || 'Promo Only!');
+    const [promoIcon, setPromoIcon] = useState(initialConfig?.promoIcon || '🔥');
+
     // Order/Product settings
     const [isOrderForm, setIsOrderForm] = useState(initialConfig?.isOrderForm ?? true);
     const [productName, setProductName] = useState(initialConfig?.productName || '');
@@ -75,12 +79,12 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
     useEffect(() => {
         onChange({
             formName, headerImageUrl, submitButtonText, submitButtonColor, borderRadius, successMessage, fields,
-            countdownEnabled, countdownMinutes, countdownBlink, formTemplate,
+            countdownEnabled, countdownMinutes, countdownBlink, promoText, promoIcon, formTemplate,
             isOrderForm, productName, productPrice, currency, maxQuantity, couponEnabled, couponCode, couponDiscount,
             codEnabled, ewalletEnabled, ewalletOptions, ewalletNumbers, requireProofUpload,
         });
     }, [formName, headerImageUrl, submitButtonText, submitButtonColor, borderRadius, successMessage, fields,
-        countdownEnabled, countdownMinutes, countdownBlink, formTemplate, isOrderForm, productName, productPrice, currency, maxQuantity,
+        countdownEnabled, countdownMinutes, countdownBlink, promoText, promoIcon, formTemplate, isOrderForm, productName, productPrice, currency, maxQuantity,
         couponEnabled, couponCode, couponDiscount, codEnabled, ewalletEnabled, ewalletOptions, ewalletNumbers, requireProofUpload]);
 
     const addField = (type: string) => {
@@ -206,7 +210,7 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
                         </div>
                         {headerImageUrl && (
                             <div className="mt-2 relative">
-                                <img src={headerImageUrl} alt="" className="w-full h-24 object-cover rounded-xl border border-slate-700" />
+                                <img src={headerImageUrl} alt="" className="w-1/2 h-auto object-contain rounded-xl border border-slate-700 bg-slate-950/50" />
                                 <button
                                     type="button"
                                     onClick={() => setHeaderImageUrl('')}
@@ -472,7 +476,7 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
                             </label>
                         </div>
                         {countdownEnabled && (
-                            <div className="space-y-2">
+                            <div className="space-y-3">
                                 <div className="flex items-center gap-2">
                                     <input type="number" min="1" max="60" value={countdownMinutes} onChange={(e) => setCountdownMinutes(parseInt(e.target.value) || 1)}
                                         className="w-14 px-2 py-1 bg-slate-800/80 border border-orange-500/30 rounded-lg text-white text-center text-xs" />
@@ -483,6 +487,32 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
                                         className="w-3.5 h-3.5 rounded text-orange-500 bg-slate-700 border-slate-600" />
                                     <span className="text-[10px] text-slate-300">Blink timer</span>
                                 </label>
+
+                                <div className="pt-2 border-t border-slate-700/50">
+                                    <p className="text-[10px] text-slate-500 mb-1.5">Promo Banner Settings</p>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <div>
+                                            <label className="text-[9px] text-slate-400 block mb-0.5">Icon</label>
+                                            <input
+                                                type="text"
+                                                value={promoIcon}
+                                                onChange={(e) => setPromoIcon(e.target.value)}
+                                                className="w-full px-2 py-1.5 bg-slate-800/50 border border-slate-700 rounded-lg text-white text-xs text-center"
+                                                placeholder="🔥"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="text-[9px] text-slate-400 block mb-0.5">Text</label>
+                                            <input
+                                                type="text"
+                                                value={promoText}
+                                                onChange={(e) => setPromoText(e.target.value)}
+                                                className="w-full px-2 py-1.5 bg-slate-800/50 border border-slate-700 rounded-lg text-white text-xs"
+                                                placeholder="Promo Only!"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         )}
                     </div>
