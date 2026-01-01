@@ -418,12 +418,12 @@ const FormView: React.FC = () => {
             )}
 
             <div className="relative min-h-screen flex items-center justify-center p-4 py-6">
-                {/* Two-column for minimal on desktop when image exists */}
-                <div className={`w-full ${isMinimal && form?.header_image_url ? 'max-w-5xl' : 'max-w-md'}`}>
+                {/* Two-column on desktop when image exists (both themes) */}
+                <div className={`w-full ${form?.header_image_url ? 'max-w-5xl' : 'max-w-md'}`}>
                     {/* Timer */}
                     {form?.countdown_enabled && timeLeft > 0 && (
                         <div
-                            className={`mb-4 ${isMinimal ? 'bg-gradient-to-r from-indigo-500 to-purple-600' : 'bg-gradient-to-r from-red-600 via-orange-500 to-amber-500'} rounded-2xl p-3 flex items-center justify-center gap-3 shadow-lg ${form?.countdown_blink ? 'animate-pulse' : ''}`}
+                            className={`mb-4 ${isMinimal ? 'bg-gradient-to-r from-indigo-500 to-purple-600' : 'bg-gradient-to-r from-purple-600 via-pink-500 to-rose-500'} rounded-2xl p-3 flex items-center justify-center gap-3 shadow-lg ${form?.countdown_blink ? 'animate-pulse' : ''}`}
                             style={{
                                 borderRadius: getBorderRadius(),
                                 animation: form?.countdown_blink ? 'blink 1s ease-in-out infinite' : 'none'
@@ -444,38 +444,36 @@ const FormView: React.FC = () => {
                         }
                     `}</style>
 
-                    {/* Main Card - Two column for minimal on lg screens */}
+                    {/* Main Card - Two column on lg screens for both themes */}
                     <div
-                        className={`${cardBg} overflow-hidden ${isMinimal && form?.header_image_url ? 'lg:flex lg:flex-row' : ''}`}
+                        className={`${cardBg} overflow-hidden ${form?.header_image_url ? 'lg:flex lg:flex-row' : ''}`}
                         style={{ borderRadius: getBorderRadius() }}
                     >
-                        {/* Image Section - Left column on lg for minimal */}
+                        {/* Image Section - Left column on lg */}
                         {form?.header_image_url && (
                             <div
-                                className={`relative ${isMinimal ? 'lg:w-1/2 lg:min-h-[450px]' : 'h-52'} overflow-hidden flex items-center justify-center`}
+                                className={`relative lg:w-1/2 lg:min-h-[450px] overflow-hidden flex items-center justify-center`}
                                 style={{
                                     padding: '15px',
-                                    backgroundColor: isMinimal ? '#f8fafc' : undefined,
-                                    borderRadius: isMinimal ? `${getBorderRadius()} ${getBorderRadius()} 0 0` : `${getBorderRadius()} ${getBorderRadius()} 0 0`
+                                    backgroundColor: isMinimal ? '#f8fafc' : 'rgba(139, 92, 246, 0.1)',
+                                    borderRadius: `${getBorderRadius()} ${getBorderRadius()} 0 0`
                                 }}
                             >
-                                {/* Gradient overlay for minimal */}
-                                {isMinimal && (
-                                    <div className="absolute inset-0 bg-gradient-to-br from-indigo-100/50 via-transparent to-purple-100/50 pointer-events-none"></div>
-                                )}
+                                {/* Gradient overlay */}
+                                <div className={`absolute inset-0 pointer-events-none ${isMinimal ? 'bg-gradient-to-br from-indigo-100/50 via-transparent to-purple-100/50' : 'bg-gradient-to-br from-purple-500/20 via-transparent to-pink-500/20'}`}></div>
                                 <img
                                     src={form.header_image_url}
                                     alt=""
-                                    className={`w-full h-full ${isMinimal ? 'rounded-xl shadow-lg object-contain' : 'rounded-xl object-contain'}`}
+                                    className={`w-full h-full object-contain rounded-xl ${isMinimal ? 'shadow-lg' : 'shadow-2xl shadow-purple-500/20'}`}
                                     style={{
-                                        maxHeight: isMinimal ? 'none' : '180px'
+                                        maxHeight: 'none'
                                     }}
                                 />
                             </div>
                         )}
 
-                        {/* Form Content - Right column on lg for minimal */}
-                        <div className={`p-6 ${isMinimal && form?.header_image_url ? 'lg:w-1/2 lg:flex lg:flex-col lg:justify-center' : ''}`}>
+                        {/* Form Content - Right column on lg */}
+                        <div className={`p-6 ${form?.header_image_url ? 'lg:w-1/2 lg:flex lg:flex-col lg:justify-center lg:p-8' : ''}`}>
                             {/* Title - Display Product Name for order forms, Form Name otherwise */}
                             <h1 className={`text-2xl font-bold ${textColor} text-center mb-2`}>
                                 {isOrderForm && form?.product_name ? form.product_name : (form?.name || 'Order Form')}
