@@ -76,8 +76,16 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
     const [ewalletNumbers, setEwalletNumbers] = useState<Record<string, string>>(initialConfig?.ewalletNumbers || {});
     const [requireProofUpload, setRequireProofUpload] = useState(initialConfig?.requireProofUpload ?? true);
 
-    // CRITICAL: Preserve formId from initialConfig for updates (not creating new)
-    const formId = initialConfig?.formId;
+    // CRITICAL: Track formId in state so it persists even if initialConfig is stale
+    const [formId, setFormId] = useState(initialConfig?.formId);
+
+    // Sync formId when initialConfig changes (e.g., when flow reloads with saved formId)
+    useEffect(() => {
+        if (initialConfig?.formId && initialConfig.formId !== formId) {
+            console.log('[FormNodeForm] Syncing formId from initialConfig:', initialConfig.formId);
+            setFormId(initialConfig.formId);
+        }
+    }, [initialConfig?.formId]);
 
     useEffect(() => {
         console.log('[FormNodeForm] onChange called with formId:', formId, 'promoText:', promoText, 'promoIcon:', promoIcon);
