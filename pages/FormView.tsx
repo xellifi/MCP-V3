@@ -338,13 +338,13 @@ const FormView: React.FC = () => {
         return true;
     };
 
-    // Shared styles based on template - Minimal uses pure white/blue/grey
-    const containerBg = isMinimal ? 'bg-white' : 'bg-[#0a0a12]';
-    const cardBg = isMinimal ? 'bg-white shadow-lg border border-gray-100' : 'bg-white/[0.06] backdrop-blur-2xl border border-white/10 shadow-2xl';
-    const textColor = isMinimal ? 'text-gray-900' : 'text-white';
-    const textMuted = isMinimal ? 'text-gray-500' : 'text-white/50';
-    const inputBg = isMinimal ? 'bg-white border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500' : 'bg-white/5 border-white/10 focus:border-purple-500';
-    const inputText = isMinimal ? 'text-gray-900 placeholder-gray-400' : 'text-white placeholder-white/30';
+    // Shared styles based on template - Minimal uses elegant white/slate/indigo
+    const containerBg = isMinimal ? 'bg-gradient-to-br from-slate-50 via-white to-indigo-50' : 'bg-[#0a0a12]';
+    const cardBg = isMinimal ? 'bg-white shadow-xl border border-slate-200/60 shadow-slate-200/50' : 'bg-white/[0.06] backdrop-blur-2xl border border-white/10 shadow-2xl';
+    const textColor = isMinimal ? 'text-slate-800' : 'text-white';
+    const textMuted = isMinimal ? 'text-slate-500' : 'text-white/50';
+    const inputBg = isMinimal ? 'bg-slate-50/80 border-slate-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 hover:border-slate-300' : 'bg-white/5 border-white/10 focus:border-purple-500';
+    const inputText = isMinimal ? 'text-slate-800 placeholder-slate-400' : 'text-white placeholder-white/30';
 
     // Loading
     if (loading) return (
@@ -409,12 +409,21 @@ const FormView: React.FC = () => {
                 </div>
             )}
 
+            {/* Subtle pattern for minimal */}
+            {isMinimal && (
+                <div className="fixed inset-0 overflow-hidden pointer-events-none opacity-30">
+                    <div className="absolute -top-40 -right-40 w-80 h-80 bg-indigo-200 rounded-full blur-3xl"></div>
+                    <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-purple-200 rounded-full blur-3xl"></div>
+                </div>
+            )}
+
             <div className="relative min-h-screen flex items-center justify-center p-4 py-6">
-                <div className="w-full max-w-md">
+                {/* Two-column for minimal on desktop when image exists */}
+                <div className={`w-full ${isMinimal && form?.header_image_url ? 'max-w-4xl' : 'max-w-md'}`}>
                     {/* Timer */}
                     {form?.countdown_enabled && timeLeft > 0 && (
                         <div
-                            className={`mb-4 ${isMinimal ? 'bg-gradient-to-r from-orange-500 to-red-500' : 'bg-gradient-to-r from-red-600 via-orange-500 to-amber-500'} rounded-2xl p-3 flex items-center justify-center gap-3 shadow-lg ${form?.countdown_blink ? 'animate-pulse' : ''}`}
+                            className={`mb-4 ${isMinimal ? 'bg-gradient-to-r from-indigo-500 to-purple-600' : 'bg-gradient-to-r from-red-600 via-orange-500 to-amber-500'} rounded-2xl p-3 flex items-center justify-center gap-3 shadow-lg ${form?.countdown_blink ? 'animate-pulse' : ''}`}
                             style={{
                                 borderRadius: getBorderRadius(),
                                 animation: form?.countdown_blink ? 'blink 1s ease-in-out infinite' : 'none'
@@ -435,27 +444,39 @@ const FormView: React.FC = () => {
                         }
                     `}</style>
 
-                    {/* Main Card */}
-                    <div className={cardBg} style={{ borderRadius: getBorderRadius() }}>
-                        {/* Header Image */}
+                    {/* Main Card - Two column for minimal on lg screens */}
+                    <div
+                        className={`${cardBg} overflow-hidden ${isMinimal && form?.header_image_url ? 'lg:flex lg:flex-row' : ''}`}
+                        style={{ borderRadius: getBorderRadius() }}
+                    >
+                        {/* Image Section - Left column on lg for minimal */}
                         {form?.header_image_url && (
                             <div
-                                className={`relative h-52 ${isMinimal ? '' : 'bg-gradient-to-br from-purple-900/50 to-pink-900/50'} overflow-hidden flex items-center justify-center p-4`}
+                                className={`relative ${isMinimal ? 'lg:w-1/2 lg:min-h-[400px]' : 'h-52'} overflow-hidden flex items-center justify-center`}
                                 style={{
-                                    borderRadius: `${getBorderRadius()} ${getBorderRadius()} 0 0`,
-                                    backgroundColor: isMinimal ? '#ffffff' : undefined
+                                    padding: '15px',
+                                    backgroundColor: isMinimal ? '#f8fafc' : undefined,
+                                    borderRadius: isMinimal ? `${getBorderRadius()} ${getBorderRadius()} 0 0` : `${getBorderRadius()} ${getBorderRadius()} 0 0`
                                 }}
                             >
+                                {/* Gradient overlay for minimal */}
+                                {isMinimal && (
+                                    <div className="absolute inset-0 bg-gradient-to-br from-indigo-100/50 via-transparent to-purple-100/50 pointer-events-none"></div>
+                                )}
                                 <img
                                     src={form.header_image_url}
                                     alt=""
-                                    className="max-w-full max-h-full object-contain"
-                                    style={{ borderRadius: '12px' }}
+                                    className={`w-full h-full object-cover ${isMinimal ? 'rounded-xl shadow-lg' : 'rounded-xl'}`}
+                                    style={{
+                                        maxHeight: isMinimal ? 'none' : '180px',
+                                        objectFit: isMinimal ? 'cover' : 'contain'
+                                    }}
                                 />
                             </div>
                         )}
 
-                        <div className="p-6">
+                        {/* Form Content - Right column on lg for minimal */}
+                        <div className={`p-6 ${isMinimal && form?.header_image_url ? 'lg:w-1/2 lg:flex lg:flex-col lg:justify-center' : ''}`}>
                             {/* Title - Display Product Name for order forms, Form Name otherwise */}
                             <h1 className={`text-2xl font-bold ${textColor} text-center mb-2`}>
                                 {isOrderForm && form?.product_name ? form.product_name : (form?.name || 'Order Form')}
