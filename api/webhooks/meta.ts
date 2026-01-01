@@ -1125,6 +1125,13 @@ async function executeFlowActions(
             await executeAction(node, configurations[node.id] || {}, context, pageAccessToken, flow.id, commentId);
         }
 
+        // STOP TRAVERSAL AT FORM NODES - continuation happens via form submission callback
+        // This prevents nodes after the form from executing before the user submits
+        if (node.type === 'formNode') {
+            console.log(`  ⏸ Stopping traversal at Form node: "${node.data?.label}" - will continue after form submission`);
+            continue; // Don't add successors to queue
+        }
+
         // Find ALL edges from this node and add targets to queue
         const outgoingEdges = edges.filter((e: any) => e.source === currentNodeId);
         console.log(`  Node "${node.data?.label || currentNodeId}" has ${outgoingEdges.length} outgoing edge(s)`);
@@ -1174,6 +1181,13 @@ async function executeFlowFromNode(
         // Execute action nodes (skip trigger and start nodes)
         if (node.type !== 'triggerNode' && node.type !== 'startNode') {
             await executeAction(node, configurations[node.id] || {}, context, pageAccessToken, flowId, commentId);
+        }
+
+        // STOP TRAVERSAL AT FORM NODES - continuation happens via form submission callback
+        // This prevents nodes after the form from executing before the user submits
+        if (node.type === 'formNode') {
+            console.log(`  ⏸ Stopping traversal at Form node: "${node.data?.label}" - will continue after form submission`);
+            continue; // Don't add successors to queue
         }
 
         // Find ALL edges from this node and add targets to queue
