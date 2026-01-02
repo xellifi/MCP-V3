@@ -2227,10 +2227,13 @@ async function executeAction(
             }
 
             if (storeSlug) {
-                // Use production URL with proper domain
-                const baseUrl = process.env.VERCEL_URL
-                    ? `https://${process.env.VERCEL_URL}`
-                    : (process.env.VITE_APP_URL || 'https://mcp-v1-sigma.vercel.app');
+                // Use dynamic URL from environment variables
+                // Priority: NEXT_PUBLIC_APP_URL > VERCEL_PROJECT_PRODUCTION_URL > VERCEL_URL > fallback
+                const baseUrl = process.env.NEXT_PUBLIC_APP_URL
+                    || process.env.VITE_APP_URL
+                    || (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : null)
+                    || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null)
+                    || 'https://mcp-v16.vercel.app';
                 buyNowUrl = `${baseUrl}/store/${storeSlug}`;
                 console.log(`    🔗 Buy Now URL: ${buyNowUrl}`);
             } else {
