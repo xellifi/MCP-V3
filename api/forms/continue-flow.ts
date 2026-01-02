@@ -182,20 +182,51 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 const conditionResult = evaluateConditions(config, context);
                 console.log('[Continue Flow] Condition result:', conditionResult ? 'TRUE' : 'FALSE');
 
-                // Debug: Log all edges from this condition node
+                // Get all edges from this condition node
                 const allConditionEdges = edges.filter((e: any) => e.source === currentNodeId);
                 console.log('[Continue Flow] All edges from condition node:', allConditionEdges.map((e: any) => ({
                     target: e.target,
-                    sourceHandle: e.sourceHandle,
-                    expectedHandle: conditionResult ? 'true' : 'false',
-                    matches: e.sourceHandle === (conditionResult ? 'true' : 'false')
+                    sourceHandle: e.sourceHandle
                 })));
 
                 // Find edges with matching sourceHandle
-                const conditionEdges = edges.filter((e: any) =>
-                    e.source === currentNodeId &&
+                // FALLBACK: If sourceHandle is undefined, use target node Y position to determine path
+                // TRUE path = top (lower Y), FALSE path = bottom (higher Y)
+                let conditionEdges: any[] = [];
+
+                // First try exact sourceHandle match
+                conditionEdges = allConditionEdges.filter((e: any) =>
                     e.sourceHandle === (conditionResult ? 'true' : 'false')
                 );
+
+                // FALLBACK: If no edges found with sourceHandle, infer from node positions
+                if (conditionEdges.length === 0 && allConditionEdges.length > 0) {
+                    console.log('[Continue Flow] No sourceHandle found, using position-based fallback');
+
+                    // Sort edges by target node Y position
+                    const edgesWithPositions = allConditionEdges.map((edge: any) => {
+                        const targetNode = nodes.find((n: any) => n.id === edge.target);
+                        return {
+                            ...edge,
+                            targetY: targetNode?.position?.y ?? 0
+                        };
+                    }).sort((a: any, b: any) => a.targetY - b.targetY);
+
+                    console.log('[Continue Flow] Edges sorted by Y position:', edgesWithPositions.map((e: any) => ({ target: e.target, y: e.targetY })));
+
+                    // TRUE = first edge (top/lower Y), FALSE = second edge (bottom/higher Y)
+                    if (conditionResult && edgesWithPositions.length >= 1) {
+                        conditionEdges = [edgesWithPositions[0]];
+                        console.log('[Continue Flow] Using first edge (TRUE path):', conditionEdges[0].target);
+                    } else if (!conditionResult && edgesWithPositions.length >= 2) {
+                        conditionEdges = [edgesWithPositions[1]];
+                        console.log('[Continue Flow] Using second edge (FALSE path):', conditionEdges[0].target);
+                    } else if (!conditionResult && edgesWithPositions.length === 1) {
+                        // Only one edge exists, skip for FALSE path
+                        console.log('[Continue Flow] Only one edge exists, cannot follow FALSE path');
+                        conditionEdges = [];
+                    }
+                }
 
                 console.log('[Continue Flow] Following', conditionEdges.length, 'edge(s) for', conditionResult ? 'TRUE' : 'FALSE', 'path');
 
