@@ -24,7 +24,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             subscriberId,
             subscriberName,
             formSubmitted,
-            submissionData
+            submissionData,
+            submissionId  // The actual submission ID from database
         } = req.body;
 
         console.log('[Continue Flow] Starting flow continuation...');
@@ -266,69 +267,43 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 const companyLogo = config.companyLogo || '';
                 const accentColor = config.primaryColor || '#6366f1';
 
-                // Find the most recent form submission for this subscriber
-                // The submission was just created by the form, so get the latest one
+                // Build invoice URL using the submissionId passed directly from FormView
+                // This is more reliable than looking it up by subscriber
                 let invoiceUrl = '';
-                let latestSubmissionId = null;
+                let finalSubmissionId = submissionId; // Use the ID passed from FormView
 
-                try {
-                    console.log('[Continue Flow] Looking for submission for subscriber:', subscriberId);
-
-                    // Try multiple strategies to find the submission
-                    // Strategy 1: Look by subscriber_external_id
-                    let { data: submission } = await supabase
-                        .from('form_submissions')
-                        .select('id')
-                        .eq('subscriber_external_id', subscriberId)
-                        .order('created_at', { ascending: false })
-                        .limit(1)
-                        .maybeSingle();
-
-                    // Strategy 2: If not found, try subscriber_id field
-                    if (!submission) {
-                        console.log('[Continue Flow] Trying subscriber_id field...');
-                        const { data: sub2 } = await supabase
+                // Fallback: If submissionId not passed, try to look it up
+                if (!finalSubmissionId) {
+                    console.log('[Continue Flow] No submissionId passed, looking up by subscriber:', subscriberId);
+                    try {
+                        const { data: submission } = await supabase
                             .from('form_submissions')
                             .select('id')
-                            .eq('subscriber_id', subscriberId)
+                            .eq('subscriber_external_id', subscriberId)
                             .order('created_at', { ascending: false })
                             .limit(1)
                             .maybeSingle();
-                        submission = sub2;
-                    }
 
-                    // Strategy 3: Look for any very recent submission (within last 30s)
-                    if (!submission) {
-                        console.log('[Continue Flow] Trying recent submission fallback...');
-                        const thirtySecondsAgo = new Date(Date.now() - 30000).toISOString();
-                        const { data: sub3 } = await supabase
-                            .from('form_submissions')
-                            .select('id')
-                            .gte('created_at', thirtySecondsAgo)
-                            .order('created_at', { ascending: false })
-                            .limit(1)
-                            .maybeSingle();
-                        submission = sub3;
+                        if (submission) {
+                            finalSubmissionId = submission.id;
+                        }
+                    } catch (err) {
+                        console.error('[Continue Flow] Error looking up submission:', err);
                     }
+                }
 
-                    if (submission) {
-                        latestSubmissionId = submission.id;
-                        // Build invoice URL - keep it simple for mobile compatibility
-                        const baseUrl = process.env.VITE_APP_URL || 'https://mcp-v16.vercel.app';
-                        // Use encodeURIComponent for special characters
-                        const params = new URLSearchParams();
-                        params.set('company', companyName);
-                        params.set('color', accentColor);
-                        if (companyLogo) params.set('logo', companyLogo);
+                if (finalSubmissionId) {
+                    console.log('[Continue Flow] Using submission ID:', finalSubmissionId);
+                    const baseUrl = process.env.VITE_APP_URL || 'https://mcp-v16.vercel.app';
+                    const params = new URLSearchParams();
+                    params.set('company', companyName);
+                    params.set('color', accentColor);
+                    if (companyLogo) params.set('logo', companyLogo);
 
-                        invoiceUrl = `${baseUrl}/invoices/${latestSubmissionId}?${params.toString()}`;
-                        console.log('[Continue Flow] Invoice URL:', invoiceUrl);
-                        console.log('[Continue Flow] Submission ID found:', latestSubmissionId);
-                    } else {
-                        console.log('[Continue Flow] No submission found for subscriber:', subscriberId);
-                    }
-                } catch (err) {
-                    console.error('[Continue Flow] Error finding submission:', err);
+                    invoiceUrl = `${baseUrl}/invoices/${finalSubmissionId}?${params.toString()}`;
+                    console.log('[Continue Flow] Invoice URL:', invoiceUrl);
+                } else {
+                    console.log('[Continue Flow] No submission ID available for invoice');
                 }
 
                 // Send message with button to view invoice

@@ -239,13 +239,25 @@ const FormView: React.FC = () => {
                 submitted_at: new Date().toISOString()
             };
 
-            await supabase.from('form_submissions').insert({
-                form_id: formId,
-                subscriber_external_id: subscriberId,
-                subscriber_name: subscriberName,
-                data: submissionData,
-                synced_to_sheets: false,
-            });
+            // Insert submission and get the ID back
+            const { data: insertedSubmission, error: insertError } = await supabase
+                .from('form_submissions')
+                .insert({
+                    form_id: formId,
+                    subscriber_external_id: subscriberId,
+                    subscriber_name: subscriberName,
+                    data: submissionData,
+                    synced_to_sheets: false,
+                })
+                .select('id')
+                .single();
+
+            if (insertError) {
+                console.error('[FormView] Submission insert error:', insertError);
+            }
+
+            const submissionId = insertedSubmission?.id;
+            console.log('[FormView] Submission created with ID:', submissionId);
 
             // Sync to Google Sheets if connected
             await syncToGoogleSheets(submissionData);
@@ -264,7 +276,8 @@ const FormView: React.FC = () => {
                             subscriberId,
                             subscriberName,
                             formSubmitted: true,
-                            submissionData
+                            submissionData,
+                            submissionId  // Pass the actual submission ID!
                         })
                     });
                     console.log('[FormView] Flow continuation triggered');
