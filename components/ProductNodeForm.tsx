@@ -134,11 +134,93 @@ const ProductNodeForm: React.FC<ProductNodeFormProps> = ({
         setLoadingProducts(false);
     };
 
+    // Save product to store database
+    const saveProductToStore = async () => {
+        if (!storeData?.id || !productName || !productPrice) {
+            console.log('[ProductNodeForm] Cannot save - missing store, name, or price');
+            return null;
+        }
+
+        // Only save if in create mode and product doesn't exist yet
+        if (mode !== 'create') {
+            return selectedProductId;
+        }
+
+        try {
+            // Check if we already created this product (by checking if we have a productId from a previous save)
+            if (selectedProductId) {
+                // Update existing product
+                const { error } = await supabase
+                    .from('products')
+                    .update({
+                        name: productName,
+                        description: productDescription,
+                        price: parseFloat(productPrice) || 0,
+                        compare_at_price: parseFloat(productComparePrice) || null,
+                        images: productImage ? [productImage] : [],
+                        category: productCategory || null,
+                        stock_quantity: parseInt(productStock) || 0,
+                        track_inventory: trackInventory,
+                        status: productStatus,
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', selectedProductId);
+
+                if (error) {
+                    console.error('[ProductNodeForm] Update error:', error);
+                } else {
+                    console.log('[ProductNodeForm] Product updated:', selectedProductId);
+                }
+                return selectedProductId;
+            } else {
+                // Create new product
+                const { data, error } = await supabase
+                    .from('products')
+                    .insert({
+                        store_id: storeData.id,
+                        name: productName,
+                        description: productDescription,
+                        price: parseFloat(productPrice) || 0,
+                        compare_at_price: parseFloat(productComparePrice) || null,
+                        images: productImage ? [productImage] : [],
+                        category: productCategory || null,
+                        stock_quantity: parseInt(productStock) || 0,
+                        track_inventory: trackInventory,
+                        status: productStatus
+                    })
+                    .select('id')
+                    .single();
+
+                if (error) {
+                    console.error('[ProductNodeForm] Insert error:', error);
+                    return null;
+                }
+
+                console.log('[ProductNodeForm] Product created:', data.id);
+                // Update the selectedProductId so we don't create duplicates
+                setSelectedProductId(data.id);
+                return data.id;
+            }
+        } catch (err) {
+            console.error('[ProductNodeForm] Save error:', err);
+            return null;
+        }
+    };
+
     // Notify parent of changes
-    const notifyChange = (updates: Partial<typeof initialConfig> = {}) => {
+    const notifyChange = async (updates: Partial<typeof initialConfig> = {}) => {
+        // If creating a new product with valid data, save it to the database
+        let productId = selectedProductId;
+        if (mode === 'create' && productName && productPrice && storeData?.id) {
+            const savedId = await saveProductToStore();
+            if (savedId) {
+                productId = savedId;
+            }
+        }
+
         const config = {
             nodeType: 'productNode',
-            productId: selectedProductId,
+            productId: productId,
             productName,
             productDescription,
             productPrice: parseFloat(productPrice) || 0,
@@ -148,16 +230,31 @@ const ProductNodeForm: React.FC<ProductNodeFormProps> = ({
             productStock: parseInt(productStock) || 0,
             trackInventory,
             productStatus,
-            isExistingProduct: mode === 'select',
+            isExistingProduct: mode === 'select' || !!productId,
             storeId: storeData?.id,
             ...updates
         };
         onChange(config);
     };
 
-    // Auto-notify on changes
+    // Auto-notify on changes (debounced to prevent too many saves)
+    const [saveTimeout, setSaveTimeout] = useState<NodeJS.Timeout | null>(null);
     useEffect(() => {
-        notifyChange();
+        // Clear previous timeout
+        if (saveTimeout) {
+            clearTimeout(saveTimeout);
+        }
+
+        // Debounce the save - wait 1 second after last change
+        const timeout = setTimeout(() => {
+            notifyChange();
+        }, 1000);
+
+        setSaveTimeout(timeout);
+
+        return () => {
+            if (timeout) clearTimeout(timeout);
+        };
     }, [productName, productDescription, productPrice, productComparePrice, productImage, productCategory, productStock, trackInventory, productStatus, selectedProductId, mode, storeData?.id]);
 
     // Upload image
