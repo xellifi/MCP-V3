@@ -2184,25 +2184,57 @@ async function executeAction(
                 : formattedPrice;
 
             // Build store URL for Buy Now button
-            // Try to get store slug from context or use a default
             let buyNowUrl = '';
-            if (storeId) {
-                // Query store slug from database
-                const { createClient } = await import('@supabase/supabase-js');
-                const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '';
-                const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';
-                const supabase = createClient(supabaseUrl, supabaseKey);
 
-                const { data: storeData } = await supabase
+            // Query store slug from database
+            const { createClient } = await import('@supabase/supabase-js');
+            const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '';
+            const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';
+            const supabase = createClient(supabaseUrl, supabaseKey);
+
+            console.log(`    🔍 Looking up store... storeId: ${storeId}`);
+
+            let storeSlug = '';
+
+            if (storeId) {
+                // Try by storeId first
+                const { data: storeData, error } = await supabase
                     .from('stores')
                     .select('slug')
                     .eq('id', storeId)
                     .single();
 
+                console.log(`    🔍 Store lookup by ID result:`, storeData, 'error:', error?.message);
+
                 if (storeData?.slug) {
-                    const baseUrl = process.env.VITE_APP_URL || 'https://mcp-v16.vercel.app';
-                    buyNowUrl = `${baseUrl}/store/${storeData.slug}`;
+                    storeSlug = storeData.slug;
                 }
+            }
+
+            // Fallback: lookup by workspace from flow context
+            if (!storeSlug && context.workspaceId) {
+                console.log(`    🔍 Trying fallback lookup by workspace: ${context.workspaceId}`);
+                const { data: storeData } = await supabase
+                    .from('stores')
+                    .select('slug')
+                    .eq('workspace_id', context.workspaceId)
+                    .single();
+
+                if (storeData?.slug) {
+                    storeSlug = storeData.slug;
+                    console.log(`    ✓ Found store by workspace: ${storeSlug}`);
+                }
+            }
+
+            if (storeSlug) {
+                // Use production URL with proper domain
+                const baseUrl = process.env.VERCEL_URL
+                    ? `https://${process.env.VERCEL_URL}`
+                    : (process.env.VITE_APP_URL || 'https://mcp-v1-sigma.vercel.app');
+                buyNowUrl = `${baseUrl}/store/${storeSlug}`;
+                console.log(`    🔗 Buy Now URL: ${buyNowUrl}`);
+            } else {
+                console.log(`    ⚠️ No store found for storeId: ${storeId}, workspace: ${context.workspaceId}`);
             }
 
             // Build message payload using generic template for rich product card
@@ -2229,6 +2261,7 @@ async function executeAction(
                     type: 'template',
                     payload: {
                         template_type: 'generic',
+                        image_aspect_ratio: 'square',
                         elements: elements
                     }
                 }
