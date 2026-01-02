@@ -18,7 +18,7 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Workspace, ConnectedPage } from '../types';
-import { Save, ArrowLeft, PlayCircle, Menu, X, Grid3x3, MessageCircle, Play, Bot, Send, Clock, MousePointer2, SquareMousePointer, Sparkles, GitBranch, MessageSquare, RectangleEllipsis, Plus, Minus, Maximize, Wrench, RotateCcw, Image, Video, FileText, Table, RefreshCw, ShoppingBag, Tag } from 'lucide-react';
+import { Save, ArrowLeft, PlayCircle, Menu, X, Grid3x3, MessageCircle, Play, Bot, Send, Clock, MousePointer2, SquareMousePointer, Sparkles, GitBranch, MessageSquare, RectangleEllipsis, Plus, Minus, Maximize, Wrench, RotateCcw, Image, Video, FileText, Table, RefreshCw, ShoppingBag, Tag, Receipt } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import NodeConfigModal from '../components/NodeConfigModal';
 import TriggerNodeForm from '../components/TriggerNodeForm';
@@ -37,6 +37,7 @@ import ConditionNodeForm from '../components/ConditionNodeForm';
 import FollowupNodeForm from '../components/FollowupNodeForm';
 import UpsellNodeForm from '../components/UpsellNodeForm';
 import DownsellNodeForm from '../components/DownsellNodeForm';
+import InvoiceNodeForm from '../components/InvoiceNodeForm';
 import CustomEdge from '../components/edges/CustomEdge';
 import CustomTriggerNode from '../components/nodes/CustomTriggerNode';
 import CustomActionNode from '../components/nodes/CustomActionNode';
@@ -53,6 +54,7 @@ import CustomGoogleSheetNode from '../components/nodes/CustomGoogleSheetNode';
 import CustomFollowupNode from '../components/nodes/CustomFollowupNode';
 import CustomUpsellNode from '../components/nodes/CustomUpsellNode';
 import CustomDownsellNode from '../components/nodes/CustomDownsellNode';
+import CustomInvoiceNode from '../components/nodes/CustomInvoiceNode';
 import { api } from '../services/api';
 import { supabase } from '../lib/supabase';
 // Import node configuration registry
@@ -85,6 +87,7 @@ const nodeTypes: NodeTypes = {
   followupNode: CustomFollowupNode,
   upsellNode: CustomUpsellNode,
   downsellNode: CustomDownsellNode,
+  invoiceNode: CustomInvoiceNode,
 };
 
 // Define custom edge types
@@ -1516,6 +1519,17 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
       );
     }
 
+    // Invoice Node
+    if (nodeType === 'invoiceNode' || label.toLowerCase().includes('invoice')) {
+      return (
+        <InvoiceNodeForm
+          workspaceId={workspace?.id || ''}
+          initialConfig={initialConfigRef.current}
+          onChange={handleConfigChange}
+        />
+      );
+    }
+
     // Start Node
     if (nodeType === 'startNode' || label.toLowerCase().includes('start')) {
       // Check if this is a "New Flow" node (sub-flow start point)
@@ -1862,6 +1876,10 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
               className="w-10 h-10 bg-orange-500/20 hover:bg-orange-500/40 border border-orange-500/30 rounded-xl flex items-center justify-center text-orange-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing" title="Downsell">
               <Tag className="w-5 h-5" />
             </div>
+            <div draggable onDragStart={(e) => onDragStart(e, 'invoiceNode', 'Invoice')} onClick={() => addNode('invoiceNode', 'Invoice')}
+              className="w-10 h-10 bg-violet-500/20 hover:bg-violet-500/40 border border-violet-500/30 rounded-xl flex items-center justify-center text-violet-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing" title="Invoice">
+              <Receipt className="w-5 h-5" />
+            </div>
           </div>
         </div>
 
@@ -1869,52 +1887,56 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
         <div className={`md:hidden glass-panel p-3 rounded-2xl border border-white/10 shadow-2xl space-y-3 backdrop-blur-xl transition-all duration-300 origin-top-left ${isToolsOpen ? 'scale-100' : 'scale-95'}`}>
           <p className="text-xs font-bold text-slate-500 uppercase tracking-wider text-center mb-2">Build</p>
           <div draggable onDragStart={(e) => onDragStart(e, 'startNode', 'Start')} onClick={() => addNode('startNode', 'Start')}
-            className="w-12 h-12 bg-emerald-500/20 hover:bg-emerald-500/40 border border-emerald-500/30 rounded-xl flex items-center justify-center text-emerald-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
+            className="w-12 h-12 bg-emerald-500/20 hover:bg-emerald-500/40 border border-emerald-500/30 rounded-xl flex items-center justify-center text-emerald-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing" title="Start">
             <Play className="w-6 h-6 fill-current" />
           </div>
           <div draggable onDragStart={(e) => { e.dataTransfer.setData('application/reactflow-template', 'commentReply'); e.dataTransfer.effectAllowed = 'move'; }} onClick={() => addCommentReplyTemplate()}
-            className="w-12 h-12 bg-blue-500/20 hover:bg-blue-500/40 border border-blue-500/30 rounded-xl flex items-center justify-center text-blue-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
+            className="w-12 h-12 bg-blue-500/20 hover:bg-blue-500/40 border border-blue-500/30 rounded-xl flex items-center justify-center text-blue-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing" title="Comment Reply">
             <MessageCircle className="w-6 h-6" />
           </div>
           <div draggable onDragStart={(e) => onDragStart(e, 'textNode', 'Text')} onClick={() => addNode('textNode', 'Text')}
-            className="w-12 h-12 bg-amber-500/20 hover:bg-amber-500/40 border border-amber-500/30 rounded-xl flex items-center justify-center text-amber-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
+            className="w-12 h-12 bg-amber-500/20 hover:bg-amber-500/40 border border-amber-500/30 rounded-xl flex items-center justify-center text-amber-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing" title="Text">
             <MessageSquare className="w-6 h-6" />
           </div>
           <div draggable onDragStart={(e) => onDragStart(e, 'imageNode', 'Image')} onClick={() => addNode('imageNode', 'Image')}
-            className="w-12 h-12 bg-rose-500/20 hover:bg-rose-500/40 border border-rose-500/30 rounded-xl flex items-center justify-center text-rose-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
+            className="w-12 h-12 bg-rose-500/20 hover:bg-rose-500/40 border border-rose-500/30 rounded-xl flex items-center justify-center text-rose-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing" title="Image">
             <Image className="w-6 h-6" />
           </div>
           <div draggable onDragStart={(e) => onDragStart(e, 'videoNode', 'Video')} onClick={() => addNode('videoNode', 'Video')}
-            className="w-12 h-12 bg-cyan-500/20 hover:bg-cyan-500/40 border border-cyan-500/30 rounded-xl flex items-center justify-center text-cyan-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
+            className="w-12 h-12 bg-cyan-500/20 hover:bg-cyan-500/40 border border-cyan-500/30 rounded-xl flex items-center justify-center text-cyan-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing" title="Video">
             <Video className="w-6 h-6" />
           </div>
           <div draggable onDragStart={(e) => onDragStart(e, 'aiNode', 'AI Agent')} onClick={() => addNode('aiNode', 'AI Agent')}
-            className="w-12 h-12 bg-indigo-500/20 hover:bg-indigo-500/40 border border-indigo-500/30 rounded-xl flex items-center justify-center text-indigo-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
+            className="w-12 h-12 bg-indigo-500/20 hover:bg-indigo-500/40 border border-indigo-500/30 rounded-xl flex items-center justify-center text-indigo-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing" title="AI Agent">
             <Sparkles className="w-6 h-6" />
           </div>
           <div draggable onDragStart={(e) => onDragStart(e, 'conditionNode', 'Condition')} onClick={() => addNode('conditionNode', 'Condition')}
-            className="w-12 h-12 bg-orange-500/20 hover:bg-orange-500/40 border border-orange-500/30 rounded-xl flex items-center justify-center text-orange-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
+            className="w-12 h-12 bg-orange-500/20 hover:bg-orange-500/40 border border-orange-500/30 rounded-xl flex items-center justify-center text-orange-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing" title="Condition">
             <GitBranch className="w-6 h-6" />
           </div>
           <div draggable onDragStart={(e) => onDragStart(e, 'formNode', 'Form')} onClick={() => addNode('formNode', 'Form')}
-            className="w-12 h-12 bg-purple-500/20 hover:bg-purple-500/40 border border-purple-500/30 rounded-xl flex items-center justify-center text-purple-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
+            className="w-12 h-12 bg-purple-500/20 hover:bg-purple-500/40 border border-purple-500/30 rounded-xl flex items-center justify-center text-purple-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing" title="Form">
             <FileText className="w-6 h-6" />
           </div>
           <div draggable onDragStart={(e) => onDragStart(e, 'sheetsNode', 'Google Sheets')} onClick={() => addNode('sheetsNode', 'Google Sheets')}
-            className="w-12 h-12 bg-green-500/20 hover:bg-green-500/40 border border-green-500/30 rounded-xl flex items-center justify-center text-green-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
+            className="w-12 h-12 bg-green-500/20 hover:bg-green-500/40 border border-green-500/30 rounded-xl flex items-center justify-center text-green-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing" title="Google Sheets">
             <Table className="w-6 h-6" />
           </div>
           <div draggable onDragStart={(e) => onDragStart(e, 'followupNode', 'Follow-up')} onClick={() => addNode('followupNode', 'Follow-up')}
-            className="w-12 h-12 bg-rose-500/20 hover:bg-rose-500/40 border border-rose-500/30 rounded-xl flex items-center justify-center text-rose-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
+            className="w-12 h-12 bg-rose-500/20 hover:bg-rose-500/40 border border-rose-500/30 rounded-xl flex items-center justify-center text-rose-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing" title="Follow-up">
             <RefreshCw className="w-6 h-6" />
           </div>
           <div draggable onDragStart={(e) => onDragStart(e, 'upsellNode', 'Upsell')} onClick={() => addNode('upsellNode', 'Upsell')}
-            className="w-12 h-12 bg-teal-500/20 hover:bg-teal-500/40 border border-teal-500/30 rounded-xl flex items-center justify-center text-teal-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
+            className="w-12 h-12 bg-teal-500/20 hover:bg-teal-500/40 border border-teal-500/30 rounded-xl flex items-center justify-center text-teal-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing" title="Upsell">
             <ShoppingBag className="w-6 h-6" />
           </div>
           <div draggable onDragStart={(e) => onDragStart(e, 'downsellNode', 'Downsell')} onClick={() => addNode('downsellNode', 'Downsell')}
-            className="w-12 h-12 bg-orange-500/20 hover:bg-orange-500/40 border border-orange-500/30 rounded-xl flex items-center justify-center text-orange-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
+            className="w-12 h-12 bg-orange-500/20 hover:bg-orange-500/40 border border-orange-500/30 rounded-xl flex items-center justify-center text-orange-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing" title="Downsell">
             <Tag className="w-6 h-6" />
+          </div>
+          <div draggable onDragStart={(e) => onDragStart(e, 'invoiceNode', 'Invoice')} onClick={() => addNode('invoiceNode', 'Invoice')}
+            className="w-12 h-12 bg-violet-500/20 hover:bg-violet-500/40 border border-violet-500/30 rounded-xl flex items-center justify-center text-violet-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing" title="Invoice">
+            <Receipt className="w-6 h-6" />
           </div>
         </div>
       </div>
