@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
-import { ShoppingBag, Settings, Trash2, ChevronDown, ChevronUp, DollarSign } from 'lucide-react';
+import { Tag, Settings, Trash2, ChevronDown, ChevronUp, DollarSign } from 'lucide-react';
 
-const CustomUpsellNode: React.FC<NodeProps> = ({ data, selected }) => {
+const CustomDownsellNode: React.FC<NodeProps> = ({ data, selected }) => {
     const [isExpanded, setIsExpanded] = useState(false);
 
     const handleConfigure = (e: React.MouseEvent) => {
@@ -38,23 +38,23 @@ const CustomUpsellNode: React.FC<NodeProps> = ({ data, selected }) => {
             <div
                 className={`
                     relative px-4 py-3 rounded-2xl
-                    bg-teal-500/10 hover:bg-teal-500/20 backdrop-blur-md
-                    border ${selected ? 'border-teal-500/50 shadow-2xl shadow-teal-500/20' : 'border-teal-500/30 shadow-xl'}
+                    bg-orange-500/10 hover:bg-orange-500/20 backdrop-blur-md
+                    border ${selected ? 'border-orange-500/50 shadow-2xl shadow-orange-500/20' : 'border-orange-500/30 shadow-xl'}
                     transition-all duration-300
                     w-[200px]
                 `}
             >
                 {/* Header - Icon, Label, and Expand Toggle */}
                 <div className="flex items-center gap-2">
-                    <div className="p-2 bg-teal-500/20 rounded-lg backdrop-blur-sm flex-shrink-0">
-                        <ShoppingBag className="w-5 h-5 text-teal-400" />
+                    <div className="p-2 bg-orange-500/20 rounded-lg backdrop-blur-sm flex-shrink-0">
+                        <Tag className="w-5 h-5 text-orange-400" />
                     </div>
                     <div className="flex-1 min-w-0">
                         <div className="text-slate-200 font-bold text-sm truncate">
-                            {data.label || 'Upsell'}
+                            {data.label || 'Downsell'}
                         </div>
                         {price && (
-                            <div className="text-teal-300 text-xs flex items-center gap-1">
+                            <div className="text-orange-300 text-xs flex items-center gap-1">
                                 <DollarSign className="w-3 h-3" />
                                 {price}
                             </div>
@@ -78,7 +78,7 @@ const CustomUpsellNode: React.FC<NodeProps> = ({ data, selected }) => {
 
                 {/* Expandable Content - Full Preview */}
                 {isExpanded && isConfigured && (
-                    <div className="mt-3 pt-3 border-t border-teal-500/20">
+                    <div className="mt-3 pt-3 border-t border-orange-500/20">
                         {/* Full Preview Card - matches actual output */}
                         <div
                             className="rounded-2xl p-4 shadow-lg transition-all duration-300"
@@ -127,7 +127,7 @@ const CustomUpsellNode: React.FC<NodeProps> = ({ data, selected }) => {
                                         />
                                     ) : (
                                         <div className="w-full h-full bg-slate-700/50 flex items-center justify-center min-h-[100px]">
-                                            <ShoppingBag className="w-8 h-8 text-slate-500" />
+                                            <Tag className="w-8 h-8 text-slate-500" />
                                         </div>
                                     )}
                                 </div>
@@ -208,15 +208,15 @@ const CustomUpsellNode: React.FC<NodeProps> = ({ data, selected }) => {
             <Handle
                 type="target"
                 position={Position.Left}
-                className="w-3 h-3 !bg-teal-400 !border-2 !border-white"
+                className="w-3 h-3 !bg-orange-400 !border-2 !border-white"
             />
             <Handle
                 type="source"
                 position={Position.Right}
-                className="w-3 h-3 !bg-teal-400 !border-2 !border-white"
+                className="w-3 h-3 !bg-orange-400 !border-2 !border-white"
             />
         </div>
     );
 };
 
-export default CustomUpsellNode;
+export default CustomDownsellNode;

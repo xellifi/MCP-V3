@@ -18,7 +18,7 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Workspace, ConnectedPage } from '../types';
-import { Save, ArrowLeft, PlayCircle, Menu, X, Grid3x3, MessageCircle, Play, Bot, Send, Clock, MousePointer2, SquareMousePointer, Sparkles, GitBranch, MessageSquare, RectangleEllipsis, Plus, Minus, Maximize, Wrench, RotateCcw, Image, Video, FileText, Table, RefreshCw, ShoppingBag } from 'lucide-react';
+import { Save, ArrowLeft, PlayCircle, Menu, X, Grid3x3, MessageCircle, Play, Bot, Send, Clock, MousePointer2, SquareMousePointer, Sparkles, GitBranch, MessageSquare, RectangleEllipsis, Plus, Minus, Maximize, Wrench, RotateCcw, Image, Video, FileText, Table, RefreshCw, ShoppingBag, Tag } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import NodeConfigModal from '../components/NodeConfigModal';
 import TriggerNodeForm from '../components/TriggerNodeForm';
@@ -36,6 +36,7 @@ import NewFlowNodeForm from '../components/NewFlowNodeForm';
 import ConditionNodeForm from '../components/ConditionNodeForm';
 import FollowupNodeForm from '../components/FollowupNodeForm';
 import UpsellNodeForm from '../components/UpsellNodeForm';
+import DownsellNodeForm from '../components/DownsellNodeForm';
 import CustomEdge from '../components/edges/CustomEdge';
 import CustomTriggerNode from '../components/nodes/CustomTriggerNode';
 import CustomActionNode from '../components/nodes/CustomActionNode';
@@ -51,6 +52,7 @@ import CustomFormNode from '../components/nodes/CustomFormNode';
 import CustomGoogleSheetNode from '../components/nodes/CustomGoogleSheetNode';
 import CustomFollowupNode from '../components/nodes/CustomFollowupNode';
 import CustomUpsellNode from '../components/nodes/CustomUpsellNode';
+import CustomDownsellNode from '../components/nodes/CustomDownsellNode';
 import { api } from '../services/api';
 import { supabase } from '../lib/supabase';
 // Import node configuration registry
@@ -82,6 +84,7 @@ const nodeTypes: NodeTypes = {
   sheetsNode: CustomGoogleSheetNode,
   followupNode: CustomFollowupNode,
   upsellNode: CustomUpsellNode,
+  downsellNode: CustomDownsellNode,
 };
 
 // Define custom edge types
@@ -1491,10 +1494,21 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
       );
     }
 
-    // DownSell/Upsell Node
-    if (nodeType === 'upsellNode' || label.toLowerCase().includes('upsell') || label.toLowerCase().includes('downsell')) {
+    // Upsell Node
+    if (nodeType === 'upsellNode' || label.toLowerCase().includes('upsell')) {
       return (
         <UpsellNodeForm
+          workspaceId={workspace?.id || ''}
+          initialConfig={initialConfigRef.current}
+          onChange={handleConfigChange}
+        />
+      );
+    }
+
+    // Downsell Node
+    if (nodeType === 'downsellNode' || label.toLowerCase().includes('downsell')) {
+      return (
+        <DownsellNodeForm
           workspaceId={workspace?.id || ''}
           initialConfig={initialConfigRef.current}
           onChange={handleConfigChange}
@@ -1840,9 +1854,13 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
               className="w-10 h-10 bg-rose-500/20 hover:bg-rose-500/40 border border-rose-500/30 rounded-xl flex items-center justify-center text-rose-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing" title="Follow-up">
               <RefreshCw className="w-5 h-5" />
             </div>
-            <div draggable onDragStart={(e) => onDragStart(e, 'upsellNode', 'DownSell/Upsell')} onClick={() => addNode('upsellNode', 'DownSell/Upsell')}
+            <div draggable onDragStart={(e) => onDragStart(e, 'upsellNode', 'Upsell')} onClick={() => addNode('upsellNode', 'Upsell')}
               className="w-10 h-10 bg-teal-500/20 hover:bg-teal-500/40 border border-teal-500/30 rounded-xl flex items-center justify-center text-teal-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing" title="Upsell">
               <ShoppingBag className="w-5 h-5" />
+            </div>
+            <div draggable onDragStart={(e) => onDragStart(e, 'downsellNode', 'Downsell')} onClick={() => addNode('downsellNode', 'Downsell')}
+              className="w-10 h-10 bg-orange-500/20 hover:bg-orange-500/40 border border-orange-500/30 rounded-xl flex items-center justify-center text-orange-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing" title="Downsell">
+              <Tag className="w-5 h-5" />
             </div>
           </div>
         </div>
@@ -1890,9 +1908,13 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
             className="w-12 h-12 bg-rose-500/20 hover:bg-rose-500/40 border border-rose-500/30 rounded-xl flex items-center justify-center text-rose-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
             <RefreshCw className="w-6 h-6" />
           </div>
-          <div draggable onDragStart={(e) => onDragStart(e, 'upsellNode', 'DownSell/Upsell')} onClick={() => addNode('upsellNode', 'DownSell/Upsell')}
+          <div draggable onDragStart={(e) => onDragStart(e, 'upsellNode', 'Upsell')} onClick={() => addNode('upsellNode', 'Upsell')}
             className="w-12 h-12 bg-teal-500/20 hover:bg-teal-500/40 border border-teal-500/30 rounded-xl flex items-center justify-center text-teal-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
             <ShoppingBag className="w-6 h-6" />
+          </div>
+          <div draggable onDragStart={(e) => onDragStart(e, 'downsellNode', 'Downsell')} onClick={() => addNode('downsellNode', 'Downsell')}
+            className="w-12 h-12 bg-orange-500/20 hover:bg-orange-500/40 border border-orange-500/30 rounded-xl flex items-center justify-center text-orange-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
+            <Tag className="w-6 h-6" />
           </div>
         </div>
       </div>
