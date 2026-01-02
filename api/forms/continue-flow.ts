@@ -295,12 +295,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 if (finalSubmissionId) {
                     console.log('[Continue Flow] Using submission ID:', finalSubmissionId);
                     const baseUrl = process.env.VITE_APP_URL || 'https://mcp-v16.vercel.app';
+
+                    // Use server-side rendered invoice endpoint (works in Messenger's in-app browser)
                     const params = new URLSearchParams();
+                    params.set('id', finalSubmissionId);
                     params.set('company', companyName);
                     params.set('color', accentColor);
                     if (companyLogo) params.set('logo', companyLogo);
 
-                    invoiceUrl = `${baseUrl}/invoices/${finalSubmissionId}?${params.toString()}`;
+                    invoiceUrl = `${baseUrl}/api/invoices/view?${params.toString()}`;
                     console.log('[Continue Flow] Invoice URL:', invoiceUrl);
                 } else {
                     console.log('[Continue Flow] No submission ID available for invoice');
