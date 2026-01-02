@@ -121,6 +121,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             form_submitted: context.form_submitted
         });
 
+        // DEBUG: Log ALL edges in the flow
+        console.log('[Continue Flow] ALL edges in flow:', edges.map((e: any) => ({ source: e.source, target: e.target, sourceHandle: e.sourceHandle })));
+
         // Find all edges FROM the form node (direct connections)
         const formNodeEdges = edges.filter((e: any) => e.source === nodeId);
         console.log('[Continue Flow] Found', formNodeEdges.length, 'edge(s) from form node');
@@ -154,10 +157,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             }
         }
 
+        // DEBUG: Log what's in the queue before processing
+        console.log('[Continue Flow] Queue after building:', queue.map(q => q.nodeId));
+        console.log('[Continue Flow] Visited set:', Array.from(visited));
+
         // Process queue and execute nodes
+        console.log('[Continue Flow] Starting queue processing loop, queue length:', queue.length);
         while (queue.length > 0) {
             const current = queue.shift()!;
             const currentNodeId = current.nodeId;
+            console.log('[Continue Flow] Processing queue item:', currentNodeId);
 
             if (visited.has(currentNodeId)) continue;
             visited.add(currentNodeId);
