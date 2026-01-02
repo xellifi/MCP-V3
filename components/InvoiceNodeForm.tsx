@@ -261,113 +261,113 @@ const InvoiceNodeForm: React.FC<InvoiceNodeFormProps> = ({
         { id: 'delivered', label: statusLabels.delivered, icon: CheckCircle },
     ];
 
-    // Preview JSX
+    // Preview JSX - matches actual server-rendered invoice
     const previewCardJSX = useMemo(() => (
-        <div
-            className={`shadow-2xl transition-all duration-300 bg-white ${templateStyle === 'modern' ? 'rounded-2xl' : templateStyle === 'classic' ? 'rounded-lg' : 'rounded-md'
-                }`}
-            style={{ padding: templateStyle === 'minimal' ? '16px' : '20px' }}
-        >
-            {/* Invoice Header */}
-            <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-200">
-                <div className="flex items-center gap-3">
-                    {companyLogo ? (
-                        <img src={companyLogo} alt="Logo" className="w-12 h-12 rounded-lg object-cover" />
-                    ) : (
-                        <div className="w-12 h-12 rounded-lg flex items-center justify-center" style={{ backgroundColor: primaryColor }}>
-                            <Receipt className="w-6 h-6 text-white" />
+        <div className="rounded-2xl overflow-hidden shadow-2xl bg-white">
+            {/* Gradient Header */}
+            <div className="p-4" style={{ background: `linear-gradient(135deg, ${primaryColor} 0%, ${primaryColor}dd 100%)` }}>
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-white/20">
+                            {companyLogo ? (
+                                <img src={companyLogo} alt="Logo" className="w-full h-full rounded-lg object-cover" />
+                            ) : (
+                                <Receipt className="w-5 h-5 text-white" />
+                            )}
                         </div>
-                    )}
-                    <div>
-                        <div className="font-bold text-slate-800">{companyName}</div>
-                        {companyEmail && <div className="text-xs text-slate-500 flex items-center gap-1"><Mail className="w-3 h-3" />{companyEmail}</div>}
+                        <div>
+                            <div className="text-white font-bold text-sm">{companyName}</div>
+                            <div className="text-white/80 text-xs">Official Invoice</div>
+                            {companyAddress && <div className="text-white/60 text-[10px] mt-0.5 max-w-[120px] leading-tight">{companyAddress}</div>}
+                        </div>
                     </div>
-                </div>
-                <div className="text-right">
-                    <div className="text-xs font-bold uppercase tracking-wider" style={{ color: primaryColor }}>Invoice</div>
-                    <div className="text-sm font-medium text-slate-700">#INV-00001</div>
-                    <div className="text-xs text-slate-500">Jan 02, 2026</div>
+                    <div className="text-right">
+                        <div className="text-white/70 text-[10px] uppercase tracking-wider">Invoice</div>
+                        <div className="text-white font-mono text-xs">#INV-ABC123</div>
+                    </div>
                 </div>
             </div>
 
-            {/* Customer Info */}
+            {/* Status Bar */}
+            <div className="flex items-center justify-between px-4 py-2.5 bg-gradient-to-r from-emerald-50 to-green-100 border-b border-gray-100">
+                <div className="flex items-center gap-1.5 text-emerald-700 font-semibold text-xs">
+                    <CheckCircle className="w-3.5 h-3.5" />
+                    Order Confirmed
+                </div>
+                <div className="text-gray-500 text-[11px]">Jan 02, 2026, 7:00 PM</div>
+            </div>
+
+            {/* Customer Section */}
             {showCustomerInfo && (
-                <div className="mb-4 p-3 bg-slate-50 rounded-lg">
-                    <div className="text-xs font-medium text-slate-500 mb-1">Bill To:</div>
-                    <div className="text-sm font-medium text-slate-800">John Doe</div>
-                    <div className="text-xs text-slate-500">johndoe@email.com</div>
+                <div className="px-4 py-3 border-b border-gray-100">
+                    <div className="text-[10px] uppercase tracking-wider text-gray-400 mb-1">Customer</div>
+                    <div className="font-semibold text-gray-800 text-sm">John Doe</div>
+                    <div className="text-gray-500 text-xs">johndoe@email.com</div>
+                    <div className="text-gray-500 text-xs">+63 912 345 6789</div>
                 </div>
             )}
 
-            {/* Order Items */}
+            {/* Order Details */}
             {showOrderItems && (
-                <div className="mb-4">
-                    <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Items</div>
-                    <div className="space-y-2">
-                        <div className="flex justify-between items-center py-2 border-b border-slate-100">
-                            <div>
-                                <div className="text-sm font-medium text-slate-800">Product Item</div>
-                                <div className="text-xs text-slate-500">Qty: 1</div>
-                            </div>
-                            <div className="text-sm font-medium text-slate-800">₱588</div>
+                <div className="px-4 py-3 border-b border-gray-100">
+                    <div className="text-[10px] uppercase tracking-wider text-gray-400 mb-2">Order Details</div>
+                    <div className="flex justify-between items-start">
+                        <div>
+                            <div className="font-medium text-gray-800 text-sm">Sample Product</div>
+                            <div className="text-gray-500 text-xs">Qty: 1</div>
                         </div>
-                        <div className="flex justify-between items-center py-2 border-b border-slate-100">
-                            <div className="text-sm text-slate-600">Shipping</div>
-                            <div className="text-sm text-slate-800">₱50</div>
-                        </div>
+                        <div className="font-semibold text-gray-800 text-sm">₱588</div>
                     </div>
                 </div>
             )}
 
-            {/* Total */}
+            {/* Summary */}
             {showOrderTotal && (
-                <div className="flex justify-between items-center py-3 px-4 rounded-lg mb-4" style={{ backgroundColor: `${primaryColor}15` }}>
-                    <span className="font-bold text-slate-800">Total</span>
-                    <span className="text-xl font-bold" style={{ color: primaryColor }}>₱638</span>
-                </div>
-            )}
-
-            {/* Order Tracking */}
-            {showOrderTracking && (
-                <div className="mb-4">
-                    <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Order Status</div>
-                    <div className="flex items-center justify-between">
-                        {trackingSteps.map((step, idx) => {
-                            const IconComponent = step.icon;
-                            const isActive = idx <= 1;
-                            return (
-                                <div key={step.id} className="flex flex-col items-center">
-                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isActive ? 'text-white' : 'bg-slate-100 text-slate-400'}`}
-                                        style={isActive ? { backgroundColor: primaryColor } : {}}>
-                                        <IconComponent className="w-4 h-4" />
-                                    </div>
-                                    <div className="text-[10px] text-slate-500 mt-1 text-center">{step.label}</div>
-                                </div>
-                            );
-                        })}
+                <div className="px-4 py-3 bg-gray-50">
+                    <div className="flex justify-between text-xs mb-1.5">
+                        <span className="text-gray-500">Subtotal</span>
+                        <span className="text-gray-700">₱588</span>
+                    </div>
+                    <div className="flex justify-between items-center pt-2 border-t border-gray-200">
+                        <span className="font-bold text-gray-800 text-sm">Total</span>
+                        <span className="text-xl font-bold" style={{ color: primaryColor }}>₱588</span>
                     </div>
                 </div>
             )}
+
+            {/* Payment Method */}
+            <div className="px-4 py-3 border-t border-gray-100">
+                <div className="flex items-center gap-2">
+                    <span className="text-lg">💵</span>
+                    <div>
+                        <div className="text-gray-500 text-[11px]">Payment Method</div>
+                        <div className="text-gray-800 font-medium text-sm">Cash on Delivery</div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Footer */}
+            <div className="px-4 py-3 bg-gray-50 text-center border-t border-gray-100">
+                <p className="text-gray-400 text-[11px]">Thank you for your order!</p>
+            </div>
 
             {/* Download Buttons */}
-            <div className="flex gap-2">
-                {enablePdfDownload && (
-                    <button className="flex-1 py-2.5 rounded-lg text-sm font-medium text-white flex items-center justify-center gap-2"
-                        style={{ backgroundColor: primaryColor }}>
-                        <Download className="w-4 h-4" />
-                        Download PDF
-                    </button>
-                )}
-                {enableImageDownload && (
-                    <button className="flex-1 py-2.5 rounded-lg text-sm font-medium border-2 flex items-center justify-center gap-2"
-                        style={{ borderColor: primaryColor, color: primaryColor }}>
-                        <FileImage className="w-4 h-4" />
-                        Save Image
-                    </button>
-                )}
-            </div>
+            {(enablePdfDownload || enableImageDownload) && (
+                <div className="flex gap-2 p-3 bg-white border-t border-gray-100">
+                    {enableImageDownload && (
+                        <button className="flex-1 py-2 rounded-lg text-xs font-medium bg-white border border-gray-200 text-gray-600 flex items-center justify-center gap-1.5 shadow-sm">
+                            🖼️ Save Image
+                        </button>
+                    )}
+                    {enablePdfDownload && (
+                        <button className="flex-1 py-2 rounded-lg text-xs font-medium bg-white border border-gray-200 text-gray-600 flex items-center justify-center gap-1.5 shadow-sm">
+                            📄 Save PDF
+                        </button>
+                    )}
+                </div>
+            )}
         </div>
-    ), [companyName, companyLogo, companyEmail, primaryColor, templateStyle, showCustomerInfo, showOrderItems, showOrderTotal, showOrderTracking, enablePdfDownload, enableImageDownload, trackingSteps]);
+    ), [companyName, companyLogo, companyAddress, primaryColor, showCustomerInfo, showOrderItems, showOrderTotal, enablePdfDownload, enableImageDownload]);
 
     // Config Form JSX
     const configFormJSX = useMemo(() => (
@@ -463,6 +463,23 @@ const InvoiceNodeForm: React.FC<InvoiceNodeFormProps> = ({
                                 }}
                                 placeholder="+63 912 345 6789"
                                 className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-purple-500/50 outline-none transition-all placeholder-slate-500"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-slate-300 mb-2">
+                                <MapPin className="w-4 h-4 inline mr-1" />
+                                Company Address
+                            </label>
+                            <textarea
+                                value={companyAddress}
+                                onChange={(e) => {
+                                    setCompanyAddress(e.target.value);
+                                    notifyChange({ companyAddress: e.target.value });
+                                }}
+                                placeholder="123 Business Street, Metro Manila, Philippines"
+                                rows={2}
+                                className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-purple-500/50 outline-none transition-all placeholder-slate-500 resize-none"
                             />
                         </div>
                     </div>
