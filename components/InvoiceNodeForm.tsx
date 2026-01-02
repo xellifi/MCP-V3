@@ -610,10 +610,15 @@ const InvoiceNodeForm: React.FC<InvoiceNodeFormProps> = ({
                 </ul>
             </CollapsibleTips>
         </div>
-    ), [activeSection, companyName, companyLogo, companyEmail, companyPhone, isUploading, uploadError, primaryColor, templateStyle, showOrderItems, showCustomerInfo, showOrderTotal, showOrderTracking, statusLabels, enablePdfDownload, enableImageDownload]);
+    ), [activeSection, companyName, companyLogo, companyEmail, companyPhone, companyAddress, isUploading, uploadError, primaryColor, templateStyle, showOrderItems, showCustomerInfo, showOrderTotal, showOrderTracking, statusLabels, enablePdfDownload, enableImageDownload]);
 
     return (
-        <>
+        <div
+            className="nodrag nopan"
+            onMouseDown={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
+            onWheel={(e) => e.stopPropagation()}
+        >
             {/* Mobile: Toggle Switch */}
             <div className="md:hidden mb-4">
                 <div className="flex rounded-xl overflow-hidden border border-white/10 bg-black/20">
@@ -675,7 +680,7 @@ const InvoiceNodeForm: React.FC<InvoiceNodeFormProps> = ({
                     </div>
                 </div>
             </div>
-        </>
+        </div>
     );
 };
 
