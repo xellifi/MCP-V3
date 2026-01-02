@@ -725,9 +725,63 @@ async function processTextMessage(messagingEvent: any, pageId: string) {
 
     const senderId = messagingEvent.sender.id;
     const messageText = messagingEvent.message.text;
+    const mid = messagingEvent.message?.mid;
 
     console.log(`Message from user: ${senderId}`);
     console.log(`Message text: "${messageText}"`);
+    console.log(`Message ID (mid): ${mid}`);
+
+    // ========== DEDUPLICATION CHECK ==========
+    // Facebook sometimes sends the same webhook event multiple times
+    // We use the message ID (mid) to prevent processing duplicates
+    if (mid) {
+        const now = Date.now();
+        const messageKey = `msg_${mid}`;
+
+        // STEP 1: In-memory cache check (works within same instance)
+        const existingProcessing = postbackProcessingCache.get(messageKey);
+        if (existingProcessing && (now - existingProcessing) < POSTBACK_PROCESSING_TIMEOUT) {
+            console.log('✓ SKIPPING: Duplicate message detected (in-memory cache)');
+            return;
+        }
+        postbackProcessingCache.set(messageKey, now);
+
+        // STEP 2: Database check (works across serverless instances)
+        const { data: existingLog } = await supabase
+            .from('comment_automation_log')
+            .select('id, created_at')
+            .eq('comment_id', messageKey)
+            .gte('created_at', new Date(Date.now() - 30000).toISOString())
+            .maybeSingle();
+
+        if (existingLog) {
+            console.log('✓ SKIPPING: Duplicate message detected (database check)');
+            return;
+        }
+
+        // Log this message BEFORE processing to prevent race conditions
+        const { error: insertError } = await supabase
+            .from('comment_automation_log')
+            .insert({
+                comment_id: messageKey,
+                flow_id: null,
+                action_type: 'dm_sent',
+                success: true,
+                error_message: null,
+                facebook_response: { senderId, messageText, mid, type: 'message_dedup' }
+            });
+
+        if (insertError) {
+            if (insertError.message.includes('duplicate') || insertError.code === '23505') {
+                console.log('✓ SKIPPING: Duplicate detected (concurrent insert)');
+                return;
+            }
+            console.log(`⚠️ Insert warning (continuing): ${insertError.message}`);
+        } else {
+            console.log('✓ Message logged, proceeding with execution...');
+        }
+    }
+    // ========== END DEDUPLICATION ==========
 
     // Ignore messages from the page itself
     if (senderId === pageId) {
