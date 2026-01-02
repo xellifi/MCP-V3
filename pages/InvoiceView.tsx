@@ -21,6 +21,7 @@ const InvoiceView: React.FC = () => {
 
     const loadInvoice = async () => {
         if (!submissionId) {
+            console.error('[InvoiceView] No submission ID in URL');
             setError('No invoice ID provided');
             setLoading(false);
             return;
@@ -28,6 +29,7 @@ const InvoiceView: React.FC = () => {
 
         try {
             console.log('[InvoiceView] Loading invoice for submission:', submissionId);
+            console.log('[InvoiceView] Full URL:', window.location.href);
 
             const { data: submission, error: fetchError } = await supabase
                 .from('form_submissions')
@@ -35,18 +37,28 @@ const InvoiceView: React.FC = () => {
                 .eq('id', submissionId)
                 .single();
 
-            if (fetchError || !submission) {
-                console.error('[InvoiceView] Error:', fetchError);
+            if (fetchError) {
+                console.error('[InvoiceView] Supabase error:', fetchError);
+                console.error('[InvoiceView] Error code:', fetchError.code);
+                console.error('[InvoiceView] Error details:', fetchError.details);
+                setError(`Invoice not found (${fetchError.code || 'unknown error'})`);
+                setLoading(false);
+                return;
+            }
+
+            if (!submission) {
+                console.error('[InvoiceView] No submission data returned');
                 setError('Invoice not found');
                 setLoading(false);
                 return;
             }
 
             console.log('[InvoiceView] Submission loaded:', submission);
+            console.log('[InvoiceView] Form data fields:', Object.keys(submission.data || {}));
             setInvoice(submission);
-        } catch (err) {
-            console.error('[InvoiceView] Error:', err);
-            setError('Failed to load invoice');
+        } catch (err: any) {
+            console.error('[InvoiceView] Exception:', err);
+            setError('Failed to load invoice: ' + (err.message || 'Unknown error'));
         } finally {
             setLoading(false);
         }
@@ -157,7 +169,18 @@ const InvoiceView: React.FC = () => {
     const currency = data.currency || form.currency || 'PHP';
     const currencySymbol = getCurrencySymbol(currency);
     const paymentMethod = data.payment_method === 'cod' ? 'Cash on Delivery' : (data.ewallet_selected || 'E-Wallet');
-    const invoiceNumber = `INV-${submissionId.slice(0, 8).toUpperCase()}`;
+    const invoiceNumber = `INV-${submissionId?.slice(0, 8).toUpperCase() || 'UNKNOWN'}`;
+
+    // Extract customer name from form data fields - look for common name fields
+    const customerName = data.name
+        || data.full_name
+        || data.customer_name
+        || data.buyer_name
+        || data['Full Name']
+        || data['Name']
+        || data.subscriber_name
+        || invoice.subscriber_name
+        || 'Customer';
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-100 via-white to-indigo-50 p-4 py-6">
@@ -238,7 +261,7 @@ const InvoiceView: React.FC = () => {
                     {/* Customer Info */}
                     <div className="px-6 py-4 border-b border-gray-100">
                         <h3 className="text-xs uppercase tracking-wider text-gray-400 mb-2">Customer</h3>
-                        <p className="font-semibold text-gray-800">{invoice.subscriber_name || 'Customer'}</p>
+                        <p className="font-semibold text-gray-800">{customerName}</p>
                         {data.email && <p className="text-gray-500 text-sm">{data.email}</p>}
                         {data.phone && <p className="text-gray-500 text-sm">{data.phone}</p>}
                         {(data.address || data.full_address) && (
