@@ -486,7 +486,7 @@ const InvoiceNodeForm: React.FC<InvoiceNodeFormProps> = ({
                                 {TEMPLATE_STYLES.map(style => (
                                     <button
                                         key={style.id}
-                                        onClick={() => { setTemplateStyle(style.id as 'modern' | 'classic' | 'minimal'); notifyChange({ templateStyle: style.id }); }}
+                                        onClick={() => { const styleId = style.id as 'modern' | 'classic' | 'minimal'; setTemplateStyle(styleId); notifyChange({ templateStyle: styleId }); }}
                                         className={`p-3 rounded-xl border transition-all text-center ${templateStyle === style.id
                                             ? 'bg-purple-500/20 border-purple-500/50 text-purple-400'
                                             : 'bg-black/20 border-white/10 text-slate-400 hover:text-white hover:bg-white/5'
