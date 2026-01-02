@@ -74,6 +74,9 @@ const StoreView: React.FC = () => {
     // Selected product for detail view
     const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
+    // Category filter
+    const [selectedCategory, setSelectedCategory] = useState<string>('all');
+
     // Load store and products
     useEffect(() => {
         loadStore();
@@ -302,15 +305,50 @@ const StoreView: React.FC = () => {
 
             {/* Products Grid */}
             <main className="max-w-6xl mx-auto px-4 py-10">
-                <div className="flex items-center justify-between mb-8">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
                     <div>
                         <h3 className="text-xl font-bold text-gray-900">All Products</h3>
-                        <p className="text-sm text-gray-500">{products.length} items</p>
+                        <p className="text-sm text-gray-500">
+                            {selectedCategory === 'all' ? products.length : products.filter(p => p.category === selectedCategory).length} items
+                            {selectedCategory !== 'all' && ` in ${selectedCategory}`}
+                        </p>
                     </div>
+                    {/* Category Filter */}
+                    {(() => {
+                        const categories = [...new Set(products.map(p => p.category).filter(Boolean))];
+                        if (categories.length === 0) return null;
+                        return (
+                            <div className="flex flex-wrap gap-2">
+                                <button
+                                    onClick={() => setSelectedCategory('all')}
+                                    className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${selectedCategory === 'all'
+                                            ? 'text-white shadow-md'
+                                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                        }`}
+                                    style={selectedCategory === 'all' ? { backgroundColor: store.primary_color } : {}}
+                                >
+                                    All
+                                </button>
+                                {categories.map(cat => (
+                                    <button
+                                        key={cat}
+                                        onClick={() => setSelectedCategory(cat!)}
+                                        className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${selectedCategory === cat
+                                                ? 'text-white shadow-md'
+                                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                            }`}
+                                        style={selectedCategory === cat ? { backgroundColor: store.primary_color } : {}}
+                                    >
+                                        {cat}
+                                    </button>
+                                ))}
+                            </div>
+                        );
+                    })()}
                 </div>
 
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
-                    {products.map(product => (
+                    {products.filter(p => selectedCategory === 'all' || p.category === selectedCategory).map(product => (
                         <div
                             key={product.id}
                             className="group bg-white rounded-2xl overflow-hidden border border-gray-100 hover:border-gray-200 hover:shadow-lg transition-all duration-300"
@@ -614,8 +652,8 @@ const StoreView: React.FC = () => {
                                                     key={method.id}
                                                     onClick={() => setPaymentMethod(method.id)}
                                                     className={`p-3 rounded-xl border-2 text-center transition-all ${paymentMethod === method.id
-                                                            ? 'border-gray-900 bg-gray-50'
-                                                            : 'border-gray-200 hover:border-gray-300'
+                                                        ? 'border-gray-900 bg-gray-50'
+                                                        : 'border-gray-200 hover:border-gray-300'
                                                         }`}
                                                 >
                                                     <div className="text-2xl mb-1">{method.icon}</div>

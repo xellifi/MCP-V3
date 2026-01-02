@@ -18,7 +18,7 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Workspace, ConnectedPage } from '../types';
-import { Save, ArrowLeft, PlayCircle, Menu, X, Grid3x3, MessageCircle, Play, Bot, Send, Clock, MousePointer2, SquareMousePointer, Sparkles, GitBranch, MessageSquare, RectangleEllipsis, Plus, Minus, Maximize, Wrench, RotateCcw, Image, Video, FileText, Table, RefreshCw, ShoppingBag, Tag, Receipt } from 'lucide-react';
+import { Save, ArrowLeft, PlayCircle, Menu, X, Grid3x3, MessageCircle, Play, Bot, Send, Clock, MousePointer2, SquareMousePointer, Sparkles, GitBranch, MessageSquare, RectangleEllipsis, Plus, Minus, Maximize, Wrench, RotateCcw, Image, Video, FileText, Table, RefreshCw, ShoppingBag, Tag, Receipt, Package } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import NodeConfigModal from '../components/NodeConfigModal';
 import TriggerNodeForm from '../components/TriggerNodeForm';
@@ -38,6 +38,7 @@ import FollowupNodeForm from '../components/FollowupNodeForm';
 import UpsellNodeForm from '../components/UpsellNodeForm';
 import DownsellNodeForm from '../components/DownsellNodeForm';
 import InvoiceNodeForm from '../components/InvoiceNodeForm';
+import ProductNodeForm from '../components/ProductNodeForm';
 import CustomEdge from '../components/edges/CustomEdge';
 import CustomTriggerNode from '../components/nodes/CustomTriggerNode';
 import CustomActionNode from '../components/nodes/CustomActionNode';
@@ -55,6 +56,7 @@ import CustomFollowupNode from '../components/nodes/CustomFollowupNode';
 import CustomUpsellNode from '../components/nodes/CustomUpsellNode';
 import CustomDownsellNode from '../components/nodes/CustomDownsellNode';
 import CustomInvoiceNode from '../components/nodes/CustomInvoiceNode';
+import CustomProductNode from '../components/nodes/CustomProductNode';
 import { api } from '../services/api';
 import { supabase } from '../lib/supabase';
 // Import node configuration registry
@@ -88,6 +90,7 @@ const nodeTypes: NodeTypes = {
   upsellNode: CustomUpsellNode,
   downsellNode: CustomDownsellNode,
   invoiceNode: CustomInvoiceNode,
+  productNode: CustomProductNode,
 };
 
 // Define custom edge types
@@ -1541,6 +1544,17 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
       );
     }
 
+    // Product Node
+    if (nodeType === 'productNode' || label.toLowerCase().includes('product')) {
+      return (
+        <ProductNodeForm
+          workspaceId={workspace?.id || ''}
+          initialConfig={initialConfigRef.current}
+          onChange={handleConfigChange}
+        />
+      );
+    }
+
     // Start Node
     if (nodeType === 'startNode' || label.toLowerCase().includes('start')) {
       // Check if this is a "New Flow" node (sub-flow start point)
@@ -1948,6 +1962,10 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
           <div draggable onDragStart={(e) => onDragStart(e, 'invoiceNode', 'Invoice')} onClick={() => addNode('invoiceNode', 'Invoice')}
             className="w-12 h-12 bg-violet-500/20 hover:bg-violet-500/40 border border-violet-500/30 rounded-xl flex items-center justify-center text-violet-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing" title="Invoice">
             <Receipt className="w-6 h-6" />
+          </div>
+          <div draggable onDragStart={(e) => onDragStart(e, 'productNode', 'Product')} onClick={() => addNode('productNode', 'Product')}
+            className="w-12 h-12 bg-emerald-500/20 hover:bg-emerald-500/40 border border-emerald-500/30 rounded-xl flex items-center justify-center text-emerald-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing" title="Product">
+            <Package className="w-6 h-6" />
           </div>
         </div>
       </div>
