@@ -477,6 +477,9 @@ const InvoiceNodeForm: React.FC<InvoiceNodeFormProps> = ({
                                     setCompanyAddress(e.target.value);
                                     notifyChange({ companyAddress: e.target.value });
                                 }}
+                                onMouseDown={(e) => e.stopPropagation()}
+                                onKeyDown={(e) => e.stopPropagation()}
+                                onFocus={(e) => e.stopPropagation()}
                                 placeholder="123 Business Street, Metro Manila, Philippines"
                                 rows={2}
                                 className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-purple-500/50 outline-none transition-all placeholder-slate-500 resize-none"
