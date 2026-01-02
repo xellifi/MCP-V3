@@ -8,3 +8,6 @@ ALTER TABLE stores ADD COLUMN IF NOT EXISTS google_webhook_url TEXT;
 
 -- Add column for Google Sheet name (e.g., Sheet1, Sheet2, etc.)
 ALTER TABLE stores ADD COLUMN IF NOT EXISTS google_sheet_name TEXT DEFAULT 'Sheet1';
+
+-- Add column for Google Spreadsheet ID (from the sheet URL)
+ALTER TABLE stores ADD COLUMN IF NOT EXISTS google_spreadsheet_id TEXT;

@@ -24,13 +24,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const { webhookUrl, spreadsheetId, sheetName, rowData, data } = req.body;
         const submissionData = rowData || data; // Support both field names
 
-        if (!spreadsheetId || !submissionData) {
-            return res.status(400).json({ error: 'Missing spreadsheetId or data' });
+        if (!submissionData) {
+            return res.status(400).json({ error: 'Missing data' });
         }
 
-        console.log('[Sheets Sync] Syncing to spreadsheet:', spreadsheetId);
         console.log('[Sheets Sync] Sheet name:', sheetName);
         console.log('[Sheets Sync] Data keys:', Object.keys(submissionData));
+        if (spreadsheetId) {
+            console.log('[Sheets Sync] Syncing to spreadsheet:', spreadsheetId);
+        }
 
         // Option 1: Use per-form webhook URL (SaaS approach - each user has their own)
         const targetWebhookUrl = webhookUrl || process.env.GOOGLE_SHEETS_WEBHOOK_URL;
@@ -38,14 +40,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         if (targetWebhookUrl) {
             console.log('[Sheets Sync] Calling webhook:', targetWebhookUrl.substring(0, 60) + '...');
 
+            // Build payload - only include spreadsheetId if provided
+            const payload: any = {
+                sheetName: sheetName || 'Sheet1',
+                rowData: submissionData
+            };
+            if (spreadsheetId) {
+                payload.spreadsheetId = spreadsheetId;
+            }
+
             const response = await fetch(targetWebhookUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    spreadsheetId,
-                    sheetName: sheetName || 'Sheet1',
-                    rowData: submissionData
-                })
+                body: JSON.stringify(payload)
             });
 
             const responseText = await response.text();

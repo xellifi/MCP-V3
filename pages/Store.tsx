@@ -66,6 +66,7 @@ interface StoreSettings {
     currency: string;
     google_webhook_url?: string;
     google_sheet_name?: string;
+    google_spreadsheet_id?: string;
 }
 
 interface StoreProps {
@@ -219,6 +220,7 @@ const Store: React.FC<StoreProps> = ({ workspace }) => {
                     currency: store.currency,
                     google_webhook_url: store.google_webhook_url,
                     google_sheet_name: store.google_sheet_name,
+                    google_spreadsheet_id: store.google_spreadsheet_id,
                 })
                 .eq('id', store.id);
 
@@ -733,8 +735,8 @@ const Store: React.FC<StoreProps> = ({ workspace }) => {
                             <p className="text-slate-400 text-sm mb-4">
                                 Automatically sync new orders to a Google Sheet. Click "Setup Guide" for step-by-step instructions.
                             </p>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <div className="md:col-span-2">
+                            <div className="space-y-4">
+                                <div>
                                     <label className="block text-sm font-medium text-slate-300 mb-2">Apps Script Webhook URL</label>
                                     <input
                                         type="url"
@@ -850,40 +852,73 @@ const Store: React.FC<StoreProps> = ({ workspace }) => {
                                     <div className="w-8 h-8 rounded-full bg-purple-500 flex items-center justify-center text-white font-bold flex-shrink-0">4</div>
                                     <div className="flex-1">
                                         <h3 className="font-semibold text-white mb-1">Paste This Code</h3>
-                                        <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3 mb-3">
-                                            <p className="text-blue-400 text-sm">
-                                                <strong>💡 Already have a working script for forms?</strong> You can reuse the same webhook URL! Just paste the same URL above and orders will sync to your existing sheet.
-                                            </p>
-                                        </div>
-                                        <p className="text-slate-400 text-sm mb-2">For new setups, delete any existing code and paste the following:</p>
+                                        <p className="text-slate-400 text-sm mb-2">Delete any existing code and paste the following:</p>
                                         <div className="relative">
                                             <pre className="bg-black/50 rounded-lg p-4 text-xs text-green-400 font-mono overflow-x-auto max-h-64 overflow-y-auto">
                                                 {`function doPost(e) {
-  var data = JSON.parse(e.postData.contents);
-  var ss = SpreadsheetApp.openById(data.spreadsheetId);
-  var sheet = ss.getSheetByName(data.sheetName) || ss.getSheets()[0];
-  var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0].filter(h => h);
-  if (!headers.length) {
-    headers = Object.keys(data.rowData);
-    sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+  try {
+    var data = JSON.parse(e.postData.contents);
+    var sheet = SpreadsheetApp.getActiveSpreadsheet()
+      .getSheetByName(data.sheetName || 'Sheet1');
+    
+    if (!sheet) {
+      sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+    }
+    
+    var rowData = data.rowData;
+    var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    var newRow = [];
+    
+    for (var i = 0; i < headers.length; i++) {
+      newRow.push(rowData[headers[i]] || '');
+    }
+    
+    sheet.appendRow(newRow);
+    
+    return ContentService.createTextOutput(JSON.stringify({
+      success: true
+    })).setMimeType(ContentService.MimeType.JSON);
+    
+  } catch (error) {
+    return ContentService.createTextOutput(JSON.stringify({
+      success: false,
+      error: error.toString()
+    })).setMimeType(ContentService.MimeType.JSON);
   }
-  sheet.appendRow(headers.map(h => data.rowData[h] || ''));
-  return ContentService.createTextOutput('OK');
 }`}
                                             </pre>
                                             <button
                                                 onClick={() => {
                                                     navigator.clipboard.writeText(`function doPost(e) {
-  var data = JSON.parse(e.postData.contents);
-  var ss = SpreadsheetApp.openById(data.spreadsheetId);
-  var sheet = ss.getSheetByName(data.sheetName) || ss.getSheets()[0];
-  var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0].filter(h => h);
-  if (!headers.length) {
-    headers = Object.keys(data.rowData);
-    sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+  try {
+    var data = JSON.parse(e.postData.contents);
+    var sheet = SpreadsheetApp.getActiveSpreadsheet()
+      .getSheetByName(data.sheetName || 'Sheet1');
+    
+    if (!sheet) {
+      sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+    }
+    
+    var rowData = data.rowData;
+    var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    var newRow = [];
+    
+    for (var i = 0; i < headers.length; i++) {
+      newRow.push(rowData[headers[i]] || '');
+    }
+    
+    sheet.appendRow(newRow);
+    
+    return ContentService.createTextOutput(JSON.stringify({
+      success: true
+    })).setMimeType(ContentService.MimeType.JSON);
+    
+  } catch (error) {
+    return ContentService.createTextOutput(JSON.stringify({
+      success: false,
+      error: error.toString()
+    })).setMimeType(ContentService.MimeType.JSON);
   }
-  sheet.appendRow(headers.map(h => data.rowData[h] || ''));
-  return ContentService.createTextOutput('OK');
 }`);
                                                     setScriptCopied(true);
                                                     setTimeout(() => setScriptCopied(false), 2000);
@@ -893,6 +928,11 @@ const Store: React.FC<StoreProps> = ({ workspace }) => {
                                                 {scriptCopied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
                                                 {scriptCopied ? 'Copied!' : 'Copy'}
                                             </button>
+                                        </div>
+                                        <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 mt-3">
+                                            <p className="text-amber-400 text-sm">
+                                                <strong>⚠️ Important:</strong> This is a NEW script for Order Sync. Deploy it as a separate web app from your existing Forms script.
+                                            </p>
                                         </div>
                                     </div>
                                 </div>

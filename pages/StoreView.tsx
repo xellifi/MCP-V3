@@ -36,6 +36,7 @@ interface Store {
     currency: string;
     google_webhook_url?: string;
     google_sheet_name?: string;
+    google_spreadsheet_id?: string;
 }
 
 interface CartItem {
@@ -225,7 +226,6 @@ const StoreView: React.FC = () => {
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             webhookUrl: store.google_webhook_url,
-                            spreadsheetId: 'orders',
                             sheetName: store.google_sheet_name || 'Sheet1',
                             rowData: orderData
                         })
