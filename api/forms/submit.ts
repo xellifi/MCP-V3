@@ -1,78 +1,64 @@
+import { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '';
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+const supabaseUrl = process.env.VITE_SUPABASE_URL!;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY!;
+const supabase = createClient(supabaseUrl, supabaseKey);
 
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-interface SubmissionData {
-    formId: string;
-    subscriberId?: string;
-    subscriberName?: string;
-    [key: string]: any;
-}
-
-export default async function handler(req: any, res: any) {
+/**
+ * Server-side form submission handler
+ * Uses service role key to bypass RLS policies
+ */
+export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
     try {
-        const data: SubmissionData = req.body;
-        const { formId, subscriberId, subscriberName, ...fieldData } = data;
+        const {
+            formId,
+            subscriberId,
+            subscriberName,
+            submissionData
+        } = req.body;
+
+        console.log('[Submit Form] Creating submission for form:', formId);
+        console.log('[Submit Form] Subscriber:', subscriberId, subscriberName);
 
         if (!formId) {
-            return res.status(400).json({ error: 'Form ID is required' });
+            return res.status(400).json({ error: 'Missing formId' });
         }
 
-        // Verify form exists
-        const { data: form, error: formError } = await supabase
-            .from('forms')
-            .select('id, google_sheet_id, google_sheet_name, fields')
-            .eq('id', formId)
-            .single();
-
-        if (formError || !form) {
-            return res.status(404).json({ error: 'Form not found' });
-        }
-
-        // Save submission to database
-        const { data: submission, error: submitError } = await supabase
+        // Insert submission using service role key (bypasses RLS)
+        const { data: submission, error: insertError } = await supabase
             .from('form_submissions')
             .insert({
                 form_id: formId,
                 subscriber_external_id: subscriberId || null,
-                subscriber_name: subscriberName || null,
-                data: fieldData,
-                synced_to_sheets: false,
+                subscriber_name: subscriberName || 'Guest',
+                data: submissionData || {},
+                synced_to_sheets: false
             })
-            .select()
+            .select('id')
             .single();
 
-        if (submitError) {
-            console.error('Error saving submission:', submitError);
-            return res.status(500).json({ error: 'Failed to save submission' });
+        if (insertError) {
+            console.error('[Submit Form] Insert error:', insertError);
+            return res.status(500).json({
+                error: 'Failed to save submission',
+                details: insertError.message
+            });
         }
 
-        console.log(`📋 Form submission saved: ${submission.id}`);
-
-        // TODO: Sync to Google Sheets if configured
-        if (form.google_sheet_id) {
-            try {
-                // Google Sheets sync would go here
-                // For now, just mark as not synced
-                console.log(`📊 Google Sheet sync pending for: ${form.google_sheet_id}`);
-            } catch (sheetError) {
-                console.error('Google Sheets sync error:', sheetError);
-            }
-        }
+        console.log('[Submit Form] ✓ Submission created with ID:', submission.id);
 
         return res.status(200).json({
             success: true,
             submissionId: submission.id
         });
-    } catch (err) {
-        console.error('Form submission error:', err);
-        return res.status(500).json({ error: 'Internal server error' });
+
+    } catch (error: any) {
+        console.error('[Submit Form] Exception:', error);
+        return res.status(500).json({ error: error.message });
     }
 }

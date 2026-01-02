@@ -33,6 +33,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         console.log('[Continue Flow] Form Node ID:', nodeId);
         console.log('[Continue Flow] Page ID:', pageId);
         console.log('[Continue Flow] Subscriber:', subscriberId, subscriberName);
+        console.log('[Continue Flow] Submission ID received:', submissionId);
 
         if (!flowId || !nodeId) {
             console.log('[Continue Flow] Missing flowId or nodeId');

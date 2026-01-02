@@ -239,24 +239,26 @@ const FormView: React.FC = () => {
                 submitted_at: new Date().toISOString()
             };
 
-            // Insert submission and get the ID back
-            const { data: insertedSubmission, error: insertError } = await supabase
-                .from('form_submissions')
-                .insert({
-                    form_id: formId,
-                    subscriber_external_id: subscriberId,
-                    subscriber_name: subscriberName,
-                    data: submissionData,
-                    synced_to_sheets: false,
+            // Use server-side API to insert submission (bypasses RLS)
+            const submitResponse = await fetch('/api/forms/submit', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    formId,
+                    subscriberId,
+                    subscriberName,
+                    submissionData
                 })
-                .select('id')
-                .single();
+            });
 
-            if (insertError) {
-                console.error('[FormView] Submission insert error:', insertError);
+            const submitResult = await submitResponse.json();
+
+            if (!submitResponse.ok || !submitResult.submissionId) {
+                console.error('[FormView] Submission API error:', submitResult);
+                throw new Error('Failed to save submission');
             }
 
-            const submissionId = insertedSubmission?.id;
+            const submissionId = submitResult.submissionId;
             console.log('[FormView] Submission created with ID:', submissionId);
 
             // Sync to Google Sheets if connected
