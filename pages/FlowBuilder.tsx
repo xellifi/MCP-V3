@@ -167,16 +167,27 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
   const reactFlowInstance = useReactFlow();
 
   useEffect(() => {
-    loadUserApiKeys();
-    loadAvailablePages();
+    // Parallelize API calls for faster loading
+    const initializeData = async () => {
+      const promises: Promise<void>[] = [
+        loadUserApiKeys(),
+        loadAvailablePages()
+      ];
+
+      // Only load flow data if editing existing flow
+      if (id && !id.startsWith('new')) {
+        promises.push(loadFlowData());
+      }
+
+      // Run all API calls in parallel
+      await Promise.all(promises);
+    };
+
+    initializeData();
+
     // Check if mobile
     const isMobile = window.innerWidth < 768;
     setSidebarCollapsed(isMobile);
-
-    // Load flow data if editing existing flow
-    if (id && !id.startsWith('new')) {
-      loadFlowData();
-    }
   }, [id]);
 
   // Close page dropdown when clicking outside
