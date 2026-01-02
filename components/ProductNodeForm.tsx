@@ -137,6 +137,7 @@ const ProductNodeForm: React.FC<ProductNodeFormProps> = ({
     // Notify parent of changes
     const notifyChange = (updates: Partial<typeof initialConfig> = {}) => {
         const config = {
+            nodeType: 'productNode',
             productId: selectedProductId,
             productName,
             productDescription,
@@ -157,7 +158,7 @@ const ProductNodeForm: React.FC<ProductNodeFormProps> = ({
     // Auto-notify on changes
     useEffect(() => {
         notifyChange();
-    }, [productName, productDescription, productPrice, productComparePrice, productImage, productCategory, productStock, trackInventory, productStatus, selectedProductId, mode]);
+    }, [productName, productDescription, productPrice, productComparePrice, productImage, productCategory, productStock, trackInventory, productStatus, selectedProductId, mode, storeData?.id]);
 
     // Upload image
     const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -284,8 +285,8 @@ const ProductNodeForm: React.FC<ProductNodeFormProps> = ({
                         <button
                             onClick={() => setMode('select')}
                             className={`flex-1 py-2.5 px-4 rounded-lg font-medium text-sm transition-all flex items-center justify-center gap-2 ${mode === 'select'
-                                    ? 'bg-emerald-500 text-white'
-                                    : 'text-slate-400 hover:text-white hover:bg-slate-700'
+                                ? 'bg-emerald-500 text-white'
+                                : 'text-slate-400 hover:text-white hover:bg-slate-700'
                                 }`}
                         >
                             <Layers className="w-4 h-4" />
@@ -294,8 +295,8 @@ const ProductNodeForm: React.FC<ProductNodeFormProps> = ({
                         <button
                             onClick={() => { setMode('create'); setSelectedProductId(''); }}
                             className={`flex-1 py-2.5 px-4 rounded-lg font-medium text-sm transition-all flex items-center justify-center gap-2 ${mode === 'create'
-                                    ? 'bg-emerald-500 text-white'
-                                    : 'text-slate-400 hover:text-white hover:bg-slate-700'
+                                ? 'bg-emerald-500 text-white'
+                                : 'text-slate-400 hover:text-white hover:bg-slate-700'
                                 }`}
                         >
                             <Plus className="w-4 h-4" />
@@ -337,8 +338,8 @@ const ProductNodeForm: React.FC<ProductNodeFormProps> = ({
                                             key={product.id}
                                             onClick={() => selectProduct(product)}
                                             className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all ${selectedProductId === product.id
-                                                    ? 'bg-emerald-500/20 border-2 border-emerald-500'
-                                                    : 'bg-slate-800 border-2 border-transparent hover:border-slate-600'
+                                                ? 'bg-emerald-500/20 border-2 border-emerald-500'
+                                                : 'bg-slate-800 border-2 border-transparent hover:border-slate-600'
                                                 }`}
                                         >
                                             <div className="w-12 h-12 rounded-lg bg-slate-700 overflow-hidden flex-shrink-0">
@@ -509,8 +510,8 @@ const ProductNodeForm: React.FC<ProductNodeFormProps> = ({
                                 <button
                                     onClick={() => setProductStatus(productStatus === 'active' ? 'draft' : 'active')}
                                     className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${productStatus === 'active'
-                                            ? 'bg-emerald-500 text-white'
-                                            : 'bg-slate-700 text-slate-400'
+                                        ? 'bg-emerald-500 text-white'
+                                        : 'bg-slate-700 text-slate-400'
                                         }`}
                                 >
                                     {productStatus === 'active' ? 'Active' : 'Draft'}
