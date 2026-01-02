@@ -266,6 +266,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 console.log('[Continue Flow] Processing Invoice node');
                 const companyName = config.companyName || 'Your Company';
                 const companyLogo = config.companyLogo || '';
+                const companyAddress = config.companyAddress || '';
                 const accentColor = config.primaryColor || '#6366f1';
 
                 // Build invoice URL using the submissionId passed directly from FormView
@@ -303,6 +304,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     params.set('company', companyName);
                     params.set('color', accentColor);
                     if (companyLogo) params.set('logo', companyLogo);
+                    if (companyAddress) params.set('address', companyAddress);
 
                     invoiceUrl = `${baseUrl}/api/invoices/view?${params.toString()}`;
                     console.log('[Continue Flow] Invoice URL:', invoiceUrl);

@@ -15,6 +15,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const company = (req.query.company as string) || 'Your Company';
     const color = (req.query.color as string) || '#6366f1';
     const logo = (req.query.logo as string) || '';
+    const companyAddress = (req.query.address as string) || '';
 
     console.log('[Invoice View] Loading invoice:', id);
 
@@ -72,6 +73,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         res.setHeader('Content-Type', 'text/html; charset=utf-8');
         return res.status(200).send(renderInvoice({
             company,
+            companyAddress,
             color,
             logo,
             invoiceNumber,
@@ -150,6 +152,7 @@ function renderError(message: string): string {
 
 interface InvoiceData {
     company: string;
+    companyAddress?: string;
     color: string;
     logo: string;
     invoiceNumber: string;
@@ -214,6 +217,7 @@ function renderInvoice(data: InvoiceData): string {
         .company-logo img { width: 100%; height: 100%; object-fit: cover; border-radius: 10px; }
         .company-name { font-size: 18px; font-weight: bold; }
         .company-subtitle { font-size: 12px; opacity: 0.8; }
+        .company-address { font-size: 10px; opacity: 0.7; margin-top: 2px; max-width: 160px; line-height: 1.3; }
         .invoice-meta { text-align: right; }
         .invoice-label { font-size: 10px; text-transform: uppercase; opacity: 0.7; letter-spacing: 1px; }
         .invoice-number { font-family: monospace; font-size: 13px; }
@@ -342,6 +346,7 @@ function renderInvoice(data: InvoiceData): string {
                         <div>
                             <div class="company-name">${escapeHtml(data.company)}</div>
                             <div class="company-subtitle">Official Invoice</div>
+                            ${data.companyAddress ? `<div class="company-address">${escapeHtml(data.companyAddress)}</div>` : ''}
                         </div>
                     </div>
                     <div class="invoice-meta">
