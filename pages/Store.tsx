@@ -850,81 +850,40 @@ const Store: React.FC<StoreProps> = ({ workspace }) => {
                                     <div className="w-8 h-8 rounded-full bg-purple-500 flex items-center justify-center text-white font-bold flex-shrink-0">4</div>
                                     <div className="flex-1">
                                         <h3 className="font-semibold text-white mb-1">Paste This Code</h3>
-                                        <p className="text-slate-400 text-sm mb-2">Delete any existing code and paste the following:</p>
+                                        <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3 mb-3">
+                                            <p className="text-blue-400 text-sm">
+                                                <strong>💡 Already have a working script for forms?</strong> You can reuse the same webhook URL! Just paste the same URL above and orders will sync to your existing sheet.
+                                            </p>
+                                        </div>
+                                        <p className="text-slate-400 text-sm mb-2">For new setups, delete any existing code and paste the following:</p>
                                         <div className="relative">
                                             <pre className="bg-black/50 rounded-lg p-4 text-xs text-green-400 font-mono overflow-x-auto max-h-64 overflow-y-auto">
                                                 {`function doPost(e) {
-  try {
-    var data = JSON.parse(e.postData.contents);
-    var sheet = SpreadsheetApp.getActiveSpreadsheet()
-      .getSheetByName(data.sheetName || 'Sheet1');
-    
-    if (!sheet) {
-      sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
-    }
-    
-    var rowData = data.rowData;
-    var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-    var newRow = [];
-    
-    // Match data to headers
-    for (var i = 0; i < headers.length; i++) {
-      var header = headers[i];
-      newRow.push(rowData[header] || '');
-    }
-    
-    // Append the row
-    sheet.appendRow(newRow);
-    
-    return ContentService.createTextOutput(JSON.stringify({
-      success: true,
-      message: 'Row added successfully'
-    })).setMimeType(ContentService.MimeType.JSON);
-    
-  } catch (error) {
-    return ContentService.createTextOutput(JSON.stringify({
-      success: false,
-      error: error.toString()
-    })).setMimeType(ContentService.MimeType.JSON);
+  var data = JSON.parse(e.postData.contents);
+  var ss = SpreadsheetApp.openById(data.spreadsheetId);
+  var sheet = ss.getSheetByName(data.sheetName) || ss.getSheets()[0];
+  var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0].filter(h => h);
+  if (!headers.length) {
+    headers = Object.keys(data.rowData);
+    sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
   }
+  sheet.appendRow(headers.map(h => data.rowData[h] || ''));
+  return ContentService.createTextOutput('OK');
 }`}
                                             </pre>
                                             <button
                                                 onClick={() => {
                                                     navigator.clipboard.writeText(`function doPost(e) {
-  try {
-    var data = JSON.parse(e.postData.contents);
-    var sheet = SpreadsheetApp.getActiveSpreadsheet()
-      .getSheetByName(data.sheetName || 'Sheet1');
-    
-    if (!sheet) {
-      sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
-    }
-    
-    var rowData = data.rowData;
-    var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-    var newRow = [];
-    
-    // Match data to headers
-    for (var i = 0; i < headers.length; i++) {
-      var header = headers[i];
-      newRow.push(rowData[header] || '');
-    }
-    
-    // Append the row
-    sheet.appendRow(newRow);
-    
-    return ContentService.createTextOutput(JSON.stringify({
-      success: true,
-      message: 'Row added successfully'
-    })).setMimeType(ContentService.MimeType.JSON);
-    
-  } catch (error) {
-    return ContentService.createTextOutput(JSON.stringify({
-      success: false,
-      error: error.toString()
-    })).setMimeType(ContentService.MimeType.JSON);
+  var data = JSON.parse(e.postData.contents);
+  var ss = SpreadsheetApp.openById(data.spreadsheetId);
+  var sheet = ss.getSheetByName(data.sheetName) || ss.getSheets()[0];
+  var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0].filter(h => h);
+  if (!headers.length) {
+    headers = Object.keys(data.rowData);
+    sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
   }
+  sheet.appendRow(headers.map(h => data.rowData[h] || ''));
+  return ContentService.createTextOutput('OK');
 }`);
                                                     setScriptCopied(true);
                                                     setTimeout(() => setScriptCopied(false), 2000);
