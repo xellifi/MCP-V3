@@ -65,9 +65,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             : (data.ewallet_selected || 'E-Wallet');
 
         const invoiceNumber = `INV-${id.slice(0, 8).toUpperCase()}`;
-        const orderDate = new Date(submission.created_at).toLocaleDateString('en-US', {
-            year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
-        });
+        // Pass raw timestamp - will be formatted client-side for correct timezone
+        const orderTimestamp = submission.created_at;
 
         // Return server-rendered HTML
         res.setHeader('Content-Type', 'text/html; charset=utf-8');
@@ -76,7 +75,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             color,
             logo,
             invoiceNumber,
-            orderDate,
+            orderTimestamp,
             customerName,
             email: data.email,
             phone: data.phone,
@@ -154,7 +153,7 @@ interface InvoiceData {
     color: string;
     logo: string;
     invoiceNumber: string;
-    orderDate: string;
+    orderTimestamp: string;
     customerName: string;
     email?: string;
     phone?: string;
@@ -354,7 +353,7 @@ function renderInvoice(data: InvoiceData): string {
             
             <div class="status-bar">
                 <div class="status-badge">✅ Order Confirmed</div>
-                <div class="status-date">${data.orderDate}</div>
+                <div class="status-date" id="orderDate" data-timestamp="${data.orderTimestamp}">Loading...</div>
             </div>
             
             <div class="section">
@@ -415,6 +414,21 @@ function renderInvoice(data: InvoiceData): string {
     </div>
     
     <script>
+        // Format date in user's local timezone
+        (function() {
+            const dateEl = document.getElementById('orderDate');
+            if (dateEl && dateEl.dataset.timestamp) {
+                const date = new Date(dateEl.dataset.timestamp);
+                dateEl.textContent = date.toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+            }
+        })();
+        
         function setButtonLoading(btnId, loading) {
             const btn = document.getElementById(btnId);
             if (loading) {
