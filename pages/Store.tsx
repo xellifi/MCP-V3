@@ -3,7 +3,7 @@ import {
     Store as StoreIcon, Package, ShoppingCart, Settings, Plus, Edit2, Trash2,
     Search, Filter, MoreVertical, Image as ImageIcon, Upload, X, Save,
     Eye, ExternalLink, Copy, Check, Truck, Clock, CheckCircle, XCircle,
-    DollarSign, Tag, Box, AlertCircle, Palette, Building2, Link as LinkIcon
+    DollarSign, Tag, Box, AlertCircle, Palette, Building2, Link as LinkIcon, HelpCircle
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Workspace } from '../types';
@@ -64,6 +64,8 @@ interface StoreSettings {
     address?: string;
     is_active: boolean;
     currency: string;
+    google_webhook_url?: string;
+    google_sheet_name?: string;
 }
 
 interface StoreProps {
@@ -111,6 +113,8 @@ const Store: React.FC<StoreProps> = ({ workspace }) => {
         currency: 'PHP',
     });
     const [slugCopied, setSlugCopied] = useState(false);
+    const [showSheetsGuide, setShowSheetsGuide] = useState(false);
+    const [scriptCopied, setScriptCopied] = useState(false);
 
     // File upload
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -213,6 +217,8 @@ const Store: React.FC<StoreProps> = ({ workspace }) => {
                     address: store.address,
                     is_active: store.is_active,
                     currency: store.currency,
+                    google_webhook_url: store.google_webhook_url,
+                    google_sheet_name: store.google_sheet_name,
                 })
                 .eq('id', store.id);
 
@@ -707,6 +713,61 @@ const Store: React.FC<StoreProps> = ({ workspace }) => {
                             </div>
                         </div>
 
+                        {/* Google Sheets Integration */}
+                        <div className="bg-black/30 backdrop-blur-md border border-white/10 rounded-xl p-6 lg:col-span-2">
+                            <div className="flex items-center justify-between mb-4">
+                                <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                                    <svg className="w-5 h-5 text-green-400" viewBox="0 0 24 24" fill="currentColor">
+                                        <path d="M19.5 3H4.5C3.12 3 2 4.12 2 5.5v13C2 19.88 3.12 21 4.5 21h15c1.38 0 2.5-1.12 2.5-2.5v-13C22 4.12 20.88 3 19.5 3zM8 17.5H5v-2h3v2zm0-4H5v-2h3v2zm0-4H5v-2h3v2zm11 8H10v-2h9v2zm0-4H10v-2h9v2zm0-4H10v-2h9v2z" />
+                                    </svg>
+                                    Google Sheets Integration
+                                </h2>
+                                <button
+                                    onClick={() => setShowSheetsGuide(true)}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-green-500/20 hover:bg-green-500/30 text-green-400 rounded-lg text-sm font-medium transition-colors"
+                                >
+                                    <HelpCircle className="w-4 h-4" />
+                                    Setup Guide
+                                </button>
+                            </div>
+                            <p className="text-slate-400 text-sm mb-4">
+                                Automatically sync new orders to a Google Sheet. Click "Setup Guide" for step-by-step instructions.
+                            </p>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div className="md:col-span-2">
+                                    <label className="block text-sm font-medium text-slate-300 mb-2">Apps Script Webhook URL</label>
+                                    <input
+                                        type="url"
+                                        value={store.google_webhook_url || ''}
+                                        onChange={(e) => setStore({ ...store, google_webhook_url: e.target.value })}
+                                        placeholder="https://script.google.com/macros/s/.../exec"
+                                        className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-purple-500/50 outline-none"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-300 mb-2">Sheet Name</label>
+                                    <select
+                                        value={store.google_sheet_name || 'Sheet1'}
+                                        onChange={(e) => setStore({ ...store, google_sheet_name: e.target.value })}
+                                        className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-purple-500/50 outline-none"
+                                    >
+                                        <option value="Sheet1">Sheet1</option>
+                                        <option value="Sheet2">Sheet2</option>
+                                        <option value="Sheet3">Sheet3</option>
+                                        <option value="Sheet4">Sheet4</option>
+                                        <option value="Sheet5">Sheet5</option>
+                                        <option value="Orders">Orders</option>
+                                    </select>
+                                </div>
+                            </div>
+                            {store.google_webhook_url && (
+                                <div className="mt-3 flex items-center gap-2 text-green-400 text-sm">
+                                    <Check className="w-4 h-4" />
+                                    <span>Orders will be synced to Google Sheets ({store.google_sheet_name || 'Sheet1'})</span>
+                                </div>
+                            )}
+                        </div>
+
                         {/* Save Button */}
                         <div className="lg:col-span-2">
                             <button
@@ -736,6 +797,177 @@ const Store: React.FC<StoreProps> = ({ workspace }) => {
                         order={selectedOrder}
                         onClose={() => setSelectedOrder(null)}
                     />
+                )}
+
+                {/* Google Sheets Setup Guide Modal */}
+                {showSheetsGuide && (
+                    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+                        <div className="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+                            <div className="sticky top-0 bg-slate-900 border-b border-white/10 px-6 py-4 flex items-center justify-between">
+                                <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                                    <svg className="w-6 h-6 text-green-400" viewBox="0 0 24 24" fill="currentColor">
+                                        <path d="M19.5 3H4.5C3.12 3 2 4.12 2 5.5v13C2 19.88 3.12 21 4.5 21h15c1.38 0 2.5-1.12 2.5-2.5v-13C22 4.12 20.88 3 19.5 3zM8 17.5H5v-2h3v2zm0-4H5v-2h3v2zm0-4H5v-2h3v2zm11 8H10v-2h9v2zm0-4H10v-2h9v2zm0-4H10v-2h9v2z" />
+                                    </svg>
+                                    Google Sheets Setup Guide
+                                </h2>
+                                <button onClick={() => setShowSheetsGuide(false)} className="p-2 hover:bg-white/10 rounded-lg">
+                                    <X className="w-5 h-5 text-slate-400" />
+                                </button>
+                            </div>
+                            <div className="p-6 space-y-6">
+                                {/* Step 1 */}
+                                <div className="flex gap-4">
+                                    <div className="w-8 h-8 rounded-full bg-purple-500 flex items-center justify-center text-white font-bold flex-shrink-0">1</div>
+                                    <div>
+                                        <h3 className="font-semibold text-white mb-1">Create a Google Sheet</h3>
+                                        <p className="text-slate-400 text-sm">Go to <a href="https://sheets.google.com" target="_blank" rel="noopener noreferrer" className="text-purple-400 hover:underline">sheets.google.com</a> and create a new spreadsheet for your orders.</p>
+                                    </div>
+                                </div>
+
+                                {/* Step 2 */}
+                                <div className="flex gap-4">
+                                    <div className="w-8 h-8 rounded-full bg-purple-500 flex items-center justify-center text-white font-bold flex-shrink-0">2</div>
+                                    <div>
+                                        <h3 className="font-semibold text-white mb-1">Add Column Headers</h3>
+                                        <p className="text-slate-400 text-sm">In the first row, add these headers:</p>
+                                        <div className="bg-black/30 rounded-lg px-3 py-2 mt-2 text-xs text-green-400 font-mono overflow-x-auto">
+                                            Order Number | Date | Customer Name | Phone | Email | Shipping Address | Items | Total | Payment Method | Notes
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Step 3 */}
+                                <div className="flex gap-4">
+                                    <div className="w-8 h-8 rounded-full bg-purple-500 flex items-center justify-center text-white font-bold flex-shrink-0">3</div>
+                                    <div>
+                                        <h3 className="font-semibold text-white mb-1">Open Apps Script</h3>
+                                        <p className="text-slate-400 text-sm">In your Google Sheet, go to <strong>Extensions → Apps Script</strong></p>
+                                    </div>
+                                </div>
+
+                                {/* Step 4 */}
+                                <div className="flex gap-4">
+                                    <div className="w-8 h-8 rounded-full bg-purple-500 flex items-center justify-center text-white font-bold flex-shrink-0">4</div>
+                                    <div className="flex-1">
+                                        <h3 className="font-semibold text-white mb-1">Paste This Code</h3>
+                                        <p className="text-slate-400 text-sm mb-2">Delete any existing code and paste the following:</p>
+                                        <div className="relative">
+                                            <pre className="bg-black/50 rounded-lg p-4 text-xs text-green-400 font-mono overflow-x-auto max-h-64 overflow-y-auto">
+                                                {`function doPost(e) {
+  try {
+    var data = JSON.parse(e.postData.contents);
+    var sheet = SpreadsheetApp.getActiveSpreadsheet()
+      .getSheetByName(data.sheetName || 'Sheet1');
+    
+    if (!sheet) {
+      sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+    }
+    
+    var rowData = data.rowData;
+    var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    var newRow = [];
+    
+    // Match data to headers
+    for (var i = 0; i < headers.length; i++) {
+      var header = headers[i];
+      newRow.push(rowData[header] || '');
+    }
+    
+    // Append the row
+    sheet.appendRow(newRow);
+    
+    return ContentService.createTextOutput(JSON.stringify({
+      success: true,
+      message: 'Row added successfully'
+    })).setMimeType(ContentService.MimeType.JSON);
+    
+  } catch (error) {
+    return ContentService.createTextOutput(JSON.stringify({
+      success: false,
+      error: error.toString()
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+}`}
+                                            </pre>
+                                            <button
+                                                onClick={() => {
+                                                    navigator.clipboard.writeText(`function doPost(e) {
+  try {
+    var data = JSON.parse(e.postData.contents);
+    var sheet = SpreadsheetApp.getActiveSpreadsheet()
+      .getSheetByName(data.sheetName || 'Sheet1');
+    
+    if (!sheet) {
+      sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+    }
+    
+    var rowData = data.rowData;
+    var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    var newRow = [];
+    
+    // Match data to headers
+    for (var i = 0; i < headers.length; i++) {
+      var header = headers[i];
+      newRow.push(rowData[header] || '');
+    }
+    
+    // Append the row
+    sheet.appendRow(newRow);
+    
+    return ContentService.createTextOutput(JSON.stringify({
+      success: true,
+      message: 'Row added successfully'
+    })).setMimeType(ContentService.MimeType.JSON);
+    
+  } catch (error) {
+    return ContentService.createTextOutput(JSON.stringify({
+      success: false,
+      error: error.toString()
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+}`);
+                                                    setScriptCopied(true);
+                                                    setTimeout(() => setScriptCopied(false), 2000);
+                                                }}
+                                                className="absolute top-2 right-2 px-3 py-1.5 bg-purple-500 hover:bg-purple-600 text-white rounded-lg text-xs font-medium flex items-center gap-1"
+                                            >
+                                                {scriptCopied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                                                {scriptCopied ? 'Copied!' : 'Copy'}
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Step 5 */}
+                                <div className="flex gap-4">
+                                    <div className="w-8 h-8 rounded-full bg-purple-500 flex items-center justify-center text-white font-bold flex-shrink-0">5</div>
+                                    <div>
+                                        <h3 className="font-semibold text-white mb-1">Deploy as Web App</h3>
+                                        <p className="text-slate-400 text-sm">Click <strong>Deploy → New deployment</strong>, then:</p>
+                                        <ul className="text-slate-400 text-sm mt-2 space-y-1 list-disc list-inside">
+                                            <li>Select type: <strong>Web app</strong></li>
+                                            <li>Execute as: <strong>Me</strong></li>
+                                            <li>Who has access: <strong>Anyone</strong></li>
+                                            <li>Click <strong>Deploy</strong></li>
+                                        </ul>
+                                    </div>
+                                </div>
+
+                                {/* Step 6 */}
+                                <div className="flex gap-4">
+                                    <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center text-white font-bold flex-shrink-0">6</div>
+                                    <div>
+                                        <h3 className="font-semibold text-white mb-1">Copy the Webhook URL</h3>
+                                        <p className="text-slate-400 text-sm">Copy the Web app URL (starts with <code className="text-green-400">https://script.google.com/macros/s/...</code>) and paste it in the Store Settings above.</p>
+                                    </div>
+                                </div>
+
+                                <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-4 mt-4">
+                                    <p className="text-green-400 text-sm font-medium">✓ That's it! New orders will automatically sync to your Google Sheet.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 )}
             </div>
         </div>

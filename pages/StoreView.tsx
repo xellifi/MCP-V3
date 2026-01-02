@@ -34,6 +34,8 @@ interface Store {
     address?: string;
     is_active: boolean;
     currency: string;
+    google_webhook_url?: string;
+    google_sheet_name?: string;
 }
 
 interface CartItem {
@@ -197,6 +199,43 @@ const StoreView: React.FC = () => {
             }));
 
             await supabase.from('order_items').insert(orderItems);
+
+            // Sync to Google Sheets if webhook is configured
+            if (store?.google_webhook_url) {
+                try {
+                    const itemsList = cart.map(item =>
+                        `${item.product.name} x${item.quantity} (${currencySymbol}${(item.product.price * item.quantity).toLocaleString()})`
+                    ).join(', ');
+
+                    const orderData = {
+                        'Order Number': order.order_number,
+                        'Date': new Date().toLocaleString(),
+                        'Customer Name': customerName,
+                        'Phone': customerPhone,
+                        'Email': customerEmail || '-',
+                        'Shipping Address': shippingAddress || '-',
+                        'Items': itemsList,
+                        'Total': `${currencySymbol}${cartTotal.toLocaleString()}`,
+                        'Payment Method': paymentMethod.toUpperCase(),
+                        'Notes': notes || '-',
+                    };
+
+                    await fetch('/api/sheets/sync', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            webhookUrl: store.google_webhook_url,
+                            spreadsheetId: 'orders',
+                            sheetName: store.google_sheet_name || 'Sheet1',
+                            rowData: orderData
+                        })
+                    });
+                    console.log('Order synced to Google Sheets');
+                } catch (sheetError) {
+                    console.error('Failed to sync to Google Sheets:', sheetError);
+                    // Don't fail the order if sheets sync fails
+                }
+            }
 
             setCart([]);
             setOrderPlaced(true);
