@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import {
     ShoppingCart, Package, Plus, Minus, X, Trash2, CheckCircle,
     MapPin, Phone, Mail, Store as StoreIcon, ArrowLeft, Heart,
@@ -49,6 +49,7 @@ const CURRENCY_SYMBOLS: Record<string, string> = {
 
 const StoreView: React.FC = () => {
     const { slug } = useParams<{ slug: string }>();
+    const [searchParams] = useSearchParams();
     const [store, setStore] = useState<Store | null>(null);
     const [products, setProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
@@ -81,6 +82,17 @@ const StoreView: React.FC = () => {
     useEffect(() => {
         loadStore();
     }, [slug]);
+
+    // Auto-select product from URL query param
+    useEffect(() => {
+        const productId = searchParams.get('product');
+        if (productId && products.length > 0) {
+            const product = products.find(p => p.id === productId);
+            if (product) {
+                setSelectedProduct(product);
+            }
+        }
+    }, [searchParams, products]);
 
     const loadStore = async () => {
         setLoading(true);
@@ -729,11 +741,11 @@ const StoreView: React.FC = () => {
             {/* Product Detail Modal - Elegant Order Page */}
             {selectedProduct && (
                 <div
-                    className="fixed inset-0 z-50 bg-black/60 backdrop-blur-md flex items-start md:items-center justify-center overflow-y-auto"
+                    className="fixed inset-0 z-50 bg-black/60 backdrop-blur-md flex items-start md:items-center justify-center overflow-y-auto p-[5px] md:p-4"
                     onClick={() => setSelectedProduct(null)}
                 >
                     <div
-                        className="bg-white w-full max-w-4xl md:rounded-3xl my-0 md:my-8 overflow-hidden shadow-2xl animate-modal-in"
+                        className="bg-white w-full max-w-4xl rounded-2xl md:rounded-3xl my-0 md:my-8 overflow-hidden shadow-2xl animate-modal-in"
                         onClick={(e) => e.stopPropagation()}
                     >
                         {/* Close Button - Mobile Top Bar */}

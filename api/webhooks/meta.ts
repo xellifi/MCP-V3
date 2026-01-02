@@ -2162,9 +2162,11 @@ async function executeAction(
         const productPrice = config.productPrice || 0;
         const productImage = config.productImage || '';
         const storeId = config.storeId || '';
+        const productId = config.productId || '';
 
         console.log(`    🛍️ Product: "${productName}"`);
         console.log(`    💰 Price: ${productPrice}`);
+        console.log(`    🏷️ Product ID: ${productId}`);
 
         if (!productName) {
             console.log('    ⊘ Skipping: No product configured');
@@ -2229,7 +2231,10 @@ async function executeAction(
             if (storeSlug) {
                 // Use VITE_APP_URL from environment variable (set in Vercel)
                 const baseUrl = process.env.VITE_APP_URL || 'https://mcp-v16.vercel.app';
-                buyNowUrl = `${baseUrl}/store/${storeSlug}`;
+                // Include product ID in URL if available for direct product view
+                buyNowUrl = productId
+                    ? `${baseUrl}/store/${storeSlug}?product=${productId}`
+                    : `${baseUrl}/store/${storeSlug}`;
                 console.log(`    🔗 Buy Now URL: ${buyNowUrl}`);
             } else {
                 console.log(`    ⚠️ No store found for storeId: ${storeId}, workspace: ${context.workspaceId}`);
