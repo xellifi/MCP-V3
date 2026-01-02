@@ -173,6 +173,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 const conditionResult = evaluateConditions(config, context);
                 console.log('[Continue Flow] Condition result:', conditionResult ? 'TRUE' : 'FALSE');
 
+                // Debug: Log all edges from this condition node
+                const allConditionEdges = edges.filter((e: any) => e.source === currentNodeId);
+                console.log('[Continue Flow] All edges from condition node:', allConditionEdges.map((e: any) => ({
+                    target: e.target,
+                    sourceHandle: e.sourceHandle,
+                    expectedHandle: conditionResult ? 'true' : 'false',
+                    matches: e.sourceHandle === (conditionResult ? 'true' : 'false')
+                })));
+
                 // Find edges with matching sourceHandle
                 const conditionEdges = edges.filter((e: any) =>
                     e.source === currentNodeId &&
@@ -206,6 +215,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     subscriberId,
                     template.replace(/{commenter_name}/g, subscriberName || 'Friend'),
                     config.buttons || [],
+                    pageAccessToken
+                );
+            }
+
+            // Handle Invoice Node - send invoice message
+            if (node.type === 'invoiceNode') {
+                console.log('[Continue Flow] Processing Invoice node');
+                const companyName = config.companyName || 'Your Company';
+                const invoiceMessage = `🧾 *Invoice from ${companyName}*\n\nThank you for your order! Your invoice has been generated.\n\n✅ Order Confirmed\n📦 We will process your order soon.`;
+                await sendTextMessage(
+                    subscriberId,
+                    invoiceMessage,
+                    [],
                     pageAccessToken
                 );
             }
