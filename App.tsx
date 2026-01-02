@@ -27,6 +27,7 @@ const Affiliates = lazy(() => import('./pages/Affiliates'));
 const Support = lazy(() => import('./pages/Support'));
 const Academy = lazy(() => import('./pages/Academy'));
 const FormView = lazy(() => import('./pages/FormView'));
+const InvoiceView = lazy(() => import('./pages/InvoiceView'));
 const Forms = lazy(() => import('./pages/Forms'));
 
 // Admin Pages - Lazy load (rarely accessed)
@@ -132,6 +133,13 @@ const App: React.FC = () => {
           <Route path="/forms/:formId" element={
             <Suspense fallback={<LoadingSpinner />}>
               <FormView />
+            </Suspense>
+          } />
+
+          {/* Public Invoice View - No login required */}
+          <Route path="/invoices/:submissionId" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <InvoiceView />
             </Suspense>
           } />
 

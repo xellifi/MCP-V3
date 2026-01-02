@@ -259,17 +259,59 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 );
             }
 
-            // Handle Invoice Node - send invoice message
+            // Handle Invoice Node - send invoice with clickable button to view in webview
             if (node.type === 'invoiceNode') {
                 console.log('[Continue Flow] Processing Invoice node');
                 const companyName = config.companyName || 'Your Company';
-                const invoiceMessage = `🧾 *Invoice from ${companyName}*\n\nThank you for your order! Your invoice has been generated.\n\n✅ Order Confirmed\n📦 We will process your order soon.`;
-                await sendTextMessage(
-                    subscriberId,
-                    invoiceMessage,
-                    [],
-                    pageAccessToken
-                );
+                const companyLogo = config.companyLogo || '';
+                const accentColor = config.primaryColor || '#6366f1';
+
+                // Find the most recent form submission for this subscriber
+                // The submission was just created by the form, so get the latest one
+                let invoiceUrl = '';
+                try {
+                    const { data: latestSubmission } = await supabase
+                        .from('form_submissions')
+                        .select('id')
+                        .eq('subscriber_external_id', subscriberId)
+                        .order('created_at', { ascending: false })
+                        .limit(1)
+                        .single();
+
+                    if (latestSubmission) {
+                        // Build invoice URL with query params for styling
+                        const baseUrl = process.env.VITE_APP_URL || 'https://mcp-v16.vercel.app';
+                        const params = new URLSearchParams({
+                            company: companyName,
+                            color: accentColor,
+                            ...(companyLogo && { logo: companyLogo })
+                        });
+                        invoiceUrl = `${baseUrl}/invoices/${latestSubmission.id}?${params.toString()}`;
+                        console.log('[Continue Flow] Invoice URL:', invoiceUrl);
+                    }
+                } catch (err) {
+                    console.error('[Continue Flow] Error finding submission:', err);
+                }
+
+                // Send message with button to view invoice
+                const invoiceMessage = `🧾 Invoice from ${companyName}\n\nThank you for your order! Your invoice has been generated.\n\n✅ Order Confirmed\n📦 We will process your order soon.`;
+
+                // If we have an invoice URL, send button; otherwise just text
+                if (invoiceUrl) {
+                    await sendInvoiceButton(
+                        subscriberId,
+                        invoiceMessage,
+                        invoiceUrl,
+                        pageAccessToken
+                    );
+                } else {
+                    await sendTextMessage(
+                        subscriberId,
+                        invoiceMessage,
+                        [],
+                        pageAccessToken
+                    );
+                }
             }
 
             // Find outgoing edges for non-condition nodes
@@ -440,5 +482,96 @@ async function sendTextMessage(
         }
     } catch (error: any) {
         console.error('[Continue Flow] Send message exception:', error.message);
+    }
+}
+
+// Send an invoice button message via Messenger (webview)
+async function sendInvoiceButton(
+    userId: string,
+    text: string,
+    invoiceUrl: string,
+    pageAccessToken: string
+): Promise<void> {
+    console.log('[Continue Flow] Sending invoice button to:', userId);
+    console.log('[Continue Flow] Invoice URL:', invoiceUrl);
+
+    try {
+        const messagePayload = {
+            attachment: {
+                type: 'template',
+                payload: {
+                    template_type: 'button',
+                    text: text,
+                    buttons: [
+                        {
+                            type: 'web_url',
+                            title: '📄 View Invoice',
+                            url: invoiceUrl,
+                            webview_height_ratio: 'tall',
+                            messenger_extensions: true
+                        }
+                    ]
+                }
+            }
+        };
+
+        const response = await fetch(
+            `https://graph.facebook.com/v21.0/me/messages`,
+            {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    recipient: { id: userId },
+                    message: messagePayload,
+                    access_token: pageAccessToken
+                })
+            }
+        );
+
+        const result = await response.json();
+        if (result.error) {
+            console.error('[Continue Flow] Invoice button error:', result.error.message);
+            // Fallback: try without messenger_extensions
+            const fallbackPayload = {
+                attachment: {
+                    type: 'template',
+                    payload: {
+                        template_type: 'button',
+                        text: text,
+                        buttons: [
+                            {
+                                type: 'web_url',
+                                title: '📄 View Invoice',
+                                url: invoiceUrl,
+                                webview_height_ratio: 'full'
+                            }
+                        ]
+                    }
+                }
+            };
+
+            const fallbackResponse = await fetch(
+                `https://graph.facebook.com/v21.0/me/messages`,
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        recipient: { id: userId },
+                        message: fallbackPayload,
+                        access_token: pageAccessToken
+                    })
+                }
+            );
+            const fallbackResult = await fallbackResponse.json();
+            if (fallbackResult.error) {
+                console.error('[Continue Flow] Invoice fallback error:', fallbackResult.error.message);
+            } else {
+                console.log('[Continue Flow] ✓ Invoice sent (fallback), ID:', fallbackResult.message_id);
+            }
+        } else {
+            console.log('[Continue Flow] ✓ Invoice button sent, ID:', result.message_id);
+        }
+    } catch (error: any) {
+        console.error('[Continue Flow] Invoice button exception:', error.message);
     }
 }
