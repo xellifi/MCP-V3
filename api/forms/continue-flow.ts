@@ -269,25 +269,63 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 // Find the most recent form submission for this subscriber
                 // The submission was just created by the form, so get the latest one
                 let invoiceUrl = '';
+                let latestSubmissionId = null;
+
                 try {
-                    const { data: latestSubmission } = await supabase
+                    console.log('[Continue Flow] Looking for submission for subscriber:', subscriberId);
+
+                    // Try multiple strategies to find the submission
+                    // Strategy 1: Look by subscriber_external_id
+                    let { data: submission } = await supabase
                         .from('form_submissions')
                         .select('id')
                         .eq('subscriber_external_id', subscriberId)
                         .order('created_at', { ascending: false })
                         .limit(1)
-                        .single();
+                        .maybeSingle();
 
-                    if (latestSubmission) {
-                        // Build invoice URL with query params for styling
+                    // Strategy 2: If not found, try subscriber_id field
+                    if (!submission) {
+                        console.log('[Continue Flow] Trying subscriber_id field...');
+                        const { data: sub2 } = await supabase
+                            .from('form_submissions')
+                            .select('id')
+                            .eq('subscriber_id', subscriberId)
+                            .order('created_at', { ascending: false })
+                            .limit(1)
+                            .maybeSingle();
+                        submission = sub2;
+                    }
+
+                    // Strategy 3: Look for any very recent submission (within last 30s)
+                    if (!submission) {
+                        console.log('[Continue Flow] Trying recent submission fallback...');
+                        const thirtySecondsAgo = new Date(Date.now() - 30000).toISOString();
+                        const { data: sub3 } = await supabase
+                            .from('form_submissions')
+                            .select('id')
+                            .gte('created_at', thirtySecondsAgo)
+                            .order('created_at', { ascending: false })
+                            .limit(1)
+                            .maybeSingle();
+                        submission = sub3;
+                    }
+
+                    if (submission) {
+                        latestSubmissionId = submission.id;
+                        // Build invoice URL - keep it simple for mobile compatibility
                         const baseUrl = process.env.VITE_APP_URL || 'https://mcp-v16.vercel.app';
-                        const params = new URLSearchParams({
-                            company: companyName,
-                            color: accentColor,
-                            ...(companyLogo && { logo: companyLogo })
-                        });
-                        invoiceUrl = `${baseUrl}/invoices/${latestSubmission.id}?${params.toString()}`;
+                        // Use encodeURIComponent for special characters
+                        const params = new URLSearchParams();
+                        params.set('company', companyName);
+                        params.set('color', accentColor);
+                        if (companyLogo) params.set('logo', companyLogo);
+
+                        invoiceUrl = `${baseUrl}/invoices/${latestSubmissionId}?${params.toString()}`;
                         console.log('[Continue Flow] Invoice URL:', invoiceUrl);
+                        console.log('[Continue Flow] Submission ID found:', latestSubmissionId);
+                    } else {
+                        console.log('[Continue Flow] No submission found for subscriber:', subscriberId);
                     }
                 } catch (err) {
                     console.error('[Continue Flow] Error finding submission:', err);
@@ -485,7 +523,7 @@ async function sendTextMessage(
     }
 }
 
-// Send an invoice button message via Messenger (webview)
+// Send an invoice button message via Messenger (opens in external browser)
 async function sendInvoiceButton(
     userId: string,
     text: string,
@@ -496,6 +534,8 @@ async function sendInvoiceButton(
     console.log('[Continue Flow] Invoice URL:', invoiceUrl);
 
     try {
+        // Use regular web_url without messenger_extensions
+        // This opens in the device's default browser which works better
         const messagePayload = {
             attachment: {
                 type: 'template',
@@ -507,8 +547,8 @@ async function sendInvoiceButton(
                             type: 'web_url',
                             title: '📄 View Invoice',
                             url: invoiceUrl,
-                            webview_height_ratio: 'tall',
-                            messenger_extensions: true
+                            webview_height_ratio: 'full'
+                            // Note: messenger_extensions removed for better compatibility
                         }
                     ]
                 }
@@ -531,43 +571,6 @@ async function sendInvoiceButton(
         const result = await response.json();
         if (result.error) {
             console.error('[Continue Flow] Invoice button error:', result.error.message);
-            // Fallback: try without messenger_extensions
-            const fallbackPayload = {
-                attachment: {
-                    type: 'template',
-                    payload: {
-                        template_type: 'button',
-                        text: text,
-                        buttons: [
-                            {
-                                type: 'web_url',
-                                title: '📄 View Invoice',
-                                url: invoiceUrl,
-                                webview_height_ratio: 'full'
-                            }
-                        ]
-                    }
-                }
-            };
-
-            const fallbackResponse = await fetch(
-                `https://graph.facebook.com/v21.0/me/messages`,
-                {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        recipient: { id: userId },
-                        message: fallbackPayload,
-                        access_token: pageAccessToken
-                    })
-                }
-            );
-            const fallbackResult = await fallbackResponse.json();
-            if (fallbackResult.error) {
-                console.error('[Continue Flow] Invoice fallback error:', fallbackResult.error.message);
-            } else {
-                console.log('[Continue Flow] ✓ Invoice sent (fallback), ID:', fallbackResult.message_id);
-            }
         } else {
             console.log('[Continue Flow] ✓ Invoice button sent, ID:', result.message_id);
         }
