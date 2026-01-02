@@ -1905,6 +1905,10 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
               className="w-10 h-10 bg-violet-500/20 hover:bg-violet-500/40 border border-violet-500/30 rounded-xl flex items-center justify-center text-violet-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing" title="Invoice">
               <Receipt className="w-5 h-5" />
             </div>
+            <div draggable onDragStart={(e) => onDragStart(e, 'productNode', 'Product')} onClick={() => addNode('productNode', 'Product')}
+              className="w-10 h-10 bg-emerald-500/20 hover:bg-emerald-500/40 border border-emerald-500/30 rounded-xl flex items-center justify-center text-emerald-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing" title="Product">
+              <Package className="w-5 h-5" />
+            </div>
           </div>
         </div>
 
