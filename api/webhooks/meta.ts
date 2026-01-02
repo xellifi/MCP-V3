@@ -2153,6 +2153,118 @@ async function executeAction(
 
         return;
     }
+
+    // Product Node - send product card with image, title, price, and Buy Now button
+    if (nodeType === 'productNode') {
+        console.log(`    ✓ Detected as Product Node`);
+        const productName = config.productName || 'Product';
+        const productDescription = config.productDescription || '';
+        const productPrice = config.productPrice || 0;
+        const productImage = config.productImage || '';
+        const storeId = config.storeId || '';
+
+        console.log(`    🛍️ Product: "${productName}"`);
+        console.log(`    💰 Price: ${productPrice}`);
+
+        if (!productName) {
+            console.log('    ⊘ Skipping: No product configured');
+            return;
+        }
+
+        try {
+            // Show typing indicator
+            await sendTypingIndicator(context.commenterId, pageAccessToken, 'typing_on');
+            await new Promise(resolve => setTimeout(resolve, 500));
+            await sendTypingIndicator(context.commenterId, pageAccessToken, 'typing_off');
+
+            // Format price
+            const formattedPrice = `₱${productPrice.toLocaleString()}`;
+            const subtitle = productDescription
+                ? `${formattedPrice} - ${productDescription.substring(0, 60)}${productDescription.length > 60 ? '...' : ''}`
+                : formattedPrice;
+
+            // Build store URL for Buy Now button
+            // Try to get store slug from context or use a default
+            let buyNowUrl = '';
+            if (storeId) {
+                // Query store slug from database
+                const { createClient } = await import('@supabase/supabase-js');
+                const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '';
+                const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';
+                const supabase = createClient(supabaseUrl, supabaseKey);
+
+                const { data: storeData } = await supabase
+                    .from('stores')
+                    .select('slug')
+                    .eq('id', storeId)
+                    .single();
+
+                if (storeData?.slug) {
+                    const baseUrl = process.env.VITE_APP_URL || 'https://mcp-v16.vercel.app';
+                    buyNowUrl = `${baseUrl}/store/${storeData.slug}`;
+                }
+            }
+
+            // Build message payload using generic template for rich product card
+            const elements: any[] = [{
+                title: productName,
+                subtitle: subtitle,
+                image_url: productImage || undefined,
+                buttons: buyNowUrl ? [
+                    {
+                        type: 'web_url',
+                        title: '🛒 Buy Now',
+                        url: buyNowUrl,
+                        webview_height_ratio: 'full'
+                    }
+                ] : undefined
+            }];
+
+            // Remove undefined properties
+            if (!elements[0].image_url) delete elements[0].image_url;
+            if (!elements[0].buttons) delete elements[0].buttons;
+
+            const messagePayload = {
+                attachment: {
+                    type: 'template',
+                    payload: {
+                        template_type: 'generic',
+                        elements: elements
+                    }
+                }
+            };
+
+            const requestBody = {
+                recipient: { id: context.commenterId },
+                message: messagePayload,
+                access_token: pageAccessToken
+            };
+
+            console.log(`    📤 Sending product card...`);
+
+            const response = await fetch(
+                `https://graph.facebook.com/v21.0/me/messages`,
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestBody)
+                }
+            );
+
+            const result = await response.json();
+
+            if (result.error) {
+                console.error('    ✗ Facebook API error:', result.error.message);
+            } else {
+                console.log('    ✓ Product card sent successfully!');
+                console.log('    ✓ Message ID:', result.message_id);
+            }
+        } catch (error: any) {
+            console.error('    ✗ Exception sending product card:', error.message);
+        }
+
+        return;
+    }
 }
 
 // Send typing indicator to show user is typing
