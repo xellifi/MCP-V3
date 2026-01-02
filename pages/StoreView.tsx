@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import {
     ShoppingCart, Package, Plus, Minus, X, Trash2, CheckCircle,
     MapPin, Phone, Mail, Store as StoreIcon, ArrowLeft, Heart,
-    ShoppingBag, Sparkles
+    ShoppingBag, Sparkles, ChevronLeft, Check, Truck
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
@@ -322,8 +322,8 @@ const StoreView: React.FC = () => {
                                 <button
                                     onClick={() => setSelectedCategory('all')}
                                     className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${selectedCategory === 'all'
-                                            ? 'text-white shadow-md'
-                                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                        ? 'text-white shadow-md'
+                                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                         }`}
                                     style={selectedCategory === 'all' ? { backgroundColor: store.primary_color } : {}}
                                 >
@@ -334,8 +334,8 @@ const StoreView: React.FC = () => {
                                         key={cat}
                                         onClick={() => setSelectedCategory(cat!)}
                                         className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${selectedCategory === cat
-                                                ? 'text-white shadow-md'
-                                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                            ? 'text-white shadow-md'
+                                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                             }`}
                                         style={selectedCategory === cat ? { backgroundColor: store.primary_color } : {}}
                                     >
@@ -726,55 +726,229 @@ const StoreView: React.FC = () => {
                 </div>
             )}
 
-            {/* Product Detail Modal */}
+            {/* Product Detail Modal - Elegant Order Page */}
             {selectedProduct && (
-                <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-                    <div className="bg-white rounded-3xl w-full max-w-2xl my-8 overflow-hidden shadow-2xl">
+                <div
+                    className="fixed inset-0 z-50 bg-black/60 backdrop-blur-md flex items-start md:items-center justify-center overflow-y-auto"
+                    onClick={() => setSelectedProduct(null)}
+                >
+                    <div
+                        className="bg-white w-full max-w-4xl md:rounded-3xl my-0 md:my-8 overflow-hidden shadow-2xl animate-modal-in"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Close Button - Mobile Top Bar */}
+                        <div className="md:hidden sticky top-0 z-10 bg-white/95 backdrop-blur-sm border-b border-gray-100 px-4 py-3 flex items-center justify-between">
+                            <button
+                                onClick={() => setSelectedProduct(null)}
+                                className="p-2 -ml-2 hover:bg-gray-100 rounded-full transition-colors"
+                            >
+                                <ChevronLeft className="w-5 h-5 text-gray-700" />
+                            </button>
+                            <span className="font-medium text-gray-900">Product Details</span>
+                            <div className="w-9" /> {/* Spacer */}
+                        </div>
+
                         <div className="md:flex">
-                            {/* Image */}
-                            <div className="md:w-1/2 aspect-square bg-gray-50">
-                                {selectedProduct.images?.[0] ? (
-                                    <img src={selectedProduct.images[0]} alt="" className="w-full h-full object-cover" />
-                                ) : (
-                                    <div className="w-full h-full flex items-center justify-center">
-                                        <Package className="w-16 h-16 text-gray-300" />
+                            {/* Left - Image Gallery */}
+                            <div className="md:w-1/2 bg-gray-50">
+                                {/* Main Image */}
+                                <div className="aspect-square relative overflow-hidden">
+                                    {selectedProduct.images?.[0] ? (
+                                        <img
+                                            src={selectedProduct.images[0]}
+                                            alt={selectedProduct.name}
+                                            className="w-full h-full object-cover hover:scale-105 transition-transform duration-700"
+                                        />
+                                    ) : (
+                                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
+                                            <Package className="w-24 h-24 text-gray-300" />
+                                        </div>
+                                    )}
+
+                                    {/* Discount Badge */}
+                                    {selectedProduct.compare_at_price && selectedProduct.compare_at_price > selectedProduct.price && (
+                                        <div className="absolute top-4 left-4 px-3 py-1.5 bg-red-500 text-white text-sm font-bold rounded-full shadow-lg">
+                                            SAVE {Math.round((1 - selectedProduct.price / selectedProduct.compare_at_price) * 100)}%
+                                        </div>
+                                    )}
+
+                                    {/* Category Badge */}
+                                    {selectedProduct.category && (
+                                        <div
+                                            className="absolute top-4 right-4 px-3 py-1.5 text-white text-xs font-medium rounded-full shadow-lg"
+                                            style={{ backgroundColor: store.primary_color }}
+                                        >
+                                            {selectedProduct.category}
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Thumbnail Gallery (if multiple images) */}
+                                {selectedProduct.images && selectedProduct.images.length > 1 && (
+                                    <div className="p-4 flex gap-2 overflow-x-auto">
+                                        {selectedProduct.images.map((img, idx) => (
+                                            <div
+                                                key={idx}
+                                                className="w-16 h-16 rounded-lg overflow-hidden border-2 border-gray-200 flex-shrink-0 cursor-pointer hover:border-gray-400 transition-colors"
+                                            >
+                                                <img src={img} alt="" className="w-full h-full object-cover" />
+                                            </div>
+                                        ))}
                                     </div>
                                 )}
                             </div>
 
-                            {/* Info */}
-                            <div className="md:w-1/2 p-6 flex flex-col">
+                            {/* Right - Product Details */}
+                            <div className="md:w-1/2 p-6 md:p-8 flex flex-col relative">
+                                {/* Close Button - Desktop */}
                                 <button
                                     onClick={() => setSelectedProduct(null)}
-                                    className="self-end p-2 hover:bg-gray-100 rounded-full mb-4"
+                                    className="hidden md:flex absolute top-6 right-6 p-2 hover:bg-gray-100 rounded-full transition-colors"
                                 >
                                     <X className="w-5 h-5 text-gray-500" />
                                 </button>
 
-                                <h2 className="text-2xl font-bold text-gray-900 mb-2">{selectedProduct.name}</h2>
+                                {/* Product Title */}
+                                <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3 pr-8 md:pr-10 leading-tight">
+                                    {selectedProduct.name}
+                                </h1>
 
-                                <div className="flex items-baseline gap-3 mb-4">
-                                    <span className="text-3xl font-bold text-gray-900">
-                                        {currencySymbol}{selectedProduct.price.toLocaleString()}
-                                    </span>
-                                    {selectedProduct.compare_at_price && (
-                                        <span className="text-lg text-gray-400 line-through">
-                                            {currencySymbol}{selectedProduct.compare_at_price.toLocaleString()}
-                                        </span>
+                                {/* Stock Status */}
+                                <div className="flex items-center gap-2 mb-4">
+                                    {selectedProduct.stock_quantity > 0 ? (
+                                        <>
+                                            <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                                            <span className="text-sm text-emerald-600 font-medium">
+                                                In Stock {selectedProduct.stock_quantity <= 10 && `(${selectedProduct.stock_quantity} left)`}
+                                            </span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <div className="w-2 h-2 rounded-full bg-red-500" />
+                                            <span className="text-sm text-red-600 font-medium">Out of Stock</span>
+                                        </>
                                     )}
                                 </div>
 
+                                {/* Price Section */}
+                                <div className="mb-6 pb-6 border-b border-gray-100">
+                                    <div className="flex items-baseline gap-3">
+                                        <span className="text-4xl font-black text-gray-900">
+                                            {currencySymbol}{selectedProduct.price.toLocaleString()}
+                                        </span>
+                                        {selectedProduct.compare_at_price && selectedProduct.compare_at_price > selectedProduct.price && (
+                                            <span className="text-xl text-gray-400 line-through">
+                                                {currencySymbol}{selectedProduct.compare_at_price.toLocaleString()}
+                                            </span>
+                                        )}
+                                    </div>
+                                    {selectedProduct.compare_at_price && selectedProduct.compare_at_price > selectedProduct.price && (
+                                        <p className="mt-2 text-sm text-emerald-600 font-medium">
+                                            You save {currencySymbol}{(selectedProduct.compare_at_price - selectedProduct.price).toLocaleString()}!
+                                        </p>
+                                    )}
+                                </div>
+
+                                {/* Description */}
                                 {selectedProduct.description && (
-                                    <p className="text-gray-600 mb-6 flex-1">{selectedProduct.description}</p>
+                                    <div className="mb-6">
+                                        <h3 className="text-sm font-semibold text-gray-700 mb-2 uppercase tracking-wide">Description</h3>
+                                        <p className="text-gray-600 leading-relaxed">{selectedProduct.description}</p>
+                                    </div>
                                 )}
 
-                                <button
-                                    onClick={() => { addToCart(selectedProduct); setSelectedProduct(null); }}
-                                    className="w-full py-4 rounded-full font-semibold text-white shadow-lg hover:shadow-xl transition-all"
-                                    style={{ backgroundColor: store.primary_color }}
-                                >
-                                    Add to Cart
-                                </button>
+                                {/* Quantity Selector */}
+                                <div className="mb-6">
+                                    <h3 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">Quantity</h3>
+                                    <div className="flex items-center gap-4">
+                                        <div className="flex items-center border border-gray-200 rounded-full overflow-hidden">
+                                            <button
+                                                onClick={() => {
+                                                    const input = document.getElementById('qty-input') as HTMLInputElement;
+                                                    if (input && parseInt(input.value) > 1) {
+                                                        input.value = (parseInt(input.value) - 1).toString();
+                                                    }
+                                                }}
+                                                className="w-12 h-12 flex items-center justify-center text-gray-500 hover:bg-gray-100 transition-colors"
+                                            >
+                                                <Minus className="w-4 h-4" />
+                                            </button>
+                                            <input
+                                                id="qty-input"
+                                                type="number"
+                                                defaultValue="1"
+                                                min="1"
+                                                max={selectedProduct.stock_quantity || 99}
+                                                className="w-16 text-center text-lg font-semibold border-x border-gray-200 outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                            />
+                                            <button
+                                                onClick={() => {
+                                                    const input = document.getElementById('qty-input') as HTMLInputElement;
+                                                    const max = selectedProduct.stock_quantity || 99;
+                                                    if (input && parseInt(input.value) < max) {
+                                                        input.value = (parseInt(input.value) + 1).toString();
+                                                    }
+                                                }}
+                                                className="w-12 h-12 flex items-center justify-center text-gray-500 hover:bg-gray-100 transition-colors"
+                                            >
+                                                <Plus className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Action Buttons */}
+                                <div className="mt-auto space-y-3">
+                                    <button
+                                        onClick={() => {
+                                            const qty = parseInt((document.getElementById('qty-input') as HTMLInputElement)?.value || '1');
+                                            for (let i = 0; i < qty; i++) {
+                                                addToCart(selectedProduct);
+                                            }
+                                            setSelectedProduct(null);
+                                        }}
+                                        disabled={!selectedProduct.stock_quantity || selectedProduct.stock_quantity <= 0}
+                                        className="w-full py-4 rounded-full font-bold text-lg text-white shadow-lg hover:shadow-xl transition-all hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                                        style={{ backgroundColor: store.primary_color }}
+                                    >
+                                        {selectedProduct.stock_quantity > 0 ? (
+                                            <span className="flex items-center justify-center gap-2">
+                                                <ShoppingBag className="w-5 h-5" />
+                                                Add to Cart
+                                            </span>
+                                        ) : (
+                                            'Out of Stock'
+                                        )}
+                                    </button>
+
+                                    <button
+                                        onClick={() => {
+                                            const qty = parseInt((document.getElementById('qty-input') as HTMLInputElement)?.value || '1');
+                                            for (let i = 0; i < qty; i++) {
+                                                addToCart(selectedProduct);
+                                            }
+                                            setSelectedProduct(null);
+                                            setShowCart(true);
+                                        }}
+                                        disabled={!selectedProduct.stock_quantity || selectedProduct.stock_quantity <= 0}
+                                        className="w-full py-4 rounded-full font-bold text-lg border-2 transition-all hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                                        style={{ borderColor: store.primary_color, color: store.primary_color }}
+                                    >
+                                        Buy Now
+                                    </button>
+                                </div>
+
+                                {/* Trust Badges */}
+                                <div className="mt-6 pt-6 border-t border-gray-100 flex items-center justify-center gap-6 text-xs text-gray-500">
+                                    <div className="flex items-center gap-1.5">
+                                        <Check className="w-4 h-4 text-emerald-500" />
+                                        <span>Secure Checkout</span>
+                                    </div>
+                                    <div className="flex items-center gap-1.5">
+                                        <Truck className="w-4 h-4 text-emerald-500" />
+                                        <span>Fast Delivery</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -789,6 +963,19 @@ const StoreView: React.FC = () => {
                 }
                 .animate-slide-in {
                     animation: slide-in 0.3s ease-out;
+                }
+                @keyframes modal-in {
+                    from { 
+                        opacity: 0;
+                        transform: scale(0.95) translateY(20px);
+                    }
+                    to { 
+                        opacity: 1;
+                        transform: scale(1) translateY(0);
+                    }
+                }
+                .animate-modal-in {
+                    animation: modal-in 0.3s ease-out;
                 }
             `}</style>
         </div>
