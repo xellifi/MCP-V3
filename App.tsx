@@ -29,6 +29,8 @@ const Academy = lazy(() => import('./pages/Academy'));
 const FormView = lazy(() => import('./pages/FormView'));
 const InvoiceView = lazy(() => import('./pages/InvoiceView'));
 const Forms = lazy(() => import('./pages/Forms'));
+const Store = lazy(() => import('./pages/Store'));
+const StoreView = lazy(() => import('./pages/StoreView'));
 
 // Admin Pages - Lazy load (rarely accessed)
 const SystemSettings = lazy(() => import('./pages/SystemSettings'));
@@ -143,6 +145,13 @@ const App: React.FC = () => {
             </Suspense>
           } />
 
+          {/* Public Store View - No login required */}
+          <Route path="/store/:slug" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <StoreView />
+            </Suspense>
+          } />
+
           {/* Protected Routes */}
           <Route path="*" element={
             user && currentWorkspace ? (
@@ -167,6 +176,7 @@ const App: React.FC = () => {
                   <Route path="/support" element={<Support user={user} workspace={currentWorkspace} />} />
                   <Route path="/academy" element={<Academy user={user} />} />
                   <Route path="/forms-manager" element={<Forms workspace={currentWorkspace} />} />
+                  <Route path="/store" element={<Store workspace={currentWorkspace} />} />
 
                   {/* Admin Only Routes */}
                   <Route path="/users" element={<UsersPage user={user} />} />
