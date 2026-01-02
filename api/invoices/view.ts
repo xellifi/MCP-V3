@@ -271,11 +271,69 @@ function renderInvoice(data: InvoiceData): string {
             border-top: 1px solid #f3f4f6;
         }
         .footer p { font-size: 11px; color: #9ca3af; margin-bottom: 4px; }
+        
+        /* Download buttons */
+        .download-section {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            margin-bottom: 16px;
+        }
+        .download-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 20px;
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #374151;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            transition: all 0.2s;
+        }
+        .download-btn:hover {
+            background: #f9fafb;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+            transform: translateY(-1px);
+        }
+        .download-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        .download-btn .icon { font-size: 18px; }
+        .download-btn .spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid #e5e7eb;
+            border-top-color: #6366f1;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
+    
+    <!-- Load libraries from CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
     <div class="container">
-        <div class="invoice-card">
+        <!-- Download Buttons -->
+        <div class="download-section">
+            <button class="download-btn" id="downloadImage" onclick="downloadAsImage()">
+                <span class="icon">🖼️</span>
+                <span>Save Image</span>
+            </button>
+            <button class="download-btn" id="downloadPdf" onclick="downloadAsPdf()">
+                <span class="icon">📄</span>
+                <span>Save PDF</span>
+            </button>
+        </div>
+        
+        <div id="invoiceCard" class="invoice-card">
             <div class="header">
                 <div class="header-content">
                     <div class="company-info">
@@ -355,6 +413,69 @@ function renderInvoice(data: InvoiceData): string {
             </div>
         </div>
     </div>
+    
+    <script>
+        function setButtonLoading(btnId, loading) {
+            const btn = document.getElementById(btnId);
+            if (loading) {
+                btn.disabled = true;
+                btn.querySelector('.icon').style.display = 'none';
+                const spinner = document.createElement('div');
+                spinner.className = 'spinner';
+                btn.insertBefore(spinner, btn.firstChild);
+            } else {
+                btn.disabled = false;
+                const spinner = btn.querySelector('.spinner');
+                if (spinner) spinner.remove();
+                btn.querySelector('.icon').style.display = '';
+            }
+        }
+        
+        async function downloadAsImage() {
+            setButtonLoading('downloadImage', true);
+            try {
+                const card = document.getElementById('invoiceCard');
+                const canvas = await html2canvas(card, { 
+                    backgroundColor: '#ffffff',
+                    scale: 2,
+                    useCORS: true
+                });
+                const link = document.createElement('a');
+                link.download = 'invoice-${data.invoiceNumber}.png';
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            } catch (err) {
+                alert('Failed to download image');
+                console.error(err);
+            } finally {
+                setButtonLoading('downloadImage', false);
+            }
+        }
+        
+        async function downloadAsPdf() {
+            setButtonLoading('downloadPdf', true);
+            try {
+                const { jsPDF } = window.jspdf;
+                const card = document.getElementById('invoiceCard');
+                const canvas = await html2canvas(card, { 
+                    backgroundColor: '#ffffff',
+                    scale: 2,
+                    useCORS: true
+                });
+                const imgData = canvas.toDataURL('image/png');
+                const pdf = new jsPDF('p', 'mm', 'a4');
+                const imgWidth = 210;
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                pdf.addImage(imgData, 'PNG', 0, 10, imgWidth, imgHeight);
+                pdf.save('invoice-${data.invoiceNumber}.pdf');
+            } catch (err) {
+                alert('Failed to download PDF');
+                console.error(err);
+            } finally {
+                setButtonLoading('downloadPdf', false);
+            }
+        }
+    </script>
 </body>
 </html>`;
 }
