@@ -40,7 +40,7 @@ const CustomFormNode: React.FC<NodeProps> = ({ data, selected }) => {
                     bg-purple-500/10 hover:bg-purple-500/20 backdrop-blur-md
                     border ${selected ? 'border-purple-500/50 shadow-2xl shadow-purple-500/20' : 'border-purple-500/30 shadow-xl'}
                     transition-all duration-300
-                    w-[200px]
+                    w-[220px]
                 `}
             >
                 {/* Header - Icon, Label, and Expand Toggle */}
@@ -73,61 +73,82 @@ const CustomFormNode: React.FC<NodeProps> = ({ data, selected }) => {
                     </button>
                 </div>
 
-                {/* Expanded Content */}
+                {/* Expanded Content - Actual Form Preview */}
                 {isExpanded && (
                     <div className="mt-3 pt-3 border-t border-purple-500/20">
-                        {/* Header Image Preview */}
-                        {data.headerImageUrl && (
-                            <div className="mb-2 rounded-lg overflow-hidden border border-purple-500/20">
-                                <img
-                                    src={data.headerImageUrl}
-                                    alt="Form header"
-                                    className="w-full h-16 object-cover"
-                                />
-                            </div>
-                        )}
-
-                        {/* Fields Preview */}
-                        {hasFields ? (
-                            <div className="space-y-1.5">
-                                <div className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">
-                                    📋 Form Fields
+                        {/* Form Preview Card */}
+                        <div className="bg-white rounded-lg overflow-hidden shadow-lg">
+                            {/* Promo Banner */}
+                            {data.promoBannerEnabled && (
+                                <div className="py-1.5 px-2 bg-gradient-to-r from-red-400 via-rose-400 to-pink-300">
+                                    <div className="flex items-center justify-center gap-1 text-[9px]">
+                                        <span>{data.promoIcon || '🔥'}</span>
+                                        <span className="text-white font-bold drop-shadow">{data.promoText || 'Promo Only!'}</span>
+                                        <span>{data.promoIcon || '🔥'}</span>
+                                    </div>
                                 </div>
-                                {fields.slice(0, 4).map((field: any, index: number) => (
-                                    <div
-                                        key={field.id || index}
-                                        className="flex items-center gap-2 px-2 py-1 bg-slate-800/40 rounded-lg border border-slate-600/30"
-                                    >
-                                        <span className="text-[10px] text-purple-400 font-mono uppercase">
-                                            {field.type}
-                                        </span>
-                                        <span className="text-xs text-slate-300 truncate flex-1">
-                                            {field.label}
-                                        </span>
-                                        {field.required && (
-                                            <span className="text-red-400 text-xs">*</span>
+                            )}
+
+                            {/* Header Image */}
+                            {data.headerImageUrl && (
+                                <div className="p-2 bg-slate-50">
+                                    <img
+                                        src={data.headerImageUrl}
+                                        alt="Product"
+                                        className="w-full h-20 object-contain"
+                                    />
+                                </div>
+                            )}
+
+                            {/* Product Name Badge */}
+                            {data.productName && (
+                                <div className="mx-2 my-1.5">
+                                    <div className="py-1 px-2 bg-indigo-600 rounded">
+                                        <p className="text-[9px] font-bold text-white text-center uppercase tracking-wide truncate">
+                                            {data.productName}
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Form Content */}
+                            <div className="p-2">
+                                {/* Step Indicator */}
+                                <div className="flex items-center justify-center gap-1 mb-2">
+                                    {[1, 2, 3].map(s => (
+                                        <div key={s} className="flex items-center">
+                                            <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-bold ${s === 1 ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-400'}`}>
+                                                {s}
+                                            </div>
+                                            {s < 3 && <div className="w-3 h-0.5 bg-gray-200"></div>}
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {/* Fields Preview */}
+                                {hasFields && (
+                                    <div className="space-y-1">
+                                        {fields.slice(0, 3).map((field: any, index: number) => (
+                                            <div key={field.id || index}>
+                                                <p className="text-[8px] text-gray-500 mb-0.5">
+                                                    {field.label} {field.required && <span className="text-red-500">*</span>}
+                                                </p>
+                                                <div className="h-5 bg-gray-100 rounded border border-gray-200"></div>
+                                            </div>
+                                        ))}
+                                        {fields.length > 3 && (
+                                            <p className="text-[8px] text-gray-400 text-center">+{fields.length - 3} more fields</p>
                                         )}
                                     </div>
-                                ))}
-                                {fields.length > 4 && (
-                                    <div className="text-xs text-slate-500 text-center">
-                                        +{fields.length - 4} more fields
-                                    </div>
                                 )}
-                            </div>
-                        ) : (
-                            <div className="text-slate-500 text-xs text-center py-2">
-                                Click configure to add fields
-                            </div>
-                        )}
 
-                        {/* Submit Button Preview */}
-                        <div className="mt-2 pt-2 border-t border-purple-500/20">
-                            <div
-                                className="w-full py-1.5 rounded-lg text-xs font-semibold text-center text-white"
-                                style={{ backgroundColor: submitButtonColor }}
-                            >
-                                {submitButtonText}
+                                {/* Submit Button */}
+                                <div
+                                    className="mt-2 py-1.5 rounded text-[10px] font-bold text-center text-white uppercase tracking-wide"
+                                    style={{ backgroundColor: submitButtonColor }}
+                                >
+                                    {submitButtonText}
+                                </div>
                             </div>
                         </div>
                     </div>
