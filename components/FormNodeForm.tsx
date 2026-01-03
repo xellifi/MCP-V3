@@ -345,9 +345,10 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
                     </div>
 
                     {/* Field list */}
-                    <div className="space-y-1.5 max-h-[200px] overflow-y-auto">
+                    <div className="space-y-1.5 max-h-[280px] overflow-y-auto">
                         {fields.map((field, index) => {
                             const Icon = getFieldIcon(field.type);
+                            const hasOptions = field.type === 'select' || field.type === 'radio';
                             return (
                                 <div
                                     key={field.id}
@@ -381,6 +382,48 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
                                             <Trash2 className="w-3 h-3" />
                                         </button>
                                     </div>
+
+                                    {/* Options configuration for dropdown/radio fields */}
+                                    {hasOptions && (
+                                        <div className="mt-2 pt-2 border-t border-slate-700/50">
+                                            <p className="text-[9px] text-slate-500 mb-1.5">Options</p>
+                                            <div className="space-y-1">
+                                                {(field.options || []).map((option, optIndex) => (
+                                                    <div key={optIndex} className="flex items-center gap-1">
+                                                        <input
+                                                            type="text"
+                                                            value={option}
+                                                            onChange={(e) => {
+                                                                const newOptions = [...(field.options || [])];
+                                                                newOptions[optIndex] = e.target.value;
+                                                                updateField(index, { options: newOptions });
+                                                            }}
+                                                            className="flex-1 min-w-0 px-2 py-1 bg-slate-900/50 border border-slate-600/50 rounded text-white text-[10px]"
+                                                            placeholder={`Option ${optIndex + 1}`}
+                                                        />
+                                                        <button
+                                                            onClick={() => {
+                                                                const newOptions = (field.options || []).filter((_, i) => i !== optIndex);
+                                                                updateField(index, { options: newOptions });
+                                                            }}
+                                                            className="p-0.5 text-slate-500 hover:text-red-400"
+                                                        >
+                                                            <X className="w-3 h-3" />
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                                <button
+                                                    onClick={() => {
+                                                        const newOptions = [...(field.options || []), ''];
+                                                        updateField(index, { options: newOptions });
+                                                    }}
+                                                    className="w-full py-1 text-[9px] text-purple-400 border border-dashed border-slate-600 rounded hover:bg-purple-500/10"
+                                                >
+                                                    + Add Option
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             );
                         })}

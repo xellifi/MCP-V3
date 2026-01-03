@@ -147,6 +147,23 @@ async function saveOrUpdateSubscriber(
     }
 }
 
+// Helper function to fetch user name from Facebook API
+async function fetchUserName(userId: string, pageAccessToken: string): Promise<string> {
+    try {
+        const userResponse = await fetch(
+            `https://graph.facebook.com/${userId}?fields=name&access_token=${pageAccessToken}`
+        );
+        const userData = await userResponse.json();
+        if (userData?.name) {
+            console.log(`    ✓ Got user name from FB API: ${userData.name}`);
+            return userData.name;
+        }
+    } catch (error) {
+        console.log(`    ⚠️ Could not fetch user name for ${userId}`);
+    }
+    return 'Facebook User';
+}
+
 // AI Response Generation function
 async function generateAIResponse(
     provider: 'openai' | 'gemini',
@@ -520,6 +537,9 @@ async function processPostback(messagingEvent: any, pageId: string) {
             ? `postback_mid_${mid}`
             : `postback_${senderId}_${flowId}_${Math.floor(timestamp / 5000)}`;
 
+        // Fetch user's actual name from Facebook API BEFORE executing flow
+        const userName = await fetchUserName(senderId, pageAccessToken);
+
         // Execute the flow starting from the Start node
         await executeFlowFromNode(
             startNode,
@@ -528,7 +548,7 @@ async function processPostback(messagingEvent: any, pageId: string) {
             configurations,
             {
                 commenterId: senderId,
-                commenterName: 'User', // We don't have the name from postback
+                commenterName: userName,
                 commentText: `Clicked button: ${payload}`,
                 pageId: pageId,
                 pageName: pageName,
@@ -541,21 +561,6 @@ async function processPostback(messagingEvent: any, pageId: string) {
             flow.id,
             stablePostbackId
         );
-
-        // Fetch user's actual name from Facebook API
-        let userName = 'Facebook User';
-        try {
-            const userResponse = await fetch(
-                `https://graph.facebook.com/${senderId}?fields=name&access_token=${pageAccessToken}`
-            );
-            const userData = await userResponse.json();
-            if (userData?.name) {
-                userName = userData.name;
-                console.log(`    ✓ Got user name: ${userName}`);
-            }
-        } catch (nameError) {
-            console.log(`    ⚠️ Could not fetch user name for ${senderId}`);
-        }
 
         // Save the user as a bot subscriber when they click a button
         await saveOrUpdateSubscriber(
@@ -610,6 +615,9 @@ async function processPostback(messagingEvent: any, pageId: string) {
                     ? `newflow_mid_${mid}`
                     : `newflow_${senderId}_${flowName}_${Math.floor(timestamp / 5000)}`;
 
+                // Fetch user's actual name from Facebook API BEFORE executing flow
+                const userName = await fetchUserName(senderId, pageAccessToken);
+
                 // Execute the flow starting from the New Flow node
                 await executeFlowFromNode(
                     newFlowNode,
@@ -618,7 +626,7 @@ async function processPostback(messagingEvent: any, pageId: string) {
                     configurations,
                     {
                         commenterId: senderId,
-                        commenterName: 'User',
+                        commenterName: userName,
                         commentText: `Clicked New Flow button: ${flowName}`,
                         pageId: pageId,
                         pageName: pageName,
@@ -691,6 +699,9 @@ async function processPostback(messagingEvent: any, pageId: string) {
                     ? `keyword_mid_${mid}`
                     : `keyword_${senderId}_${payload}_${Math.floor(timestamp / 5000)}`;
 
+                // Fetch user's actual name from Facebook API BEFORE executing flow
+                const userName = await fetchUserName(senderId, pageAccessToken);
+
                 // Execute flow starting from this Start node
                 await executeFlowFromNode(
                     startNode,
@@ -699,7 +710,7 @@ async function processPostback(messagingEvent: any, pageId: string) {
                     configurations,
                     {
                         commenterId: senderId,
-                        commenterName: 'User', // We don't have the name from postback
+                        commenterName: userName,
                         commentText: `Clicked button: ${payload}`,
                         pageId: pageId,
                         postId: '',
@@ -861,6 +872,9 @@ async function processTextMessage(messagingEvent: any, pageId: string) {
             if (isMatch) {
                 console.log(`✓ Match found! Executing flow from Start node`);
 
+                // Fetch user's actual name from Facebook API BEFORE executing flow
+                const userName = await fetchUserName(senderId, pageAccessToken);
+
                 // Execute flow starting from this Start node
                 await executeFlowFromNode(
                     startNode,
@@ -869,7 +883,7 @@ async function processTextMessage(messagingEvent: any, pageId: string) {
                     configurations,
                     {
                         commenterId: senderId,
-                        commenterName: 'User',
+                        commenterName: userName,
                         commentText: messageText,
                         message: messageText,
                         pageId: pageId,
@@ -882,20 +896,6 @@ async function processTextMessage(messagingEvent: any, pageId: string) {
                     flow.id,
                     messagingEvent.message.mid
                 );
-
-                // Fetch user's actual name from Facebook API
-                let userName = 'Facebook User';
-                try {
-                    const userResponse = await fetch(
-                        `https://graph.facebook.com/${senderId}?fields=name&access_token=${pageAccessToken}`
-                    );
-                    const userData = await userResponse.json();
-                    if (userData?.name) {
-                        userName = userData.name;
-                    }
-                } catch (nameError) {
-                    console.log(`    ⚠️ Could not fetch user name for ${senderId}`);
-                }
 
                 // Save the user as a bot subscriber when they message the page
                 await saveOrUpdateSubscriber(

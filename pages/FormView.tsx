@@ -217,6 +217,7 @@ const FormView: React.FC = () => {
                 }
             }
 
+
             // Debug: log form product fields
             console.log('[FormView] Form product info:', {
                 product_name: form?.product_name,
@@ -224,18 +225,48 @@ const FormView: React.FC = () => {
                 currency: form?.currency
             });
 
+            // Helper function to convert field labels to snake_case column names
+            const toSnakeCase = (str: string) => {
+                return str
+                    .toLowerCase()
+                    .replace(/[^a-z0-9\s]/g, '') // Remove special characters
+                    .replace(/\s+/g, '_')         // Replace spaces with underscores
+                    .replace(/_+/g, '_')          // Remove duplicate underscores
+                    .trim();
+            };
+
+            // Transform form field data from IDs to readable labels
+            const fieldData: Record<string, any> = {};
+            (form?.fields || []).forEach((field: any) => {
+                const columnName = toSnakeCase(field.label || field.id);
+                const value = formData[field.id];
+                if (value !== undefined && value !== '') {
+                    fieldData[columnName] = value;
+                }
+            });
+
             const submissionData = {
-                ...formData,
+                // Subscriber info (at the start for easy viewing)
+                subscriber_id: subscriberId || '',
+                subscriber_name: subscriberName || '',
+
+                // Form field values with readable names
+                ...fieldData,
+
+                // Product/order info
                 product_name: form?.product_name || '',
                 product_price: form?.product_price || 0,
                 currency: form?.currency || 'PHP',
                 quantity,
                 total: calculateTotal(),
                 coupon_applied: couponApplied ? form?.coupon_code : null,
+
+                // Payment info
                 payment_method: paymentMethod,
                 ewallet_selected: selectedWallet,
                 proof_url: proofUrl,
-                subscriber_name: subscriberName,
+
+                // Timestamp
                 submitted_at: new Date().toISOString()
             };
 
