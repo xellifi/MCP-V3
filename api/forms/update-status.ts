@@ -10,9 +10,22 @@ const supabase = createClient(supabaseUrl, supabaseKey);
  * Uses service role key to bypass RLS
  */
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+    // Add CORS headers
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+    res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
+
+    // Handle OPTIONS preflight
+    if (req.method === 'OPTIONS') {
+        return res.status(200).end();
+    }
+
+    console.log('[Update Status] Method:', req.method);
+
     // Only allow POST
     if (req.method !== 'POST') {
-        return res.status(405).json({ error: 'Method not allowed' });
+        return res.status(405).json({ error: 'Method not allowed', received: req.method });
     }
 
     const { submissionId, status } = req.body;
