@@ -317,7 +317,8 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
                 ...nodeConfig,
                 // Add callbacks for node buttons
                 onDelete: () => handleDeleteNode(node.id),
-                onConfigure: () => handleConfigureNode(node)
+                onConfigure: () => handleConfigureNode(node),
+                onClone: () => handleCloneNode(node.id)
               }
             };
 
@@ -439,6 +440,58 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
     setEdges((eds) => eds.filter((e) => e.source !== nodeId && e.target !== nodeId));
     toast.success('Node deleted');
   }, [setNodes, setEdges, toast]);
+
+  const handleCloneNode = useCallback((nodeId: string) => {
+    setNodes((currentNodes) => {
+      const nodeToClone = currentNodes.find((n) => n.id === nodeId);
+      if (!nodeToClone) return currentNodes;
+
+      const newNodeId = `${Date.now()}`;
+
+      // Clone the node config if exists
+      if (nodeConfigs[nodeId]) {
+        setNodeConfigs((prev) => ({
+          ...prev,
+          [newNodeId]: { ...nodeConfigs[nodeId] },
+        }));
+      }
+
+      const newNode: Node = {
+        ...nodeToClone,
+        id: newNodeId,
+        position: {
+          x: nodeToClone.position.x + 250, // Place right beside the original node
+          y: nodeToClone.position.y,
+        },
+        data: {
+          ...nodeToClone.data,
+        },
+        selected: false,
+      };
+
+      toast.success('Node cloned');
+
+      // Defer callback setup so handlers work on the cloned node
+      setTimeout(() => {
+        setNodes((nds) => nds.map((n) => {
+          if (n.id === newNodeId) {
+            return {
+              ...n,
+              data: {
+                ...n.data,
+                onConfigure: () => handleConfigureNode(n),
+                onDelete: () => handleDeleteNode(newNodeId),
+                onClone: () => handleCloneNode(newNodeId),
+              }
+            };
+          }
+          return n;
+        }));
+      }, 10);
+
+      return [...currentNodes, newNode];
+    });
+  }, [nodeConfigs, setNodes, toast, handleDeleteNode]);
 
   const handleConfigureNode = useCallback((node: Node) => {
     // Get the FRESH node data from current nodes state (callback arg might be stale)
@@ -646,7 +699,8 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
                 flowName: flowLabel, // Store the flow name for later saving
                 parentTextNodeId: selectedNode.id, // Reference to parent
                 onConfigure: () => handleConfigureNode({ id: startNodeId, data: { label: `New Flow: ${flowLabel}`, nodeType: 'startNode', isNewFlowNode: true, flowName: flowLabel } } as any),
-                onDelete: () => handleDeleteNode(startNodeId)
+                onDelete: () => handleDeleteNode(startNodeId),
+                onClone: () => handleCloneNode(startNodeId)
               },
               position: { x: baseX + offsetX, y: baseY + offsetY }
             };
@@ -659,7 +713,8 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
                 label: 'Text',
                 nodeType: 'textNode',
                 onConfigure: () => handleConfigureNode({ id: textNodeId, data: { label: 'Text', nodeType: 'textNode' } } as any),
-                onDelete: () => handleDeleteNode(textNodeId)
+                onDelete: () => handleDeleteNode(textNodeId),
+                onClone: () => handleCloneNode(textNodeId)
               },
               position: { x: baseX + offsetX + 250, y: baseY + offsetY }
             };
@@ -1158,7 +1213,8 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
         nodeType,
         actionType,
         onConfigure: () => handleConfigureNode(newNode),
-        onDelete: () => handleDeleteNode(newNode.id)
+        onDelete: () => handleDeleteNode(newNode.id),
+        onClone: () => handleCloneNode(newNode.id)
       },
       position: nodePosition || {
         x: 100 + nodes.length * 250,
@@ -1219,7 +1275,8 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
         label: 'New Comment',
         nodeType: 'triggerNode',
         onConfigure: () => handleConfigureNode({ id: triggerId, data: { label: 'New Comment', nodeType: 'triggerNode' } } as any),
-        onDelete: () => handleDeleteNode(triggerId)
+        onDelete: () => handleDeleteNode(triggerId),
+        onClone: () => handleCloneNode(triggerId)
       },
       position: { x: baseX, y: baseY },
     };
@@ -1232,7 +1289,8 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
         nodeType: 'actionNode',
         actionType: 'reply',
         onConfigure: () => handleConfigureNode({ id: replyId, data: { label: 'Comment Reply', nodeType: 'actionNode', actionType: 'reply' } } as any),
-        onDelete: () => handleDeleteNode(replyId)
+        onDelete: () => handleDeleteNode(replyId),
+        onClone: () => handleCloneNode(replyId)
       },
       position: { x: baseX + 250, y: baseY - 80 },
     };
@@ -1244,7 +1302,8 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
         label: 'Image',
         nodeType: 'imageNode',
         onConfigure: () => handleConfigureNode({ id: imageId, data: { label: 'Image', nodeType: 'imageNode' } } as any),
-        onDelete: () => handleDeleteNode(imageId)
+        onDelete: () => handleDeleteNode(imageId),
+        onClone: () => handleCloneNode(imageId)
       },
       position: { x: baseX + 250, y: baseY + 80 },
     };
@@ -1257,7 +1316,8 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
         nodeType: 'actionNode',
         actionType: 'message',
         onConfigure: () => handleConfigureNode({ id: messageId, data: { label: 'Send Message', nodeType: 'actionNode', actionType: 'message' } } as any),
-        onDelete: () => handleDeleteNode(messageId)
+        onDelete: () => handleDeleteNode(messageId),
+        onClone: () => handleCloneNode(messageId)
       },
       position: { x: baseX + 500, y: baseY + 80 },
     };
@@ -1625,8 +1685,8 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
     </button>
   );
 
-  // Mobile tools operations (collapsed by default for PC)
-  const [isToolsOpen, setIsToolsOpen] = useState(false);
+  // Mobile tools operations (shown by default)
+  const [isToolsOpen, setIsToolsOpen] = useState(true);
 
   // Reset/Rearrange nodes function - arranges nodes following edge connections horizontally
   const handleResetLayout = useCallback(() => {
@@ -1822,36 +1882,46 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
         {/* Desktop Tools Toggle */}
         <button
           onClick={() => setIsToolsOpen(!isToolsOpen)}
-          className="hidden md:flex items-center gap-1.5 px-3 py-1.5 md:px-4 md:py-2.5 text-xs md:text-sm font-bold bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-lg md:rounded-xl text-white transition-all border border-white/10 shadow-lg active:scale-95"
+          className="group relative hidden md:flex w-10 h-10 items-center justify-center bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-xl text-white transition-all border border-white/10 shadow-lg active:scale-95"
           title="Toggle node toolbar"
         >
           <Grid3x3 className="w-4 h-4" />
-          <span className="hidden lg:inline">{isToolsOpen ? 'Hide' : 'Nodes'}</span>
+          <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+            {isToolsOpen ? 'Hide Nodes' : 'Show Nodes'}
+          </span>
         </button>
 
         <button
           onClick={handleSave}
           disabled={isSaving}
-          className="flex items-center gap-1.5 md:gap-2 px-3 py-1.5 md:px-5 md:py-2.5 text-xs md:text-sm font-bold bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-lg md:rounded-xl text-white transition-all border border-white/10 shadow-lg disabled:opacity-50"
+          className="group relative w-10 h-10 flex items-center justify-center bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-xl text-white transition-all border border-white/10 shadow-lg disabled:opacity-50"
+          title="Save Draft"
         >
-          <Save className="w-3 h-3 md:w-4 md:h-4" />
-          <span className="hidden md:inline">{isSaving ? 'Saving...' : 'Save Draft'}</span>
+          <Save className="w-4 h-4" />
+          <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+            {isSaving ? 'Saving...' : 'Save Draft'}
+          </span>
         </button>
 
         <button
           onClick={handleResetLayout}
-          className="flex items-center gap-1.5 md:gap-2 px-3 py-1.5 md:px-5 md:py-2.5 text-xs md:text-sm font-bold bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-lg md:rounded-xl text-white transition-all border border-white/10 shadow-lg active:scale-95"
-          title="Reset layout - Rearrange nodes"
+          className="group relative w-10 h-10 flex items-center justify-center bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-xl text-white transition-all border border-white/10 shadow-lg active:scale-95"
+          title="Reset Layout"
         >
-          <RotateCcw className="w-3 h-3 md:w-4 md:h-4" />
-          <span className="hidden md:inline">Reset</span>
+          <RotateCcw className="w-4 h-4" />
+          <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+            Reset
+          </span>
         </button>
 
         <button
-          className="flex items-center gap-1.5 md:gap-2 px-3 py-1.5 md:px-5 md:py-2.5 text-xs md:text-sm font-bold bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white rounded-lg md:rounded-xl transition-all shadow-lg shadow-indigo-500/20 active:scale-95 border border-white/20"
+          className="group relative w-10 h-10 flex items-center justify-center bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white rounded-xl transition-all shadow-lg shadow-indigo-500/20 active:scale-95 border border-white/20"
+          title="Run Test"
         >
-          <Play className="w-3 h-3 md:w-4 md:h-4 fill-current" />
-          <span className="hidden md:inline">Run Test</span>
+          <Play className="w-4 h-4 fill-current" />
+          <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+            Run Test
+          </span>
         </button>
       </div>
 
@@ -1874,60 +1944,74 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
         `}>
           <div className="flex items-center gap-2">
             <div draggable onDragStart={(e) => onDragStart(e, 'startNode', 'Start')} onClick={() => addNode('startNode', 'Start')}
-              className="w-10 h-10 bg-emerald-500/20 hover:bg-emerald-500/40 border border-emerald-500/30 rounded-xl flex items-center justify-center text-emerald-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing" title="Start">
+              className="group relative w-10 h-10 bg-emerald-500/20 hover:bg-emerald-500/40 border border-emerald-500/30 rounded-xl flex items-center justify-center text-emerald-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
               <Play className="w-5 h-5 fill-current" />
+              <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">Start</span>
             </div>
             <div draggable onDragStart={(e) => { e.dataTransfer.setData('application/reactflow-template', 'commentReply'); e.dataTransfer.effectAllowed = 'move'; }} onClick={() => addCommentReplyTemplate()}
-              className="w-10 h-10 bg-blue-500/20 hover:bg-blue-500/40 border border-blue-500/30 rounded-xl flex items-center justify-center text-blue-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing" title="Comment">
+              className="group relative w-10 h-10 bg-blue-500/20 hover:bg-blue-500/40 border border-blue-500/30 rounded-xl flex items-center justify-center text-blue-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
               <MessageCircle className="w-5 h-5" />
+              <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">Comment</span>
             </div>
             <div draggable onDragStart={(e) => onDragStart(e, 'textNode', 'Text')} onClick={() => addNode('textNode', 'Text')}
-              className="w-10 h-10 bg-amber-500/20 hover:bg-amber-500/40 border border-amber-500/30 rounded-xl flex items-center justify-center text-amber-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing" title="Text">
+              className="group relative w-10 h-10 bg-amber-500/20 hover:bg-amber-500/40 border border-amber-500/30 rounded-xl flex items-center justify-center text-amber-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
               <MessageSquare className="w-5 h-5" />
+              <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">Text</span>
             </div>
             <div draggable onDragStart={(e) => onDragStart(e, 'imageNode', 'Image')} onClick={() => addNode('imageNode', 'Image')}
-              className="w-10 h-10 bg-rose-500/20 hover:bg-rose-500/40 border border-rose-500/30 rounded-xl flex items-center justify-center text-rose-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing" title="Image">
+              className="group relative w-10 h-10 bg-rose-500/20 hover:bg-rose-500/40 border border-rose-500/30 rounded-xl flex items-center justify-center text-rose-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
               <Image className="w-5 h-5" />
+              <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">Image</span>
             </div>
             <div draggable onDragStart={(e) => onDragStart(e, 'videoNode', 'Video')} onClick={() => addNode('videoNode', 'Video')}
-              className="w-10 h-10 bg-cyan-500/20 hover:bg-cyan-500/40 border border-cyan-500/30 rounded-xl flex items-center justify-center text-cyan-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing" title="Video">
+              className="group relative w-10 h-10 bg-cyan-500/20 hover:bg-cyan-500/40 border border-cyan-500/30 rounded-xl flex items-center justify-center text-cyan-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
               <Video className="w-5 h-5" />
+              <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">Video</span>
             </div>
             <div draggable onDragStart={(e) => onDragStart(e, 'aiNode', 'AI Agent')} onClick={() => addNode('aiNode', 'AI Agent')}
-              className="w-10 h-10 bg-indigo-500/20 hover:bg-indigo-500/40 border border-indigo-500/30 rounded-xl flex items-center justify-center text-indigo-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing" title="AI">
+              className="group relative w-10 h-10 bg-indigo-500/20 hover:bg-indigo-500/40 border border-indigo-500/30 rounded-xl flex items-center justify-center text-indigo-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
               <Sparkles className="w-5 h-5" />
+              <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">AI Agent</span>
             </div>
             <div draggable onDragStart={(e) => onDragStart(e, 'conditionNode', 'Condition')} onClick={() => addNode('conditionNode', 'Condition')}
-              className="w-10 h-10 bg-orange-500/20 hover:bg-orange-500/40 border border-orange-500/30 rounded-xl flex items-center justify-center text-orange-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing" title="Condition">
+              className="group relative w-10 h-10 bg-orange-500/20 hover:bg-orange-500/40 border border-orange-500/30 rounded-xl flex items-center justify-center text-orange-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
               <GitBranch className="w-5 h-5" />
+              <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">Condition</span>
             </div>
             <div draggable onDragStart={(e) => onDragStart(e, 'formNode', 'Form')} onClick={() => addNode('formNode', 'Form')}
-              className="w-10 h-10 bg-purple-500/20 hover:bg-purple-500/40 border border-purple-500/30 rounded-xl flex items-center justify-center text-purple-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing" title="Form">
+              className="group relative w-10 h-10 bg-purple-500/20 hover:bg-purple-500/40 border border-purple-500/30 rounded-xl flex items-center justify-center text-purple-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
               <FileText className="w-5 h-5" />
+              <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">Form</span>
             </div>
             <div draggable onDragStart={(e) => onDragStart(e, 'sheetsNode', 'Google Sheets')} onClick={() => addNode('sheetsNode', 'Google Sheets')}
-              className="w-10 h-10 bg-green-500/20 hover:bg-green-500/40 border border-green-500/30 rounded-xl flex items-center justify-center text-green-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing" title="Sheets">
+              className="group relative w-10 h-10 bg-green-500/20 hover:bg-green-500/40 border border-green-500/30 rounded-xl flex items-center justify-center text-green-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
               <Table className="w-5 h-5" />
+              <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">Sheets</span>
             </div>
             <div draggable onDragStart={(e) => onDragStart(e, 'followupNode', 'Follow-up')} onClick={() => addNode('followupNode', 'Follow-up')}
-              className="w-10 h-10 bg-rose-500/20 hover:bg-rose-500/40 border border-rose-500/30 rounded-xl flex items-center justify-center text-rose-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing" title="Follow-up">
+              className="group relative w-10 h-10 bg-rose-500/20 hover:bg-rose-500/40 border border-rose-500/30 rounded-xl flex items-center justify-center text-rose-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
               <RefreshCw className="w-5 h-5" />
+              <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">Follow-up</span>
             </div>
             <div draggable onDragStart={(e) => onDragStart(e, 'upsellNode', 'Upsell')} onClick={() => addNode('upsellNode', 'Upsell')}
-              className="w-10 h-10 bg-teal-500/20 hover:bg-teal-500/40 border border-teal-500/30 rounded-xl flex items-center justify-center text-teal-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing" title="Upsell">
+              className="group relative w-10 h-10 bg-teal-500/20 hover:bg-teal-500/40 border border-teal-500/30 rounded-xl flex items-center justify-center text-teal-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
               <ShoppingBag className="w-5 h-5" />
+              <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">Upsell</span>
             </div>
             <div draggable onDragStart={(e) => onDragStart(e, 'downsellNode', 'Downsell')} onClick={() => addNode('downsellNode', 'Downsell')}
-              className="w-10 h-10 bg-orange-500/20 hover:bg-orange-500/40 border border-orange-500/30 rounded-xl flex items-center justify-center text-orange-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing" title="Downsell">
+              className="group relative w-10 h-10 bg-orange-500/20 hover:bg-orange-500/40 border border-orange-500/30 rounded-xl flex items-center justify-center text-orange-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
               <Tag className="w-5 h-5" />
+              <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">Downsell</span>
             </div>
             <div draggable onDragStart={(e) => onDragStart(e, 'invoiceNode', 'Invoice')} onClick={() => addNode('invoiceNode', 'Invoice')}
-              className="w-10 h-10 bg-violet-500/20 hover:bg-violet-500/40 border border-violet-500/30 rounded-xl flex items-center justify-center text-violet-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing" title="Invoice">
+              className="group relative w-10 h-10 bg-violet-500/20 hover:bg-violet-500/40 border border-violet-500/30 rounded-xl flex items-center justify-center text-violet-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
               <Receipt className="w-5 h-5" />
+              <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">Invoice</span>
             </div>
             <div draggable onDragStart={(e) => onDragStart(e, 'productNode', 'Product')} onClick={() => addNode('productNode', 'Product')}
-              className="w-10 h-10 bg-emerald-500/20 hover:bg-emerald-500/40 border border-emerald-500/30 rounded-xl flex items-center justify-center text-emerald-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing" title="Product">
+              className="group relative w-10 h-10 bg-emerald-500/20 hover:bg-emerald-500/40 border border-emerald-500/30 rounded-xl flex items-center justify-center text-emerald-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
               <Package className="w-5 h-5" />
+              <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">Product</span>
             </div>
           </div>
         </div>

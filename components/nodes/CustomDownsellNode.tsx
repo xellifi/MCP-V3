@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
-import { Tag, Settings, Trash2, ChevronDown, ChevronUp, DollarSign } from 'lucide-react';
+import { Tag, Settings, Trash2, ChevronDown, ChevronUp, DollarSign, Copy } from 'lucide-react';
 
 const CustomDownsellNode: React.FC<NodeProps> = ({ data, selected }) => {
     const [isExpanded, setIsExpanded] = useState(false);
@@ -16,6 +16,13 @@ const CustomDownsellNode: React.FC<NodeProps> = ({ data, selected }) => {
         e.stopPropagation();
         if (data.onDelete) {
             data.onDelete();
+        }
+    };
+
+    const handleClone = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (data.onClone) {
+            data.onClone();
         }
     };
 
@@ -187,6 +194,13 @@ const CustomDownsellNode: React.FC<NodeProps> = ({ data, selected }) => {
 
                 {/* Action Buttons */}
                 <div className="absolute -top-3 -right-3 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+                    <button
+                        onClick={handleClone}
+                        className="w-7 h-7 bg-slate-600 rounded-full shadow-lg flex items-center justify-center hover:bg-slate-500 transition-colors"
+                        title="Clone node"
+                    >
+                        <Copy className="w-4 h-4 text-white" />
+                    </button>
                     <button
                         onClick={handleConfigure}
                         className="w-7 h-7 bg-blue-500 rounded-full shadow-lg flex items-center justify-center hover:bg-blue-600 transition-colors"

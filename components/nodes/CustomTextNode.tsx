@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
-import { MessageSquare, Settings, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
+import { MessageSquare, Settings, Trash2, ChevronDown, ChevronUp, Copy } from 'lucide-react';
 
 const CustomTextNode: React.FC<NodeProps> = ({ data, selected }) => {
     const [isExpanded, setIsExpanded] = useState(false);
@@ -51,6 +51,13 @@ const CustomTextNode: React.FC<NodeProps> = ({ data, selected }) => {
         e.stopPropagation();
         if (data.onDelete) {
             data.onDelete();
+        }
+    };
+
+    const handleClone = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (data.onClone) {
+            data.onClone();
         }
     };
 
@@ -136,17 +143,17 @@ const CustomTextNode: React.FC<NodeProps> = ({ data, selected }) => {
                                     <div
                                         key={index}
                                         className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg ${btn.type === 'url'
-                                                ? 'bg-blue-500/20 border border-blue-500/30'
-                                                : btn.type === 'newFlow'
-                                                    ? 'bg-green-500/20 border border-green-500/30'
-                                                    : 'bg-amber-500/20 border border-amber-500/30'
+                                            ? 'bg-blue-500/20 border border-blue-500/30'
+                                            : btn.type === 'newFlow'
+                                                ? 'bg-green-500/20 border border-green-500/30'
+                                                : 'bg-amber-500/20 border border-amber-500/30'
                                             }`}
                                     >
                                         <span className={`text-xs font-medium truncate flex-1 ${btn.type === 'url'
-                                                ? 'text-blue-300'
-                                                : btn.type === 'newFlow'
-                                                    ? 'text-green-300'
-                                                    : 'text-amber-300'
+                                            ? 'text-blue-300'
+                                            : btn.type === 'newFlow'
+                                                ? 'text-green-300'
+                                                : 'text-amber-300'
                                             }`}>
                                             {btn.type === 'url' && '🔗 '}
                                             {btn.type === 'startFlow' && '⚡ '}
@@ -183,6 +190,13 @@ const CustomTextNode: React.FC<NodeProps> = ({ data, selected }) => {
                 {/* Action Buttons */}
                 <div className="absolute -top-3 -right-3 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
                     <button
+                        onClick={handleClone}
+                        className="w-7 h-7 bg-slate-600 rounded-full shadow-lg flex items-center justify-center hover:bg-slate-500 transition-colors"
+                        title="Clone node"
+                    >
+                        <Copy className="w-4 h-4 text-white" />
+                    </button>
+                    <button
                         onClick={handleConfigure}
                         className="w-7 h-7 bg-blue-500 rounded-full shadow-lg flex items-center justify-center hover:bg-blue-600 transition-colors"
                         title="Configure"
@@ -204,11 +218,13 @@ const CustomTextNode: React.FC<NodeProps> = ({ data, selected }) => {
                 type="target"
                 position={Position.Left}
                 className="w-3 h-3 !bg-amber-400 !border-2 !border-white"
+                style={{ left: -6 }}
             />
             <Handle
                 type="source"
                 position={Position.Right}
                 className="w-3 h-3 !bg-amber-400 !border-2 !border-white"
+                style={{ right: -6 }}
             />
         </div>
     );

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
-import { Play, Settings, Trash2, ChevronDown, ChevronUp, Key } from 'lucide-react';
+import { Play, Settings, Trash2, ChevronDown, ChevronUp, Key, Copy } from 'lucide-react';
 
 const CustomStartNode: React.FC<NodeProps> = ({ data, selected }) => {
     const [isExpanded, setIsExpanded] = useState(false);
@@ -38,6 +38,13 @@ const CustomStartNode: React.FC<NodeProps> = ({ data, selected }) => {
         e.stopPropagation();
         if (data.onDelete) {
             data.onDelete();
+        }
+    };
+
+    const handleClone = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (data.onClone) {
+            data.onClone();
         }
     };
 
@@ -135,6 +142,13 @@ const CustomStartNode: React.FC<NodeProps> = ({ data, selected }) => {
                 {/* Action Buttons */}
                 <div className="absolute -top-3 -right-3 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
                     <button
+                        onClick={handleClone}
+                        className="w-7 h-7 bg-slate-600 rounded-full shadow-lg flex items-center justify-center hover:bg-slate-500 transition-colors"
+                        title="Clone node"
+                    >
+                        <Copy className="w-4 h-4 text-white" />
+                    </button>
+                    <button
                         onClick={handleConfigure}
                         className="w-7 h-7 bg-emerald-500 rounded-full shadow-lg flex items-center justify-center hover:bg-emerald-600 transition-colors"
                         title="Configure"
@@ -151,20 +165,20 @@ const CustomStartNode: React.FC<NodeProps> = ({ data, selected }) => {
                 </div>
             </div>
 
-            {/* Target handle for New Flow nodes - allows incoming connections from parent */}
+            {/* Handles - positioned consistently with other nodes */}
             {data.isNewFlowNode && (
                 <Handle
                     type="target"
                     position={Position.Left}
                     className="w-3 h-3 !bg-emerald-400 !border-2 !border-white"
+                    style={{ left: -6 }}
                 />
             )}
-
-            {/* Source handle - all start nodes have outputs */}
             <Handle
                 type="source"
                 position={Position.Right}
                 className="w-3 h-3 !bg-emerald-400 !border-2 !border-white"
+                style={{ right: -6 }}
             />
         </div>
     );

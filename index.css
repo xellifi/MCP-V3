@@ -518,3 +518,67 @@
   background: linear-gradient(135deg, rgba(6, 182, 212, 0.2), rgba(6, 182, 212, 0.05));
   border: 1px solid rgba(6, 182, 212, 0.2);
 }
+
+/* ========================================
+   INSTANT TOOLTIPS FOR NODE ACTION BUTTONS
+   ======================================== */
+
+/* Node action button instant tooltips - applies globally to all nodes */
+.react-flow__node button[title],
+.group button[title] {
+  position: relative;
+}
+
+.react-flow__node button[title]::after,
+.group button[title]::after {
+  content: attr(title);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-bottom: 6px;
+  padding: 4px 8px;
+  background: rgba(15, 23, 42, 0.95);
+  color: white;
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+  border-radius: 4px;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.1s ease, visibility 0.1s ease;
+  pointer-events: none;
+  z-index: 9999;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.react-flow__node button[title]::before,
+.group button[title]::before {
+  content: '';
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-bottom: 2px;
+  border: 4px solid transparent;
+  border-top-color: rgba(15, 23, 42, 0.95);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.1s ease, visibility 0.1s ease;
+  pointer-events: none;
+  z-index: 9999;
+}
+
+.react-flow__node button[title]:hover::after,
+.react-flow__node button[title]:hover::before,
+.group button[title]:hover::after,
+.group button[title]:hover::before {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Disable browser's native title tooltip by hiding when custom tooltip is active */
+.react-flow__node button[title]:hover,
+.group button[title]:hover {
+  /* The native tooltip has a delay, our CSS tooltip appears instantly */
+}

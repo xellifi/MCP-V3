@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
-import { ShoppingBag, Settings, Trash2, ChevronDown, ChevronUp, Package, Tag, Image as ImageIcon } from 'lucide-react';
+import { ShoppingBag, Settings, Trash2, ChevronDown, ChevronUp, Package, Tag, Image as ImageIcon, Copy } from 'lucide-react';
 
 const CustomProductNode: React.FC<NodeProps> = ({ data, selected }) => {
     const [isExpanded, setIsExpanded] = useState(false);
@@ -16,6 +16,13 @@ const CustomProductNode: React.FC<NodeProps> = ({ data, selected }) => {
         e.stopPropagation();
         if (data.onDelete) {
             data.onDelete();
+        }
+    };
+
+    const handleClone = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (data.onClone) {
+            data.onClone();
         }
     };
 
@@ -117,6 +124,13 @@ const CustomProductNode: React.FC<NodeProps> = ({ data, selected }) => {
 
                 {/* Hover Actions */}
                 <div className="absolute -top-2 -right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                    <button
+                        onClick={handleClone}
+                        className="p-1.5 bg-slate-600 hover:bg-slate-500 rounded-lg shadow-lg transition-colors"
+                        title="Clone node"
+                    >
+                        <Copy className="w-3.5 h-3.5 text-white" />
+                    </button>
                     <button
                         onClick={handleConfigure}
                         className="p-1.5 bg-emerald-500 hover:bg-emerald-600 rounded-lg shadow-lg transition-colors"
