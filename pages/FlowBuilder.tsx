@@ -2081,7 +2081,23 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
               placeholder="e.g., Welcome Message Flow"
               className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all placeholder-slate-500 mb-6"
               autoFocus
+              disabled={isSaving}
             />
+
+            {/* Saving Animation */}
+            {isSaving && (
+              <div className="mb-6 p-4 bg-indigo-500/10 border border-indigo-500/20 rounded-xl">
+                <div className="flex items-center gap-3">
+                  <div className="w-5 h-5 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+                  <div className="flex-1">
+                    <p className="text-indigo-300 text-sm font-medium animate-pulse">
+                      Saving your settings...
+                    </p>
+                    <p className="text-slate-500 text-xs mt-1">Please wait while we configure your automation</p>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div className="flex items-center justify-end gap-3">
               <button
@@ -2089,15 +2105,17 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
                   setShowNameDialog(false);
                   setFlowName('');
                 }}
-                className="px-5 py-2.5 text-sm font-medium text-slate-300 hover:bg-white/5 rounded-xl border border-white/10 hover:border-white/20 transition-colors"
+                disabled={isSaving}
+                className="px-5 py-2.5 text-sm font-medium text-slate-300 hover:bg-white/5 rounded-xl border border-white/10 hover:border-white/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSaveWithName}
                 disabled={!flowName.trim() || isSaving}
-                className="px-5 py-2.5 text-sm font-bold bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white rounded-xl shadow-lg shadow-indigo-500/20 transition-all active:scale-95 border border-white/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-5 py-2.5 text-sm font-bold bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white rounded-xl shadow-lg shadow-indigo-500/20 transition-all active:scale-95 border border-white/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
+                {isSaving && <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>}
                 {isSaving ? 'Saving...' : 'Save Flow'}
               </button>
             </div>
