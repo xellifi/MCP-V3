@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase';
 import { useTheme } from '../context/ThemeContext';
 import { useToast } from '../context/ToastContext';
 import { format, formatDistanceToNow } from 'date-fns';
+import FormNodeForm from '../components/FormNodeForm';
 import {
     Search,
     Plus,
@@ -47,6 +48,9 @@ interface Form {
     updated_at?: string;
     google_sheet_id?: string;
     form_template?: string;
+    page_id?: string;
+    page_logo?: string;
+    submission_count?: number;
 }
 
 interface FormSubmission {
@@ -81,6 +85,7 @@ const Forms: React.FC<FormsProps> = ({ workspace }) => {
     const [formToDelete, setFormToDelete] = useState<Form | null>(null);
     const [deleting, setDeleting] = useState(false);
     const [typeFilter, setTypeFilter] = useState<'all' | 'order' | 'form'>('all');
+    const [showCreateModal, setShowCreateModal] = useState(false);
 
     const itemsPerPage = 12;
 
@@ -337,6 +342,15 @@ const Forms: React.FC<FormsProps> = ({ workspace }) => {
                     </p>
                 </div>
                 <div className="flex items-center gap-3">
+                    {/* Create Form Button */}
+                    <button
+                        onClick={() => setShowCreateModal(true)}
+                        className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white rounded-xl font-medium transition-all shadow-lg shadow-indigo-500/25"
+                    >
+                        <Plus className="w-5 h-5" />
+                        <span className="hidden sm:inline">Create Form</span>
+                    </button>
+
                     {/* View Toggle */}
                     <div className={`flex ${isDark ? 'bg-white/5' : 'bg-gray-100'} p-1 rounded-lg border ${isDark ? 'border-white/10' : 'border-gray-200'}`}>
                         <button
@@ -481,6 +495,23 @@ const Forms: React.FC<FormsProps> = ({ workspace }) => {
                             >
                                 <Trash2 className="w-4 h-4" />
                             </button>
+
+                            {/* Page Logo - Upper Left */}
+                            {form.page_logo && (
+                                <img
+                                    src={form.page_logo}
+                                    alt="Page"
+                                    className="absolute top-3 left-3 w-8 h-8 rounded-lg object-cover border-2 border-white/20 shadow-md"
+                                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                                />
+                            )}
+
+                            {/* Submission Count Badge */}
+                            {(form.submission_count || 0) > 0 && (
+                                <div className="absolute -top-1 -right-1 min-w-[22px] h-[22px] bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center px-1 shadow-lg border-2 border-white dark:border-slate-800 z-20">
+                                    {form.submission_count! > 99 ? '99+' : form.submission_count}
+                                </div>
+                            )}
 
                             {/* Icon */}
                             <div className={`${viewMode === 'grid' ? 'flex justify-center mb-4' : 'flex-shrink-0'}`}>
@@ -645,14 +676,18 @@ const Forms: React.FC<FormsProps> = ({ workspace }) => {
                                         </p>
                                     )}
                                 </div>
+                            </div>
+
+                            {/* Preview button - separate row */}
+                            <div className="mt-4">
                                 <a
                                     href={`/forms/${selectedForm.id}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="flex items-center gap-2 px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl font-medium transition-colors"
+                                    className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl font-medium transition-colors"
                                 >
                                     <ExternalLink className="w-4 h-4" />
-                                    <span className="hidden sm:inline">Preview</span>
+                                    Preview Form
                                 </a>
                             </div>
                         </div>
@@ -895,6 +930,65 @@ const Forms: React.FC<FormsProps> = ({ workspace }) => {
                                     'Delete'
                                 )}
                             </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Create Form Modal */}
+            {showCreateModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div
+                        className={`absolute inset-0 ${isDark ? 'bg-black/70' : 'bg-black/50'} backdrop-blur-sm`}
+                        onClick={() => setShowCreateModal(false)}
+                    />
+                    <div className={`relative ${modalBg} rounded-2xl border shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col animate-scale-in`}>
+                        <div className={`flex items-center justify-between p-4 border-b ${isDark ? 'border-white/10' : 'border-gray-200'}`}>
+                            <h2 className={`text-xl font-bold ${textPrimary}`}>Create New Form</h2>
+                            <button
+                                onClick={() => setShowCreateModal(false)}
+                                className={`p-2 ${textSecondary} hover:${textPrimary} ${isDark ? 'hover:bg-white/10' : 'hover:bg-gray-100'} rounded-lg transition-colors`}
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+                        <div className="flex-1 overflow-y-auto p-4">
+                            <FormNodeForm
+                                workspaceId={workspace.id}
+                                onChange={async (config) => {
+                                    // Save form to database
+                                    if (config.formName) {
+                                        try {
+                                            const { data, error } = await supabase
+                                                .from('forms')
+                                                .insert({
+                                                    workspace_id: workspace.id,
+                                                    name: config.formName,
+                                                    is_order_form: config.isOrderForm || false,
+                                                    product_name: config.productName,
+                                                    product_price: config.productPrice,
+                                                    currency: config.currency || 'PHP',
+                                                    fields: config.fields || [],
+                                                    submit_button_text: config.submitButtonText || 'Submit',
+                                                    submit_button_color: config.submitButtonColor || '#6366f1',
+                                                    success_message: config.successMessage || 'Thank you!',
+                                                    require_payment_proof: config.requirePaymentProof || false,
+                                                    payment_methods: config.paymentMethods || [],
+                                                })
+                                                .select()
+                                                .single();
+
+                                            if (!error && data) {
+                                                toast.success('Form created successfully!');
+                                                setShowCreateModal(false);
+                                                loadForms();
+                                            }
+                                        } catch (err) {
+                                            console.error('Error creating form:', err);
+                                        }
+                                    }
+                                }}
+                            />
                         </div>
                     </div>
                 </div>

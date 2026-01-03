@@ -778,9 +778,10 @@ export const api = {
     },
 
     getForms: async (workspaceId: string): Promise<any[]> => {
-      const { data, error } = await supabase
+      // Get forms with flow info
+      const { data: forms, error } = await supabase
         .from('forms')
-        .select('*')
+        .select('*, flows(page_id)')
         .eq('workspace_id', workspaceId)
         .order('created_at', { ascending: false });
 
@@ -788,7 +789,53 @@ export const api = {
         console.error('Error fetching forms:', error);
         return [];
       }
-      return data || [];
+
+      if (!forms || forms.length === 0) return [];
+
+      // Get form IDs for submission count
+      const formIds = forms.map(f => f.id);
+
+      // Get submission counts per form
+      const { data: submissions } = await supabase
+        .from('form_submissions')
+        .select('form_id')
+        .in('form_id', formIds);
+
+      const submissionCounts: Record<string, number> = {};
+      if (submissions) {
+        submissions.forEach(s => {
+          submissionCounts[s.form_id] = (submissionCounts[s.form_id] || 0) + 1;
+        });
+      }
+
+      // Get unique page_ids from flows
+      const pageIds = [...new Set(forms
+        .filter(f => f.flows?.page_id)
+        .map(f => f.flows.page_id)
+      )];
+
+      // Fetch page logos if we have page_ids
+      let pageLogos: Record<string, string> = {};
+      if (pageIds.length > 0) {
+        const { data: pages } = await supabase
+          .from('connected_pages')
+          .select('page_id, page_image_url')
+          .in('page_id', pageIds);
+
+        if (pages) {
+          pageLogos = Object.fromEntries(
+            pages.map(p => [p.page_id, p.page_image_url || `https://graph.facebook.com/${p.page_id}/picture?type=large`])
+          );
+        }
+      }
+
+      // Add page_logo and submission_count to each form
+      return forms.map(form => ({
+        ...form,
+        page_id: form.flows?.page_id || null,
+        page_logo: form.flows?.page_id ? pageLogos[form.flows.page_id] : null,
+        submission_count: submissionCounts[form.id] || 0
+      }));
     },
 
     deleteForm: async (formId: string): Promise<void> => {
