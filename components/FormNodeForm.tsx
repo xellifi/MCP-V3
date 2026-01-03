@@ -573,38 +573,41 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
 
                         {/* Step 2: Buyer Info */}
                         {previewStep === 2 && (
-                            <div className="space-y-3">
-                                {fields.map((field) => (
-                                    <div key={field.id}>
-                                        <label className="block text-slate-500 text-xs mb-1">
-                                            {field.label}{field.required && <span className="text-red-500 ml-0.5">*</span>}
-                                        </label>
-                                        {field.type === 'textarea' ? (
-                                            <textarea className={`w-full px-3 py-2 ${inputBg} border ${inputText} text-sm resize-none`} rows={2} style={{ borderRadius: inputRadius }} placeholder={field.placeholder} readOnly />
-                                        ) : field.type === 'select' ? (
-                                            <div className="w-full px-3 py-2 bg-slate-50 border border-slate-200 flex items-center justify-between" style={{ borderRadius: inputRadius }}>
-                                                <span className="text-sm text-slate-400">Select...</span>
-                                                <ChevronDown className="w-4 h-4 text-slate-400" />
-                                            </div>
-                                        ) : field.type === 'checkbox' ? (
-                                            <label className="flex items-center gap-2 p-2 bg-slate-50 border border-slate-200 cursor-pointer" style={{ borderRadius: inputRadius }}>
-                                                <input type="checkbox" className="w-4 h-4" />
-                                                <span className="text-gray-700 text-sm">{field.label}</span>
+                            <div className={`${!isMobile ? 'grid grid-cols-2 gap-2' : 'space-y-2'}`}>
+                                {fields.map((field) => {
+                                    const isFullWidth = field.type === 'textarea' || field.type === 'radio';
+                                    return (
+                                        <div key={field.id} className={!isMobile && isFullWidth ? 'col-span-2' : ''}>
+                                            <label className="block text-slate-500 text-[10px] mb-0.5">
+                                                {field.label}{field.required && <span className="text-red-500 ml-0.5">*</span>}
                                             </label>
-                                        ) : field.type === 'radio' ? (
-                                            <div className="space-y-1">
-                                                {(field.options || ['Option 1']).slice(0, 2).map((opt, i) => (
-                                                    <label key={i} className="flex items-center gap-2 p-2 bg-slate-50 border border-slate-200 cursor-pointer" style={{ borderRadius: inputRadius }}>
-                                                        <input type="radio" name={field.id} className="w-4 h-4" />
-                                                        <span className="text-gray-700 text-sm">{opt}</span>
-                                                    </label>
-                                                ))}
-                                            </div>
-                                        ) : (
-                                            <input type="text" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 text-slate-800 text-sm placeholder-slate-400" style={{ borderRadius: inputRadius }} placeholder={field.placeholder} readOnly />
-                                        )}
-                                    </div>
-                                ))}
+                                            {field.type === 'textarea' ? (
+                                                <textarea className="w-full px-2 py-1.5 bg-slate-50 border border-slate-200 text-slate-800 text-xs resize-none placeholder-slate-400" rows={2} style={{ borderRadius: inputRadius }} placeholder={field.placeholder} readOnly />
+                                            ) : field.type === 'select' ? (
+                                                <div className="w-full px-2 py-1.5 bg-slate-50 border border-slate-200 flex items-center justify-between" style={{ borderRadius: inputRadius }}>
+                                                    <span className="text-xs text-slate-400">Select...</span>
+                                                    <ChevronDown className="w-3 h-3 text-slate-400" />
+                                                </div>
+                                            ) : field.type === 'checkbox' ? (
+                                                <label className="flex items-center gap-1.5 p-1.5 bg-slate-50 border border-slate-200 cursor-pointer" style={{ borderRadius: inputRadius }}>
+                                                    <input type="checkbox" className="w-3 h-3" />
+                                                    <span className="text-gray-700 text-xs">{field.label}</span>
+                                                </label>
+                                            ) : field.type === 'radio' ? (
+                                                <div className="flex gap-2 flex-wrap">
+                                                    {(field.options || ['Option 1']).slice(0, 3).map((opt, i) => (
+                                                        <label key={i} className="flex items-center gap-1.5 p-1.5 bg-slate-50 border border-slate-200 cursor-pointer" style={{ borderRadius: inputRadius }}>
+                                                            <input type="radio" name={field.id} className="w-3 h-3" />
+                                                            <span className="text-gray-700 text-xs">{opt}</span>
+                                                        </label>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <input type="text" className="w-full px-2 py-1.5 bg-slate-50 border border-slate-200 text-slate-800 text-xs placeholder-slate-400" style={{ borderRadius: inputRadius }} placeholder={field.placeholder} readOnly />
+                                            )}
+                                        </div>
+                                    );
+                                })}
                             </div>
                         )}
 
