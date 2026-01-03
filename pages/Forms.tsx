@@ -115,9 +115,9 @@ const Forms: React.FC<FormsProps> = ({ workspace }) => {
         try {
             console.log('[Forms] Updating submission:', submissionId, 'with status:', status);
 
-            // Call API endpoint (uses service role key to bypass RLS)
-            const response = await fetch('/api/forms/update-status', {
-                method: 'POST',
+            // Call consolidated API endpoint with PATCH method
+            const response = await fetch('/api/forms/actions', {
+                method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ submissionId, status })
             });
@@ -175,8 +175,9 @@ const Forms: React.FC<FormsProps> = ({ workspace }) => {
         }
 
         try {
-            const response = await fetch('/api/forms/delete-submission', {
-                method: 'POST',
+            // Call consolidated API endpoint with DELETE method
+            const response = await fetch('/api/forms/actions', {
+                method: 'DELETE',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ submissionId })
             });

@@ -6,25 +6,25 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 interface FormRenderRequest {
-    formId: string;
-    subscriberId?: string;
-    subscriberName?: string;
+  formId: string;
+  subscriberId?: string;
+  subscriberName?: string;
 }
 
 // Generate form HTML with beautiful responsive design
 function generateFormHtml(form: any, subscriberId?: string, subscriberName?: string): string {
-    const borderRadius = form.border_radius === 'full' ? '9999px' : form.border_radius === 'round' ? '16px' : '8px';
-    const inputRadius = form.border_radius === 'full' ? '24px' : form.border_radius === 'round' ? '12px' : '8px';
+  const borderRadius = form.border_radius === 'full' ? '9999px' : form.border_radius === 'round' ? '16px' : '8px';
+  const inputRadius = form.border_radius === 'full' ? '24px' : form.border_radius === 'round' ? '12px' : '8px';
 
-    const fieldsHtml = (form.fields || []).map((field: any, index: number) => {
-        const requiredAttr = field.required ? 'required' : '';
-        const requiredStar = field.required ? '<span style="color: #ef4444;">*</span>' : '';
+  const fieldsHtml = (form.fields || []).map((field: any, index: number) => {
+    const requiredAttr = field.required ? 'required' : '';
+    const requiredStar = field.required ? '<span style="color: #ef4444;">*</span>' : '';
 
-        let inputHtml = '';
+    let inputHtml = '';
 
-        switch (field.type) {
-            case 'textarea':
-                inputHtml = `
+    switch (field.type) {
+      case 'textarea':
+        inputHtml = `
           <textarea 
             name="${field.id}" 
             placeholder="${field.placeholder || ''}" 
@@ -45,13 +45,13 @@ function generateFormHtml(form: any, subscriberId?: string, subscriberName?: str
             onblur="this.style.borderColor='#e2e8f0'; this.style.boxShadow='none'"
           ></textarea>
         `;
-                break;
+        break;
 
-            case 'select':
-                const optionsHtml = (field.options || []).map((opt: string) =>
-                    `<option value="${opt}">${opt}</option>`
-                ).join('');
-                inputHtml = `
+      case 'select':
+        const optionsHtml = (field.options || []).map((opt: string) =>
+          `<option value="${opt}">${opt}</option>`
+        ).join('');
+        inputHtml = `
           <select 
             name="${field.id}" 
             ${requiredAttr}
@@ -73,10 +73,10 @@ function generateFormHtml(form: any, subscriberId?: string, subscriberName?: str
             ${optionsHtml}
           </select>
         `;
-                break;
+        break;
 
-            case 'radio':
-                const radioHtml = (field.options || []).map((opt: string, i: number) => `
+      case 'radio':
+        const radioHtml = (field.options || []).map((opt: string, i: number) => `
           <label style="display: flex; align-items: center; gap: 10px; padding: 12px 16px; background: #f8fafc; border-radius: ${inputRadius}; cursor: pointer; transition: all 0.2s;" 
                  onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='#f8fafc'">
             <input type="radio" name="${field.id}" value="${opt}" ${requiredAttr && i === 0 ? 'required' : ''} 
@@ -84,22 +84,22 @@ function generateFormHtml(form: any, subscriberId?: string, subscriberName?: str
             <span style="font-size: 15px; color: #334155;">${opt}</span>
           </label>
         `).join('');
-                inputHtml = `<div style="display: flex; flex-direction: column; gap: 8px;">${radioHtml}</div>`;
-                break;
+        inputHtml = `<div style="display: flex; flex-direction: column; gap: 8px;">${radioHtml}</div>`;
+        break;
 
-            case 'checkbox':
-                inputHtml = `
+      case 'checkbox':
+        inputHtml = `
           <label style="display: flex; align-items: center; gap: 10px; padding: 12px 16px; background: #f8fafc; border-radius: ${inputRadius}; cursor: pointer;">
             <input type="checkbox" name="${field.id}" value="true" ${requiredAttr}
                    style="width: 20px; height: 20px; accent-color: ${form.submit_button_color};">
             <span style="font-size: 15px; color: #334155;">${field.label}</span>
           </label>
         `;
-                break;
+        break;
 
-            default:
-                const inputType = field.type === 'phone' ? 'tel' : field.type;
-                inputHtml = `
+      default:
+        const inputType = field.type === 'phone' ? 'tel' : field.type;
+        inputHtml = `
           <input 
             type="${inputType}" 
             name="${field.id}" 
@@ -119,29 +119,29 @@ function generateFormHtml(form: any, subscriberId?: string, subscriberName?: str
             onblur="this.style.borderColor='#e2e8f0'; this.style.boxShadow='none'"
           />
         `;
-        }
+    }
 
-        const labelHtml = field.type !== 'checkbox' ? `
+    const labelHtml = field.type !== 'checkbox' ? `
       <label style="display: block; font-weight: 600; color: #1e293b; margin-bottom: 8px; font-size: 14px;">
         ${field.label} ${requiredStar}
       </label>
     ` : '';
 
-        return `
+    return `
       <div style="margin-bottom: 20px;">
         ${labelHtml}
         ${inputHtml}
       </div>
     `;
-    }).join('');
+  }).join('');
 
-    const headerImageHtml = form.header_image_url ? `
+  const headerImageHtml = form.header_image_url ? `
     <div style="margin: -24px -24px 24px -24px; border-radius: ${borderRadius} ${borderRadius} 0 0; overflow: hidden;">
       <img src="${form.header_image_url}" alt="" style="width: 100%; height: 180px; object-fit: cover;">
     </div>
   ` : '';
 
-    return `
+  return `
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -294,26 +294,128 @@ function generateFormHtml(form: any, subscriberId?: string, subscriberName?: str
 }
 
 export default async function handler(req: any, res: any) {
-    if (req.method !== 'GET') {
-        return res.status(405).json({ error: 'Method not allowed' });
+  // Add CORS headers
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+  res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
+
+  // Handle OPTIONS preflight
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
+  const { id } = req.query;
+
+  // PATCH - Update submission status
+  if (req.method === 'PATCH') {
+    const { submissionId, status } = req.body;
+
+    if (!submissionId || !status) {
+      return res.status(400).json({ error: 'Missing submissionId or status' });
     }
 
-    const { id, sid, sname } = req.query;
-
-    if (!id) {
-        return res.status(400).json({ error: 'Form ID is required' });
-    }
+    console.log('[Update Status] Updating:', submissionId, 'to status:', status);
 
     try {
-        // Fetch form from database
-        const { data: form, error } = await supabase
-            .from('forms')
-            .select('*')
-            .eq('id', id)
-            .single();
+      // Get current submission data
+      const { data: submission, error: fetchError } = await supabase
+        .from('form_submissions')
+        .select('data, form_id, forms(google_webhook_url, google_sheet_name)')
+        .eq('id', submissionId)
+        .single();
 
-        if (error || !form) {
-            return res.status(404).send(`
+      if (fetchError || !submission) {
+        console.error('[Update Status] Fetch error:', fetchError);
+        return res.status(404).json({ error: 'Submission not found' });
+      }
+
+      // Merge new status into existing data
+      const updatedData = {
+        ...(submission.data || {}),
+        order_status: status
+      };
+
+      // Update the submission
+      const { error: updateError } = await supabase
+        .from('form_submissions')
+        .update({ data: updatedData })
+        .eq('id', submissionId);
+
+      if (updateError) {
+        console.error('[Update Status] Update error:', updateError);
+        return res.status(500).json({ error: 'Failed to update status' });
+      }
+
+      console.log('[Update Status] ✓ Status saved successfully');
+
+      // Return the form info for Google Sheets sync
+      const form = (submission as any)?.forms;
+
+      return res.status(200).json({
+        success: true,
+        webhookUrl: form?.google_webhook_url,
+        sheetName: form?.google_sheet_name,
+        updatedData
+      });
+
+    } catch (err: any) {
+      console.error('[Update Status] Exception:', err);
+      return res.status(500).json({ error: err.message });
+    }
+  }
+
+  // DELETE - Delete submission
+  if (req.method === 'DELETE') {
+    const { submissionId } = req.body;
+
+    if (!submissionId) {
+      return res.status(400).json({ error: 'Missing submissionId' });
+    }
+
+    console.log('[Delete Submission]', submissionId);
+
+    try {
+      const { error } = await supabase
+        .from('form_submissions')
+        .delete()
+        .eq('id', submissionId);
+
+      if (error) {
+        console.error('[Delete Submission] Error:', error);
+        return res.status(500).json({ error: 'Failed to delete submission' });
+      }
+
+      console.log('[Delete Submission] ✓ Deleted successfully');
+      return res.status(200).json({ success: true });
+
+    } catch (err: any) {
+      console.error('[Delete Submission] Exception:', err);
+      return res.status(500).json({ error: err.message });
+    }
+  }
+
+  // GET - Render form HTML
+  if (req.method !== 'GET') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  const { sid, sname } = req.query;
+
+  if (!id) {
+    return res.status(400).json({ error: 'Form ID is required' });
+  }
+
+  try {
+    // Fetch form from database
+    const { data: form, error } = await supabase
+      .from('forms')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error || !form) {
+      return res.status(404).send(`
         <html>
           <body style="display: flex; align-items: center; justify-content: center; height: 100vh; font-family: sans-serif;">
             <div style="text-align: center;">
@@ -323,14 +425,14 @@ export default async function handler(req: any, res: any) {
           </body>
         </html>
       `);
-        }
-
-        const html = generateFormHtml(form, sid, sname);
-
-        res.setHeader('Content-Type', 'text/html');
-        res.status(200).send(html);
-    } catch (err) {
-        console.error('Form render error:', err);
-        res.status(500).send('Internal server error');
     }
+
+    const html = generateFormHtml(form, sid, sname);
+
+    res.setHeader('Content-Type', 'text/html');
+    res.status(200).send(html);
+  } catch (err) {
+    console.error('Form render error:', err);
+    res.status(500).send('Internal server error');
+  }
 }
