@@ -3,6 +3,7 @@ import { Workspace } from '../types';
 import { api } from '../services/api';
 import { supabase } from '../lib/supabase';
 import { useTheme } from '../context/ThemeContext';
+import { useToast } from '../context/ToastContext';
 import { format, formatDistanceToNow } from 'date-fns';
 import {
     Search,
@@ -67,6 +68,7 @@ const ORDER_STATUSES = [
 
 const Forms: React.FC<FormsProps> = ({ workspace }) => {
     const { isDark } = useTheme();
+    const toast = useToast();
     const [forms, setForms] = useState<Form[]>([]);
     const [loading, setLoading] = useState(true);
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -126,7 +128,7 @@ const Forms: React.FC<FormsProps> = ({ workspace }) => {
 
             if (!response.ok) {
                 console.error('[Forms] Failed to update status:', result.error);
-                alert('Failed to save status. Please try again.');
+                toast.error('Failed to save status. Please try again.');
                 return;
             }
 
@@ -167,9 +169,13 @@ const Forms: React.FC<FormsProps> = ({ workspace }) => {
                     console.error('[Forms] Failed to sync status to Sheets:', sheetError);
                 }
             }
+
+            // Show success notification
+            const statusLabel = ORDER_STATUSES.find(s => s.id === status)?.label || status;
+            toast.success(`Order status updated to ${statusLabel}`);
         } catch (error) {
             console.error('Error updating submission status:', error);
-            alert('Failed to save status. Please try again.');
+            toast.error('Failed to save status. Please try again.');
         }
     };
 
@@ -189,15 +195,16 @@ const Forms: React.FC<FormsProps> = ({ workspace }) => {
 
             if (!response.ok) {
                 const result = await response.json();
-                alert('Failed to delete: ' + result.error);
+                toast.error('Failed to delete: ' + result.error);
                 return;
             }
 
             // Update local state
             setSubmissions(prev => prev.filter(s => s.id !== submissionId));
+            toast.success('Order deleted successfully');
         } catch (error) {
             console.error('Error deleting submission:', error);
-            alert('Failed to delete order. Please try again.');
+            toast.error('Failed to delete order. Please try again.');
         }
     };
 
