@@ -72,6 +72,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         // Return server-rendered HTML
         res.setHeader('Content-Type', 'text/html; charset=utf-8');
         return res.status(200).send(renderInvoice({
+            submissionId: id,
             company,
             companyAddress,
             color,
@@ -151,6 +152,7 @@ function renderError(message: string): string {
 }
 
 interface InvoiceData {
+    submissionId: string;
     company: string;
     companyAddress?: string;
     color: string;
@@ -316,6 +318,26 @@ function renderInvoice(data: InvoiceData): string {
             animation: spin 0.8s linear infinite;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
+        .track-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 20px;
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            border: none;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            color: white;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+        .track-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
+        }
     </style>
     
     <!-- Load libraries from CDN -->
@@ -326,6 +348,10 @@ function renderInvoice(data: InvoiceData): string {
     <div class="container">
         <!-- Download Buttons -->
         <div class="download-section">
+            <a href="/api/track/view?id=${data.submissionId}&company=${encodeURIComponent(data.company)}&logo=${encodeURIComponent(data.logo)}&color=${encodeURIComponent(data.color)}" class="track-btn">
+                <span class="icon">📦</span>
+                <span>Track Order</span>
+            </a>
             <button class="download-btn" id="downloadImage" onclick="downloadAsImage()">
                 <span class="icon">🖼️</span>
                 <span>Save Image</span>
