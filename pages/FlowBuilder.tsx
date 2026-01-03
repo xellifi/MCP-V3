@@ -329,10 +329,28 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
           console.log('[FlowBuilder.loadFlowData] ✓ All nodes restored with configurations');
         }
 
-        // Restore edges
+        // Restore edges with all their properties (especially sourceHandle for condition nodes)
         if (flow.edges && Array.isArray(flow.edges)) {
-          setEdges(flow.edges);
-          console.log('[FlowBuilder.loadFlowData] ✓ Restored', flow.edges.length, 'edges');
+          const restoredEdges = flow.edges.map((edge: any) => ({
+            id: edge.id,
+            source: edge.source,
+            target: edge.target,
+            sourceHandle: edge.sourceHandle || null,  // Preserve condition node handle (true/false)
+            targetHandle: edge.targetHandle || null,
+            type: edge.type || 'custom',
+            animated: edge.animated !== false,
+            style: edge.style || { stroke: '#64748b', strokeWidth: 2 }
+          }));
+
+          // Debug log for condition node edges
+          const conditionEdges = restoredEdges.filter((e: any) => e.sourceHandle);
+          if (conditionEdges.length > 0) {
+            console.log('[FlowBuilder.loadFlowData] Condition node edges with sourceHandle:',
+              conditionEdges.map((e: any) => ({ source: e.source, target: e.target, sourceHandle: e.sourceHandle })));
+          }
+
+          setEdges(restoredEdges);
+          console.log('[FlowBuilder.loadFlowData] ✓ Restored', restoredEdges.length, 'edges');
         }
 
         console.log('[FlowBuilder.loadFlowData] ========== FLOW LOAD COMPLETE ==========');
@@ -860,6 +878,8 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
               id: edge.id,
               source: edge.source,
               target: edge.target,
+              sourceHandle: edge.sourceHandle,  // Preserve for condition nodes
+              targetHandle: edge.targetHandle,
               type: edge.type,
               animated: edge.animated
             }));
