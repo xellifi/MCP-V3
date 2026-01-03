@@ -33,7 +33,7 @@ const NodeConfigModal: React.FC<NodeConfigModalProps> = ({
             />
 
             {/* Modal */}
-            <div className="relative glass-panel border border-white/10 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl animate-fade-in">
+            <div className="relative glass-panel border border-white/10 rounded-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl animate-fade-in">
                 {/* Header */}
                 <div className="flex items-center justify-between p-6 border-b border-white/10 bg-white/5">
                     <div>

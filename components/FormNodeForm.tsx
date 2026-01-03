@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, GripVertical, Type, Mail, Phone, Hash, AlignLeft, ChevronDown, CircleDot, CheckSquare, Timer, DollarSign, ShoppingCart, CreditCard, Wallet, Upload, X } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Plus, Trash2, GripVertical, Type, Mail, Phone, Hash, AlignLeft, ChevronDown, CircleDot, CheckSquare, Timer, ShoppingCart, Wallet, Upload, X, ArrowLeft, ArrowRight, Eye, EyeOff, Check } from 'lucide-react';
 import { FormField } from '../types';
 
 interface FormNodeFormProps {
@@ -34,7 +34,20 @@ const CURRENCIES = [
     { code: 'JPY', symbol: '¥', name: 'Japanese Yen' },
 ];
 
+const STEPS = [
+    { id: 'product', label: 'Product', icon: '📦' },
+    { id: 'fields', label: 'Fields', icon: '📝' },
+    { id: 'payment', label: 'Payment', icon: '💳' },
+    { id: 'settings', label: 'Settings', icon: '⚙️' },
+];
+
 const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig, onChange }) => {
+    // Current step (0-3)
+    const [currentStep, setCurrentStep] = useState(0);
+    const [showPreview, setShowPreview] = useState(false); // Mobile preview toggle
+    const [isMobile, setIsMobile] = useState(false);
+
+    // Form state
     const [formName, setFormName] = useState(initialConfig?.formName || 'Order Form');
     const [headerImageUrl, setHeaderImageUrl] = useState(initialConfig?.headerImageUrl || '');
     const [submitButtonText, setSubmitButtonText] = useState(initialConfig?.submitButtonText || 'Place Order');
@@ -48,14 +61,11 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
         { id: 'phone', type: 'phone', label: 'Phone Number', placeholder: 'Enter phone number', required: true },
     ]);
     const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
-    const [activeTab, setActiveTab] = useState<'fields' | 'product' | 'payment' | 'settings'>('product');
 
     // Timer settings
     const [countdownEnabled, setCountdownEnabled] = useState(initialConfig?.countdownEnabled || false);
     const [countdownMinutes, setCountdownMinutes] = useState(initialConfig?.countdownMinutes || 10);
     const [countdownBlink, setCountdownBlink] = useState(initialConfig?.countdownBlink ?? true);
-
-    // Promo Banner settings
     const [promoText, setPromoText] = useState(initialConfig?.promoText || 'Promo Only!');
     const [promoIcon, setPromoIcon] = useState(initialConfig?.promoIcon || '🔥');
 
@@ -76,30 +86,53 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
     const [ewalletNumbers, setEwalletNumbers] = useState<Record<string, string>>(initialConfig?.ewalletNumbers || {});
     const [requireProofUpload, setRequireProofUpload] = useState(initialConfig?.requireProofUpload ?? true);
 
-    // CRITICAL: Track formId in state so it persists even if initialConfig is stale
     const [formId, setFormId] = useState(initialConfig?.formId);
 
-    // Sync formId when initialConfig changes (e.g., when flow reloads with saved formId)
+    // Check if mobile
+    useEffect(() => {
+        const checkMobile = () => setIsMobile(window.innerWidth < 768);
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
+
+    // Sync formId
     useEffect(() => {
         if (initialConfig?.formId && initialConfig.formId !== formId) {
-            console.log('[FormNodeForm] Syncing formId from initialConfig:', initialConfig.formId);
             setFormId(initialConfig.formId);
         }
     }, [initialConfig?.formId]);
 
-    useEffect(() => {
-        console.log('[FormNodeForm] onChange called with formId:', formId, 'promoText:', promoText, 'promoIcon:', promoIcon);
-        onChange({
-            formId, // IMPORTANT: Pass formId so updates work instead of creating new
-            formName, headerImageUrl, submitButtonText, submitButtonColor, borderRadius, successMessage, fields,
-            countdownEnabled, countdownMinutes, countdownBlink, promoText, promoIcon, formTemplate,
-            isOrderForm, productName, productPrice, currency, maxQuantity, couponEnabled, couponCode, couponDiscount,
-            codEnabled, ewalletEnabled, ewalletOptions, ewalletNumbers, requireProofUpload,
-        });
-    }, [formId, formName, headerImageUrl, submitButtonText, submitButtonColor, borderRadius, successMessage, fields,
-        countdownEnabled, countdownMinutes, countdownBlink, promoText, promoIcon, formTemplate, isOrderForm, productName, productPrice, currency, maxQuantity,
-        couponEnabled, couponCode, couponDiscount, codEnabled, ewalletEnabled, ewalletOptions, ewalletNumbers, requireProofUpload]);
+    // Debounced onChange callback to prevent focus loss during typing
+    const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
+    useEffect(() => {
+        // Clear previous timeout
+        if (debounceRef.current) {
+            clearTimeout(debounceRef.current);
+        }
+
+        // Debounce the onChange call by 300ms
+        debounceRef.current = setTimeout(() => {
+            onChange({
+                formId, formName, headerImageUrl, submitButtonText, submitButtonColor, borderRadius, successMessage, fields,
+                countdownEnabled, countdownMinutes, countdownBlink, promoText, promoIcon, formTemplate,
+                isOrderForm, productName, productPrice, currency, maxQuantity, couponEnabled, couponCode, couponDiscount,
+                codEnabled, ewalletEnabled, ewalletOptions, ewalletNumbers, requireProofUpload,
+            });
+        }, 300);
+
+        return () => {
+            if (debounceRef.current) {
+                clearTimeout(debounceRef.current);
+            }
+        };
+    }, [formId, formName, headerImageUrl, submitButtonText, submitButtonColor, borderRadius, successMessage, fields,
+        countdownEnabled, countdownMinutes, countdownBlink, promoText, promoIcon, formTemplate, isOrderForm, productName,
+        productPrice, currency, maxQuantity, couponEnabled, couponCode, couponDiscount, codEnabled, ewalletEnabled,
+        ewalletOptions, ewalletNumbers, requireProofUpload]);
+
+    // Field operations
     const addField = (type: string) => {
         const fieldType = FIELD_TYPES.find(t => t.value === type);
         const newField: FormField = {
@@ -120,7 +153,6 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
     };
 
     const removeField = (index: number) => setFields(fields.filter((_, i) => i !== index));
-
     const handleDragStart = (index: number) => setDraggedIndex(index);
     const handleDragOver = (e: React.DragEvent, index: number) => {
         e.preventDefault();
@@ -133,520 +165,611 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
         }
     };
     const handleDragEnd = () => setDraggedIndex(null);
-
     const getFieldIcon = (type: string) => FIELD_TYPES.find(t => t.value === type)?.icon || Type;
     const currencySymbol = CURRENCIES.find(c => c.code === currency)?.symbol || '₱';
 
-    // Shared input class for consistency
     const inputClass = "w-full px-3 py-2 bg-slate-800/60 border border-slate-600/50 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/50";
     const labelClass = "block text-xs font-medium text-slate-400 mb-1.5";
 
-    return (
-        <div className="space-y-3">
-            {/* Form Name - Compact */}
+    const nextStep = () => setCurrentStep(prev => Math.min(prev + 1, STEPS.length - 1));
+    const prevStep = () => setCurrentStep(prev => Math.max(prev - 1, 0));
+
+    // ===== STEP CONTENT (inline JSX, not components) =====
+    const productStepContent = (
+        <div className="space-y-4">
             <div>
                 <label className={labelClass}>Form Name</label>
-                <input
-                    type="text"
-                    value={formName}
-                    onChange={(e) => setFormName(e.target.value)}
-                    className={inputClass}
-                    placeholder="Enter form name..."
-                />
+                <input type="text" value={formName} onChange={(e) => setFormName(e.target.value)} className={inputClass} placeholder="Enter form name..." />
             </div>
 
-            {/* Tabs - Mobile Optimized */}
-            <div className="flex gap-1 p-1 bg-slate-800/60 rounded-xl">
-                {[
-                    { id: 'product', label: '📦', fullLabel: 'Product' },
-                    { id: 'fields', label: '📝', fullLabel: `Fields (${fields.length})` },
-                    { id: 'payment', label: '💳', fullLabel: 'Payment' },
-                    { id: 'settings', label: '⚙️', fullLabel: 'Settings' },
-                ].map((tab) => (
-                    <button
-                        key={tab.id}
-                        onClick={() => setActiveTab(tab.id as any)}
-                        className={`flex-1 py-2 px-1.5 rounded-lg text-xs font-medium transition-all flex items-center justify-center gap-1 ${activeTab === tab.id
-                            ? 'bg-purple-500 text-white shadow-lg'
-                            : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
-                            }`}
-                    >
-                        <span className="text-sm">{tab.label}</span>
-                        <span className="hidden sm:inline truncate">{tab.fullLabel.split(' ')[0]}</span>
-                    </button>
-                ))}
+            <div className="flex items-center justify-between p-3 bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/30 rounded-xl">
+                <div className="flex items-center gap-2">
+                    <ShoppingCart className="w-4 h-4 text-purple-400" />
+                    <span className="text-sm font-medium text-white">Multi-Step Order Form</span>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" checked={isOrderForm} onChange={(e) => setIsOrderForm(e.target.checked)} className="sr-only peer" />
+                    <div className="w-10 h-5 bg-slate-700 rounded-full peer peer-checked:after:translate-x-5 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-500"></div>
+                </label>
             </div>
 
-            {/* Product Tab */}
-            {activeTab === 'product' && (
-                <div className="space-y-3">
-                    {/* Order Form Toggle */}
-                    <div className="flex items-center justify-between p-3 bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/30 rounded-xl">
-                        <div className="flex items-center gap-2 min-w-0">
-                            <ShoppingCart className="w-4 h-4 text-purple-400 flex-shrink-0" />
-                            <span className="text-xs sm:text-sm font-medium text-white truncate">Multi-Step Order</span>
-                        </div>
-                        <label className="relative inline-flex items-center cursor-pointer flex-shrink-0">
-                            <input type="checkbox" checked={isOrderForm} onChange={(e) => setIsOrderForm(e.target.checked)} className="sr-only peer" />
-                            <div className="w-10 h-5 bg-slate-700 rounded-full peer peer-checked:after:translate-x-5 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-500"></div>
-                        </label>
+            <div>
+                <label className={labelClass}>Header Image</label>
+                <div className="flex gap-2">
+                    <input type="text" value={headerImageUrl} onChange={(e) => setHeaderImageUrl(e.target.value)} placeholder="Image URL..." className={`${inputClass} flex-1`} />
+                    <label className="px-3 py-2 bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/50 rounded-xl cursor-pointer flex items-center">
+                        <Upload className="w-4 h-4 text-purple-400" />
+                        <input type="file" accept="image/*" className="hidden" onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                                const reader = new FileReader();
+                                reader.onloadend = () => setHeaderImageUrl(reader.result as string);
+                                reader.readAsDataURL(file);
+                            }
+                        }} />
+                    </label>
+                </div>
+                {headerImageUrl && (
+                    <div className="mt-2 relative inline-block">
+                        <img src={headerImageUrl} alt="" className="max-w-[200px] h-auto rounded-lg border border-slate-700" />
+                        <button type="button" onClick={() => setHeaderImageUrl('')} className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-white text-xs">×</button>
                     </div>
+                )}
+            </div>
 
-                    {/* Header Image - Always Available */}
+            {isOrderForm && (
+                <>
                     <div>
-                        <label className={labelClass}>Form Header Image</label>
-                        <div className="flex gap-2">
-                            <input
-                                type="text"
-                                value={headerImageUrl}
-                                onChange={(e) => setHeaderImageUrl(e.target.value)}
-                                placeholder="Image URL..."
-                                className={`${inputClass} flex-1 min-w-0`}
-                            />
-                            <label className="px-3 py-2 bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/50 rounded-xl cursor-pointer flex items-center gap-1 transition flex-shrink-0">
-                                <Upload className="w-4 h-4 text-purple-400" />
-                                <input
-                                    type="file"
-                                    accept="image/*"
-                                    className="hidden"
-                                    onChange={(e) => {
-                                        const file = e.target.files?.[0];
-                                        if (file) {
-                                            const reader = new FileReader();
-                                            reader.onloadend = () => setHeaderImageUrl(reader.result as string);
-                                            reader.readAsDataURL(file);
-                                        }
-                                        e.target.value = '';
-                                    }}
-                                />
-                            </label>
-                        </div>
-                        {headerImageUrl && (
-                            <div className="mt-2 relative">
-                                <img src={headerImageUrl} alt="" className="w-1/2 h-auto object-contain rounded-xl border border-slate-700 bg-slate-950/50" />
-                                <button
-                                    type="button"
-                                    onClick={() => setHeaderImageUrl('')}
-                                    className="absolute top-1 right-1 w-6 h-6 bg-red-500 hover:bg-red-600 rounded-full flex items-center justify-center text-white"
-                                ><X className="w-3 h-3" /></button>
-                            </div>
-                        )}
-                        <p className="text-[9px] text-slate-500 mt-1">Shows at the top of your form</p>
+                        <label className={labelClass}>Product Name</label>
+                        <input type="text" value={productName} onChange={(e) => setProductName(e.target.value)} placeholder="Enter product name..." className={inputClass} />
                     </div>
 
-                    {isOrderForm && (
-                        <>
-                            {/* Product Name */}
-                            <div>
-                                <label className={labelClass}>Product Name</label>
-                                <input
-                                    type="text"
-                                    value={productName}
-                                    onChange={(e) => setProductName(e.target.value)}
-                                    placeholder="Enter product name..."
-                                    className={inputClass}
-                                />
-                            </div>
-
-                            {/* Price & Currency - Stack on mobile */}
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                <div>
-                                    <label className={labelClass}>Price</label>
-                                    <div className="flex">
-                                        <span className="px-2.5 py-2 bg-slate-700 border border-slate-600 rounded-l-xl text-white text-sm flex-shrink-0">{currencySymbol}</span>
-                                        <input
-                                            type="number"
-                                            value={productPrice}
-                                            onChange={(e) => setProductPrice(parseFloat(e.target.value) || 0)}
-                                            className="flex-1 min-w-0 px-3 py-2 bg-slate-800/60 border border-slate-600/50 rounded-r-xl text-white text-sm focus:outline-none"
-                                        />
-                                    </div>
-                                </div>
-                                <div>
-                                    <label className={labelClass}>Currency</label>
-                                    <select
-                                        value={currency}
-                                        onChange={(e) => setCurrency(e.target.value)}
-                                        className={inputClass}
-                                    >
-                                        {CURRENCIES.map(c => <option key={c.code} value={c.code}>{c.symbol} {c.code}</option>)}
-                                    </select>
-                                </div>
-                            </div>
-
-                            {/* Max Quantity */}
-                            <div>
-                                <label className={labelClass}>Max Quantity</label>
-                                <input
-                                    type="number"
-                                    min="1"
-                                    max="100"
-                                    value={maxQuantity}
-                                    onChange={(e) => setMaxQuantity(parseInt(e.target.value) || 1)}
-                                    className={inputClass}
-                                />
-                            </div>
-
-                            {/* Coupon - Compact */}
-                            <div className="p-3 bg-slate-800/40 border border-slate-700/50 rounded-xl space-y-2">
-                                <div className="flex items-center justify-between">
-                                    <span className="text-xs font-medium text-white">Coupon Code</span>
-                                    <label className="relative inline-flex items-center cursor-pointer">
-                                        <input type="checkbox" checked={couponEnabled} onChange={(e) => setCouponEnabled(e.target.checked)} className="sr-only peer" />
-                                        <div className="w-9 h-5 bg-slate-700 rounded-full peer peer-checked:after:translate-x-4 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-green-500"></div>
-                                    </label>
-                                </div>
-                                {couponEnabled && (
-                                    <div className="flex flex-col sm:flex-row gap-2">
-                                        <input
-                                            type="text"
-                                            value={couponCode}
-                                            onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
-                                            placeholder="CODE"
-                                            className="flex-1 px-3 py-1.5 bg-slate-900/50 border border-slate-600/50 rounded-lg text-white text-xs uppercase"
-                                        />
-                                        <div className="flex items-center gap-1">
-                                            <input
-                                                type="number"
-                                                value={couponDiscount}
-                                                onChange={(e) => setCouponDiscount(parseInt(e.target.value) || 0)}
-                                                className="w-14 px-2 py-1.5 bg-slate-900/50 border border-slate-600/50 rounded-lg text-white text-xs text-center"
-                                            />
-                                            <span className="text-slate-400 text-xs">% off</span>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        </>
-                    )}
-                </div>
-            )}
-
-            {/* Fields Tab */}
-            {activeTab === 'fields' && (
-                <div className="space-y-3">
-                    <p className="text-[10px] text-slate-500">Buyer info fields (Step 2)</p>
-
-                    {/* Field type buttons - 4 cols on mobile, wrap nicely */}
-                    <div className="grid grid-cols-4 gap-1.5">
-                        {FIELD_TYPES.map((type) => {
-                            const Icon = type.icon;
-                            return (
-                                <button
-                                    key={type.value}
-                                    onClick={() => addField(type.value)}
-                                    className="flex flex-col items-center gap-0.5 p-1.5 bg-slate-800/40 hover:bg-purple-500/20 border border-slate-600/30 hover:border-purple-500/50 rounded-lg transition-all group"
-                                >
-                                    <Icon className="w-3.5 h-3.5 text-slate-400 group-hover:text-purple-400" />
-                                    <span className="text-[8px] text-slate-500 group-hover:text-purple-300 truncate w-full text-center">{type.label}</span>
-                                </button>
-                            );
-                        })}
-                    </div>
-
-                    {/* Field list */}
-                    <div className="space-y-1.5 max-h-[280px] overflow-y-auto">
-                        {fields.map((field, index) => {
-                            const Icon = getFieldIcon(field.type);
-                            const hasOptions = field.type === 'select' || field.type === 'radio';
-                            return (
-                                <div
-                                    key={field.id}
-                                    draggable
-                                    onDragStart={() => handleDragStart(index)}
-                                    onDragOver={(e) => handleDragOver(e, index)}
-                                    onDragEnd={handleDragEnd}
-                                    className={`bg-slate-800/40 border border-slate-600/30 rounded-lg p-2 transition-all ${draggedIndex === index ? 'opacity-50' : ''}`}
-                                >
-                                    <div className="flex items-center gap-1.5">
-                                        <GripVertical className="w-3 h-3 text-slate-600 cursor-grab flex-shrink-0" />
-                                        <div className="w-5 h-5 rounded bg-purple-500/20 flex items-center justify-center flex-shrink-0">
-                                            <Icon className="w-2.5 h-2.5 text-purple-400" />
-                                        </div>
-                                        <input
-                                            type="text"
-                                            value={field.label}
-                                            onChange={(e) => updateField(index, { label: e.target.value })}
-                                            className="flex-1 min-w-0 px-1.5 py-0.5 bg-transparent text-xs text-white focus:outline-none truncate"
-                                        />
-                                        <label className="flex items-center gap-0.5 cursor-pointer flex-shrink-0">
-                                            <input
-                                                type="checkbox"
-                                                checked={field.required}
-                                                onChange={(e) => updateField(index, { required: e.target.checked })}
-                                                className="w-3 h-3 rounded text-purple-500"
-                                            />
-                                            <span className="text-[8px] text-slate-500 hidden sm:inline">Req</span>
-                                        </label>
-                                        <button onClick={() => removeField(index)} className="p-0.5 text-slate-500 hover:text-red-400 flex-shrink-0">
-                                            <Trash2 className="w-3 h-3" />
-                                        </button>
-                                    </div>
-
-                                    {/* Options configuration for dropdown/radio fields */}
-                                    {hasOptions && (
-                                        <div className="mt-2 pt-2 border-t border-slate-700/50">
-                                            <p className="text-[9px] text-slate-500 mb-1.5">Options</p>
-                                            <div className="space-y-1">
-                                                {(field.options || []).map((option, optIndex) => (
-                                                    <div key={optIndex} className="flex items-center gap-1">
-                                                        <input
-                                                            type="text"
-                                                            value={option}
-                                                            onChange={(e) => {
-                                                                const newOptions = [...(field.options || [])];
-                                                                newOptions[optIndex] = e.target.value;
-                                                                updateField(index, { options: newOptions });
-                                                            }}
-                                                            className="flex-1 min-w-0 px-2 py-1 bg-slate-900/50 border border-slate-600/50 rounded text-white text-[10px]"
-                                                            placeholder={`Option ${optIndex + 1}`}
-                                                        />
-                                                        <button
-                                                            onClick={() => {
-                                                                const newOptions = (field.options || []).filter((_, i) => i !== optIndex);
-                                                                updateField(index, { options: newOptions });
-                                                            }}
-                                                            className="p-0.5 text-slate-500 hover:text-red-400"
-                                                        >
-                                                            <X className="w-3 h-3" />
-                                                        </button>
-                                                    </div>
-                                                ))}
-                                                <button
-                                                    onClick={() => {
-                                                        const newOptions = [...(field.options || []), ''];
-                                                        updateField(index, { options: newOptions });
-                                                    }}
-                                                    className="w-full py-1 text-[9px] text-purple-400 border border-dashed border-slate-600 rounded hover:bg-purple-500/10"
-                                                >
-                                                    + Add Option
-                                                </button>
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            );
-                        })}
-                    </div>
-                </div>
-            )}
-
-            {/* Payment Tab */}
-            {activeTab === 'payment' && (
-                <div className="space-y-3">
-                    <p className="text-[10px] text-slate-500">Payment options (Step 3)</p>
-
-                    {/* COD */}
-                    <div className="flex items-center justify-between p-3 bg-slate-800/40 border border-slate-700/50 rounded-xl">
-                        <div className="flex items-center gap-2">
-                            <span className="text-base">💵</span>
-                            <span className="text-xs sm:text-sm font-medium text-white">Cash on Delivery</span>
-                        </div>
-                        <label className="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" checked={codEnabled} onChange={(e) => setCodEnabled(e.target.checked)} className="sr-only peer" />
-                            <div className="w-9 h-5 bg-slate-700 rounded-full peer peer-checked:after:translate-x-4 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-green-500"></div>
-                        </label>
-                    </div>
-
-                    {/* E-Wallet */}
-                    <div className="p-3 bg-slate-800/40 border border-slate-700/50 rounded-xl space-y-2">
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                                <Wallet className="w-4 h-4 text-blue-400" />
-                                <span className="text-xs sm:text-sm font-medium text-white">E-Wallet</span>
-                            </div>
-                            <label className="relative inline-flex items-center cursor-pointer">
-                                <input type="checkbox" checked={ewalletEnabled} onChange={(e) => setEwalletEnabled(e.target.checked)} className="sr-only peer" />
-                                <div className="w-9 h-5 bg-slate-700 rounded-full peer peer-checked:after:translate-x-4 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-green-500"></div>
-                            </label>
-                        </div>
-                        {ewalletEnabled && (
-                            <div className="space-y-2">
-                                {ewalletOptions.map((wallet, i) => (
-                                    <div key={i} className="space-y-1.5">
-                                        <div className="flex items-center gap-1.5">
-                                            <input
-                                                type="text"
-                                                value={wallet}
-                                                onChange={(e) => {
-                                                    const newOptions = [...ewalletOptions];
-                                                    newOptions[i] = e.target.value;
-                                                    setEwalletOptions(newOptions);
-                                                }}
-                                                className="flex-1 min-w-0 px-2 py-1.5 bg-slate-900/50 border border-slate-600/50 rounded-lg text-white text-xs"
-                                                placeholder="Wallet name"
-                                            />
-                                            <button onClick={() => setEwalletOptions(ewalletOptions.filter((_, idx) => idx !== i))} className="text-red-400 p-1 flex-shrink-0">
-                                                <Trash2 className="w-3.5 h-3.5" />
-                                            </button>
-                                        </div>
-                                        <input
-                                            type="text"
-                                            value={ewalletNumbers[wallet] || ''}
-                                            onChange={(e) => setEwalletNumbers({ ...ewalletNumbers, [wallet]: e.target.value })}
-                                            className="w-full px-2 py-1.5 bg-slate-900/50 border border-slate-600/50 rounded-lg text-white text-xs"
-                                            placeholder="Account number"
-                                        />
-                                    </div>
-                                ))}
-                                <button
-                                    onClick={() => setEwalletOptions([...ewalletOptions, ''])}
-                                    className="w-full py-1.5 text-[10px] text-purple-400 border border-dashed border-slate-600 rounded-lg hover:bg-purple-500/10"
-                                >
-                                    + Add E-Wallet
-                                </button>
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Proof Upload */}
-                    <div className="flex items-center justify-between p-3 bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/30 rounded-xl">
-                        <div className="flex items-center gap-2 min-w-0">
-                            <Upload className="w-4 h-4 text-amber-400 flex-shrink-0" />
-                            <div className="min-w-0">
-                                <span className="text-xs font-medium text-white block truncate">Payment Proof</span>
-                                <span className="text-[9px] text-slate-400 hidden sm:block">Screenshot upload</span>
-                            </div>
-                        </div>
-                        <label className="relative inline-flex items-center cursor-pointer flex-shrink-0">
-                            <input type="checkbox" checked={requireProofUpload} onChange={(e) => setRequireProofUpload(e.target.checked)} className="sr-only peer" />
-                            <div className="w-9 h-5 bg-slate-700 rounded-full peer peer-checked:after:translate-x-4 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-500"></div>
-                        </label>
-                    </div>
-                </div>
-            )}
-
-            {/* Settings Tab */}
-            {activeTab === 'settings' && (
-                <div className="space-y-3">
-                    {/* Timer */}
-                    <div className="p-3 bg-gradient-to-r from-orange-500/10 to-red-500/10 border border-orange-500/30 rounded-xl">
-                        <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center gap-2">
-                                <Timer className="w-4 h-4 text-orange-400" />
-                                <span className="text-xs font-medium text-white">Countdown Timer</span>
-                            </div>
-                            <label className="relative inline-flex items-center cursor-pointer">
-                                <input type="checkbox" checked={countdownEnabled} onChange={(e) => setCountdownEnabled(e.target.checked)} className="sr-only peer" />
-                                <div className="w-9 h-5 bg-slate-700 rounded-full peer peer-checked:after:translate-x-4 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-orange-500"></div>
-                            </label>
-                        </div>
-                        {countdownEnabled && (
-                            <div className="space-y-3">
-                                <div className="flex items-center gap-2">
-                                    <input type="number" min="1" max="60" value={countdownMinutes} onChange={(e) => setCountdownMinutes(parseInt(e.target.value) || 1)}
-                                        className="w-14 px-2 py-1 bg-slate-800/80 border border-orange-500/30 rounded-lg text-white text-center text-xs" />
-                                    <span className="text-[10px] text-slate-400">minutes</span>
-                                </div>
-                                <label className="flex items-center gap-2 cursor-pointer">
-                                    <input type="checkbox" checked={countdownBlink} onChange={(e) => setCountdownBlink(e.target.checked)}
-                                        className="w-3.5 h-3.5 rounded text-orange-500 bg-slate-700 border-slate-600" />
-                                    <span className="text-[10px] text-slate-300">Blink timer</span>
-                                </label>
-
-                                <div className="pt-2 border-t border-slate-700/50">
-                                    <p className="text-[10px] text-slate-500 mb-1.5">Promo Banner Settings</p>
-                                    <div className="grid grid-cols-2 gap-2">
-                                        <div>
-                                            <label className="text-[9px] text-slate-400 block mb-0.5">Icon</label>
-                                            <input
-                                                type="text"
-                                                value={promoIcon}
-                                                onChange={(e) => setPromoIcon(e.target.value)}
-                                                className="w-full px-2 py-1.5 bg-slate-800/50 border border-slate-700 rounded-lg text-white text-xs text-center"
-                                                placeholder="🔥"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="text-[9px] text-slate-400 block mb-0.5">Text</label>
-                                            <input
-                                                type="text"
-                                                value={promoText}
-                                                onChange={(e) => setPromoText(e.target.value)}
-                                                className="w-full px-2 py-1.5 bg-slate-800/50 border border-slate-700 rounded-lg text-white text-xs"
-                                                placeholder="Promo Only!"
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Template Style */}
-                    <div>
-                        <label className={labelClass}>Form Template</label>
-                        <div className="grid grid-cols-2 gap-2">
-                            <button onClick={() => setFormTemplate('modern')}
-                                className={`p-2.5 rounded-xl border-2 text-center transition ${formTemplate === 'modern' ? 'border-purple-500 bg-purple-500/10' : 'border-slate-600/50 hover:border-slate-500'}`}>
-                                <span className="text-base">✨</span>
-                                <p className="text-white text-xs font-medium">Modern</p>
-                                <p className="text-slate-500 text-[9px]">Dark theme</p>
-                            </button>
-                            <button onClick={() => setFormTemplate('minimal')}
-                                className={`p-2.5 rounded-xl border-2 text-center transition ${formTemplate === 'minimal' ? 'border-purple-500 bg-purple-500/10' : 'border-slate-600/50 hover:border-slate-500'}`}>
-                                <span className="text-base">📝</span>
-                                <p className="text-white text-xs font-medium">Minimal</p>
-                                <p className="text-slate-500 text-[9px]">Light theme</p>
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* Button Style - Stack on mobile */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div className="grid grid-cols-2 gap-3">
                         <div>
-                            <label className={labelClass}>Button Text</label>
-                            <input type="text" value={submitButtonText} onChange={(e) => setSubmitButtonText(e.target.value)}
-                                className={inputClass} />
+                            <label className={labelClass}>Price</label>
+                            <div className="flex">
+                                <span className="px-2.5 py-2 bg-slate-700 border border-slate-600 rounded-l-xl text-white text-sm">{currencySymbol}</span>
+                                <input type="number" value={productPrice} onChange={(e) => setProductPrice(parseFloat(e.target.value) || 0)} className="flex-1 px-3 py-2 bg-slate-800/60 border border-slate-600/50 rounded-r-xl text-white text-sm focus:outline-none" />
+                            </div>
                         </div>
                         <div>
-                            <label className={labelClass}>Corner Style</label>
-                            <select value={borderRadius} onChange={(e) => setBorderRadius(e.target.value as any)}
-                                className={inputClass}>
-                                <option value="normal">Normal</option>
-                                <option value="rounded">Rounded</option>
-                                <option value="round">Round</option>
-                                <option value="full">Pill</option>
+                            <label className={labelClass}>Currency</label>
+                            <select value={currency} onChange={(e) => setCurrency(e.target.value)} className={inputClass}>
+                                {CURRENCIES.map(c => <option key={c.code} value={c.code}>{c.symbol} {c.code}</option>)}
                             </select>
                         </div>
                     </div>
 
-                    {/* Button Color - More compact grid */}
                     <div>
-                        <label className={labelClass}>Button Color</label>
-                        <div className="grid grid-cols-8 gap-1">
-                            {COLOR_PRESETS.map((color) => (
-                                <button key={color} onClick={() => setSubmitButtonColor(color)}
-                                    className={`w-full aspect-square rounded-lg transition-transform hover:scale-110 ${submitButtonColor === color ? 'ring-2 ring-white ring-offset-1 ring-offset-slate-900' : ''}`}
-                                    style={{ backgroundColor: color }} />
-                            ))}
+                        <label className={labelClass}>Max Quantity</label>
+                        <input type="number" min="1" max="100" value={maxQuantity} onChange={(e) => setMaxQuantity(parseInt(e.target.value) || 1)} className={inputClass} />
+                    </div>
+
+                    <div className="p-3 bg-slate-800/40 border border-slate-700/50 rounded-xl space-y-2">
+                        <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium text-white">Coupon Code</span>
+                            <label className="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" checked={couponEnabled} onChange={(e) => setCouponEnabled(e.target.checked)} className="sr-only peer" />
+                                <div className="w-9 h-5 bg-slate-700 rounded-full peer peer-checked:after:translate-x-4 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-green-500"></div>
+                            </label>
                         </div>
-                    </div>
-
-                    {/* Success Message */}
-                    <div>
-                        <label className={labelClass}>Success Message</label>
-                        <textarea value={successMessage} onChange={(e) => setSuccessMessage(e.target.value)} rows={2}
-                            className={`${inputClass} resize-none`} />
-                    </div>
-
-                    {/* Info: Google Sheets moved to standalone node */}
-                    <div className="border-t border-slate-700 pt-3">
-                        <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-xl">
-                            <div className="flex items-center gap-2 mb-1">
-                                <div className="w-5 h-5 bg-green-500/20 rounded flex items-center justify-center">
-                                    <svg viewBox="0 0 24 24" className="w-3 h-3" fill="none">
-                                        <rect x="3" y="3" width="18" height="18" rx="2" className="fill-green-500" />
-                                        <rect x="6" y="7" width="12" height="2" rx="0.5" className="fill-white" />
-                                        <rect x="6" y="11" width="12" height="2" rx="0.5" className="fill-white" />
-                                    </svg>
+                        {couponEnabled && (
+                            <div className="flex gap-2">
+                                <input type="text" value={couponCode} onChange={(e) => setCouponCode(e.target.value.toUpperCase())} placeholder="CODE" className="flex-1 px-3 py-1.5 bg-slate-900/50 border border-slate-600/50 rounded-lg text-white text-xs uppercase" />
+                                <div className="flex items-center gap-1">
+                                    <input type="number" value={couponDiscount} onChange={(e) => setCouponDiscount(parseInt(e.target.value) || 0)} className="w-14 px-2 py-1.5 bg-slate-900/50 border border-slate-600/50 rounded-lg text-white text-xs text-center" />
+                                    <span className="text-slate-400 text-xs">% off</span>
                                 </div>
-                                <span className="text-blue-400 font-medium text-xs">Google Sheets Sync</span>
                             </div>
-                            <p className="text-slate-400 text-[10px] leading-relaxed">
-                                To sync form data to Google Sheets, drag a <span className="text-green-400 font-medium">Google Sheets</span> node from the sidebar and connect it to this Form node.
-                            </p>
+                        )}
+                    </div>
+                </>
+            )}
+        </div>
+    );
+
+    const fieldsStepContent = (
+        <div className="space-y-4">
+            <p className="text-xs text-slate-500">Buyer information fields (Step 2 of the form)</p>
+
+            <div className="grid grid-cols-4 gap-1.5">
+                {FIELD_TYPES.map((type) => {
+                    const Icon = type.icon;
+                    return (
+                        <button key={type.value} onClick={() => addField(type.value)} className="flex flex-col items-center gap-0.5 p-2 bg-slate-800/40 hover:bg-purple-500/20 border border-slate-600/30 hover:border-purple-500/50 rounded-lg transition-all group">
+                            <Icon className="w-4 h-4 text-slate-400 group-hover:text-purple-400" />
+                            <span className="text-[9px] text-slate-500 group-hover:text-purple-300">{type.label}</span>
+                        </button>
+                    );
+                })}
+            </div>
+
+            <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                {fields.map((field, index) => {
+                    const Icon = getFieldIcon(field.type);
+                    const hasOptions = field.type === 'select' || field.type === 'radio';
+                    return (
+                        <div key={field.id} draggable onDragStart={() => handleDragStart(index)} onDragOver={(e) => handleDragOver(e, index)} onDragEnd={handleDragEnd} className={`bg-slate-800/40 border border-slate-600/30 rounded-lg p-2 ${draggedIndex === index ? 'opacity-50' : ''}`}>
+                            <div className="flex items-center gap-2">
+                                <GripVertical className="w-3 h-3 text-slate-600 cursor-grab" />
+                                <div className="w-6 h-6 rounded bg-purple-500/20 flex items-center justify-center">
+                                    <Icon className="w-3 h-3 text-purple-400" />
+                                </div>
+                                <input type="text" value={field.label} onChange={(e) => updateField(index, { label: e.target.value })} className="flex-1 px-2 py-1 bg-transparent text-sm text-white focus:outline-none" />
+                                <label className="flex items-center gap-1 cursor-pointer">
+                                    <input type="checkbox" checked={field.required} onChange={(e) => updateField(index, { required: e.target.checked })} className="w-3 h-3 rounded text-purple-500" />
+                                    <span className="text-[10px] text-slate-500">Req</span>
+                                </label>
+                                <button onClick={() => removeField(index)} className="p-1 text-slate-500 hover:text-red-400">
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                            </div>
+                            {hasOptions && (
+                                <div className="mt-2 pt-2 border-t border-slate-700/50 space-y-1">
+                                    <p className="text-[9px] text-slate-500">Options</p>
+                                    {(field.options || []).map((option, optIndex) => (
+                                        <div key={optIndex} className="flex items-center gap-1">
+                                            <input type="text" value={option} onChange={(e) => { const newOptions = [...(field.options || [])]; newOptions[optIndex] = e.target.value; updateField(index, { options: newOptions }); }} className="flex-1 px-2 py-1 bg-slate-900/50 border border-slate-600/50 rounded text-white text-xs" />
+                                            <button onClick={() => { updateField(index, { options: (field.options || []).filter((_, i) => i !== optIndex) }); }} className="p-0.5 text-slate-500 hover:text-red-400"><X className="w-3 h-3" /></button>
+                                        </div>
+                                    ))}
+                                    <button onClick={() => updateField(index, { options: [...(field.options || []), ''] })} className="w-full py-1 text-[9px] text-purple-400 border border-dashed border-slate-600 rounded hover:bg-purple-500/10">+ Add Option</button>
+                                </div>
+                            )}
                         </div>
+                    );
+                })}
+            </div>
+        </div>
+    );
+
+    const paymentStepContent = (
+        <div className="space-y-4">
+            <p className="text-xs text-slate-500">Payment options (Step 3 of the form)</p>
+
+            <div className="flex items-center justify-between p-3 bg-slate-800/40 border border-slate-700/50 rounded-xl">
+                <div className="flex items-center gap-2">
+                    <span className="text-lg">💵</span>
+                    <span className="text-sm font-medium text-white">Cash on Delivery</span>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" checked={codEnabled} onChange={(e) => setCodEnabled(e.target.checked)} className="sr-only peer" />
+                    <div className="w-9 h-5 bg-slate-700 rounded-full peer peer-checked:after:translate-x-4 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-green-500"></div>
+                </label>
+            </div>
+
+            <div className="p-3 bg-slate-800/40 border border-slate-700/50 rounded-xl space-y-3">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                        <Wallet className="w-4 h-4 text-blue-400" />
+                        <span className="text-sm font-medium text-white">E-Wallet</span>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" checked={ewalletEnabled} onChange={(e) => setEwalletEnabled(e.target.checked)} className="sr-only peer" />
+                        <div className="w-9 h-5 bg-slate-700 rounded-full peer peer-checked:after:translate-x-4 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-green-500"></div>
+                    </label>
+                </div>
+                {ewalletEnabled && (
+                    <div className="space-y-2">
+                        {ewalletOptions.map((wallet, i) => (
+                            <div key={i} className="space-y-1">
+                                <div className="flex items-center gap-2">
+                                    <input type="text" value={wallet} onChange={(e) => { const newOptions = [...ewalletOptions]; newOptions[i] = e.target.value; setEwalletOptions(newOptions); }} className="flex-1 px-2 py-1.5 bg-slate-900/50 border border-slate-600/50 rounded-lg text-white text-xs" placeholder="Wallet name" />
+                                    <button onClick={() => setEwalletOptions(ewalletOptions.filter((_, idx) => idx !== i))} className="text-red-400 p-1"><Trash2 className="w-3.5 h-3.5" /></button>
+                                </div>
+                                <input type="text" value={ewalletNumbers[wallet] || ''} onChange={(e) => setEwalletNumbers({ ...ewalletNumbers, [wallet]: e.target.value })} className="w-full px-2 py-1.5 bg-slate-900/50 border border-slate-600/50 rounded-lg text-white text-xs" placeholder="Account number" />
+                            </div>
+                        ))}
+                        <button onClick={() => setEwalletOptions([...ewalletOptions, ''])} className="w-full py-1.5 text-xs text-purple-400 border border-dashed border-slate-600 rounded-lg hover:bg-purple-500/10">+ Add E-Wallet</button>
+                    </div>
+                )}
+            </div>
+
+            <div className="flex items-center justify-between p-3 bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/30 rounded-xl">
+                <div className="flex items-center gap-2">
+                    <Upload className="w-4 h-4 text-amber-400" />
+                    <span className="text-sm font-medium text-white">Require Payment Proof</span>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" checked={requireProofUpload} onChange={(e) => setRequireProofUpload(e.target.checked)} className="sr-only peer" />
+                    <div className="w-9 h-5 bg-slate-700 rounded-full peer peer-checked:after:translate-x-4 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-500"></div>
+                </label>
+            </div>
+        </div>
+    );
+
+    const settingsStepContent = (
+        <div className="space-y-4">
+            <div className="p-3 bg-gradient-to-r from-orange-500/10 to-red-500/10 border border-orange-500/30 rounded-xl">
+                <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                        <Timer className="w-4 h-4 text-orange-400" />
+                        <span className="text-sm font-medium text-white">Countdown Timer</span>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" checked={countdownEnabled} onChange={(e) => setCountdownEnabled(e.target.checked)} className="sr-only peer" />
+                        <div className="w-9 h-5 bg-slate-700 rounded-full peer peer-checked:after:translate-x-4 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-orange-500"></div>
+                    </label>
+                </div>
+                {countdownEnabled && (
+                    <div className="space-y-3 mt-3">
+                        <div className="flex items-center gap-2">
+                            <input type="number" min="1" max="60" value={countdownMinutes} onChange={(e) => setCountdownMinutes(parseInt(e.target.value) || 1)} className="w-16 px-2 py-1 bg-slate-800/80 border border-orange-500/30 rounded-lg text-white text-center text-sm" />
+                            <span className="text-xs text-slate-400">minutes</span>
+                        </div>
+                        <label className="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" checked={countdownBlink} onChange={(e) => setCountdownBlink(e.target.checked)} className="w-3.5 h-3.5 rounded text-orange-500 bg-slate-700 border-slate-600" />
+                            <span className="text-xs text-slate-300">Blink timer</span>
+                        </label>
+                        <div className="grid grid-cols-2 gap-2">
+                            <div>
+                                <label className="text-[10px] text-slate-400 block mb-1">Promo Icon</label>
+                                <input type="text" value={promoIcon} onChange={(e) => setPromoIcon(e.target.value)} className="w-full px-2 py-1.5 bg-slate-800/50 border border-slate-700 rounded-lg text-white text-sm text-center" />
+                            </div>
+                            <div>
+                                <label className="text-[10px] text-slate-400 block mb-1">Promo Text</label>
+                                <input type="text" value={promoText} onChange={(e) => setPromoText(e.target.value)} className="w-full px-2 py-1.5 bg-slate-800/50 border border-slate-700 rounded-lg text-white text-sm" />
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            <div>
+                <label className={labelClass}>Form Template</label>
+                <div className="grid grid-cols-2 gap-2">
+                    <button onClick={() => setFormTemplate('modern')} className={`p-3 rounded-xl border-2 text-center transition ${formTemplate === 'modern' ? 'border-purple-500 bg-purple-500/10' : 'border-slate-600/50 hover:border-slate-500'}`}>
+                        <span className="text-lg">✨</span>
+                        <p className="text-white text-sm font-medium mt-1">Modern</p>
+                        <p className="text-slate-500 text-[10px]">Dark theme</p>
+                    </button>
+                    <button onClick={() => setFormTemplate('minimal')} className={`p-3 rounded-xl border-2 text-center transition ${formTemplate === 'minimal' ? 'border-purple-500 bg-purple-500/10' : 'border-slate-600/50 hover:border-slate-500'}`}>
+                        <span className="text-lg">📝</span>
+                        <p className="text-white text-sm font-medium mt-1">Minimal</p>
+                        <p className="text-slate-500 text-[10px]">Light theme</p>
+                    </button>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+                <div>
+                    <label className={labelClass}>Button Text</label>
+                    <input type="text" value={submitButtonText} onChange={(e) => setSubmitButtonText(e.target.value)} className={inputClass} />
+                </div>
+                <div>
+                    <label className={labelClass}>Corner Style</label>
+                    <select value={borderRadius} onChange={(e) => setBorderRadius(e.target.value as any)} className={inputClass}>
+                        <option value="normal">Normal</option>
+                        <option value="rounded">Rounded</option>
+                        <option value="round">Round</option>
+                        <option value="full">Pill</option>
+                    </select>
+                </div>
+            </div>
+
+            <div>
+                <label className={labelClass}>Button Color</label>
+                <div className="grid grid-cols-8 gap-1">
+                    {COLOR_PRESETS.map((color) => (
+                        <button key={color} onClick={() => setSubmitButtonColor(color)} className={`w-full aspect-square rounded-lg transition-transform hover:scale-110 ${submitButtonColor === color ? 'ring-2 ring-white ring-offset-1 ring-offset-slate-900' : ''}`} style={{ backgroundColor: color }} />
+                    ))}
+                </div>
+            </div>
+
+            <div>
+                <label className={labelClass}>Success Message</label>
+                <textarea value={successMessage} onChange={(e) => setSuccessMessage(e.target.value)} rows={2} className={`${inputClass} resize-none`} />
+            </div>
+        </div>
+    );
+
+    // ===== LIVE PREVIEW (matches FormView.tsx exactly, syncs with config step) =====
+    // Config step mapping: 0=Product→FormStep1, 1=Fields→FormStep2, 2=Payment→FormStep3, 3=Settings→FormStep1
+    const previewStep = currentStep === 0 ? 1 : currentStep === 1 ? 2 : currentStep === 2 ? 3 : 1;
+
+    const formPreviewContent = React.useMemo(() => {
+        const isMinimal = formTemplate === 'minimal';
+        const containerBg = isMinimal ? 'bg-gradient-to-br from-slate-50 via-white to-indigo-50' : 'bg-[#0a0a12]';
+        const cardBg = isMinimal ? 'bg-white shadow-xl border border-slate-200/60' : 'bg-white/[0.06] backdrop-blur-2xl border border-white/10';
+        const textColor = isMinimal ? 'text-slate-800' : 'text-white';
+        const textMuted = isMinimal ? 'text-slate-500' : 'text-white/50';
+        const inputBg = isMinimal ? 'bg-slate-50/80 border-slate-200' : 'bg-white/5 border-white/10';
+        const inputText = isMinimal ? 'text-slate-800 placeholder-slate-400' : 'text-white placeholder-white/30';
+        const borderRadiusValue = { normal: '0px', rounded: '8px', round: '16px', full: '9999px' }[borderRadius] || '16px';
+        const inputRadius = { normal: '0px', rounded: '6px', round: '12px', full: '9999px' }[borderRadius] || '12px';
+
+        return (
+            <div className={`${containerBg} rounded-xl overflow-y-auto h-full`}>
+                <div className={`${cardBg} flex flex-col`} style={{ borderRadius: borderRadiusValue }}>
+
+                    {/* Promo Banner */}
+                    {headerImageUrl && (
+                        <div className="py-2.5 px-4 bg-gradient-to-r from-red-400 via-rose-400 to-pink-300">
+                            <div className="flex items-center justify-center gap-2">
+                                <span className="text-base">{promoIcon || '🔥'}</span>
+                                <span className="text-white text-sm font-bold drop-shadow">{promoText || 'Promo Only!'}</span>
+                                <span className="text-base">{promoIcon || '🔥'}</span>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Header Image */}
+                    {headerImageUrl && (
+                        <div className="bg-white p-3 flex-shrink-0">
+                            <img src={headerImageUrl} alt="" className="w-full h-auto max-h-32 object-contain rounded" />
+                        </div>
+                    )}
+
+                    {/* Product Name Banner - on white bg */}
+                    <div className="px-3 py-2 bg-white">
+                        <div className="py-2.5 px-4 bg-indigo-600 rounded-lg">
+                            <h1 className="text-sm font-bold text-white text-center uppercase tracking-wide">
+                                {productName || formName || 'Product Name'}
+                            </h1>
+                        </div>
+                    </div>
+
+                    {/* Countdown Timer */}
+                    {countdownEnabled && (
+                        <div className="px-3 pb-2">
+                            <div className="flex py-2 bg-blue-500 items-center justify-center gap-2 rounded-lg">
+                                <span className="text-sm">⏰</span>
+                                <div className="flex items-center gap-1">
+                                    <span className="text-slate-800 text-sm font-bold font-mono bg-blue-400 px-1.5 py-0.5 rounded">00</span>
+                                    <span className="text-slate-800 text-sm font-bold font-mono bg-blue-400 px-1.5 py-0.5 rounded">09</span>
+                                    <span className="text-slate-800 text-sm font-bold font-mono bg-blue-400 px-1.5 py-0.5 rounded">59</span>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Form Content */}
+                    <div className="flex-1 overflow-y-auto p-3 bg-white">
+                        {/* Step Indicator */}
+                        {isOrderForm && (
+                            <div className="flex items-center justify-center gap-1.5 mb-4">
+                                {[1, 2, 3].map(s => (
+                                    <div key={s} className="flex items-center">
+                                        <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${s === previewStep ? 'bg-indigo-600 text-white' :
+                                            s < previewStep ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-400'
+                                            }`}>{s < previewStep ? '✓' : s}</div>
+                                        {s < 3 && <div className={`w-5 h-0.5 ${s < previewStep ? 'bg-green-500' : 'bg-gray-200'}`}></div>}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
+                        {/* Step 1: Product/Quantity */}
+                        {previewStep === 1 && isOrderForm && (
+                            <div className="space-y-3">
+                                <div>
+                                    <label className="block text-slate-500 text-xs mb-1.5">Quantity</label>
+                                    <div className="flex items-center gap-2 justify-center">
+                                        <button className="w-10 h-10 rounded-xl bg-gray-100 text-gray-800 text-lg font-bold" style={{ borderRadius: inputRadius }}>−</button>
+                                        <span className="text-2xl font-bold text-slate-800 w-12 text-center">1</span>
+                                        <button className="w-10 h-10 rounded-xl bg-gray-100 text-gray-800 text-lg font-bold" style={{ borderRadius: inputRadius }}>+</button>
+                                    </div>
+                                </div>
+
+                                <div className="bg-blue-50 border border-blue-100 p-3" style={{ borderRadius: inputRadius }}>
+                                    <div className="flex justify-between items-center mb-1.5">
+                                        <span className="text-slate-500 text-xs">Price</span>
+                                        <span className="text-slate-800 text-sm">{currencySymbol}{productPrice} × 1</span>
+                                    </div>
+                                    <div className="border-t border-blue-100 pt-1.5 flex justify-between items-center">
+                                        <span className="text-slate-800 font-semibold text-sm">Total</span>
+                                        <span className="text-xl font-bold text-indigo-600">{currencySymbol}{productPrice}</span>
+                                    </div>
+                                </div>
+
+                                {couponEnabled && (
+                                    <div className="flex gap-1.5">
+                                        <input type="text" placeholder="COUPON" className={`flex-1 px-2 py-2 ${inputBg} border text-xs uppercase`} style={{ borderRadius: inputRadius }} readOnly />
+                                        <button className="px-3 py-2 bg-purple-500 text-white text-xs font-medium" style={{ borderRadius: inputRadius }}>Apply</button>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Step 2: Buyer Info */}
+                        {previewStep === 2 && (
+                            <div className="space-y-3">
+                                {fields.map((field) => (
+                                    <div key={field.id}>
+                                        <label className="block text-slate-500 text-xs mb-1">
+                                            {field.label}{field.required && <span className="text-red-500 ml-0.5">*</span>}
+                                        </label>
+                                        {field.type === 'textarea' ? (
+                                            <textarea className={`w-full px-3 py-2 ${inputBg} border ${inputText} text-sm resize-none`} rows={2} style={{ borderRadius: inputRadius }} placeholder={field.placeholder} readOnly />
+                                        ) : field.type === 'select' ? (
+                                            <div className="w-full px-3 py-2 bg-slate-50 border border-slate-200 flex items-center justify-between" style={{ borderRadius: inputRadius }}>
+                                                <span className="text-sm text-slate-400">Select...</span>
+                                                <ChevronDown className="w-4 h-4 text-slate-400" />
+                                            </div>
+                                        ) : field.type === 'checkbox' ? (
+                                            <label className="flex items-center gap-2 p-2 bg-slate-50 border border-slate-200 cursor-pointer" style={{ borderRadius: inputRadius }}>
+                                                <input type="checkbox" className="w-4 h-4" />
+                                                <span className="text-gray-700 text-sm">{field.label}</span>
+                                            </label>
+                                        ) : field.type === 'radio' ? (
+                                            <div className="space-y-1">
+                                                {(field.options || ['Option 1']).slice(0, 2).map((opt, i) => (
+                                                    <label key={i} className="flex items-center gap-2 p-2 bg-slate-50 border border-slate-200 cursor-pointer" style={{ borderRadius: inputRadius }}>
+                                                        <input type="radio" name={field.id} className="w-4 h-4" />
+                                                        <span className="text-gray-700 text-sm">{opt}</span>
+                                                    </label>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <input type="text" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 text-slate-800 text-sm placeholder-slate-400" style={{ borderRadius: inputRadius }} placeholder={field.placeholder} readOnly />
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
+                        {/* Step 3: Payment */}
+                        {previewStep === 3 && (
+                            <div className="space-y-3">
+                                <p className="text-slate-500 text-xs text-center">Select payment method</p>
+
+                                {codEnabled && (
+                                    <button className="w-full p-3 border-2 border-purple-500 bg-purple-50 flex items-center gap-3" style={{ borderRadius: inputRadius }}>
+                                        <span className="text-2xl">💵</span>
+                                        <div className="text-left">
+                                            <p className="text-slate-800 font-semibold text-sm">Cash on Delivery</p>
+                                            <p className="text-slate-500 text-xs">Pay when you receive</p>
+                                        </div>
+                                    </button>
+                                )}
+
+                                {ewalletEnabled && ewalletOptions.slice(0, 2).map((wallet) => (
+                                    <button key={wallet} className="w-full p-3 border-2 border-gray-200 bg-white flex items-center gap-3" style={{ borderRadius: inputRadius }}>
+                                        <span className="text-2xl">📱</span>
+                                        <div className="text-left flex-1">
+                                            <p className="text-slate-800 font-semibold text-sm">{wallet || 'E-Wallet'}</p>
+                                            {ewalletNumbers[wallet] && <p className="text-slate-500 text-xs">{ewalletNumbers[wallet]}</p>}
+                                        </div>
+                                    </button>
+                                ))}
+
+                                {requireProofUpload && (
+                                    <div className="mt-2">
+                                        <p className={`${textMuted} text-xs mb-1`}>Upload payment proof <span className="text-red-500">*</span></p>
+                                        <div className={`border-2 border-dashed ${isMinimal ? 'border-gray-300' : 'border-white/20'} p-4 text-center`} style={{ borderRadius: inputRadius }}>
+                                            <Upload className="w-6 h-6 mx-auto text-slate-400 mb-1" />
+                                            <p className={`${textMuted} text-xs`}>Tap to upload</p>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Submit Button */}
+                        <button className="w-full mt-4 py-2.5 text-white font-medium text-sm uppercase" style={{ backgroundColor: submitButtonColor, borderRadius: inputRadius }}>
+                            {previewStep < 3 ? 'CONTINUE' : submitButtonText}
+                        </button>
+
+                        {/* Back link for steps 2-3 */}
+                        {previewStep > 1 && (
+                            <p className={`text-center mt-2 ${textMuted} text-xs`}>← Back</p>
+                        )}
+                    </div>
+                </div>
+            </div>
+        );
+    }, [formTemplate, borderRadius, headerImageUrl, countdownEnabled, promoIcon, promoText, formName, productName,
+        isOrderForm, currencySymbol, productPrice, fields, submitButtonColor, submitButtonText, isMobile, previewStep,
+        couponEnabled, codEnabled, ewalletEnabled, ewalletOptions, ewalletNumbers, requireProofUpload]);
+
+
+    // ===== STEP INDICATORS =====
+    const stepIndicatorContent = (
+        <div className="flex items-center justify-center gap-1 mb-4">
+            {STEPS.map((step, index) => (
+                <React.Fragment key={step.id}>
+                    <button
+                        onClick={() => setCurrentStep(index)}
+                        className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium transition-all ${currentStep === index ? 'bg-purple-500 text-white' : currentStep > index ? 'bg-green-500/20 text-green-400' : 'bg-slate-700 text-slate-400'}`}
+                    >
+                        {currentStep > index ? <Check className="w-3 h-3" /> : <span>{step.icon}</span>}
+                        <span className="hidden sm:inline">{step.label}</span>
+                    </button>
+                    {index < STEPS.length - 1 && <div className={`w-4 h-0.5 ${currentStep > index ? 'bg-green-500' : 'bg-slate-700'}`} />}
+                </React.Fragment>
+            ))}
+        </div>
+    );
+
+    const renderCurrentStep = () => {
+        switch (currentStep) {
+            case 0: return productStepContent;
+            case 1: return fieldsStepContent;
+            case 2: return paymentStepContent;
+            case 3: return settingsStepContent;
+            default: return productStepContent;
+        }
+    };
+
+    // ===== MAIN RENDER =====
+    return (
+        <div className="w-full">
+            {/* Step Indicator */}
+            {stepIndicatorContent}
+
+            {/* Desktop: 2-column layout */}
+            {!isMobile ? (
+                <div className="grid grid-cols-2 gap-4">
+                    {/* Left: Configuration */}
+                    <div className="bg-slate-900/50 rounded-xl p-4 border border-slate-700/50">
+                        <h3 className="text-sm font-medium text-white mb-3 flex items-center gap-2">
+                            <span>{STEPS[currentStep].icon}</span>
+                            {STEPS[currentStep].label}
+                        </h3>
+                        {renderCurrentStep()}
+
+                        {/* Navigation */}
+                        <div className="flex justify-between mt-4 pt-3 border-t border-slate-700/50">
+                            <button onClick={prevStep} disabled={currentStep === 0} className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm ${currentStep === 0 ? 'text-slate-600 cursor-not-allowed' : 'text-slate-300 hover:bg-slate-700'}`}>
+                                <ArrowLeft className="w-4 h-4" /> Back
+                            </button>
+                            {currentStep < STEPS.length - 1 ? (
+                                <button onClick={nextStep} className="flex items-center gap-1 px-3 py-1.5 bg-purple-500 hover:bg-purple-600 text-white rounded-lg text-sm">
+                                    Next <ArrowRight className="w-4 h-4" />
+                                </button>
+                            ) : (
+                                <div className="text-xs text-green-400 flex items-center gap-1">
+                                    <Check className="w-4 h-4" /> All steps complete
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Right: Preview */}
+                    <div className="bg-slate-900/50 rounded-xl p-4 border border-slate-700/50">
+                        <h3 className="text-sm font-medium text-white mb-3 flex items-center gap-2">
+                            <Eye className="w-4 h-4" /> Live Preview
+                        </h3>
+                        {formPreviewContent}
+                    </div>
+                </div>
+            ) : (
+                /* Mobile: Single column with preview toggle */
+                <div className="space-y-3">
+                    {/* Preview Toggle */}
+                    <button onClick={() => setShowPreview(!showPreview)} className="w-full flex items-center justify-center gap-2 py-2 bg-slate-800/50 border border-slate-700/50 rounded-lg text-sm text-slate-300">
+                        {showPreview ? <><EyeOff className="w-4 h-4" /> Hide Preview</> : <><Eye className="w-4 h-4" /> Show Preview</>}
+                    </button>
+
+                    {showPreview && (
+                        <div className="bg-slate-900/50 rounded-xl p-3 border border-slate-700/50">
+                            {formPreviewContent}
+                        </div>
+                    )}
+
+                    {/* Configuration */}
+                    <div className="bg-slate-900/50 rounded-xl p-3 border border-slate-700/50">
+                        <h3 className="text-sm font-medium text-white mb-3 flex items-center gap-2">
+                            <span>{STEPS[currentStep].icon}</span>
+                            {STEPS[currentStep].label}
+                        </h3>
+                        {renderCurrentStep()}
+                    </div>
+
+                    {/* Navigation */}
+                    <div className="flex justify-between gap-2">
+                        <button onClick={prevStep} disabled={currentStep === 0} className={`flex-1 flex items-center justify-center gap-1 py-2 rounded-lg text-sm ${currentStep === 0 ? 'bg-slate-800 text-slate-600 cursor-not-allowed' : 'bg-slate-700 text-white'}`}>
+                            <ArrowLeft className="w-4 h-4" /> Back
+                        </button>
+                        {currentStep < STEPS.length - 1 ? (
+                            <button onClick={nextStep} className="flex-1 flex items-center justify-center gap-1 py-2 bg-purple-500 text-white rounded-lg text-sm">
+                                Next <ArrowRight className="w-4 h-4" />
+                            </button>
+                        ) : (
+                            <div className="flex-1 flex items-center justify-center gap-1 py-2 bg-green-500/20 text-green-400 rounded-lg text-sm">
+                                <Check className="w-4 h-4" /> Done
+                            </div>
+                        )}
                     </div>
                 </div>
             )}
