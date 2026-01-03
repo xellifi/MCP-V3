@@ -28,6 +28,7 @@ const Support = lazy(() => import('./pages/Support'));
 const Academy = lazy(() => import('./pages/Academy'));
 const FormView = lazy(() => import('./pages/FormView'));
 const InvoiceView = lazy(() => import('./pages/InvoiceView'));
+const OrderTracking = lazy(() => import('./pages/OrderTracking'));
 const Forms = lazy(() => import('./pages/Forms'));
 const Store = lazy(() => import('./pages/Store'));
 const StoreView = lazy(() => import('./pages/StoreView'));
@@ -142,6 +143,13 @@ const App: React.FC = () => {
           <Route path="/invoices/:submissionId" element={
             <Suspense fallback={<LoadingSpinner />}>
               <InvoiceView />
+            </Suspense>
+          } />
+
+          {/* Public Order Tracking - No login required */}
+          <Route path="/track/:submissionId" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <OrderTracking />
             </Suspense>
           } />
 

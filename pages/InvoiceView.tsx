@@ -192,7 +192,14 @@ const InvoiceView: React.FC = () => {
 
             <div className="relative max-w-md mx-auto">
                 {/* Download Actions - Fixed at top */}
-                <div className="flex justify-center gap-3 mb-4">
+                <div className="flex justify-center gap-3 mb-4 flex-wrap">
+                    <a
+                        href={`/track/${submissionId}?company=${encodeURIComponent(companyName)}&logo=${encodeURIComponent(companyLogo)}&color=${encodeURIComponent(accentColor)}`}
+                        className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl shadow-md text-white font-medium hover:from-indigo-600 hover:to-purple-700 transition"
+                    >
+                        <span>📦</span>
+                        <span>Track Order</span>
+                    </a>
                     <button
                         onClick={handleDownloadImage}
                         disabled={downloading !== null}
