@@ -57,8 +57,8 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
     const [successMessage, setSuccessMessage] = useState(initialConfig?.successMessage || 'Order placed successfully! We will contact you soon.');
     const [fields, setFields] = useState<FormField[]>(initialConfig?.fields || [
         { id: 'name', type: 'text', label: 'Full Name', placeholder: 'Enter your name', required: true },
-        { id: 'address', type: 'textarea', label: 'Delivery Address', placeholder: 'Enter complete address', required: true },
         { id: 'phone', type: 'phone', label: 'Phone Number', placeholder: 'Enter phone number', required: true },
+        { id: 'address', type: 'textarea', label: 'Delivery Address', placeholder: 'Enter complete address', required: true },
     ]);
     const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
     const [expandedOptions, setExpandedOptions] = useState<Record<string, boolean>>({});
@@ -225,12 +225,12 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
                         <input type="text" value={productName} onChange={(e) => setProductName(e.target.value)} placeholder="Enter product name..." className={inputClass} />
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-2 gap-4">
                         <div>
                             <label className={labelClass}>Price</label>
                             <div className="flex">
-                                <span className="px-2.5 py-2 bg-slate-700 border border-slate-600 rounded-l-xl text-white text-sm">{currencySymbol}</span>
-                                <input type="number" value={productPrice} onChange={(e) => setProductPrice(parseFloat(e.target.value) || 0)} className="flex-1 px-3 py-2 bg-slate-800/60 border border-slate-600/50 rounded-r-xl text-white text-sm focus:outline-none" />
+                                <span className="px-2.5 py-2 bg-slate-700 border border-slate-600 rounded-l-xl text-white text-sm flex-shrink-0">{currencySymbol}</span>
+                                <input type="number" value={productPrice} onChange={(e) => setProductPrice(parseFloat(e.target.value) || 0)} className="w-full min-w-0 px-3 py-2 bg-slate-800/60 border border-slate-600/50 rounded-r-xl text-white text-sm focus:outline-none" />
                             </div>
                         </div>
                         <div>
@@ -639,12 +639,12 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
                                     </button>
                                 )}
 
-                                {ewalletEnabled && ewalletOptions.slice(0, 2).map((wallet) => (
+                                {ewalletEnabled && ewalletOptions.filter(w => ewalletNumbers[w]).slice(0, 2).map((wallet) => (
                                     <button key={wallet} className="w-full p-3 border-2 border-gray-200 bg-white flex items-center gap-3" style={{ borderRadius: inputRadius }}>
                                         <span className="text-2xl">📱</span>
                                         <div className="text-left flex-1">
-                                            <p className="text-slate-800 font-semibold text-sm">{wallet || 'E-Wallet'}</p>
-                                            {ewalletNumbers[wallet] && <p className="text-slate-500 text-xs">{ewalletNumbers[wallet]}</p>}
+                                            <p className="text-slate-800 font-semibold text-sm">{wallet}</p>
+                                            <p className="text-slate-500 text-xs">{ewalletNumbers[wallet]}</p>
                                         </div>
                                     </button>
                                 ))}

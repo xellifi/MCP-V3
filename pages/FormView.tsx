@@ -632,40 +632,43 @@ const FormView: React.FC = () => {
 
                                     {/* Step 2: Buyer Info */}
                                     {(!isOrderForm || currentStep === 2) && (
-                                        <div className="space-y-4">
-                                            {(form?.fields || []).map((field: any) => (
-                                                <div key={field.id}>
-                                                    {field.type !== 'checkbox' && (
-                                                        <label className={`block ${textMuted} text-sm mb-1.5`}>
-                                                            {field.label}{field.required && <span className="text-red-500 ml-1">*</span>}
-                                                        </label>
-                                                    )}
-                                                    {['text', 'email', 'phone', 'number'].includes(field.type) && (
-                                                        <input type={field.type === 'phone' ? 'tel' : field.type} value={formData[field.id] || ''}
-                                                            onChange={(e) => handleInputChange(field.id, e.target.value)} placeholder={field.placeholder}
-                                                            className={`w-full px-4 py-3 ${inputBg} border ${inputText} transition`} style={{ borderRadius: getInputRadius() }} />
-                                                    )}
-                                                    {field.type === 'textarea' && (
-                                                        <textarea value={formData[field.id] || ''} onChange={(e) => handleInputChange(field.id, e.target.value)}
-                                                            placeholder={field.placeholder} rows={3}
-                                                            className={`w-full px-4 py-3 ${inputBg} border ${inputText} resize-none transition`} style={{ borderRadius: getInputRadius() }} />
-                                                    )}
-                                                    {field.type === 'select' && (
-                                                        <select value={formData[field.id] || ''} onChange={(e) => handleInputChange(field.id, e.target.value)}
-                                                            className={`w-full px-4 py-3 ${inputBg} border ${inputText} transition`} style={{ borderRadius: getInputRadius() }}>
-                                                            <option value="">Select...</option>
-                                                            {(field.options || []).map((o: string, i: number) => <option key={i} value={o}>{o}</option>)}
-                                                        </select>
-                                                    )}
-                                                    {field.type === 'checkbox' && (
-                                                        <label className={`flex items-center gap-3 p-3 ${inputBg} border cursor-pointer`} style={{ borderRadius: getInputRadius() }}>
-                                                            <input type="checkbox" checked={formData[field.id] || false}
-                                                                onChange={(e) => handleInputChange(field.id, e.target.checked)} className="w-5 h-5" style={{ accentColor: buttonColor }} />
-                                                            <span className={isMinimal ? 'text-gray-700' : 'text-white/80'}>{field.label}</span>
-                                                        </label>
-                                                    )}
-                                                </div>
-                                            ))}
+                                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 lg:gap-4">
+                                            {(form?.fields || []).map((field: any) => {
+                                                const isFullWidth = field.type === 'textarea' || field.type === 'checkbox';
+                                                return (
+                                                    <div key={field.id} className={isFullWidth ? 'lg:col-span-2' : ''}>
+                                                        {field.type !== 'checkbox' && (
+                                                            <label className={`block ${textMuted} text-sm mb-1.5`}>
+                                                                {field.label}{field.required && <span className="text-red-500 ml-1">*</span>}
+                                                            </label>
+                                                        )}
+                                                        {['text', 'email', 'phone', 'number'].includes(field.type) && (
+                                                            <input type={field.type === 'phone' ? 'tel' : field.type} value={formData[field.id] || ''}
+                                                                onChange={(e) => handleInputChange(field.id, e.target.value)} placeholder={field.placeholder}
+                                                                className={`w-full px-4 py-3 ${inputBg} border ${inputText} transition`} style={{ borderRadius: getInputRadius() }} />
+                                                        )}
+                                                        {field.type === 'textarea' && (
+                                                            <textarea value={formData[field.id] || ''} onChange={(e) => handleInputChange(field.id, e.target.value)}
+                                                                placeholder={field.placeholder} rows={3}
+                                                                className={`w-full px-4 py-3 ${inputBg} border ${inputText} resize-none transition`} style={{ borderRadius: getInputRadius() }} />
+                                                        )}
+                                                        {field.type === 'select' && (
+                                                            <select value={formData[field.id] || ''} onChange={(e) => handleInputChange(field.id, e.target.value)}
+                                                                className={`w-full px-4 py-3 ${inputBg} border ${inputText} transition`} style={{ borderRadius: getInputRadius() }}>
+                                                                <option value="">Select...</option>
+                                                                {(field.options || []).map((o: string, i: number) => <option key={i} value={o}>{o}</option>)}
+                                                            </select>
+                                                        )}
+                                                        {field.type === 'checkbox' && (
+                                                            <label className={`flex items-center gap-3 p-3 ${inputBg} border cursor-pointer`} style={{ borderRadius: getInputRadius() }}>
+                                                                <input type="checkbox" checked={formData[field.id] || false}
+                                                                    onChange={(e) => handleInputChange(field.id, e.target.checked)} className="w-5 h-5" style={{ accentColor: buttonColor }} />
+                                                                <span className={isMinimal ? 'text-gray-700' : 'text-white/80'}>{field.label}</span>
+                                                            </label>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
                                         </div>
                                     )}
 
