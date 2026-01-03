@@ -468,9 +468,9 @@ const FormView: React.FC = () => {
                 </div>
             )}
 
-            <div className="relative min-h-screen flex items-center justify-center p-2 py-3 lg:p-6 lg:py-8">
-                {/* Responsive container - mobile: compact, PC: professional wide layout */}
-                <div className={`w-full ${form?.header_image_url ? 'max-w-xs lg:max-w-4xl xl:max-w-5xl' : 'max-w-xs lg:max-w-md'}`}>
+            <div className="relative min-h-screen flex items-center justify-center p-2 py-3">
+                {/* Two-column on desktop when image exists (both themes) - 85% smaller */}
+                <div className={`w-full ${form?.header_image_url ? 'max-w-3xl' : 'max-w-xs'}`}>
                     <style>{`
                         @keyframes blink {
                             0%, 100% { opacity: 1; }
@@ -507,22 +507,21 @@ const FormView: React.FC = () => {
                             </div>
                         )}
 
-                        {/* Content Row - Image (left) and Form (right) - elegant PC layout */}
-                        <div className={`${form?.header_image_url ? 'lg:flex lg:flex-row' : ''}`}>
-                            {/* Image Section - Left column on lg with elegant styling */}
+                        {/* Content Row - Image (left) and Form (right) - equal height on lg */}
+                        <div className={`${form?.header_image_url ? 'lg:flex lg:flex-row lg:items-stretch' : ''}`}>
+                            {/* Image Section - Left column on lg (light blue background) */}
                             {form?.header_image_url && (
                                 <div
-                                    className="relative lg:w-[45%] flex flex-col bg-gradient-to-br from-slate-50 to-slate-100"
+                                    className="relative lg:w-1/2 flex flex-col"
+                                    style={{ backgroundColor: '#ffffff' }}
                                 >
-                                    {/* Image - enlarged for PC with elegant presentation */}
-                                    <div className="flex-1 flex items-center justify-center p-4 lg:p-6 xl:p-8">
-                                        <div className="relative w-full lg:rounded-2xl lg:overflow-hidden lg:shadow-2xl lg:shadow-slate-200/50">
-                                            <img
-                                                src={form.header_image_url}
-                                                alt=""
-                                                className="w-full h-auto object-contain max-h-[280px] lg:max-h-[380px] xl:max-h-[420px]"
-                                            />
-                                        </div>
+                                    {/* Image - enlarged for PC */}
+                                    <div className="flex-1 flex items-center justify-center p-4 lg:p-3">
+                                        <img
+                                            src={form.header_image_url}
+                                            alt=""
+                                            className="w-full h-full object-contain max-h-[320px] lg:max-h-[300px]"
+                                        />
                                     </div>
 
                                     {/* Product Name - Mobile/Tablet only (above timer) */}
@@ -560,8 +559,8 @@ const FormView: React.FC = () => {
                                 </div>
                             )}
 
-                            {/* Form Content - Right column on lg - elegant spacing */}
-                            <div className={`${form?.header_image_url ? 'lg:w-[55%] lg:flex lg:flex-col' : ''} bg-white`}>
+                            {/* Form Content - Right column on lg */}
+                            <div className={`${form?.header_image_url ? 'lg:w-1/2 lg:flex lg:flex-col' : ''} bg-white`}>
                                 {/* Product Name (only show if no image) */}
                                 {!form?.header_image_url && (
                                     <div className="px-4 pt-4">
@@ -573,17 +572,17 @@ const FormView: React.FC = () => {
                                     </div>
                                 )}
 
-                                <div className="p-4 lg:p-6 xl:p-8">
+                                <div className="p-4">
 
-                                    {/* Step Indicator - larger on PC */}
+                                    {/* Step Indicator */}
                                     {isOrderForm && (
-                                        <div className="flex items-center justify-center gap-2 lg:gap-3 mb-5 lg:mb-8">
+                                        <div className="flex items-center justify-center gap-2 mb-5">
                                             {[1, 2, 3].map(s => (
                                                 <div key={s} className="flex items-center">
-                                                    <div className={`w-7 h-7 lg:w-9 lg:h-9 rounded-full flex items-center justify-center text-sm lg:text-base font-bold transition-all shadow-sm ${s === currentStep ? 'bg-indigo-600 text-white shadow-indigo-200' :
-                                                        s < currentStep ? 'bg-green-500 text-white shadow-green-200' : 'bg-gray-100 text-gray-400'
+                                                    <div className={`w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold transition-all ${s === currentStep ? 'bg-indigo-600 text-white' :
+                                                        s < currentStep ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-400'
                                                         }`}>{s < currentStep ? '✓' : s}</div>
-                                                    {s < 3 && <div className={`w-6 lg:w-10 h-0.5 ${s < currentStep ? 'bg-green-500' : 'bg-gray-200'}`}></div>}
+                                                    {s < 3 && <div className={`w-6 h-0.5 ${s < currentStep ? 'bg-green-500' : 'bg-gray-200'}`}></div>}
                                                 </div>
                                             ))}
                                         </div>
@@ -732,16 +731,16 @@ const FormView: React.FC = () => {
                                         </div>
                                     )}
 
-                                    {/* Navigation - elegant on PC */}
-                                    <div className="mt-5 lg:mt-8 space-y-3">
+                                    {/* Navigation */}
+                                    <div className="mt-5 space-y-3">
                                         {isOrderForm && currentStep < 3 && (
                                             <button onClick={() => setCurrentStep(currentStep + 1)} disabled={!canProceed()}
-                                                className="w-full py-3 lg:py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-base lg:text-lg uppercase tracking-wide transition disabled:opacity-50 disabled:cursor-not-allowed rounded-lg shadow-lg shadow-indigo-200/50 hover:shadow-xl hover:shadow-indigo-300/50 hover:-translate-y-0.5">Continue</button>
+                                                className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-base uppercase tracking-wide transition disabled:opacity-50 rounded-lg">Continue</button>
                                         )}
 
                                         {(!isOrderForm || currentStep === 3) && (
                                             <button onClick={handleSubmit} disabled={submitting || !canProceed()}
-                                                className="w-full py-3 lg:py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-base lg:text-lg uppercase tracking-wide transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 rounded-lg shadow-lg shadow-indigo-200/50 hover:shadow-xl hover:shadow-indigo-300/50 hover:-translate-y-0.5">
+                                                className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-base uppercase tracking-wide transition disabled:opacity-50 flex items-center justify-center gap-2 rounded-lg">
                                                 {submitting && <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>}
                                                 {submitting ? 'Processing...' : (form?.submit_button_text || 'ORDER NOW')}
                                             </button>
