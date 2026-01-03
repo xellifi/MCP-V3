@@ -19,6 +19,7 @@ const FormView: React.FC = () => {
     const [quantity, setQuantity] = useState(1);
     const [couponInput, setCouponInput] = useState('');
     const [couponApplied, setCouponApplied] = useState(false);
+    const [couponError, setCouponError] = useState(false);
     const [paymentMethod, setPaymentMethod] = useState('');
     const [selectedWallet, setSelectedWallet] = useState('');
     const [proofFile, setProofFile] = useState<File | null>(null);
@@ -373,8 +374,13 @@ const FormView: React.FC = () => {
     const totalSteps = isOrderForm ? 3 : 1;
 
     const applyCoupon = () => {
-        if (couponInput.toUpperCase() === form?.coupon_code?.toUpperCase()) setCouponApplied(true);
-        else alert('Invalid coupon code');
+        if (couponInput.toUpperCase() === form?.coupon_code?.toUpperCase()) {
+            setCouponApplied(true);
+            setCouponError(false);
+        } else {
+            setCouponError(true);
+            setTimeout(() => setCouponError(false), 3000); // Auto-clear after 3s
+        }
     };
 
     const canProceed = () => {
@@ -621,10 +627,15 @@ const FormView: React.FC = () => {
                                             </div>
 
                                             {form?.coupon_enabled && !couponApplied && (
-                                                <div className="flex gap-2">
-                                                    <input type="text" value={couponInput} onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
-                                                        placeholder="Coupon" className={`flex-1 min-w-0 px-3 py-2.5 ${inputBg} border ${inputText} text-sm uppercase`} style={{ borderRadius: getInputRadius() }} />
-                                                    <button onClick={applyCoupon} className="px-4 py-2.5 bg-purple-500 text-white font-medium hover:bg-purple-600 whitespace-nowrap" style={{ borderRadius: getInputRadius() }}>Apply</button>
+                                                <div className="space-y-2">
+                                                    <div className="flex gap-2">
+                                                        <input type="text" value={couponInput} onChange={(e) => { setCouponInput(e.target.value.toUpperCase()); setCouponError(false); }}
+                                                            placeholder="Coupon" className={`flex-1 min-w-0 px-3 py-2.5 ${inputBg} border ${couponError ? 'border-red-500' : ''} ${inputText} text-sm uppercase`} style={{ borderRadius: getInputRadius() }} />
+                                                        <button onClick={applyCoupon} className="px-4 py-2.5 bg-purple-500 text-white font-medium hover:bg-purple-600 whitespace-nowrap" style={{ borderRadius: getInputRadius() }}>Apply</button>
+                                                    </div>
+                                                    {couponError && (
+                                                        <p className="text-red-500 text-sm text-center animate-pulse">❌ Invalid coupon code</p>
+                                                    )}
                                                 </div>
                                             )}
                                             {couponApplied && <p className="text-green-500 text-sm text-center">✓ Coupon applied!</p>}
