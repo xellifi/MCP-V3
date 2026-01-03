@@ -113,10 +113,10 @@ const Forms: React.FC<FormsProps> = ({ workspace }) => {
 
     const updateSubmissionStatus = async (submissionId: string, status: string) => {
         try {
-            // Get current submission data
+            // Get current submission data with form info
             const { data: currentSub } = await supabase
                 .from('form_submissions')
-                .select('data')
+                .select('data, form_id, forms(google_webhook_url, google_sheet_name)')
                 .eq('id', submissionId)
                 .single();
 
@@ -126,6 +126,7 @@ const Forms: React.FC<FormsProps> = ({ workspace }) => {
                 order_status: status
             };
 
+            // Update database
             await supabase
                 .from('form_submissions')
                 .update({ data: updatedData })
@@ -137,6 +138,32 @@ const Forms: React.FC<FormsProps> = ({ workspace }) => {
                     ? { ...s, data: { ...s.data, order_status: status } }
                     : s
             ));
+
+            // Sync to Google Sheets if webhook is configured
+            const form = (currentSub as any)?.forms;
+            if (form?.google_webhook_url) {
+                try {
+                    // Get status label for display in Sheets
+                    const statusLabel = ORDER_STATUSES.find(s => s.id === status)?.label || status;
+
+                    await fetch('/api/sheets/sync', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            webhookUrl: form.google_webhook_url,
+                            sheetName: form.google_sheet_name || 'Sheet1',
+                            rowData: {
+                                ...updatedData,
+                                order_status: statusLabel,
+                                status_updated_at: new Date().toISOString()
+                            }
+                        })
+                    });
+                    console.log('[Forms] Status synced to Google Sheets');
+                } catch (sheetError) {
+                    console.error('[Forms] Failed to sync status to Sheets:', sheetError);
+                }
+            }
         } catch (error) {
             console.error('Error updating submission status:', error);
         }
@@ -710,10 +737,10 @@ const Forms: React.FC<FormsProps> = ({ workspace }) => {
                                                                 value={submission.data?.order_status || 'pending'}
                                                                 onChange={(e) => updateSubmissionStatus(submission.id, e.target.value)}
                                                                 className={`text-xs font-medium px-3 py-1.5 rounded-lg border-0 cursor-pointer transition-all ${(submission.data?.order_status || 'pending') === 'pending' ? 'bg-yellow-500/20 text-yellow-400' :
-                                                                        submission.data?.order_status === 'processing' ? 'bg-blue-500/20 text-blue-400' :
-                                                                            submission.data?.order_status === 'shipped' ? 'bg-purple-500/20 text-purple-400' :
-                                                                                submission.data?.order_status === 'delivered' ? 'bg-green-500/20 text-green-400' :
-                                                                                    'bg-red-500/20 text-red-400'
+                                                                    submission.data?.order_status === 'processing' ? 'bg-blue-500/20 text-blue-400' :
+                                                                        submission.data?.order_status === 'shipped' ? 'bg-purple-500/20 text-purple-400' :
+                                                                            submission.data?.order_status === 'delivered' ? 'bg-green-500/20 text-green-400' :
+                                                                                'bg-red-500/20 text-red-400'
                                                                     }`}
                                                             >
                                                                 {ORDER_STATUSES.map(s => (
@@ -727,8 +754,8 @@ const Forms: React.FC<FormsProps> = ({ workspace }) => {
                                                                 target="_blank"
                                                                 rel="noopener noreferrer"
                                                                 className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${isDark
-                                                                        ? 'bg-indigo-500/20 text-indigo-400 hover:bg-indigo-500/30'
-                                                                        : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100'
+                                                                    ? 'bg-indigo-500/20 text-indigo-400 hover:bg-indigo-500/30'
+                                                                    : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100'
                                                                     }`}
                                                             >
                                                                 <Eye className="w-3 h-3" />
@@ -741,8 +768,8 @@ const Forms: React.FC<FormsProps> = ({ workspace }) => {
                                                                 target="_blank"
                                                                 rel="noopener noreferrer"
                                                                 className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${isDark
-                                                                        ? 'bg-purple-500/20 text-purple-400 hover:bg-purple-500/30'
-                                                                        : 'bg-purple-50 text-purple-600 hover:bg-purple-100'
+                                                                    ? 'bg-purple-500/20 text-purple-400 hover:bg-purple-500/30'
+                                                                    : 'bg-purple-50 text-purple-600 hover:bg-purple-100'
                                                                     }`}
                                                             >
                                                                 <Truck className="w-3 h-3" />
