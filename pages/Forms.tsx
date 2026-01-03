@@ -113,34 +113,19 @@ const Forms: React.FC<FormsProps> = ({ workspace }) => {
 
     const updateSubmissionStatus = async (submissionId: string, status: string) => {
         try {
-            // Get current submission data with form info
-            const { data: currentSub, error: fetchError } = await supabase
-                .from('form_submissions')
-                .select('data, form_id, forms(google_webhook_url, google_sheet_name)')
-                .eq('id', submissionId)
-                .single();
-
-            if (fetchError) {
-                console.error('[Forms] Failed to fetch submission:', fetchError);
-                return;
-            }
-
-            // Merge new status into existing data
-            const updatedData = {
-                ...(currentSub?.data || {}),
-                order_status: status
-            };
-
             console.log('[Forms] Updating submission:', submissionId, 'with status:', status);
 
-            // Update database
-            const { error: updateError } = await supabase
-                .from('form_submissions')
-                .update({ data: updatedData })
-                .eq('id', submissionId);
+            // Call API endpoint (uses service role key to bypass RLS)
+            const response = await fetch('/api/forms/update-status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ submissionId, status })
+            });
 
-            if (updateError) {
-                console.error('[Forms] Failed to update submission:', updateError);
+            const result = await response.json();
+
+            if (!response.ok) {
+                console.error('[Forms] Failed to update status:', result.error);
                 alert('Failed to save status. Please try again.');
                 return;
             }
@@ -155,20 +140,18 @@ const Forms: React.FC<FormsProps> = ({ workspace }) => {
             ));
 
             // Sync to Google Sheets if webhook is configured
-            const form = (currentSub as any)?.forms;
-            if (form?.google_webhook_url) {
+            if (result.webhookUrl) {
                 try {
-                    // Get status label for display in Sheets
                     const statusLabel = ORDER_STATUSES.find(s => s.id === status)?.label || status;
 
                     await fetch('/api/sheets/sync', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
-                            webhookUrl: form.google_webhook_url,
-                            sheetName: form.google_sheet_name || 'Sheet1',
+                            webhookUrl: result.webhookUrl,
+                            sheetName: result.sheetName || 'Sheet1',
                             rowData: {
-                                ...updatedData,
+                                ...result.updatedData,
                                 order_status: statusLabel,
                                 status_updated_at: new Date().toISOString()
                             }
@@ -181,6 +164,7 @@ const Forms: React.FC<FormsProps> = ({ workspace }) => {
             }
         } catch (error) {
             console.error('Error updating submission status:', error);
+            alert('Failed to save status. Please try again.');
         }
     };
 
@@ -191,15 +175,23 @@ const Forms: React.FC<FormsProps> = ({ workspace }) => {
         }
 
         try {
-            await supabase
-                .from('form_submissions')
-                .delete()
-                .eq('id', submissionId);
+            const response = await fetch('/api/forms/delete-submission', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ submissionId })
+            });
+
+            if (!response.ok) {
+                const result = await response.json();
+                alert('Failed to delete: ' + result.error);
+                return;
+            }
 
             // Update local state
             setSubmissions(prev => prev.filter(s => s.id !== submissionId));
         } catch (error) {
             console.error('Error deleting submission:', error);
+            alert('Failed to delete order. Please try again.');
         }
     };
 
