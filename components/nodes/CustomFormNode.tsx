@@ -78,8 +78,8 @@ const CustomFormNode: React.FC<NodeProps> = ({ data, selected }) => {
                     <div className="mt-3 pt-3 border-t border-purple-500/20">
                         {/* Form Preview Card */}
                         <div className="bg-white rounded-lg overflow-hidden shadow-lg">
-                            {/* Promo Banner */}
-                            {data.promoBannerEnabled && (
+                            {/* Promo Banner - shows when countdown/promo is enabled */}
+                            {(data.countdownEnabled || data.headerImageUrl) && (
                                 <div className="py-1.5 px-2 bg-gradient-to-r from-red-400 via-rose-400 to-pink-300">
                                     <div className="flex items-center justify-center gap-1 text-[9px]">
                                         <span>{data.promoIcon || '🔥'}</span>
