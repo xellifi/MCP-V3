@@ -689,16 +689,18 @@ const FormView: React.FC = () => {
                                                 </button>
                                             )}
 
-                                            {form?.ewallet_enabled && (form?.ewallet_options || []).map((wallet: string) => (
-                                                <button key={wallet} onClick={() => { setPaymentMethod('ewallet'); setSelectedWallet(wallet); }}
-                                                    className={`w-full p-4 border-2 flex items-center gap-4 transition ${selectedWallet === wallet ? 'border-blue-500 bg-blue-500/10' : (isMinimal ? 'border-gray-200 hover:border-gray-300' : 'border-white/10 hover:border-white/30')}`} style={{ borderRadius: getInputRadius() }}>
-                                                    <span className="text-3xl">📱</span>
-                                                    <div className="text-left flex-1">
-                                                        <p className={`${textColor} font-semibold`}>{wallet}</p>
-                                                        {form?.ewallet_numbers?.[wallet] && <p className={`${textMuted} text-sm`}>{form.ewallet_numbers[wallet]}</p>}
-                                                    </div>
-                                                </button>
-                                            ))}
+                                            {form?.ewallet_enabled && (form?.ewallet_options || [])
+                                                .filter((wallet: string) => form?.ewallet_numbers?.[wallet])
+                                                .map((wallet: string) => (
+                                                    <button key={wallet} onClick={() => { setPaymentMethod('ewallet'); setSelectedWallet(wallet); }}
+                                                        className={`w-full p-4 border-2 flex items-center gap-4 transition ${selectedWallet === wallet ? 'border-blue-500 bg-blue-500/10' : (isMinimal ? 'border-gray-200 hover:border-gray-300' : 'border-white/10 hover:border-white/30')}`} style={{ borderRadius: getInputRadius() }}>
+                                                        <span className="text-3xl">📱</span>
+                                                        <div className="text-left flex-1">
+                                                            <p className={`${textColor} font-semibold`}>{wallet}</p>
+                                                            <p className={`${textMuted} text-sm`}>{form.ewallet_numbers[wallet]}</p>
+                                                        </div>
+                                                    </button>
+                                                ))}
 
                                             {paymentMethod === 'ewallet' && selectedWallet && (
                                                 <div className={`${isMinimal ? 'bg-blue-50 border-blue-100' : 'bg-blue-500/10 border-blue-500/30'} border p-4 space-y-2`} style={{ borderRadius: getInputRadius() }}>
