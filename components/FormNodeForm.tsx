@@ -61,6 +61,7 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
         { id: 'phone', type: 'phone', label: 'Phone Number', placeholder: 'Enter phone number', required: true },
     ]);
     const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+    const [expandedOptions, setExpandedOptions] = useState<Record<string, boolean>>({});
 
     // Timer settings
     const [countdownEnabled, setCountdownEnabled] = useState(initialConfig?.countdownEnabled || false);
@@ -305,15 +306,27 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
                                 </button>
                             </div>
                             {hasOptions && (
-                                <div className="mt-2 pt-2 border-t border-slate-700/50 space-y-1">
-                                    <p className="text-[9px] text-slate-500">Options</p>
-                                    {(field.options || []).map((option, optIndex) => (
-                                        <div key={optIndex} className="flex items-center gap-1">
-                                            <input type="text" value={option} onChange={(e) => { const newOptions = [...(field.options || [])]; newOptions[optIndex] = e.target.value; updateField(index, { options: newOptions }); }} className="flex-1 px-2 py-1 bg-slate-900/50 border border-slate-600/50 rounded text-white text-xs" />
-                                            <button onClick={() => { updateField(index, { options: (field.options || []).filter((_, i) => i !== optIndex) }); }} className="p-0.5 text-slate-500 hover:text-red-400"><X className="w-3 h-3" /></button>
+                                <div className="mt-2 pt-2 border-t border-slate-700/50">
+                                    <button
+                                        onClick={() => setExpandedOptions(prev => ({ ...prev, [field.id]: !prev[field.id] }))}
+                                        className="flex items-center justify-between w-full text-[9px] text-slate-400 hover:text-purple-400 transition-colors"
+                                    >
+                                        <span className="flex items-center gap-1">
+                                            Options <span className="px-1.5 py-0.5 bg-slate-700 rounded text-slate-300">{(field.options || []).length}</span>
+                                        </span>
+                                        <ChevronDown className={`w-3 h-3 transition-transform ${expandedOptions[field.id] ? 'rotate-180' : ''}`} />
+                                    </button>
+                                    {expandedOptions[field.id] && (
+                                        <div className="mt-2 space-y-1">
+                                            {(field.options || []).map((option, optIndex) => (
+                                                <div key={optIndex} className="flex items-center gap-1">
+                                                    <input type="text" value={option} onChange={(e) => { const newOptions = [...(field.options || [])]; newOptions[optIndex] = e.target.value; updateField(index, { options: newOptions }); }} className="flex-1 px-2 py-1 bg-slate-900/50 border border-slate-600/50 rounded text-white text-xs" />
+                                                    <button onClick={() => { updateField(index, { options: (field.options || []).filter((_, i) => i !== optIndex) }); }} className="p-0.5 text-slate-500 hover:text-red-400"><X className="w-3 h-3" /></button>
+                                                </div>
+                                            ))}
+                                            <button onClick={() => updateField(index, { options: [...(field.options || []), ''] })} className="w-full py-1 text-[9px] text-purple-400 border border-dashed border-slate-600 rounded hover:bg-purple-500/10">+ Add Option</button>
                                         </div>
-                                    ))}
-                                    <button onClick={() => updateField(index, { options: [...(field.options || []), ''] })} className="w-full py-1 text-[9px] text-purple-400 border border-dashed border-slate-600 rounded hover:bg-purple-500/10">+ Add Option</button>
+                                    )}
                                 </div>
                             )}
                         </div>
