@@ -90,7 +90,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             currencySymbol,
             paymentMethod,
             proofUrl: data.proof_url,
-            couponApplied: data.coupon_applied
+            couponApplied: data.coupon_applied,
+            orderStatus: data.order_status || 'pending'
         }));
 
     } catch (err: any) {
@@ -171,6 +172,7 @@ interface InvoiceData {
     paymentMethod: string;
     proofUrl?: string;
     couponApplied?: string;
+    orderStatus: string;
 }
 
 function renderInvoice(data: InvoiceData): string {
@@ -383,7 +385,7 @@ function renderInvoice(data: InvoiceData): string {
             </div>
             
             <div class="status-bar">
-                <div class="status-badge">📦 Order Placed</div>
+                <div class="status-badge">${getStatusBadge(data.orderStatus)}</div>
                 <div class="status-date" id="orderDate" data-timestamp="${data.orderTimestamp}">Loading...</div>
             </div>
             
@@ -532,4 +534,16 @@ function escapeHtml(str: string): string {
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#039;');
+}
+
+function getStatusBadge(status: string): string {
+    const statuses: Record<string, { icon: string; label: string }> = {
+        pending: { icon: '📦', label: 'Order Placed' },
+        processing: { icon: '✅', label: 'Confirmed' },
+        shipped: { icon: '🚚', label: 'Shipped' },
+        delivered: { icon: '🎉', label: 'Delivered' },
+        cancelled: { icon: '❌', label: 'Cancelled' }
+    };
+    const s = statuses[status] || statuses.pending;
+    return `${s.icon} ${s.label}`;
 }

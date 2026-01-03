@@ -57,7 +57,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             productName,
             quantity: data.quantity || 1,
             total,
-            currencySymbol
+            currencySymbol,
+            orderStatus: data.order_status || 'pending'
         }));
 
     } catch (err: any) {
@@ -130,6 +131,7 @@ interface TrackingData {
     quantity: number;
     total: number;
     currencySymbol: string;
+    orderStatus: string;
 }
 
 function renderTracking(data: TrackingData): string {
@@ -302,44 +304,68 @@ function renderTracking(data: TrackingData): string {
     
     <script>
         const createdAt = new Date('${data.createdAt}');
-        const now = new Date();
-        const daysSince = Math.floor((now - createdAt) / (1000 * 60 * 60 * 24));
+        const orderStatus = '${data.orderStatus}';
+        
+        // Map status to step index
+        const statusToStep = {
+            'pending': 0,
+            'processing': 1,
+            'shipped': 2,
+            'delivered': 3,
+            'cancelled': -1
+        };
+        const currentStepIndex = statusToStep[orderStatus] !== undefined ? statusToStep[orderStatus] : 0;
+        const isCancelled = orderStatus === 'cancelled';
         
         const steps = [
-            { id: 1, label: 'Order Placed', icon: '📦', desc: 'We received your order', dayOffset: 0 },
-            { id: 2, label: 'Confirmed', icon: '✅', desc: 'Order has been confirmed', dayOffset: 1 },
-            { id: 3, label: 'Shipped', icon: '🚚', desc: 'Package is on the way', dayOffset: 2 },
-            { id: 4, label: 'Delivered', icon: '🎉', desc: 'Package delivered successfully', dayOffset: 5 }
+            { id: 'pending', label: 'Order Placed', icon: '📦', desc: 'We received your order' },
+            { id: 'processing', label: 'Confirmed', icon: '✅', desc: 'Order has been confirmed' },
+            { id: 'shipped', label: 'Shipped', icon: '🚚', desc: 'Package is on the way' },
+            { id: 'delivered', label: 'Delivered', icon: '🎉', desc: 'Package delivered successfully' }
         ];
         
         const timeline = document.getElementById('timeline');
         
-        steps.forEach((step, index) => {
-            const completed = daysSince >= step.dayOffset;
-            const isCurrent = completed && (index === steps.length - 1 || daysSince < steps[index + 1].dayOffset);
-            const stepDate = new Date(createdAt.getTime() + step.dayOffset * 24 * 60 * 60 * 1000);
-            
-            const html = \`
+        // Show cancelled status if cancelled
+        if (isCancelled) {
+            timeline.innerHTML = \`
                 <div class="step">
                     <div class="step-icon-col">
-                        <div class="step-icon \${completed ? (isCurrent ? 'current' : 'completed') : 'pending'}">
-                            \${completed ? '✓' : step.icon}
-                        </div>
-                        \${index < steps.length - 1 ? \`<div class="step-line \${completed ? 'completed' : 'pending'}"></div>\` : ''}
+                        <div class="step-icon" style="background: #ef4444; color: white;">❌</div>
                     </div>
                     <div class="step-content">
-                        <div class="step-title \${completed ? 'completed' : 'pending'}">\${step.label}</div>
-                        <div class="step-desc">\${step.desc}</div>
-                        <div class="step-date">\${completed ? formatDate(stepDate) : 'Pending'}</div>
+                        <div class="step-title" style="color: #ef4444;">Order Cancelled</div>
+                        <div class="step-desc">This order has been cancelled</div>
                     </div>
                 </div>
             \`;
-            timeline.innerHTML += html;
-        });
+        } else {
+            steps.forEach((step, index) => {
+                const completed = index <= currentStepIndex;
+                const isCurrent = index === currentStepIndex;
+                
+                const html = \`
+                    <div class="step">
+                        <div class="step-icon-col">
+                            <div class="step-icon \${completed ? (isCurrent ? 'current' : 'completed') : 'pending'}">
+                                \${completed ? '✓' : step.icon}
+                            </div>
+                            \${index < steps.length - 1 ? \`<div class="step-line \${completed ? 'completed' : 'pending'}"></div>\` : ''}
+                        </div>
+                        <div class="step-content">
+                            <div class="step-title \${completed ? 'completed' : 'pending'}">\${step.label}</div>
+                            <div class="step-desc">\${step.desc}</div>
+                            <div class="step-date">\${completed ? (isCurrent ? 'Current Status' : 'Completed') : 'Pending'}</div>
+                        </div>
+                    </div>
+                \`;
+                timeline.innerHTML += html;
+            });
+        }
         
         // Set estimated delivery
         const estDelivery = new Date(createdAt.getTime() + 5 * 24 * 60 * 60 * 1000);
-        document.getElementById('estDelivery').textContent = formatShortDate(estDelivery);
+        document.getElementById('estDelivery').textContent = isCancelled ? 'N/A' : formatShortDate(estDelivery);
         
         function formatDate(date) {
             return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
