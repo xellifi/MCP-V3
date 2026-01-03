@@ -507,20 +507,20 @@ const FormView: React.FC = () => {
                             </div>
                         )}
 
-                        {/* Content Row - Image (left) and Form (right) - equal height on lg */}
-                        <div className={`${form?.header_image_url ? 'lg:flex lg:flex-row lg:items-stretch' : ''}`}>
-                            {/* Image Section - Left column on lg (light blue background) */}
+                        {/* Content Row - Image (left) and Form (right) */}
+                        <div className={`${form?.header_image_url ? 'lg:flex lg:flex-row' : ''}`}>
+                            {/* Image Section - Left column on lg - Image at TOP, countdown below */}
                             {form?.header_image_url && (
                                 <div
                                     className="relative lg:w-1/2 flex flex-col"
                                     style={{ backgroundColor: '#ffffff' }}
                                 >
-                                    {/* Image - enlarged for PC */}
-                                    <div className="flex-1 flex items-center justify-center p-4 lg:p-3">
+                                    {/* Image - at TOP with 10px margin */}
+                                    <div className="p-2.5 lg:p-2.5">
                                         <img
                                             src={form.header_image_url}
                                             alt=""
-                                            className="w-full h-full object-contain max-h-[320px] lg:max-h-[300px]"
+                                            className="w-full h-auto object-contain max-h-[320px] lg:max-h-[300px]"
                                         />
                                     </div>
 
@@ -533,10 +533,10 @@ const FormView: React.FC = () => {
                                         </div>
                                     </div>
 
-                                    {/* Countdown Timer - pushed to bottom with mt-auto on lg */}
+                                    {/* Countdown Timer - below image with 10px gap */}
                                     {form?.countdown_enabled && timeLeft > 0 && (
-                                        <div className="px-4 pb-4 lg:mt-auto">
-                                            {/* Desktop timer - matches button height */}
+                                        <div className="px-2.5 lg:px-2.5">
+                                            {/* Desktop timer */}
                                             <div className="hidden lg:flex py-3 bg-blue-500 items-center justify-center gap-3 rounded-lg">
                                                 <span className="text-lg">⏰</span>
                                                 <div className="flex items-center gap-2">
@@ -556,6 +556,7 @@ const FormView: React.FC = () => {
                                             </div>
                                         </div>
                                     )}
+                                    {/* Empty space below is OK */}
                                 </div>
                             )}
 
