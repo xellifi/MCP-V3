@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Workspace } from '../types';
 import { api } from '../services/api';
+import { supabase } from '../lib/supabase';
 import { useTheme } from '../context/ThemeContext';
 import { format, formatDistanceToNow } from 'date-fns';
 import {
@@ -24,7 +25,10 @@ import {
     Download,
     Clock,
     CheckCircle,
-    AlertCircle
+    AlertCircle,
+    Truck,
+    Box,
+    XCircle
 } from 'lucide-react';
 
 interface FormsProps {
@@ -52,6 +56,14 @@ interface FormSubmission {
     synced_to_sheets: boolean;
     created_at: string;
 }
+
+const ORDER_STATUSES = [
+    { id: 'pending', label: 'Order Placed', color: 'yellow', icon: Clock },
+    { id: 'processing', label: 'Confirmed', color: 'blue', icon: Box },
+    { id: 'shipped', label: 'Shipped', color: 'purple', icon: Truck },
+    { id: 'delivered', label: 'Delivered', color: 'green', icon: CheckCircle },
+    { id: 'cancelled', label: 'Cancelled', color: 'red', icon: XCircle },
+];
 
 const Forms: React.FC<FormsProps> = ({ workspace }) => {
     const { isDark } = useTheme();
@@ -96,6 +108,37 @@ const Forms: React.FC<FormsProps> = ({ workspace }) => {
             setSubmissions([]);
         } finally {
             setLoadingSubmissions(false);
+        }
+    };
+
+    const updateSubmissionStatus = async (submissionId: string, status: string) => {
+        try {
+            // Get current submission data
+            const { data: currentSub } = await supabase
+                .from('form_submissions')
+                .select('data')
+                .eq('id', submissionId)
+                .single();
+
+            // Merge new status into existing data
+            const updatedData = {
+                ...(currentSub?.data || {}),
+                order_status: status
+            };
+
+            await supabase
+                .from('form_submissions')
+                .update({ data: updatedData })
+                .eq('id', submissionId);
+
+            // Update local state
+            setSubmissions(prev => prev.map(s =>
+                s.id === submissionId
+                    ? { ...s, data: { ...s.data, order_status: status } }
+                    : s
+            ));
+        } catch (error) {
+            console.error('Error updating submission status:', error);
         }
     };
 
@@ -322,8 +365,8 @@ const Forms: React.FC<FormsProps> = ({ workspace }) => {
                             <button
                                 onClick={() => { setTypeFilter('all'); setCurrentPage(1); }}
                                 className={`px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${typeFilter === 'all'
-                                        ? 'bg-indigo-500 text-white'
-                                        : `${isDark ? 'bg-white/5 text-slate-400 hover:text-white hover:bg-white/10' : 'bg-gray-100 text-gray-600 hover:text-gray-900 hover:bg-gray-200'}`
+                                    ? 'bg-indigo-500 text-white'
+                                    : `${isDark ? 'bg-white/5 text-slate-400 hover:text-white hover:bg-white/10' : 'bg-gray-100 text-gray-600 hover:text-gray-900 hover:bg-gray-200'}`
                                     }`}
                             >
                                 All
@@ -331,8 +374,8 @@ const Forms: React.FC<FormsProps> = ({ workspace }) => {
                             <button
                                 onClick={() => { setTypeFilter('order'); setCurrentPage(1); }}
                                 className={`px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${typeFilter === 'order'
-                                        ? 'bg-emerald-500 text-white'
-                                        : `${isDark ? 'bg-white/5 text-slate-400 hover:text-white hover:bg-white/10' : 'bg-gray-100 text-gray-600 hover:text-gray-900 hover:bg-gray-200'}`
+                                    ? 'bg-emerald-500 text-white'
+                                    : `${isDark ? 'bg-white/5 text-slate-400 hover:text-white hover:bg-white/10' : 'bg-gray-100 text-gray-600 hover:text-gray-900 hover:bg-gray-200'}`
                                     }`}
                             >
                                 Orders
@@ -340,8 +383,8 @@ const Forms: React.FC<FormsProps> = ({ workspace }) => {
                             <button
                                 onClick={() => { setTypeFilter('form'); setCurrentPage(1); }}
                                 className={`px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${typeFilter === 'form'
-                                        ? 'bg-purple-500 text-white'
-                                        : `${isDark ? 'bg-white/5 text-slate-400 hover:text-white hover:bg-white/10' : 'bg-gray-100 text-gray-600 hover:text-gray-900 hover:bg-gray-200'}`
+                                    ? 'bg-purple-500 text-white'
+                                    : `${isDark ? 'bg-white/5 text-slate-400 hover:text-white hover:bg-white/10' : 'bg-gray-100 text-gray-600 hover:text-gray-900 hover:bg-gray-200'}`
                                     }`}
                             >
                                 Forms
@@ -400,8 +443,8 @@ const Forms: React.FC<FormsProps> = ({ workspace }) => {
                                 {/* Type Badge */}
                                 <div className={`flex items-center gap-2 mt-2 ${viewMode === 'grid' ? 'justify-center' : ''}`}>
                                     <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${form.is_order_form
-                                            ? `${isDark ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-emerald-50 text-emerald-600 border-emerald-200'}`
-                                            : `${isDark ? 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30' : 'bg-indigo-50 text-indigo-600 border-indigo-200'}`
+                                        ? `${isDark ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-emerald-50 text-emerald-600 border-emerald-200'}`
+                                        : `${isDark ? 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30' : 'bg-indigo-50 text-indigo-600 border-indigo-200'}`
                                         } border`}>
                                         {form.is_order_form ? 'Order Form' : 'Form'}
                                     </span>
@@ -619,7 +662,7 @@ const Forms: React.FC<FormsProps> = ({ workspace }) => {
                                         >
                                             <div className="flex items-start justify-between gap-4">
                                                 <div className="flex-1 min-w-0">
-                                                    <div className="flex items-center gap-2 mb-2">
+                                                    <div className="flex items-center gap-2 mb-2 flex-wrap">
                                                         <span className={`font-semibold ${textPrimary}`}>
                                                             {submission.subscriber_name || submission.data?.subscriber_name || 'Anonymous'}
                                                         </span>
@@ -631,7 +674,7 @@ const Forms: React.FC<FormsProps> = ({ workspace }) => {
                                                         ) : (
                                                             <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs ${isDark ? 'bg-yellow-500/20 text-yellow-400' : 'bg-yellow-50 text-yellow-600'}`}>
                                                                 <AlertCircle className="w-3 h-3" />
-                                                                Pending
+                                                                Pending Sync
                                                             </span>
                                                         )}
                                                     </div>
@@ -656,6 +699,55 @@ const Forms: React.FC<FormsProps> = ({ workspace }) => {
                                                                     <span className="font-medium capitalize">{key.replace(/_/g, ' ')}:</span> {String(value)}
                                                                 </p>
                                                             ))}
+                                                        </div>
+                                                    )}
+
+                                                    {/* Order Status & Actions for Order Forms */}
+                                                    {selectedForm.is_order_form && (
+                                                        <div className="flex items-center gap-3 mt-3 flex-wrap">
+                                                            {/* Status Dropdown */}
+                                                            <select
+                                                                value={submission.data?.order_status || 'pending'}
+                                                                onChange={(e) => updateSubmissionStatus(submission.id, e.target.value)}
+                                                                className={`text-xs font-medium px-3 py-1.5 rounded-lg border-0 cursor-pointer transition-all ${(submission.data?.order_status || 'pending') === 'pending' ? 'bg-yellow-500/20 text-yellow-400' :
+                                                                        submission.data?.order_status === 'processing' ? 'bg-blue-500/20 text-blue-400' :
+                                                                            submission.data?.order_status === 'shipped' ? 'bg-purple-500/20 text-purple-400' :
+                                                                                submission.data?.order_status === 'delivered' ? 'bg-green-500/20 text-green-400' :
+                                                                                    'bg-red-500/20 text-red-400'
+                                                                    }`}
+                                                            >
+                                                                {ORDER_STATUSES.map(s => (
+                                                                    <option key={s.id} value={s.id}>{s.label}</option>
+                                                                ))}
+                                                            </select>
+
+                                                            {/* View Invoice */}
+                                                            <a
+                                                                href={`/api/invoices/view?id=${submission.id}&company=${encodeURIComponent(selectedForm.name)}&color=${encodeURIComponent('#6366f1')}`}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${isDark
+                                                                        ? 'bg-indigo-500/20 text-indigo-400 hover:bg-indigo-500/30'
+                                                                        : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100'
+                                                                    }`}
+                                                            >
+                                                                <Eye className="w-3 h-3" />
+                                                                View Invoice
+                                                            </a>
+
+                                                            {/* Track Order */}
+                                                            <a
+                                                                href={`/api/track/view?id=${submission.id}&company=${encodeURIComponent(selectedForm.name)}&color=${encodeURIComponent('#6366f1')}`}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${isDark
+                                                                        ? 'bg-purple-500/20 text-purple-400 hover:bg-purple-500/30'
+                                                                        : 'bg-purple-50 text-purple-600 hover:bg-purple-100'
+                                                                    }`}
+                                                            >
+                                                                <Truck className="w-3 h-3" />
+                                                                Track
+                                                            </a>
                                                         </div>
                                                     )}
                                                 </div>
