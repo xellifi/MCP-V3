@@ -492,7 +492,7 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
         const inputRadius = { normal: '0px', rounded: '6px', round: '12px', full: '9999px' }[borderRadius] || '12px';
 
         return (
-            <div className={`${containerBg} rounded-xl overflow-y-auto h-full`}>
+            <div className="bg-white rounded-xl overflow-hidden">
                 <div className={`${cardBg} flex flex-col`} style={{ borderRadius: borderRadiusValue }}>
 
                     {/* Promo Banner */}
@@ -524,20 +524,39 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
 
                     {/* Countdown Timer */}
                     {countdownEnabled && (
-                        <div className="px-3 pb-2">
-                            <div className="flex py-2 bg-blue-500 items-center justify-center gap-2 rounded-lg">
-                                <span className="text-sm">⏰</span>
-                                <div className="flex items-center gap-1">
-                                    <span className="text-slate-800 text-sm font-bold font-mono bg-blue-400 px-1.5 py-0.5 rounded">00</span>
-                                    <span className="text-slate-800 text-sm font-bold font-mono bg-blue-400 px-1.5 py-0.5 rounded">09</span>
-                                    <span className="text-slate-800 text-sm font-bold font-mono bg-blue-400 px-1.5 py-0.5 rounded">59</span>
+                        <div className="px-3 pb-3">
+                            <div className="bg-gradient-to-r from-rose-500 via-pink-500 to-purple-500 p-3 rounded-xl shadow-lg">
+                                <p className="text-center text-white/90 text-xs font-medium mb-2 tracking-wide uppercase">
+                                    ⚡ Limited Time Offer
+                                </p>
+                                <div className="flex items-center justify-center gap-2">
+                                    <div className="flex flex-col items-center">
+                                        <div className="bg-white/20 backdrop-blur-sm px-3 py-2 rounded-lg border border-white/30">
+                                            <span className="text-white text-xl font-bold font-mono tabular-nums">00</span>
+                                        </div>
+                                        <span className="text-white/70 text-[9px] mt-1 uppercase tracking-wider">Hours</span>
+                                    </div>
+                                    <span className="text-white/60 text-xl font-light mb-4">:</span>
+                                    <div className="flex flex-col items-center">
+                                        <div className="bg-white/20 backdrop-blur-sm px-3 py-2 rounded-lg border border-white/30 animate-pulse">
+                                            <span className="text-white text-xl font-bold font-mono tabular-nums">09</span>
+                                        </div>
+                                        <span className="text-white/70 text-[9px] mt-1 uppercase tracking-wider">Mins</span>
+                                    </div>
+                                    <span className="text-white/60 text-xl font-light mb-4">:</span>
+                                    <div className="flex flex-col items-center">
+                                        <div className="bg-white/20 backdrop-blur-sm px-3 py-2 rounded-lg border border-white/30">
+                                            <span className="text-white text-xl font-bold font-mono tabular-nums">59</span>
+                                        </div>
+                                        <span className="text-white/70 text-[9px] mt-1 uppercase tracking-wider">Secs</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     )}
 
                     {/* Form Content */}
-                    <div className="flex-1 overflow-y-auto p-3 bg-white">
+                    <div className="p-3 bg-white">
                         {/* Step Indicator */}
                         {isOrderForm && (
                             <div className="flex items-center justify-center gap-1.5 mb-4">
@@ -552,8 +571,8 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
                             </div>
                         )}
 
-                        {/* Step 1: Product/Quantity */}
-                        {previewStep === 1 && isOrderForm && (
+                        {/* Step 1: Product/Quantity - always show for order forms */}
+                        {isOrderForm && (
                             <div className="space-y-3">
                                 <div>
                                     <label className="block text-slate-500 text-xs mb-1.5">Quantity</label>
@@ -584,48 +603,46 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
                             </div>
                         )}
 
-                        {/* Step 2: Buyer Info */}
-                        {previewStep === 2 && (
-                            <div className={`${!isMobile ? 'grid grid-cols-2 gap-2' : 'space-y-2'}`}>
-                                {fields.map((field) => {
-                                    const isFullWidth = field.type === 'textarea' || field.type === 'radio';
-                                    return (
-                                        <div key={field.id} className={!isMobile && isFullWidth ? 'col-span-2' : ''}>
-                                            <label className="block text-slate-500 text-[10px] mb-0.5">
-                                                {field.label}{field.required && <span className="text-red-500 ml-0.5">*</span>}
+                        {/* Step 2: Buyer Info - always show */}
+                        <div className={`${!isMobile ? 'grid grid-cols-2 gap-2' : 'space-y-2'}`}>
+                            {fields.map((field) => {
+                                const isFullWidth = field.type === 'textarea' || field.type === 'radio';
+                                return (
+                                    <div key={field.id} className={!isMobile && isFullWidth ? 'col-span-2' : ''}>
+                                        <label className="block text-slate-500 text-[10px] mb-0.5">
+                                            {field.label}{field.required && <span className="text-red-500 ml-0.5">*</span>}
+                                        </label>
+                                        {field.type === 'textarea' ? (
+                                            <textarea className="w-full px-2 py-1.5 bg-slate-50 border border-slate-200 text-slate-800 text-xs resize-none placeholder-slate-400" rows={2} style={{ borderRadius: inputRadius }} placeholder={field.placeholder} readOnly />
+                                        ) : field.type === 'select' ? (
+                                            <div className="w-full px-2 py-1.5 bg-slate-50 border border-slate-200 flex items-center justify-between" style={{ borderRadius: inputRadius }}>
+                                                <span className="text-xs text-slate-400">Select...</span>
+                                                <ChevronDown className="w-3 h-3 text-slate-400" />
+                                            </div>
+                                        ) : field.type === 'checkbox' ? (
+                                            <label className="flex items-center gap-1.5 p-1.5 bg-slate-50 border border-slate-200 cursor-pointer" style={{ borderRadius: inputRadius }}>
+                                                <input type="checkbox" className="w-3 h-3" />
+                                                <span className="text-gray-700 text-xs">{field.label}</span>
                                             </label>
-                                            {field.type === 'textarea' ? (
-                                                <textarea className="w-full px-2 py-1.5 bg-slate-50 border border-slate-200 text-slate-800 text-xs resize-none placeholder-slate-400" rows={2} style={{ borderRadius: inputRadius }} placeholder={field.placeholder} readOnly />
-                                            ) : field.type === 'select' ? (
-                                                <div className="w-full px-2 py-1.5 bg-slate-50 border border-slate-200 flex items-center justify-between" style={{ borderRadius: inputRadius }}>
-                                                    <span className="text-xs text-slate-400">Select...</span>
-                                                    <ChevronDown className="w-3 h-3 text-slate-400" />
-                                                </div>
-                                            ) : field.type === 'checkbox' ? (
-                                                <label className="flex items-center gap-1.5 p-1.5 bg-slate-50 border border-slate-200 cursor-pointer" style={{ borderRadius: inputRadius }}>
-                                                    <input type="checkbox" className="w-3 h-3" />
-                                                    <span className="text-gray-700 text-xs">{field.label}</span>
-                                                </label>
-                                            ) : field.type === 'radio' ? (
-                                                <div className="flex gap-2 flex-wrap">
-                                                    {(field.options || ['Option 1']).slice(0, 3).map((opt, i) => (
-                                                        <label key={i} className="flex items-center gap-1.5 p-1.5 bg-slate-50 border border-slate-200 cursor-pointer" style={{ borderRadius: inputRadius }}>
-                                                            <input type="radio" name={field.id} className="w-3 h-3" />
-                                                            <span className="text-gray-700 text-xs">{opt}</span>
-                                                        </label>
-                                                    ))}
-                                                </div>
-                                            ) : (
-                                                <input type="text" className="w-full px-2 py-1.5 bg-slate-50 border border-slate-200 text-slate-800 text-xs placeholder-slate-400" style={{ borderRadius: inputRadius }} placeholder={field.placeholder} readOnly />
-                                            )}
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        )}
+                                        ) : field.type === 'radio' ? (
+                                            <div className="flex gap-2 flex-wrap">
+                                                {(field.options || ['Option 1']).slice(0, 3).map((opt, i) => (
+                                                    <label key={i} className="flex items-center gap-1.5 p-1.5 bg-slate-50 border border-slate-200 cursor-pointer" style={{ borderRadius: inputRadius }}>
+                                                        <input type="radio" name={field.id} className="w-3 h-3" />
+                                                        <span className="text-gray-700 text-xs">{opt}</span>
+                                                    </label>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <input type="text" className="w-full px-2 py-1.5 bg-slate-50 border border-slate-200 text-slate-800 text-xs placeholder-slate-400" style={{ borderRadius: inputRadius }} placeholder={field.placeholder} readOnly />
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
 
-                        {/* Step 3: Payment */}
-                        {previewStep === 3 && (
+                        {/* Step 3: Payment - always show if enabled */}
+                        {(codEnabled || ewalletEnabled) && (
                             <div className="space-y-3">
                                 <p className="text-slate-500 text-xs text-center">Select payment method</p>
 
@@ -639,15 +656,29 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
                                     </button>
                                 )}
 
-                                {ewalletEnabled && ewalletOptions.filter(w => ewalletNumbers[w]).slice(0, 2).map((wallet) => (
-                                    <button key={wallet} className="w-full p-3 border-2 border-gray-200 bg-white flex items-center gap-3" style={{ borderRadius: inputRadius }}>
-                                        <span className="text-2xl">📱</span>
-                                        <div className="text-left flex-1">
-                                            <p className="text-slate-800 font-semibold text-sm">{wallet}</p>
-                                            <p className="text-slate-500 text-xs">{ewalletNumbers[wallet]}</p>
-                                        </div>
-                                    </button>
-                                ))}
+                                {ewalletEnabled && ewalletOptions.filter(w => ewalletNumbers[w]).slice(0, 2).map((wallet) => {
+                                    const walletLogos: Record<string, string> = {
+                                        'GCash': 'https://www.gcash.com/wp-content/uploads/2019/04/gcash-logo.png',
+                                        'Maya': 'https://www.maya.ph/hubfs/Maya%20Logo.png',
+                                        'PayPal': 'https://www.paypalobjects.com/webstatic/icon/pp258.png',
+                                    };
+                                    const walletColors: Record<string, string> = {
+                                        'GCash': '#007DFE',
+                                        'Maya': '#00D26A',
+                                        'PayPal': '#003087',
+                                    };
+                                    return (
+                                        <button key={wallet} className="w-full p-3 border-2 border-gray-200 bg-white flex items-center gap-3" style={{ borderRadius: inputRadius }}>
+                                            <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-bold" style={{ backgroundColor: walletColors[wallet] || '#666' }}>
+                                                {wallet.charAt(0)}
+                                            </div>
+                                            <div className="text-left flex-1">
+                                                <p className="text-slate-800 font-semibold text-sm">{wallet}</p>
+                                                <p className="text-slate-500 text-xs">{ewalletNumbers[wallet]}</p>
+                                            </div>
+                                        </button>
+                                    );
+                                })}
 
                                 {requireProofUpload && (
                                     <div className="mt-2">
@@ -663,7 +694,7 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
 
                         {/* Submit Button */}
                         <button className="w-full mt-4 py-2.5 text-white font-medium text-sm uppercase" style={{ backgroundColor: submitButtonColor, borderRadius: inputRadius }}>
-                            {previewStep < 3 ? 'CONTINUE' : submitButtonText}
+                            {submitButtonText || 'Submit'}
                         </button>
 
                         {/* Back link for steps 2-3 */}

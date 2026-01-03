@@ -18,6 +18,7 @@ import {
     List,
     ChevronLeft,
     ChevronRight,
+    Edit2,
     Package,
     DollarSign,
     Calendar,
@@ -30,7 +31,8 @@ import {
     AlertCircle,
     Truck,
     Box,
-    XCircle
+    XCircle,
+    MoreVertical
 } from 'lucide-react';
 
 interface FormsProps {
@@ -51,6 +53,26 @@ interface Form {
     page_id?: string;
     page_logo?: string;
     submission_count?: number;
+    fields?: any[];
+    submit_button_text?: string;
+    submit_button_color?: string;
+    border_radius?: string;
+    success_message?: string;
+    header_image_url?: string;
+    countdown_enabled?: boolean;
+    countdown_minutes?: number;
+    countdown_blink?: boolean;
+    max_quantity?: number;
+    coupon_enabled?: boolean;
+    coupon_code?: string;
+    coupon_discount?: number;
+    cod_enabled?: boolean;
+    ewallet_enabled?: boolean;
+    ewallet_options?: string[];
+    ewallet_numbers?: Record<string, string>;
+    require_proof_upload?: boolean;
+    promo_text?: string;
+    promo_icon?: string;
 }
 
 interface FormSubmission {
@@ -86,6 +108,11 @@ const Forms: React.FC<FormsProps> = ({ workspace }) => {
     const [deleting, setDeleting] = useState(false);
     const [typeFilter, setTypeFilter] = useState<'all' | 'order' | 'form'>('all');
     const [showCreateModal, setShowCreateModal] = useState(false);
+    const [createFormConfig, setCreateFormConfig] = useState<any>(null);
+    const [saving, setSaving] = useState(false);
+    const [editingForm, setEditingForm] = useState<Form | null>(null);
+    const [editFormConfig, setEditFormConfig] = useState<any>(null);
+    const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
 
     const itemsPerPage = 12;
 
@@ -487,14 +514,76 @@ const Forms: React.FC<FormsProps> = ({ workspace }) => {
                             className={`${cardBg} rounded-2xl border overflow-hidden cursor-pointer group transition-all duration-300 relative ${viewMode === 'grid' ? 'p-5' : 'p-4 flex items-center gap-4'
                                 }`}
                         >
-                            {/* Delete Button */}
-                            <button
-                                onClick={(e) => openDeleteModal(form, e)}
-                                className={`absolute top-3 right-3 p-1.5 ${isDark ? 'bg-red-500/20 hover:bg-red-500/40 text-red-400 hover:text-red-300 border-red-500/30' : 'bg-red-50 hover:bg-red-100 text-red-500 hover:text-red-600 border-red-200'} rounded-lg opacity-0 group-hover:opacity-100 transition-all z-10 border`}
-                                title="Delete form"
-                            >
-                                <Trash2 className="w-4 h-4" />
-                            </button>
+                            {/* 3-Dot Menu */}
+                            <div className="absolute top-3 right-3 z-10">
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setActiveMenuId(activeMenuId === form.id ? null : form.id);
+                                    }}
+                                    className={`p-1.5 ${isDark ? 'bg-slate-700/80 hover:bg-slate-600 text-white/70 hover:text-white' : 'bg-white/80 hover:bg-white text-gray-500 hover:text-gray-700'} rounded-lg transition-all shadow-lg backdrop-blur-sm`}
+                                >
+                                    <MoreVertical className="w-4 h-4" />
+                                </button>
+
+                                {/* Dropdown Menu */}
+                                {activeMenuId === form.id && (
+                                    <div
+                                        className={`absolute right-0 mt-1 w-36 ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-200'} rounded-xl border shadow-xl overflow-hidden animate-scale-in`}
+                                        onClick={(e) => e.stopPropagation()}
+                                    >
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setActiveMenuId(null);
+                                                setEditingForm(form);
+                                                setEditFormConfig({
+                                                    formName: form.name,
+                                                    isOrderForm: form.is_order_form,
+                                                    productName: form.product_name,
+                                                    productPrice: form.product_price,
+                                                    currency: form.currency,
+                                                    fields: form.fields,
+                                                    submitButtonText: form.submit_button_text,
+                                                    submitButtonColor: form.submit_button_color,
+                                                    borderRadius: form.border_radius,
+                                                    successMessage: form.success_message,
+                                                    headerImageUrl: form.header_image_url,
+                                                    countdownEnabled: form.countdown_enabled,
+                                                    countdownMinutes: form.countdown_minutes,
+                                                    countdownBlink: form.countdown_blink,
+                                                    maxQuantity: form.max_quantity,
+                                                    couponEnabled: form.coupon_enabled,
+                                                    couponCode: form.coupon_code,
+                                                    couponDiscount: form.coupon_discount,
+                                                    codEnabled: form.cod_enabled,
+                                                    ewalletEnabled: form.ewallet_enabled,
+                                                    ewalletOptions: form.ewallet_options,
+                                                    ewalletNumbers: form.ewallet_numbers,
+                                                    requireProofUpload: form.require_proof_upload,
+                                                    formTemplate: form.form_template,
+                                                    promoText: form.promo_text,
+                                                    promoIcon: form.promo_icon,
+                                                });
+                                            }}
+                                            className={`w-full px-3 py-2.5 flex items-center gap-2 ${isDark ? 'hover:bg-slate-700 text-white' : 'hover:bg-gray-50 text-gray-700'} transition-colors text-sm`}
+                                        >
+                                            <Edit2 className="w-4 h-4 text-indigo-400" />
+                                            Edit
+                                        </button>
+                                        <button
+                                            onClick={(e) => {
+                                                setActiveMenuId(null);
+                                                openDeleteModal(form, e);
+                                            }}
+                                            className={`w-full px-3 py-2.5 flex items-center gap-2 ${isDark ? 'hover:bg-red-500/20 text-red-400' : 'hover:bg-red-50 text-red-500'} transition-colors text-sm`}
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                            Delete
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
 
                             {/* Page Logo - Upper Left */}
                             {form.page_logo && (
@@ -942,7 +1031,7 @@ const Forms: React.FC<FormsProps> = ({ workspace }) => {
                         className={`absolute inset-0 ${isDark ? 'bg-black/70' : 'bg-black/50'} backdrop-blur-sm`}
                         onClick={() => setShowCreateModal(false)}
                     />
-                    <div className={`relative ${modalBg} rounded-2xl border shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col animate-scale-in`}>
+                    <div className={`relative ${modalBg} rounded-2xl border shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col animate-scale-in`}>
                         <div className={`flex items-center justify-between p-4 border-b ${isDark ? 'border-white/10' : 'border-gray-200'}`}>
                             <h2 className={`text-xl font-bold ${textPrimary}`}>Create New Form</h2>
                             <button
@@ -955,40 +1044,196 @@ const Forms: React.FC<FormsProps> = ({ workspace }) => {
                         <div className="flex-1 overflow-y-auto p-4">
                             <FormNodeForm
                                 workspaceId={workspace.id}
-                                onChange={async (config) => {
-                                    // Save form to database
-                                    if (config.formName) {
-                                        try {
-                                            const { data, error } = await supabase
-                                                .from('forms')
-                                                .insert({
-                                                    workspace_id: workspace.id,
-                                                    name: config.formName,
-                                                    is_order_form: config.isOrderForm || false,
-                                                    product_name: config.productName,
-                                                    product_price: config.productPrice,
-                                                    currency: config.currency || 'PHP',
-                                                    fields: config.fields || [],
-                                                    submit_button_text: config.submitButtonText || 'Submit',
-                                                    submit_button_color: config.submitButtonColor || '#6366f1',
-                                                    success_message: config.successMessage || 'Thank you!',
-                                                    require_payment_proof: config.requirePaymentProof || false,
-                                                    payment_methods: config.paymentMethods || [],
-                                                })
-                                                .select()
-                                                .single();
-
-                                            if (!error && data) {
-                                                toast.success('Form created successfully!');
-                                                setShowCreateModal(false);
-                                                loadForms();
-                                            }
-                                        } catch (err) {
-                                            console.error('Error creating form:', err);
-                                        }
-                                    }
+                                initialConfig={createFormConfig}
+                                onChange={(config) => {
+                                    setCreateFormConfig(config);
                                 }}
                             />
+                        </div>
+                        {/* Footer with Save Button */}
+                        <div className={`flex items-center justify-end gap-3 p-4 border-t ${isDark ? 'border-white/10' : 'border-gray-200'}`}>
+                            <button
+                                onClick={() => setShowCreateModal(false)}
+                                className={`px-4 py-2 ${isDark ? 'bg-white/10 hover:bg-white/20 text-white' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'} rounded-xl font-medium transition-colors`}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={async () => {
+                                    if (!createFormConfig?.formName) {
+                                        toast.error('Please enter a form name');
+                                        return;
+                                    }
+                                    setSaving(true);
+                                    try {
+                                        const { data, error } = await supabase
+                                            .from('forms')
+                                            .insert({
+                                                workspace_id: workspace.id,
+                                                name: createFormConfig.formName,
+                                                is_order_form: createFormConfig.isOrderForm ?? true,
+                                                product_name: createFormConfig.productName || '',
+                                                product_price: createFormConfig.productPrice || 0,
+                                                currency: createFormConfig.currency || 'PHP',
+                                                fields: createFormConfig.fields || [],
+                                                submit_button_text: createFormConfig.submitButtonText || 'Place Order',
+                                                submit_button_color: createFormConfig.submitButtonColor || '#6366f1',
+                                                border_radius: createFormConfig.borderRadius || 'round',
+                                                success_message: createFormConfig.successMessage || 'Order placed successfully!',
+                                                header_image_url: createFormConfig.headerImageUrl || '',
+                                                countdown_enabled: createFormConfig.countdownEnabled || false,
+                                                countdown_minutes: createFormConfig.countdownMinutes || 10,
+                                                countdown_blink: createFormConfig.countdownBlink ?? true,
+                                                max_quantity: createFormConfig.maxQuantity || 10,
+                                                coupon_enabled: createFormConfig.couponEnabled || false,
+                                                coupon_code: createFormConfig.couponCode || '',
+                                                coupon_discount: createFormConfig.couponDiscount || 0,
+                                                cod_enabled: createFormConfig.codEnabled ?? true,
+                                                ewallet_enabled: createFormConfig.ewalletEnabled ?? true,
+                                                ewallet_options: createFormConfig.ewalletOptions || [],
+                                                ewallet_numbers: createFormConfig.ewalletNumbers || {},
+                                                require_proof_upload: createFormConfig.requireProofUpload ?? true,
+                                                form_template: createFormConfig.formTemplate || 'modern',
+                                                promo_text: createFormConfig.promoText || 'Promo Only!',
+                                                promo_icon: createFormConfig.promoIcon || '🔥',
+                                            })
+                                            .select()
+                                            .single();
+
+                                        if (!error && data) {
+                                            toast.success('Form created successfully!');
+                                            setShowCreateModal(false);
+                                            setCreateFormConfig(null);
+                                            loadForms();
+                                        } else {
+                                            toast.error('Failed to create form');
+                                        }
+                                    } catch (err) {
+                                        console.error('Error creating form:', err);
+                                        toast.error('Failed to create form');
+                                    } finally {
+                                        setSaving(false);
+                                    }
+                                }}
+                                disabled={saving}
+                                className="px-6 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white rounded-xl font-medium transition-all shadow-lg disabled:opacity-50 flex items-center gap-2"
+                            >
+                                {saving ? (
+                                    <>
+                                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                        Saving...
+                                    </>
+                                ) : (
+                                    'Save Form'
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Edit Form Modal */}
+            {editingForm && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div
+                        className={`absolute inset-0 ${isDark ? 'bg-black/70' : 'bg-black/50'} backdrop-blur-sm`}
+                        onClick={() => { setEditingForm(null); setEditFormConfig(null); }}
+                    />
+                    <div className={`relative ${modalBg} rounded-2xl border shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col animate-scale-in`}>
+                        <div className={`flex items-center justify-between p-4 border-b ${isDark ? 'border-white/10' : 'border-gray-200'}`}>
+                            <h2 className={`text-xl font-bold ${textPrimary}`}>Edit Form: {editingForm.name}</h2>
+                            <button
+                                onClick={() => { setEditingForm(null); setEditFormConfig(null); }}
+                                className={`p-2 ${textSecondary} hover:${textPrimary} ${isDark ? 'hover:bg-white/10' : 'hover:bg-gray-100'} rounded-lg transition-colors`}
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+                        <div className="flex-1 overflow-y-auto p-4">
+                            <FormNodeForm
+                                workspaceId={workspace.id}
+                                initialConfig={editFormConfig}
+                                onChange={(config) => {
+                                    setEditFormConfig(config);
+                                }}
+                            />
+                        </div>
+                        {/* Footer with Update Button */}
+                        <div className={`flex items-center justify-end gap-3 p-4 border-t ${isDark ? 'border-white/10' : 'border-gray-200'}`}>
+                            <button
+                                onClick={() => { setEditingForm(null); setEditFormConfig(null); }}
+                                className={`px-4 py-2 ${isDark ? 'bg-white/10 hover:bg-white/20 text-white' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'} rounded-xl font-medium transition-colors`}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={async () => {
+                                    if (!editFormConfig?.formName) {
+                                        toast.error('Please enter a form name');
+                                        return;
+                                    }
+                                    setSaving(true);
+                                    try {
+                                        const { error } = await supabase
+                                            .from('forms')
+                                            .update({
+                                                name: editFormConfig.formName,
+                                                is_order_form: editFormConfig.isOrderForm ?? true,
+                                                product_name: editFormConfig.productName || '',
+                                                product_price: editFormConfig.productPrice || 0,
+                                                currency: editFormConfig.currency || 'PHP',
+                                                fields: editFormConfig.fields || [],
+                                                submit_button_text: editFormConfig.submitButtonText || 'Place Order',
+                                                submit_button_color: editFormConfig.submitButtonColor || '#6366f1',
+                                                border_radius: editFormConfig.borderRadius || 'round',
+                                                success_message: editFormConfig.successMessage || 'Order placed successfully!',
+                                                header_image_url: editFormConfig.headerImageUrl || '',
+                                                countdown_enabled: editFormConfig.countdownEnabled || false,
+                                                countdown_minutes: editFormConfig.countdownMinutes || 10,
+                                                countdown_blink: editFormConfig.countdownBlink ?? true,
+                                                max_quantity: editFormConfig.maxQuantity || 10,
+                                                coupon_enabled: editFormConfig.couponEnabled || false,
+                                                coupon_code: editFormConfig.couponCode || '',
+                                                coupon_discount: editFormConfig.couponDiscount || 0,
+                                                cod_enabled: editFormConfig.codEnabled ?? true,
+                                                ewallet_enabled: editFormConfig.ewalletEnabled ?? true,
+                                                ewallet_options: editFormConfig.ewalletOptions || [],
+                                                ewallet_numbers: editFormConfig.ewalletNumbers || {},
+                                                require_proof_upload: editFormConfig.requireProofUpload ?? true,
+                                                form_template: editFormConfig.formTemplate || 'modern',
+                                                promo_text: editFormConfig.promoText || 'Promo Only!',
+                                                promo_icon: editFormConfig.promoIcon || '🔥',
+                                                updated_at: new Date().toISOString(),
+                                            })
+                                            .eq('id', editingForm.id);
+
+                                        if (!error) {
+                                            toast.success('Form updated successfully!');
+                                            setEditingForm(null);
+                                            setEditFormConfig(null);
+                                            loadForms();
+                                        } else {
+                                            toast.error('Failed to update form');
+                                        }
+                                    } catch (err) {
+                                        console.error('Error updating form:', err);
+                                        toast.error('Failed to update form');
+                                    } finally {
+                                        setSaving(false);
+                                    }
+                                }}
+                                disabled={saving}
+                                className="px-6 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white rounded-xl font-medium transition-all shadow-lg disabled:opacity-50 flex items-center gap-2"
+                            >
+                                {saving ? (
+                                    <>
+                                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                        Updating...
+                                    </>
+                                ) : (
+                                    'Update Form'
+                                )}
+                            </button>
                         </div>
                     </div>
                 </div>

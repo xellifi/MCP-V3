@@ -778,10 +778,10 @@ export const api = {
     },
 
     getForms: async (workspaceId: string): Promise<any[]> => {
-      // Get forms with flow info
+      // Get forms
       const { data: forms, error } = await supabase
         .from('forms')
-        .select('*, flows(page_id)')
+        .select('*')
         .eq('workspace_id', workspaceId)
         .order('created_at', { ascending: false });
 
@@ -808,32 +808,9 @@ export const api = {
         });
       }
 
-      // Get unique page_ids from flows
-      const pageIds = [...new Set(forms
-        .filter(f => f.flows?.page_id)
-        .map(f => f.flows.page_id)
-      )];
-
-      // Fetch page logos if we have page_ids
-      let pageLogos: Record<string, string> = {};
-      if (pageIds.length > 0) {
-        const { data: pages } = await supabase
-          .from('connected_pages')
-          .select('page_id, page_image_url')
-          .in('page_id', pageIds);
-
-        if (pages) {
-          pageLogos = Object.fromEntries(
-            pages.map(p => [p.page_id, p.page_image_url || `https://graph.facebook.com/${p.page_id}/picture?type=large`])
-          );
-        }
-      }
-
-      // Add page_logo and submission_count to each form
+      // Add submission_count to each form
       return forms.map(form => ({
         ...form,
-        page_id: form.flows?.page_id || null,
-        page_logo: form.flows?.page_id ? pageLogos[form.flows.page_id] : null,
         submission_count: submissionCounts[form.id] || 0
       }));
     },
