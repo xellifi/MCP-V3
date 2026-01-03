@@ -336,10 +336,16 @@ export default async function handler(req: any, res: any) {
         order_status: status
       };
 
+      // Build update object - also mark as synced when confirmed
+      const updatePayload: any = { data: updatedData };
+      if (status === 'processing') {
+        updatePayload.synced_to_sheets = true;
+      }
+
       // Update the submission
       const { error: updateError } = await supabase
         .from('form_submissions')
-        .update({ data: updatedData })
+        .update(updatePayload)
         .eq('id', submissionId);
 
       if (updateError) {
@@ -347,7 +353,7 @@ export default async function handler(req: any, res: any) {
         return res.status(500).json({ error: 'Failed to update status' });
       }
 
-      console.log('[Update Status] ✓ Status saved successfully');
+      console.log('[Update Status] ✓ Status saved successfully', status === 'processing' ? '(marked as synced)' : '');
 
       // Return the form info for Google Sheets sync
       const form = (submission as any)?.forms;

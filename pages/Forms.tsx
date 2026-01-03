@@ -132,10 +132,15 @@ const Forms: React.FC<FormsProps> = ({ workspace }) => {
 
             console.log('[Forms] ✓ Status saved to database');
 
-            // Update local state
+
+            // Update local state - also mark as synced when confirmed
             setSubmissions(prev => prev.map(s =>
                 s.id === submissionId
-                    ? { ...s, data: { ...s.data, order_status: status } }
+                    ? {
+                        ...s,
+                        data: { ...s.data, order_status: status },
+                        synced_to_sheets: status === 'processing' ? true : s.synced_to_sheets
+                    }
                     : s
             ));
 
