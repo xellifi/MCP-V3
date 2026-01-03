@@ -383,7 +383,7 @@ function renderInvoice(data: InvoiceData): string {
             </div>
             
             <div class="status-bar">
-                <div class="status-badge">✅ Order Confirmed</div>
+                <div class="status-badge">📦 Order Placed</div>
                 <div class="status-date" id="orderDate" data-timestamp="${data.orderTimestamp}">Loading...</div>
             </div>
             

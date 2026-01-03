@@ -219,7 +219,7 @@ const GoogleSheetNodeForm: React.FC<GoogleSheetNodeFormProps> = ({ workspaceId, 
 
                     <div className="mt-3 p-2 bg-slate-900/50 rounded-lg">
                         <p className="text-slate-500 text-xs">
-                            💡 <strong>Tip:</strong> Add headers in your sheet's first row matching field names (e.g., "Full Name", "Phone", "Address").
+                            💡 <strong>Tip:</strong> Add headers in your sheet's first row: "Full Name", "Phone", "Address", "order_status" (for tracking), etc.
                         </p>
                     </div>
                 </div>

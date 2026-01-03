@@ -267,6 +267,9 @@ const FormView: React.FC = () => {
                 ewallet_selected: selectedWallet,
                 proof_url: proofUrl,
 
+                // Order status for tracking
+                order_status: 'Order Placed',
+
                 // Timestamp
                 submitted_at: new Date().toISOString()
             };
