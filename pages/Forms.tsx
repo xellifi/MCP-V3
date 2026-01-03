@@ -114,11 +114,16 @@ const Forms: React.FC<FormsProps> = ({ workspace }) => {
     const updateSubmissionStatus = async (submissionId: string, status: string) => {
         try {
             // Get current submission data with form info
-            const { data: currentSub } = await supabase
+            const { data: currentSub, error: fetchError } = await supabase
                 .from('form_submissions')
                 .select('data, form_id, forms(google_webhook_url, google_sheet_name)')
                 .eq('id', submissionId)
                 .single();
+
+            if (fetchError) {
+                console.error('[Forms] Failed to fetch submission:', fetchError);
+                return;
+            }
 
             // Merge new status into existing data
             const updatedData = {
@@ -126,11 +131,21 @@ const Forms: React.FC<FormsProps> = ({ workspace }) => {
                 order_status: status
             };
 
+            console.log('[Forms] Updating submission:', submissionId, 'with status:', status);
+
             // Update database
-            await supabase
+            const { error: updateError } = await supabase
                 .from('form_submissions')
                 .update({ data: updatedData })
                 .eq('id', submissionId);
+
+            if (updateError) {
+                console.error('[Forms] Failed to update submission:', updateError);
+                alert('Failed to save status. Please try again.');
+                return;
+            }
+
+            console.log('[Forms] ✓ Status saved to database');
 
             // Update local state
             setSubmissions(prev => prev.map(s =>
@@ -166,6 +181,25 @@ const Forms: React.FC<FormsProps> = ({ workspace }) => {
             }
         } catch (error) {
             console.error('Error updating submission status:', error);
+        }
+    };
+
+    const deleteSubmission = async (submissionId: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (!confirm('Are you sure you want to delete this order? This action cannot be undone.')) {
+            return;
+        }
+
+        try {
+            await supabase
+                .from('form_submissions')
+                .delete()
+                .eq('id', submissionId);
+
+            // Update local state
+            setSubmissions(prev => prev.filter(s => s.id !== submissionId));
+        } catch (error) {
+            console.error('Error deleting submission:', error);
         }
     };
 
@@ -775,6 +809,18 @@ const Forms: React.FC<FormsProps> = ({ workspace }) => {
                                                                 <Truck className="w-3 h-3" />
                                                                 Track
                                                             </a>
+
+                                                            {/* Delete Order */}
+                                                            <button
+                                                                onClick={(e) => deleteSubmission(submission.id, e)}
+                                                                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${isDark
+                                                                    ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30'
+                                                                    : 'bg-red-50 text-red-600 hover:bg-red-100'
+                                                                    }`}
+                                                                title="Delete order"
+                                                            >
+                                                                <Trash2 className="w-3 h-3" />
+                                                            </button>
                                                         </div>
                                                     )}
                                                 </div>
