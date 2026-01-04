@@ -4,11 +4,15 @@
     "framework": "vite",
     "rewrites": [
         {
+            "source": "/images/:path*",
+            "destination": "https://avpfabqxnyurhkbbkmvp.supabase.co/storage/v1/object/public/attachments/:path*"
+        },
+        {
             "source": "/api/(.*)",
             "destination": "/api/$1"
         },
         {
-            "source": "/((?!api/).*)",
+            "source": "/((?!api/|images/).*)",
             "destination": "/index.html"
         }
     ]

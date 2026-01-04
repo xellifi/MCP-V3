@@ -316,7 +316,7 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
                                 if (error) throw error;
 
                                 // Use our own domain URL instead of Supabase URL
-                                const relativePath = `/api/images/${fileName}`;
+                                const relativePath = `/images/${fileName}`;
                                 const fullUrl = `${window.location.origin}${relativePath}`;
                                 setHeaderImageUrl(relativePath); // Use relative for internal display
                                 setUploadedImageUrl(fullUrl); // Full URL for copying
