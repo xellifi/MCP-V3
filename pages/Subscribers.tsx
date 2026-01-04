@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { Workspace, Subscriber, Conversation, ConnectedPage } from '../types';
 import { api } from '../services/api';
-import { Search, Download, User, Facebook, Instagram, X, MessageCircle, Calendar, Tag, ExternalLink, ChevronLeft, ChevronRight, LayoutGrid, List, Clock, Users, Plus, Check, Filter, Trash2 } from 'lucide-react';
+import { Search, Download, User, Facebook, Instagram, X, MessageCircle, Calendar, Tag, ExternalLink, ChevronLeft, ChevronRight, LayoutGrid, List, Clock, Users, Plus, Check, Filter, Trash2, MoreVertical } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
+import { useTheme } from '../context/ThemeContext';
 import { useToast } from '../context/ToastContext';
 
 interface SubscribersProps {
@@ -46,8 +47,24 @@ const Subscribers: React.FC<SubscribersProps> = ({ workspace }) => {
   const [savingLabels, setSavingLabels] = useState(false);
   const [subscriberToDelete, setSubscriberToDelete] = useState<Subscriber | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
   const itemsPerPage = 12;
   const toast = useToast();
+  const { isDark } = useTheme();
+
+  // Click outside handler for menus
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('.subscriber-card-menu') && !target.closest('button')) {
+        setActiveMenuId(null);
+      }
+    };
+    if (activeMenuId) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [activeMenuId]);
 
   // Load connected pages for filter
   useEffect(() => {
@@ -365,19 +382,41 @@ const Subscribers: React.FC<SubscribersProps> = ({ workspace }) => {
               className={`glass-panel border border-white/10 rounded-2xl overflow-hidden cursor-pointer group hover:border-indigo-500/50 hover:shadow-[0_0_30px_rgba(99,102,241,0.15)] transition-all duration-300 relative ${viewMode === 'grid' ? 'p-5' : 'p-4 flex items-center gap-4'
                 }`}
             >
-              {/* Delete Button - Top Right */}
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  e.preventDefault();
-                  handleDeleteSubscriber(subscriber.id, subscriber.name);
-                }}
-                className="absolute top-3 right-3 p-1.5 bg-red-500/20 hover:bg-red-500/40 text-red-400 hover:text-red-300 rounded-lg opacity-0 group-hover:opacity-100 transition-all z-10 border border-red-500/30"
-                title="Delete subscriber"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
+              {/* Actions Menu - Top Right */}
+              <div className="absolute top-3 right-3 z-10 flex items-center gap-1">
+                {/* Dropdown Menu */}
+                {activeMenuId === subscriber.id && (
+                  <div
+                    className={`subscriber-card-menu flex items-center gap-0.5 p-1 ${isDark ? 'bg-slate-800/95 border-slate-700' : 'bg-white/95 border-gray-200'} rounded-lg shadow-xl backdrop-blur-sm animate-scale-in`}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setActiveMenuId(null);
+                        handleDeleteSubscriber(subscriber.id, subscriber.name);
+                      }}
+                      title="Delete"
+                      className={`relative group/delete p-1.5 rounded-lg ${isDark ? 'hover:bg-red-500/20 text-red-400 hover:text-red-300' : 'hover:bg-red-50 text-red-400 hover:text-red-500'} transition-all`}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
+
+                {/* Trigger Button */}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveMenuId(activeMenuId === subscriber.id ? null : subscriber.id);
+                  }}
+                  className={`p-1.5 ${isDark ? 'bg-slate-700/80 hover:bg-slate-600 text-white/70 hover:text-white' : 'bg-white/80 hover:bg-white text-gray-500 hover:text-gray-700'} rounded-lg transition-all shadow-lg backdrop-blur-sm`}
+                >
+                  <MoreVertical className="w-4 h-4" />
+                </button>
+              </div>
 
               {/* Avatar */}
               <div className={`relative ${viewMode === 'grid' ? 'flex justify-center mb-4' : 'flex-shrink-0'}`}>
