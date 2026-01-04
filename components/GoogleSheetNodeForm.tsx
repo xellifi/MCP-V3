@@ -187,9 +187,16 @@ const GoogleSheetNodeForm: React.FC<GoogleSheetNodeFormProps> = ({ workspaceId, 
                             <pre>{`function doPost(e) {
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
   var data = JSON.parse(e.postData.contents);
-  var row = [];
+  var rowData = data.rowData || data;
+  
+  // Add unique row_id if not present
+  if (!rowData.row_id) {
+    rowData.row_id = Utilities.getUuid();
+  }
+  
   var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-  headers.forEach(function(h) { row.push(data[h] || ''); });
+  var row = [];
+  headers.forEach(function(h) { row.push(rowData[h] || ''); });
   sheet.appendRow(row);
   return ContentService.createTextOutput(JSON.stringify({success: true}));
 }`}</pre>
