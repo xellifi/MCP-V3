@@ -261,6 +261,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 );
             }
 
+            // Handle Image Node
+            if (node.type === 'imageNode' || node.data?.label?.toLowerCase() === 'image') {
+                console.log('[Continue Flow] Processing Image node');
+                const imageUrl = config.imageUrl || '';
+                const caption = config.caption || '';
+
+                if (imageUrl) {
+                    await sendImageMessage(
+                        subscriberId,
+                        imageUrl,
+                        caption,
+                        config.delaySeconds || 0,
+                        pageAccessToken
+                    );
+                } else {
+                    console.log('[Continue Flow] Skipping image node: No URL configured');
+                }
+            }
+
             // Handle Invoice Node - send invoice with clickable button to view in webview
             if (node.type === 'invoiceNode') {
                 console.log('[Continue Flow] Processing Invoice node');
@@ -557,5 +576,62 @@ async function sendInvoiceButton(
         }
     } catch (error: any) {
         console.error('[Continue Flow] Invoice button exception:', error.message);
+    }
+}
+
+// Send an image message via Messenger
+async function sendImageMessage(
+    userId: string,
+    imageUrl: string,
+    caption: string,
+    delaySeconds: number,
+    pageAccessToken: string
+): Promise<void> {
+    console.log('[Continue Flow] Sending image to:', userId);
+    console.log('[Continue Flow] Image URL:', imageUrl);
+
+    try {
+        // typing indicator
+        if (delaySeconds > 0) {
+            await new Promise(resolve => setTimeout(resolve, delaySeconds * 1000));
+        }
+
+        const messagePayload = {
+            recipient: { id: userId },
+            message: {
+                attachment: {
+                    type: 'image',
+                    payload: {
+                        url: imageUrl,
+                        is_reusable: true
+                    }
+                }
+            },
+            access_token: pageAccessToken
+        };
+
+        const response = await fetch(
+            `https://graph.facebook.com/v21.0/me/messages`,
+            {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(messagePayload)
+            }
+        );
+
+        const result = await response.json();
+
+        if (result.error) {
+            console.error('[Continue Flow] Image send error:', result.error.message);
+        } else {
+            console.log('[Continue Flow] ✓ Image sent, ID:', result.message_id);
+
+            // Send caption as separate message if present
+            if (caption) {
+                await sendTextMessage(userId, caption, [], pageAccessToken);
+            }
+        }
+    } catch (error: any) {
+        console.error('[Continue Flow] Image exception:', error.message);
     }
 }
