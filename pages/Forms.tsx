@@ -32,7 +32,11 @@ import {
     Truck,
     Box,
     XCircle,
-    MoreVertical
+    MoreVertical,
+    ThumbsUp,
+    ThumbsDown,
+    ArrowLeft,
+    Users
 } from 'lucide-react';
 
 interface FormsProps {
@@ -49,9 +53,12 @@ interface Form {
     created_at: string;
     updated_at?: string;
     google_sheet_id?: string;
+    google_sheet_name?: string;
+    google_webhook_url?: string;
     form_template?: string;
     page_id?: string;
     page_logo?: string;
+    page_name?: string;
     submission_count?: number;
     fields?: any[];
     submit_button_text?: string;
@@ -113,12 +120,34 @@ const Forms: React.FC<FormsProps> = ({ workspace }) => {
     const [editingForm, setEditingForm] = useState<Form | null>(null);
     const [editFormConfig, setEditFormConfig] = useState<any>(null);
     const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
+    const [connectedPages, setConnectedPages] = useState<any[]>([]);
+    const [selectedPageId, setSelectedPageId] = useState<string>('');
 
     const itemsPerPage = 12;
 
     useEffect(() => {
         loadForms();
+        loadConnectedPages();
     }, [workspace.id]);
+
+    const loadConnectedPages = async () => {
+        try {
+            const { data, error } = await supabase
+                .from('connected_pages')
+                .select('*')
+                .eq('workspace_id', workspace.id);
+
+            if (!error && data) {
+                setConnectedPages(data);
+                // Auto-select first page if only one
+                if (data.length === 1) {
+                    setSelectedPageId(data[0].page_id);
+                }
+            }
+        } catch (error) {
+            console.error('Error loading connected pages:', error);
+        }
+    };
 
     const loadForms = async () => {
         setLoading(true);
@@ -237,6 +266,77 @@ const Forms: React.FC<FormsProps> = ({ workspace }) => {
         } catch (error) {
             console.error('Error deleting submission:', error);
             toast.error('Failed to delete order. Please try again.');
+        }
+    };
+
+    // Update regular form submission status (approve/decline)
+    const updateRegularFormStatus = async (submissionId: string, action: 'approved' | 'declined') => {
+        try {
+            console.log('[Forms] Updating regular form submission:', submissionId, 'action:', action);
+
+            // Update submission data with the new status
+            const { error } = await supabase
+                .from('form_submissions')
+                .update({
+                    data: supabase.rpc('jsonb_set_key', {
+                        target: 'data',
+                        path: '{status}',
+                        value: action
+                    })
+                })
+                .eq('id', submissionId);
+
+            // Alternative: use raw SQL or just update with spread
+            const submission = submissions.find(s => s.id === submissionId);
+            if (submission) {
+                const { error: updateError } = await supabase
+                    .from('form_submissions')
+                    .update({
+                        data: { ...submission.data, status: action },
+                        synced_to_sheets: true // Mark as synced since we're processing it
+                    })
+                    .eq('id', submissionId);
+
+                if (updateError) {
+                    console.error('[Forms] Failed to update status:', updateError);
+                    toast.error('Failed to update status');
+                    return;
+                }
+
+                // Update local state
+                setSubmissions(prev => prev.map(s =>
+                    s.id === submissionId
+                        ? { ...s, data: { ...s.data, status: action }, synced_to_sheets: true }
+                        : s
+                ));
+
+                // Sync to Google Sheets if webhook is configured
+                if (selectedForm?.google_webhook_url) {
+                    try {
+                        await fetch('/api/sheets/sync', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                webhookUrl: selectedForm.google_webhook_url,
+                                sheetName: selectedForm.google_sheet_name || 'Sheet1',
+                                rowData: {
+                                    ...submission.data,
+                                    status: action,
+                                    status_updated_at: new Date().toISOString()
+                                }
+                            })
+                        });
+                        console.log('[Forms] Status synced to Google Sheets');
+                    } catch (sheetError) {
+                        console.error('[Forms] Failed to sync status to Sheets:', sheetError);
+                    }
+                }
+
+                toast.success(`Submission ${action === 'approved' ? 'approved' : 'declined'}`);
+            }
+        } catch (error) {
+            console.error('Error updating submission status:', error);
+            toast.error('Failed to update status');
         }
     };
 
@@ -371,7 +471,17 @@ const Forms: React.FC<FormsProps> = ({ workspace }) => {
                 <div className="flex items-center gap-3">
                     {/* Create Form Button */}
                     <button
-                        onClick={() => setShowCreateModal(true)}
+                        onClick={() => {
+                            // Initialize with default config including isOrderForm: true
+                            setCreateFormConfig({ isOrderForm: true });
+                            // Reset or auto-select page
+                            if (connectedPages.length === 1) {
+                                setSelectedPageId(connectedPages[0].page_id);
+                            } else {
+                                setSelectedPageId('');
+                            }
+                            setShowCreateModal(true);
+                        }}
                         className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white rounded-xl font-medium transition-all shadow-lg shadow-indigo-500/25"
                     >
                         <Plus className="w-5 h-5" />
@@ -514,7 +624,7 @@ const Forms: React.FC<FormsProps> = ({ workspace }) => {
                             className={`${cardBg} rounded-2xl border overflow-hidden cursor-pointer group transition-all duration-300 relative ${viewMode === 'grid' ? 'p-5' : 'p-4 flex items-center gap-4'
                                 }`}
                         >
-                            {/* 3-Dot Menu */}
+                            {/* 3-Dot Menu - Upper Right */}
                             <div className="absolute top-3 right-3 z-10">
                                 <button
                                     onClick={(e) => {
@@ -585,31 +695,66 @@ const Forms: React.FC<FormsProps> = ({ workspace }) => {
                                 )}
                             </div>
 
-                            {/* Page Logo - Upper Left */}
-                            {form.page_logo && (
-                                <img
-                                    src={form.page_logo}
-                                    alt="Page"
-                                    className="absolute top-3 left-3 w-8 h-8 rounded-lg object-cover border-2 border-white/20 shadow-md"
-                                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                                />
-                            )}
-
-                            {/* Submission Count Badge */}
-                            {(form.submission_count || 0) > 0 && (
-                                <div className="absolute -top-1 -right-1 min-w-[22px] h-[22px] bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center px-1 shadow-lg border-2 border-white dark:border-slate-800 z-20">
-                                    {form.submission_count! > 99 ? '99+' : form.submission_count}
-                                </div>
-                            )}
-
-                            {/* Icon */}
-                            <div className={`${viewMode === 'grid' ? 'flex justify-center mb-4' : 'flex-shrink-0'}`}>
-                                <div className={`${viewMode === 'grid' ? 'w-16 h-16' : 'w-12 h-12'} rounded-2xl ${form.is_order_form ? 'bg-gradient-to-br from-emerald-500/20 to-teal-500/20' : 'bg-gradient-to-br from-indigo-500/20 to-purple-500/20'} flex items-center justify-center border ${isDark ? 'border-white/10' : 'border-gray-200'}`}>
+                            {/* Form Type Indicator - Upper Left */}
+                            <div className="absolute top-3 left-3 z-10">
+                                <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium ${form.is_order_form
+                                    ? `${isDark ? 'bg-emerald-500/20 text-emerald-400' : 'bg-emerald-50 text-emerald-600'}`
+                                    : `${isDark ? 'bg-indigo-500/20 text-indigo-400' : 'bg-indigo-50 text-indigo-600'}`
+                                    }`}>
                                     {form.is_order_form ? (
-                                        <ShoppingCart className={`${viewMode === 'grid' ? 'w-7 h-7' : 'w-5 h-5'} text-emerald-400`} />
+                                        <>
+                                            <ShoppingCart className="w-3 h-3" />
+                                            Multi Step
+                                        </>
                                     ) : (
-                                        <FileText className={`${viewMode === 'grid' ? 'w-7 h-7' : 'w-5 h-5'} text-indigo-400`} />
+                                        <>
+                                            <FileText className="w-3 h-3" />
+                                            Regular
+                                        </>
                                     )}
+                                </span>
+                            </div>
+
+                            {/* Center Icon - FB Page Logo or Fallback with Notification Badge */}
+                            <div className={`${viewMode === 'grid' ? 'flex justify-center mb-4 mt-6' : 'flex-shrink-0'}`}>
+                                <div className="relative">
+                                    {/* Notification Badge - on top of center icon */}
+                                    {(form.submission_count || 0) > 0 && (
+                                        <div className="absolute -top-2 -right-2 min-w-[20px] h-[20px] bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center px-1.5 shadow-lg z-20 animate-pulse">
+                                            {form.submission_count! > 99 ? '99+' : form.submission_count}
+                                        </div>
+                                    )}
+
+                                    {/* FB Page Logo or Fallback Icon */}
+                                    {form.page_logo ? (
+                                        <img
+                                            src={form.page_logo}
+                                            alt="Page"
+                                            className={`${viewMode === 'grid' ? 'w-16 h-16' : 'w-12 h-12'} rounded-2xl object-cover border-2 ${isDark ? 'border-white/20' : 'border-gray-200'} shadow-lg`}
+                                            onError={(e) => {
+                                                // On error, replace with fallback icon
+                                                const target = e.target as HTMLImageElement;
+                                                target.style.display = 'none';
+                                                const fallback = target.nextElementSibling as HTMLElement;
+                                                if (fallback) fallback.style.display = 'flex';
+                                            }}
+                                        />
+                                    ) : null}
+
+                                    {/* Fallback Icon (shown when no page_logo or image fails to load) */}
+                                    <div
+                                        className={`${viewMode === 'grid' ? 'w-16 h-16' : 'w-12 h-12'} rounded-2xl ${form.is_order_form
+                                            ? 'bg-gradient-to-br from-emerald-500/20 to-teal-500/20'
+                                            : 'bg-gradient-to-br from-indigo-500/20 to-purple-500/20'
+                                            } items-center justify-center border ${isDark ? 'border-white/10' : 'border-gray-200'}`}
+                                        style={{ display: form.page_logo ? 'none' : 'flex' }}
+                                    >
+                                        {form.is_order_form ? (
+                                            <ShoppingCart className={`${viewMode === 'grid' ? 'w-7 h-7' : 'w-5 h-5'} text-emerald-400`} />
+                                        ) : (
+                                            <FileText className={`${viewMode === 'grid' ? 'w-7 h-7' : 'w-5 h-5'} text-indigo-400`} />
+                                        )}
+                                    </div>
                                 </div>
                             </div>
 
@@ -626,23 +771,42 @@ const Forms: React.FC<FormsProps> = ({ workspace }) => {
                                     </p>
                                 )}
 
-                                {/* Type Badge */}
-                                <div className={`flex items-center gap-2 mt-2 ${viewMode === 'grid' ? 'justify-center' : ''}`}>
-                                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${form.is_order_form
-                                        ? `${isDark ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-emerald-50 text-emerald-600 border-emerald-200'}`
-                                        : `${isDark ? 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30' : 'bg-indigo-50 text-indigo-600 border-indigo-200'}`
-                                        } border`}>
-                                        {form.is_order_form ? 'Order Form' : 'Form'}
-                                    </span>
-
-                                    {form.google_sheet_id && (
+                                {/* Synced Badge with Sheet Name */}
+                                {form.google_sheet_id && (
+                                    <div className={`flex items-center gap-2 mt-2 flex-wrap ${viewMode === 'grid' ? 'justify-center' : ''}`}>
                                         <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${isDark ? 'bg-green-500/20 text-green-400 border-green-500/30' : 'bg-green-50 text-green-600 border-green-200'
                                             } border`}>
                                             <CheckCircle className="w-3 h-3" />
                                             Synced
                                         </span>
-                                    )}
-                                </div>
+                                        {form.google_sheet_name && (
+                                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs ${isDark ? 'bg-emerald-500/10 text-emerald-400' : 'bg-emerald-50 text-emerald-600'} max-w-[150px] truncate`} title={`Sheet: ${form.google_sheet_name}`}>
+                                                📊 {form.google_sheet_name}
+                                            </span>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* Connected Facebook Page */}
+                                {form.page_id && (
+                                    <div className={`flex items-center gap-2 mt-2 ${viewMode === 'grid' ? 'justify-center' : ''}`}>
+                                        {form.page_logo && (
+                                            <img
+                                                src={form.page_logo}
+                                                alt={form.page_name || 'Page'}
+                                                className="w-5 h-5 rounded-full object-cover"
+                                                onError={(e) => {
+                                                    (e.target as HTMLImageElement).style.display = 'none';
+                                                }}
+                                            />
+                                        )}
+                                        {form.page_name && (
+                                            <span className={`text-xs ${textMuted} truncate max-w-[120px]`} title={form.page_name}>
+                                                {form.page_name}
+                                            </span>
+                                        )}
+                                    </div>
+                                )}
 
                                 {/* Date - Grid Only */}
                                 {viewMode === 'grid' && (
@@ -730,244 +894,418 @@ const Forms: React.FC<FormsProps> = ({ workspace }) => {
                 </div>
             )}
 
-            {/* Form Details Modal */}
+            {/* Form Details - Full Page View */}
             {selectedForm && (
-                <div
-                    className={`fixed inset-0 z-50 flex items-center justify-center p-4 ${isDark ? 'bg-black/70' : 'bg-black/50'} backdrop-blur-sm animate-fade-in`}
-                    onClick={closeFormDetails}
-                >
-                    <div
-                        className={`relative w-full max-w-4xl max-h-[90vh] overflow-hidden ${modalBg} rounded-3xl border shadow-2xl animate-scale-in flex flex-col`}
-                        onClick={e => e.stopPropagation()}
-                    >
-                        {/* Modal Header */}
-                        <div className={`p-6 border-b ${isDark ? 'border-white/10' : 'border-gray-200'}`}>
-                            <button
-                                onClick={closeFormDetails}
-                                className={`absolute top-4 right-4 p-2 ${textSecondary} hover:${textPrimary} ${isDark ? 'hover:bg-white/10' : 'hover:bg-gray-100'} rounded-lg transition-colors z-10`}
-                            >
-                                <X className="w-5 h-5" />
-                            </button>
+                <div className={`fixed inset-0 z-50 ${isDark ? 'bg-[#0a0a12]' : 'bg-gray-50'} overflow-hidden animate-fade-in`}>
+                    {/* Full Page Container */}
+                    <div className="h-full flex flex-col">
+                        {/* Sticky Header */}
+                        <div className={`sticky top-0 z-20 ${isDark ? 'bg-[#0a0a12]/95 border-white/10' : 'bg-white/95 border-gray-200'} backdrop-blur-lg border-b px-4 md:px-6 py-4`}>
+                            <div className="max-w-7xl mx-auto">
+                                {/* Back Button + Title Row */}
+                                <div className="flex items-center gap-4">
+                                    <button
+                                        onClick={closeFormDetails}
+                                        className={`flex items-center gap-2 px-3 py-2 rounded-xl font-medium transition-all ${isDark
+                                            ? 'bg-white/5 hover:bg-white/10 text-white/70 hover:text-white'
+                                            : 'bg-gray-100 hover:bg-gray-200 text-gray-600 hover:text-gray-900'
+                                            }`}
+                                    >
+                                        <ArrowLeft className="w-5 h-5" />
+                                        <span className="hidden sm:inline">Back to Forms</span>
+                                    </button>
 
-                            <div className="flex items-center gap-4">
-                                <div className={`w-14 h-14 rounded-2xl ${selectedForm.is_order_form ? 'bg-gradient-to-br from-emerald-500/20 to-teal-500/20' : 'bg-gradient-to-br from-indigo-500/20 to-purple-500/20'} flex items-center justify-center border ${isDark ? 'border-white/10' : 'border-gray-200'}`}>
-                                    {selectedForm.is_order_form ? (
-                                        <ShoppingCart className="w-6 h-6 text-emerald-400" />
-                                    ) : (
-                                        <FileText className="w-6 h-6 text-indigo-400" />
-                                    )}
-                                </div>
-                                <div className="flex-1">
-                                    <h2 className={`text-2xl font-bold ${textPrimary}`}>{selectedForm.name}</h2>
-                                    {selectedForm.is_order_form && selectedForm.product_name && (
-                                        <p className={textSecondary}>
-                                            {selectedForm.product_name} • {getCurrencySymbol(selectedForm.currency)}{selectedForm.product_price?.toLocaleString()}
-                                        </p>
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* Preview button - separate row */}
-                            <div className="mt-4">
-                                <a
-                                    href={`/forms/${selectedForm.id}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl font-medium transition-colors"
-                                >
-                                    <ExternalLink className="w-4 h-4" />
-                                    Preview Form
-                                </a>
-                            </div>
-                        </div>
-
-                        {/* Stats */}
-                        <div className={`p-6 border-b ${isDark ? 'border-white/10' : 'border-gray-200'} grid grid-cols-2 md:grid-cols-4 gap-4`}>
-                            <div className={`${isDark ? 'bg-white/5' : 'bg-gray-50'} rounded-xl p-4`}>
-                                <div className="flex items-center gap-3">
-                                    <div className="p-2 bg-indigo-500/20 rounded-lg">
-                                        <ClipboardList className="w-5 h-5 text-indigo-400" />
-                                    </div>
-                                    <div>
-                                        <p className={`text-xl font-bold ${textPrimary}`}>{submissions.length}</p>
-                                        <p className={`text-xs ${textMuted}`}>Submissions</p>
-                                    </div>
-                                </div>
-                            </div>
-                            {selectedForm.is_order_form && (
-                                <>
-                                    <div className={`${isDark ? 'bg-white/5' : 'bg-gray-50'} rounded-xl p-4`}>
+                                    <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-3">
-                                            <div className="p-2 bg-emerald-500/20 rounded-lg">
-                                                <Package className="w-5 h-5 text-emerald-400" />
+                                            <div className={`hidden sm:flex w-12 h-12 rounded-xl ${selectedForm.is_order_form
+                                                ? 'bg-gradient-to-br from-emerald-500/20 to-teal-500/20'
+                                                : 'bg-gradient-to-br from-indigo-500/20 to-purple-500/20'
+                                                } items-center justify-center border ${isDark ? 'border-white/10' : 'border-gray-200'}`}>
+                                                {selectedForm.is_order_form ? (
+                                                    <ShoppingCart className="w-5 h-5 text-emerald-400" />
+                                                ) : (
+                                                    <FileText className="w-5 h-5 text-indigo-400" />
+                                                )}
                                             </div>
-                                            <div>
-                                                <p className={`text-xl font-bold ${textPrimary}`}>{totalOrders}</p>
-                                                <p className={`text-xs ${textMuted}`}>Total Orders</p>
+                                            <div className="min-w-0">
+                                                <h1 className={`text-xl md:text-2xl font-bold ${textPrimary} truncate`}>
+                                                    {selectedForm.name}
+                                                </h1>
+                                                {selectedForm.is_order_form && selectedForm.product_name && (
+                                                    <p className={`${textSecondary} text-sm truncate`}>
+                                                        {selectedForm.product_name} • {getCurrencySymbol(selectedForm.currency)}{selectedForm.product_price?.toLocaleString()}
+                                                    </p>
+                                                )}
                                             </div>
                                         </div>
                                     </div>
-                                    <div className={`${isDark ? 'bg-white/5' : 'bg-gray-50'} rounded-xl p-4`}>
-                                        <div className="flex items-center gap-3">
-                                            <div className="p-2 bg-amber-500/20 rounded-lg">
-                                                <DollarSign className="w-5 h-5 text-amber-400" />
-                                            </div>
-                                            <div>
-                                                <p className={`text-xl font-bold ${textPrimary}`}>
-                                                    {getCurrencySymbol(selectedForm.currency)}{totalRevenue.toLocaleString()}
-                                                </p>
-                                                <p className={`text-xs ${textMuted}`}>Total Revenue</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </>
-                            )}
-                            <div className={`${isDark ? 'bg-white/5' : 'bg-gray-50'} rounded-xl p-4`}>
-                                <div className="flex items-center gap-3">
-                                    <div className="p-2 bg-green-500/20 rounded-lg">
-                                        <CheckCircle className="w-5 h-5 text-green-400" />
-                                    </div>
-                                    <div>
-                                        <p className={`text-xl font-bold ${textPrimary}`}>{syncedCount}</p>
-                                        <p className={`text-xs ${textMuted}`}>Synced to Sheets</p>
-                                    </div>
+
+                                    {/* Preview Button */}
+                                    <a
+                                        href={`/forms/${selectedForm.id}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="hidden md:inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white rounded-xl font-medium transition-all shadow-lg shadow-indigo-500/25"
+                                    >
+                                        <ExternalLink className="w-4 h-4" />
+                                        Preview Form
+                                    </a>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Submissions List */}
-                        <div className="flex-1 overflow-auto p-6">
-                            <h3 className={`text-lg font-bold ${textPrimary} mb-4`}>Recent Submissions</h3>
+                        {/* Scrollable Content */}
+                        <div className="flex-1 overflow-y-auto">
+                            <div className="max-w-7xl mx-auto px-4 md:px-6 py-6 space-y-6">
 
-                            {loadingSubmissions ? (
-                                <div className="flex items-center justify-center py-12">
-                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
+                                {/* Mobile Preview Button */}
+                                <div className="md:hidden">
+                                    <a
+                                        href={`/forms/${selectedForm.id}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-xl font-medium shadow-lg"
+                                    >
+                                        <ExternalLink className="w-4 h-4" />
+                                        Preview Form
+                                    </a>
                                 </div>
-                            ) : submissions.length > 0 ? (
-                                <div className="space-y-3">
-                                    {submissions.slice(0, 20).map(submission => (
-                                        <div
-                                            key={submission.id}
-                                            className={`${isDark ? 'bg-white/5 border-white/10' : 'bg-gray-50 border-gray-200'} rounded-xl p-4 border`}
-                                        >
-                                            <div className="flex items-start justify-between gap-4">
-                                                <div className="flex-1 min-w-0">
-                                                    <div className="flex items-center gap-2 mb-2 flex-wrap">
-                                                        <span className={`font-semibold ${textPrimary}`}>
-                                                            {submission.subscriber_name || submission.data?.subscriber_name || 'Anonymous'}
-                                                        </span>
-                                                        {submission.synced_to_sheets ? (
-                                                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs ${isDark ? 'bg-green-500/20 text-green-400' : 'bg-green-50 text-green-600'}`}>
-                                                                <CheckCircle className="w-3 h-3" />
-                                                                Synced
-                                                            </span>
-                                                        ) : (
-                                                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs ${isDark ? 'bg-yellow-500/20 text-yellow-400' : 'bg-yellow-50 text-yellow-600'}`}>
-                                                                <AlertCircle className="w-3 h-3" />
-                                                                Pending Sync
-                                                            </span>
-                                                        )}
+
+                                {/* Stats Grid */}
+                                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+                                    <div className={`${isDark ? 'bg-white/5 border-white/10' : 'bg-white border-gray-200'} rounded-2xl p-4 md:p-5 border shadow-sm`}>
+                                        <div className="flex items-center gap-3">
+                                            <div className="p-2.5 md:p-3 bg-indigo-500/20 rounded-xl">
+                                                <ClipboardList className="w-5 h-5 md:w-6 md:h-6 text-indigo-400" />
+                                            </div>
+                                            <div>
+                                                <p className={`text-2xl md:text-3xl font-bold ${textPrimary}`}>{submissions.length}</p>
+                                                <p className={`text-xs md:text-sm ${textMuted}`}>Submissions</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {selectedForm.is_order_form && (
+                                        <>
+                                            <div className={`${isDark ? 'bg-white/5 border-white/10' : 'bg-white border-gray-200'} rounded-2xl p-4 md:p-5 border shadow-sm`}>
+                                                <div className="flex items-center gap-3">
+                                                    <div className="p-2.5 md:p-3 bg-emerald-500/20 rounded-xl">
+                                                        <Package className="w-5 h-5 md:w-6 md:h-6 text-emerald-400" />
                                                     </div>
+                                                    <div>
+                                                        <p className={`text-2xl md:text-3xl font-bold ${textPrimary}`}>{totalOrders}</p>
+                                                        <p className={`text-xs md:text-sm ${textMuted}`}>Total Orders</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className={`${isDark ? 'bg-white/5 border-white/10' : 'bg-white border-gray-200'} rounded-2xl p-4 md:p-5 border shadow-sm`}>
+                                                <div className="flex items-center gap-3">
+                                                    <div className="p-2.5 md:p-3 bg-amber-500/20 rounded-xl">
+                                                        <DollarSign className="w-5 h-5 md:w-6 md:h-6 text-amber-400" />
+                                                    </div>
+                                                    <div>
+                                                        <p className={`text-2xl md:text-3xl font-bold ${textPrimary}`}>
+                                                            {getCurrencySymbol(selectedForm.currency)}{totalRevenue.toLocaleString()}
+                                                        </p>
+                                                        <p className={`text-xs md:text-sm ${textMuted}`}>Total Revenue</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </>
+                                    )}
 
-                                                    {/* Order Details */}
-                                                    {selectedForm.is_order_form && (
-                                                        <div className={`text-sm ${textSecondary} space-y-1`}>
-                                                            {submission.data?.quantity && (
-                                                                <p>Qty: {submission.data.quantity} • Total: {getCurrencySymbol(selectedForm.currency)}{submission.data.total?.toLocaleString()}</p>
-                                                            )}
-                                                            {submission.data?.payment_method && (
-                                                                <p>Payment: {submission.data.payment_method === 'cod' ? 'Cash on Delivery' : submission.data.ewallet_selected || 'E-Wallet'}</p>
-                                                            )}
-                                                        </div>
-                                                    )}
+                                    <div className={`${isDark ? 'bg-white/5 border-white/10' : 'bg-white border-gray-200'} rounded-2xl p-4 md:p-5 border shadow-sm`}>
+                                        <div className="flex items-center gap-3">
+                                            <div className="p-2.5 md:p-3 bg-green-500/20 rounded-xl">
+                                                <CheckCircle className="w-5 h-5 md:w-6 md:h-6 text-green-400" />
+                                            </div>
+                                            <div>
+                                                <p className={`text-2xl md:text-3xl font-bold ${textPrimary}`}>{syncedCount}</p>
+                                                <p className={`text-xs md:text-sm ${textMuted}`}>Synced to Sheets</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
 
-                                                    {/* Form Fields */}
-                                                    {!selectedForm.is_order_form && (
-                                                        <div className={`text-sm ${textSecondary} space-y-1`}>
-                                                            {Object.entries(submission.data || {}).slice(0, 3).map(([key, value]) => (
-                                                                <p key={key} className="truncate">
-                                                                    <span className="font-medium capitalize">{key.replace(/_/g, ' ')}:</span> {String(value)}
+                                {/* Submissions Section */}
+                                <div className={`${isDark ? 'bg-white/5 border-white/10' : 'bg-white border-gray-200'} rounded-2xl border shadow-sm overflow-hidden`}>
+                                    {/* Section Header */}
+                                    <div className={`px-4 md:px-6 py-4 border-b ${isDark ? 'border-white/10' : 'border-gray-200'} flex items-center justify-between`}>
+                                        <div className="flex items-center gap-3">
+                                            <Users className={`w-5 h-5 ${isDark ? 'text-indigo-400' : 'text-indigo-500'}`} />
+                                            <h2 className={`text-lg font-bold ${textPrimary}`}>
+                                                {selectedForm.is_order_form ? 'Orders' : 'Submissions'}
+                                            </h2>
+                                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${isDark ? 'bg-indigo-500/20 text-indigo-400' : 'bg-indigo-50 text-indigo-600'}`}>
+                                                {submissions.length}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    {/* Submissions List */}
+                                    <div className="divide-y divide-white/5">
+                                        {loadingSubmissions ? (
+                                            <div className="flex items-center justify-center py-16">
+                                                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-500"></div>
+                                            </div>
+                                        ) : submissions.length > 0 ? (
+                                            submissions.map(submission => (
+                                                <div
+                                                    key={submission.id}
+                                                    className={`px-4 md:px-6 py-4 ${isDark ? 'hover:bg-white/5' : 'hover:bg-gray-50'} transition-colors`}
+                                                >
+                                                    {/* Mobile Layout */}
+                                                    <div className="md:hidden space-y-3">
+                                                        <div className="flex items-start justify-between gap-3">
+                                                            <div className="min-w-0 flex-1">
+                                                                <p className={`font-semibold ${textPrimary} truncate`}>
+                                                                    {submission.subscriber_name || submission.data?.subscriber_name || 'Anonymous'}
                                                                 </p>
-                                                            ))}
+                                                                <p className={`text-xs ${textMuted} mt-0.5`}>
+                                                                    {formatTimeAgo(submission.created_at)}
+                                                                </p>
+                                                            </div>
+                                                            {submission.synced_to_sheets ? (
+                                                                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs bg-green-500/20 text-green-400">
+                                                                    <CheckCircle className="w-3 h-3" />
+                                                                    Synced
+                                                                </span>
+                                                            ) : (
+                                                                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs bg-yellow-500/20 text-yellow-400">
+                                                                    <AlertCircle className="w-3 h-3" />
+                                                                    Pending
+                                                                </span>
+                                                            )}
                                                         </div>
-                                                    )}
 
-                                                    {/* Order Status & Actions for Order Forms */}
-                                                    {selectedForm.is_order_form && (
-                                                        <div className="flex items-center gap-3 mt-3 flex-wrap">
-                                                            {/* Status Dropdown */}
-                                                            <select
-                                                                value={submission.data?.order_status || 'pending'}
-                                                                onChange={(e) => updateSubmissionStatus(submission.id, e.target.value)}
-                                                                className={`text-xs font-medium px-3 py-1.5 rounded-lg border-0 cursor-pointer transition-all ${(submission.data?.order_status || 'pending') === 'pending' ? 'bg-yellow-500/20 text-yellow-400' :
-                                                                    submission.data?.order_status === 'processing' ? 'bg-blue-500/20 text-blue-400' :
-                                                                        submission.data?.order_status === 'shipped' ? 'bg-purple-500/20 text-purple-400' :
-                                                                            submission.data?.order_status === 'delivered' ? 'bg-green-500/20 text-green-400' :
-                                                                                'bg-red-500/20 text-red-400'
-                                                                    }`}
-                                                            >
-                                                                {ORDER_STATUSES.map(s => (
-                                                                    <option key={s.id} value={s.id}>{s.label}</option>
-                                                                ))}
-                                                            </select>
+                                                        {/* Details */}
+                                                        <div className={`text-sm ${textSecondary} space-y-1`}>
+                                                            {selectedForm.is_order_form ? (
+                                                                <>
+                                                                    {submission.data?.quantity && (
+                                                                        <p>Qty: {submission.data.quantity} • Total: {getCurrencySymbol(selectedForm.currency)}{submission.data.total?.toLocaleString()}</p>
+                                                                    )}
+                                                                    {submission.data?.payment_method && (
+                                                                        <p>Payment: {submission.data.payment_method === 'cod' ? 'COD' : submission.data.ewallet_selected || 'E-Wallet'}</p>
+                                                                    )}
+                                                                </>
+                                                            ) : (
+                                                                Object.entries(submission.data || {}).slice(0, 2).map(([key, value]) => (
+                                                                    <p key={key} className="truncate">
+                                                                        <span className="font-medium capitalize">{key.replace(/_/g, ' ')}:</span> {String(value)}
+                                                                    </p>
+                                                                ))
+                                                            )}
+                                                        </div>
 
-                                                            {/* View Invoice */}
-                                                            <a
-                                                                href={`/api/invoices/view?id=${submission.id}&company=${encodeURIComponent(selectedForm.name)}&color=${encodeURIComponent('#6366f1')}`}
-                                                                target="_blank"
-                                                                rel="noopener noreferrer"
-                                                                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${isDark
-                                                                    ? 'bg-indigo-500/20 text-indigo-400 hover:bg-indigo-500/30'
-                                                                    : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100'
-                                                                    }`}
-                                                            >
-                                                                <Eye className="w-3 h-3" />
-                                                                View Invoice
-                                                            </a>
-
-                                                            {/* Track Order */}
-                                                            <a
-                                                                href={`/api/track/view?id=${submission.id}&company=${encodeURIComponent(selectedForm.name)}&color=${encodeURIComponent('#6366f1')}`}
-                                                                target="_blank"
-                                                                rel="noopener noreferrer"
-                                                                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${isDark
-                                                                    ? 'bg-purple-500/20 text-purple-400 hover:bg-purple-500/30'
-                                                                    : 'bg-purple-50 text-purple-600 hover:bg-purple-100'
-                                                                    }`}
-                                                            >
-                                                                <Truck className="w-3 h-3" />
-                                                                Track
-                                                            </a>
-
-                                                            {/* Delete Order */}
+                                                        {/* Actions */}
+                                                        <div className="flex items-center gap-2 flex-wrap pt-2">
+                                                            {selectedForm.is_order_form ? (
+                                                                <>
+                                                                    <select
+                                                                        value={submission.data?.order_status || 'pending'}
+                                                                        onChange={(e) => updateSubmissionStatus(submission.id, e.target.value)}
+                                                                        className={`text-xs font-medium px-3 py-2 rounded-lg border-0 cursor-pointer ${(submission.data?.order_status || 'pending') === 'pending' ? 'bg-yellow-500/20 text-yellow-400' :
+                                                                            submission.data?.order_status === 'processing' ? 'bg-blue-500/20 text-blue-400' :
+                                                                                submission.data?.order_status === 'shipped' ? 'bg-purple-500/20 text-purple-400' :
+                                                                                    submission.data?.order_status === 'delivered' ? 'bg-green-500/20 text-green-400' :
+                                                                                        'bg-red-500/20 text-red-400'
+                                                                            }`}
+                                                                    >
+                                                                        {ORDER_STATUSES.map(s => (
+                                                                            <option key={s.id} value={s.id}>{s.label}</option>
+                                                                        ))}
+                                                                    </select>
+                                                                    <a
+                                                                        href={`/api/invoices/view?id=${submission.id}&company=${encodeURIComponent(selectedForm.name)}&color=${encodeURIComponent('#6366f1')}`}
+                                                                        target="_blank"
+                                                                        rel="noopener noreferrer"
+                                                                        className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium bg-indigo-500/20 text-indigo-400"
+                                                                    >
+                                                                        <Eye className="w-3 h-3" />
+                                                                        Invoice
+                                                                    </a>
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    {submission.data?.status ? (
+                                                                        <span className={`inline-flex items-center gap-1 px-3 py-2 rounded-lg text-xs font-medium ${submission.data.status === 'approved' ? 'bg-green-500/20 text-green-400' :
+                                                                            submission.data.status === 'declined' ? 'bg-red-500/20 text-red-400' :
+                                                                                'bg-gray-500/20 text-gray-400'
+                                                                            }`}>
+                                                                            {submission.data.status === 'approved' && <ThumbsUp className="w-3 h-3" />}
+                                                                            {submission.data.status === 'declined' && <ThumbsDown className="w-3 h-3" />}
+                                                                            {submission.data.status.charAt(0).toUpperCase() + submission.data.status.slice(1)}
+                                                                        </span>
+                                                                    ) : (
+                                                                        <>
+                                                                            <button
+                                                                                onClick={() => updateRegularFormStatus(submission.id, 'approved')}
+                                                                                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium bg-green-500/20 text-green-400"
+                                                                            >
+                                                                                <ThumbsUp className="w-3 h-3" />
+                                                                                Approve
+                                                                            </button>
+                                                                            <button
+                                                                                onClick={() => updateRegularFormStatus(submission.id, 'declined')}
+                                                                                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium bg-orange-500/20 text-orange-400"
+                                                                            >
+                                                                                <ThumbsDown className="w-3 h-3" />
+                                                                                Decline
+                                                                            </button>
+                                                                        </>
+                                                                    )}
+                                                                </>
+                                                            )}
                                                             <button
                                                                 onClick={(e) => deleteSubmission(submission.id, e)}
-                                                                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${isDark
-                                                                    ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30'
-                                                                    : 'bg-red-50 text-red-600 hover:bg-red-100'
-                                                                    }`}
-                                                                title="Delete order"
+                                                                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium bg-red-500/20 text-red-400"
                                                             >
                                                                 <Trash2 className="w-3 h-3" />
                                                             </button>
                                                         </div>
-                                                    )}
-                                                </div>
+                                                    </div>
 
-                                                <div className={`text-xs ${textMuted} text-right whitespace-nowrap`}>
-                                                    <p>{formatDateTime(submission.created_at)}</p>
-                                                    <p className="mt-1">{formatTimeAgo(submission.created_at)}</p>
+                                                    {/* Desktop Layout */}
+                                                    <div className="hidden md:flex items-center gap-4">
+                                                        {/* Name & Details */}
+                                                        <div className="flex-1 min-w-0">
+                                                            <div className="flex items-center gap-3 mb-1">
+                                                                <p className={`font-semibold ${textPrimary}`}>
+                                                                    {submission.subscriber_name || submission.data?.subscriber_name || 'Anonymous'}
+                                                                </p>
+                                                                {submission.synced_to_sheets ? (
+                                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-green-500/20 text-green-400">
+                                                                        <CheckCircle className="w-3 h-3" />
+                                                                        Synced
+                                                                    </span>
+                                                                ) : (
+                                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-yellow-500/20 text-yellow-400">
+                                                                        <AlertCircle className="w-3 h-3" />
+                                                                        Pending
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                            <div className={`text-sm ${textSecondary} flex items-center gap-4`}>
+                                                                {selectedForm.is_order_form ? (
+                                                                    <>
+                                                                        {submission.data?.quantity && (
+                                                                            <span>Qty: {submission.data.quantity}</span>
+                                                                        )}
+                                                                        {submission.data?.total && (
+                                                                            <span>Total: {getCurrencySymbol(selectedForm.currency)}{submission.data.total.toLocaleString()}</span>
+                                                                        )}
+                                                                        {submission.data?.payment_method && (
+                                                                            <span>{submission.data.payment_method === 'cod' ? 'COD' : submission.data.ewallet_selected || 'E-Wallet'}</span>
+                                                                        )}
+                                                                    </>
+                                                                ) : (
+                                                                    Object.entries(submission.data || {}).slice(0, 3).map(([key, value]) => (
+                                                                        <span key={key} className="truncate max-w-[200px]">
+                                                                            <span className="font-medium capitalize">{key.replace(/_/g, ' ')}:</span> {String(value)}
+                                                                        </span>
+                                                                    ))
+                                                                )}
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Date */}
+                                                        <div className={`text-sm ${textMuted} text-right whitespace-nowrap`}>
+                                                            <p>{formatDateTime(submission.created_at)}</p>
+                                                            <p className="text-xs mt-0.5">{formatTimeAgo(submission.created_at)}</p>
+                                                        </div>
+
+                                                        {/* Actions */}
+                                                        <div className="flex items-center gap-2">
+                                                            {selectedForm.is_order_form ? (
+                                                                <>
+                                                                    <select
+                                                                        value={submission.data?.order_status || 'pending'}
+                                                                        onChange={(e) => updateSubmissionStatus(submission.id, e.target.value)}
+                                                                        className={`text-xs font-medium px-3 py-1.5 rounded-lg border-0 cursor-pointer ${(submission.data?.order_status || 'pending') === 'pending' ? 'bg-yellow-500/20 text-yellow-400' :
+                                                                            submission.data?.order_status === 'processing' ? 'bg-blue-500/20 text-blue-400' :
+                                                                                submission.data?.order_status === 'shipped' ? 'bg-purple-500/20 text-purple-400' :
+                                                                                    submission.data?.order_status === 'delivered' ? 'bg-green-500/20 text-green-400' :
+                                                                                        'bg-red-500/20 text-red-400'
+                                                                            }`}
+                                                                    >
+                                                                        {ORDER_STATUSES.map(s => (
+                                                                            <option key={s.id} value={s.id}>{s.label}</option>
+                                                                        ))}
+                                                                    </select>
+                                                                    <a
+                                                                        href={`/api/invoices/view?id=${submission.id}&company=${encodeURIComponent(selectedForm.name)}&color=${encodeURIComponent('#6366f1')}`}
+                                                                        target="_blank"
+                                                                        rel="noopener noreferrer"
+                                                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-indigo-500/20 text-indigo-400 hover:bg-indigo-500/30 transition-colors"
+                                                                    >
+                                                                        <Eye className="w-3 h-3" />
+                                                                        Invoice
+                                                                    </a>
+                                                                    <a
+                                                                        href={`/api/track/view?id=${submission.id}&company=${encodeURIComponent(selectedForm.name)}&color=${encodeURIComponent('#6366f1')}`}
+                                                                        target="_blank"
+                                                                        rel="noopener noreferrer"
+                                                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-purple-500/20 text-purple-400 hover:bg-purple-500/30 transition-colors"
+                                                                    >
+                                                                        <Truck className="w-3 h-3" />
+                                                                        Track
+                                                                    </a>
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    {submission.data?.status ? (
+                                                                        <span className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium ${submission.data.status === 'approved' ? 'bg-green-500/20 text-green-400' :
+                                                                            submission.data.status === 'declined' ? 'bg-red-500/20 text-red-400' :
+                                                                                'bg-gray-500/20 text-gray-400'
+                                                                            }`}>
+                                                                            {submission.data.status === 'approved' && <ThumbsUp className="w-3 h-3" />}
+                                                                            {submission.data.status === 'declined' && <ThumbsDown className="w-3 h-3" />}
+                                                                            {submission.data.status.charAt(0).toUpperCase() + submission.data.status.slice(1)}
+                                                                        </span>
+                                                                    ) : (
+                                                                        <>
+                                                                            <button
+                                                                                onClick={() => updateRegularFormStatus(submission.id, 'approved')}
+                                                                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-green-500/20 text-green-400 hover:bg-green-500/30 transition-colors"
+                                                                            >
+                                                                                <ThumbsUp className="w-3 h-3" />
+                                                                                Approve
+                                                                            </button>
+                                                                            <button
+                                                                                onClick={() => updateRegularFormStatus(submission.id, 'declined')}
+                                                                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-orange-500/20 text-orange-400 hover:bg-orange-500/30 transition-colors"
+                                                                            >
+                                                                                <ThumbsDown className="w-3 h-3" />
+                                                                                Decline
+                                                                            </button>
+                                                                        </>
+                                                                    )}
+                                                                </>
+                                                            )}
+                                                            <button
+                                                                onClick={(e) => deleteSubmission(submission.id, e)}
+                                                                className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-xs font-medium bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-colors"
+                                                                title="Delete"
+                                                            >
+                                                                <Trash2 className="w-4 h-4" />
+                                                            </button>
+                                                        </div>
+                                                    </div>
                                                 </div>
+                                            ))
+                                        ) : (
+                                            <div className="py-16 text-center">
+                                                <div className={`w-16 h-16 mx-auto mb-4 rounded-2xl ${isDark ? 'bg-white/5' : 'bg-gray-100'} flex items-center justify-center`}>
+                                                    <ClipboardList className={`w-8 h-8 ${textMuted}`} />
+                                                </div>
+                                                <p className={`text-lg font-medium ${textPrimary} mb-1`}>No submissions yet</p>
+                                                <p className={textSecondary}>Submissions will appear here when people fill out your form</p>
                                             </div>
-                                        </div>
-                                    ))}
+                                        )}
+                                    </div>
                                 </div>
-                            ) : (
-                                <div className={`py-12 text-center ${isDark ? 'bg-white/5' : 'bg-gray-50'} rounded-xl border ${isDark ? 'border-white/10' : 'border-gray-200'}`}>
-                                    <ClipboardList className={`w-12 h-12 ${textMuted} mx-auto mb-3`} />
-                                    <p className={textSecondary}>No submissions yet</p>
-                                </div>
-                            )}
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1042,6 +1380,60 @@ const Forms: React.FC<FormsProps> = ({ workspace }) => {
                             </button>
                         </div>
                         <div className="flex-1 overflow-y-auto p-4">
+                            {/* Facebook Page Selector */}
+                            <div className={`mb-6 p-4 rounded-xl ${isDark ? 'bg-white/5 border-white/10' : 'bg-gray-50 border-gray-200'} border`}>
+                                <label className={`block text-sm font-medium ${textPrimary} mb-2`}>
+                                    Connect to Facebook Page <span className="text-red-500">*</span>
+                                </label>
+                                <p className={`text-xs ${textMuted} mb-3`}>
+                                    Select which Facebook page this form will be connected to for automation
+                                </p>
+                                {connectedPages.length === 0 ? (
+                                    <div className={`text-center py-4 ${textSecondary}`}>
+                                        <p className="mb-2">No connected pages found</p>
+                                        <a
+                                            href="/connections"
+                                            className="text-indigo-400 hover:text-indigo-300 underline"
+                                        >
+                                            Connect a Facebook page first
+                                        </a>
+                                    </div>
+                                ) : (
+                                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                                        {connectedPages.map(page => (
+                                            <button
+                                                key={page.page_id}
+                                                type="button"
+                                                onClick={() => setSelectedPageId(page.page_id)}
+                                                className={`flex items-center gap-3 p-3 rounded-xl border-2 transition-all ${selectedPageId === page.page_id
+                                                    ? 'border-indigo-500 bg-indigo-500/10'
+                                                    : isDark
+                                                        ? 'border-white/10 hover:border-white/30 bg-white/5'
+                                                        : 'border-gray-200 hover:border-gray-300 bg-white'
+                                                    }`}
+                                            >
+                                                <img
+                                                    src={`https://graph.facebook.com/${page.page_id}/picture?type=small`}
+                                                    alt={page.name}
+                                                    className="w-10 h-10 rounded-full object-cover"
+                                                    onError={(e) => {
+                                                        (e.target as HTMLImageElement).src = 'https://via.placeholder.com/40?text=FB';
+                                                    }}
+                                                />
+                                                <div className="flex-1 min-w-0 text-left">
+                                                    <p className={`font-medium ${textPrimary} truncate text-sm`}>
+                                                        {page.name}
+                                                    </p>
+                                                    {selectedPageId === page.page_id && (
+                                                        <p className="text-xs text-indigo-400">Selected</p>
+                                                    )}
+                                                </div>
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
                             <FormNodeForm
                                 workspaceId={workspace.id}
                                 initialConfig={createFormConfig}
@@ -1060,6 +1452,10 @@ const Forms: React.FC<FormsProps> = ({ workspace }) => {
                             </button>
                             <button
                                 onClick={async () => {
+                                    if (!selectedPageId) {
+                                        toast.error('Please select a Facebook page');
+                                        return;
+                                    }
                                     if (!createFormConfig?.formName) {
                                         toast.error('Please enter a form name');
                                         return;
@@ -1070,6 +1466,7 @@ const Forms: React.FC<FormsProps> = ({ workspace }) => {
                                             .from('forms')
                                             .insert({
                                                 workspace_id: workspace.id,
+                                                page_id: selectedPageId,
                                                 name: createFormConfig.formName,
                                                 is_order_form: createFormConfig.isOrderForm ?? true,
                                                 product_name: createFormConfig.productName || '',

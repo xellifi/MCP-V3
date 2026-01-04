@@ -808,10 +808,32 @@ export const api = {
         });
       }
 
-      // Add submission_count to each form
+      // Get unique page_ids from forms to fetch page logos and names
+      const pageIds = [...new Set(forms.filter(f => f.page_id).map(f => f.page_id))];
+      const pageLogos: Record<string, string> = {};
+      const pageNames: Record<string, string> = {};
+
+      if (pageIds.length > 0) {
+        const { data: pages } = await supabase
+          .from('connected_pages')
+          .select('page_id, page_image_url, name')
+          .in('page_id', pageIds);
+
+        if (pages) {
+          pages.forEach(p => {
+            // Use Facebook Graph API for reliable, non-expiring URLs
+            pageLogos[p.page_id] = `https://graph.facebook.com/${p.page_id}/picture?type=large`;
+            pageNames[p.page_id] = p.name || '';
+          });
+        }
+      }
+
+      // Add submission_count, page_logo, and page_name to each form
       return forms.map(form => ({
         ...form,
-        submission_count: submissionCounts[form.id] || 0
+        submission_count: submissionCounts[form.id] || 0,
+        page_logo: form.page_id ? pageLogos[form.page_id] : null,
+        page_name: form.page_id ? pageNames[form.page_id] : null
       }));
     },
 

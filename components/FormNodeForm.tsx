@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Plus, Trash2, GripVertical, Type, Mail, Phone, Hash, AlignLeft, ChevronDown, CircleDot, CheckSquare, Timer, ShoppingCart, Wallet, Upload, X, ArrowLeft, ArrowRight, Eye, EyeOff, Check } from 'lucide-react';
+import { Plus, Trash2, GripVertical, Type, Mail, Phone, Hash, AlignLeft, ChevronDown, CircleDot, CheckSquare, Timer, ShoppingCart, Wallet, Upload, X, ArrowLeft, ArrowRight, Eye, EyeOff, Check, FileText } from 'lucide-react';
 import { FormField } from '../types';
+import { supabase } from '../lib/supabase';
 
 interface FormNodeFormProps {
     workspaceId: string;
@@ -88,6 +89,87 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
     const [requireProofUpload, setRequireProofUpload] = useState(initialConfig?.requireProofUpload ?? true);
 
     const [formId, setFormId] = useState(initialConfig?.formId);
+
+    // Template selection mode
+    const [templateMode, setTemplateMode] = useState<'new' | 'template'>(initialConfig?.formId ? 'template' : 'new');
+    const [savedTemplates, setSavedTemplates] = useState<any[]>([]);
+    const [selectedTemplateId, setSelectedTemplateId] = useState<string>(initialConfig?.formId || '');
+    const [loadingTemplates, setLoadingTemplates] = useState(false);
+
+    // Fetch saved templates
+    useEffect(() => {
+        const fetchTemplates = async () => {
+            if (!workspaceId) return;
+
+            setLoadingTemplates(true);
+            try {
+                const { data, error } = await supabase
+                    .from('forms')
+                    .select('id, name, is_order_form, product_name, product_price, currency')
+                    .eq('workspace_id', workspaceId)
+                    .order('created_at', { ascending: false });
+
+                if (error) {
+                    console.error('Error fetching templates:', error);
+                } else if (data) {
+                    console.log('Loaded templates:', data.length);
+                    setSavedTemplates(data);
+                }
+            } catch (err) {
+                console.error('Error fetching templates:', err);
+            } finally {
+                setLoadingTemplates(false);
+            }
+        };
+
+        fetchTemplates();
+    }, [workspaceId]);
+
+    // Load template data when selected
+    const loadTemplate = async (templateId: string) => {
+        if (!templateId) return;
+
+        try {
+            const { data, error } = await supabase
+                .from('forms')
+                .select('*')
+                .eq('id', templateId)
+                .single();
+
+            if (!error && data) {
+                // Populate all form fields from template
+                setFormId(data.id);
+                setFormName(data.name);
+                setIsOrderForm(data.is_order_form ?? true);
+                setProductName(data.product_name || '');
+                setProductPrice(data.product_price || 999);
+                setCurrency(data.currency || 'PHP');
+                setFields(data.fields || []);
+                setSubmitButtonText(data.submit_button_text || 'Place Order');
+                setSubmitButtonColor(data.submit_button_color || '#6366f1');
+                setBorderRadius(data.border_radius || 'round');
+                setSuccessMessage(data.success_message || 'Order placed successfully!');
+                setHeaderImageUrl(data.header_image_url || '');
+                setCountdownEnabled(data.countdown_enabled || false);
+                setCountdownMinutes(data.countdown_minutes || 10);
+                setCountdownBlink(data.countdown_blink ?? true);
+                setMaxQuantity(data.max_quantity || 10);
+                setCouponEnabled(data.coupon_enabled || false);
+                setCouponCode(data.coupon_code || '');
+                setCouponDiscount(data.coupon_discount || 0);
+                setCodEnabled(data.cod_enabled ?? true);
+                setEwalletEnabled(data.ewallet_enabled ?? true);
+                setEwalletOptions(data.ewallet_options || ['GCash', 'Maya', 'PayPal']);
+                setEwalletNumbers(data.ewallet_numbers || {});
+                setRequireProofUpload(data.require_proof_upload ?? true);
+                setFormTemplate(data.form_template || 'modern');
+                setPromoText(data.promo_text || 'Promo Only!');
+                setPromoIcon(data.promo_icon || '🔥');
+            }
+        } catch (err) {
+            console.error('Error loading template:', err);
+        }
+    };
 
     // Check if mobile
     useEffect(() => {
@@ -741,6 +823,88 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
     // ===== MAIN RENDER =====
     return (
         <div className="w-full">
+            {/* Template Mode Selector */}
+            {savedTemplates.length > 0 && (
+                <div className="mb-4 p-4 bg-slate-800/50 rounded-xl border border-slate-700/50">
+                    <div className="flex items-center gap-3 mb-3">
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setTemplateMode('new');
+                                setSelectedTemplateId('');
+                                setFormId(undefined);
+                                setFormName('Order Form');
+                            }}
+                            className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${templateMode === 'new'
+                                ? 'bg-purple-500 text-white'
+                                : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                                }`}
+                        >
+                            <Plus className="w-4 h-4" />
+                            Create New
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setTemplateMode('template')}
+                            className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${templateMode === 'template'
+                                ? 'bg-purple-500 text-white'
+                                : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                                }`}
+                        >
+                            <FileText className="w-4 h-4" />
+                            Use Template
+                        </button>
+                    </div>
+
+                    {templateMode === 'template' && (
+                        <div>
+                            <label className="block text-xs font-medium text-slate-400 mb-2">
+                                Select a saved form template
+                            </label>
+                            {loadingTemplates ? (
+                                <div className="text-center py-4 text-slate-400 text-sm">
+                                    Loading templates...
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto">
+                                    {savedTemplates.map(template => (
+                                        <button
+                                            key={template.id}
+                                            type="button"
+                                            onClick={() => {
+                                                setSelectedTemplateId(template.id);
+                                                loadTemplate(template.id);
+                                            }}
+                                            className={`flex items-center gap-3 p-3 rounded-lg border-2 text-left transition-all ${selectedTemplateId === template.id
+                                                ? 'border-purple-500 bg-purple-500/10'
+                                                : 'border-slate-600 hover:border-slate-500 bg-slate-700/50'
+                                                }`}
+                                        >
+                                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${template.is_order_form
+                                                ? 'bg-green-500/20 text-green-400'
+                                                : 'bg-purple-500/20 text-purple-400'
+                                                }`}>
+                                                {template.is_order_form ? <ShoppingCart className="w-4 h-4" /> : <FileText className="w-4 h-4" />}
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-white text-sm font-medium truncate">
+                                                    {template.name}
+                                                </p>
+                                                {template.is_order_form && template.product_name && (
+                                                    <p className="text-slate-400 text-xs truncate">
+                                                        {template.product_name} • {template.currency === 'PHP' ? '₱' : template.currency}{template.product_price}
+                                                    </p>
+                                                )}
+                                            </div>
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
+            )}
+
             {/* Step Indicator */}
             {stepIndicatorContent}
 

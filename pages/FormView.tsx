@@ -154,7 +154,7 @@ const FormView: React.FC = () => {
     };
 
     // Sync form submission to Google Sheets (uses server-side proxy to avoid CORS)
-    const syncToGoogleSheets = async (submissionData: any) => {
+    const syncToGoogleSheets = async (submissionData: any, submissionId: string) => {
         console.log('[FormView Sheets] Starting sync...');
         console.log('[FormView Sheets] Config:', {
             sheet_id: form?.google_sheet_id,
@@ -188,13 +188,11 @@ const FormView: React.FC = () => {
 
             if (result.success) {
                 console.log('[FormView Sheets] ✓ Data synced to Google Sheets!');
-                // Update synced_to_sheets flag
+                // Update synced_to_sheets flag for the specific submission
                 await supabase
                     .from('form_submissions')
                     .update({ synced_to_sheets: true })
-                    .eq('form_id', formId)
-                    .order('created_at', { ascending: false })
-                    .limit(1);
+                    .eq('id', submissionId);
             } else {
                 console.log('[FormView Sheets] ⚠ Sync issue:', result.message || result.error);
             }
@@ -296,8 +294,8 @@ const FormView: React.FC = () => {
             const submissionId = submitResult.submissionId;
             console.log('[FormView] Submission created with ID:', submissionId);
 
-            // Sync to Google Sheets if connected
-            await syncToGoogleSheets(submissionData);
+            // Sync to Google Sheets if connected (passing the submissionId)
+            await syncToGoogleSheets(submissionData, submissionId);
 
             // Continue the flow after form submission (sends confirmation messages, etc.)
             if (flowId && nodeId) {
