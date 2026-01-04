@@ -738,27 +738,21 @@ const FormView: React.FC = () => {
                                                     <p className={`${textMuted} text-sm`}>Upload payment proof <span className="text-red-500">*</span></p>
                                                     <input type="file" ref={fileInputRef} accept="image/*" onChange={handleFileChange} className="hidden" />
                                                     {proofPreview ? (
-                                                        /* Success state - green check with small preview on right */
-                                                        <div
-                                                            className={`w-full p-4 border-2 border-green-500 bg-green-50 flex items-center gap-4`}
-                                                            style={{ borderRadius: getInputRadius() }}
-                                                        >
-                                                            {/* Success indicator - left side */}
-                                                            <div className="flex items-center gap-3 flex-1">
-                                                                <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
-                                                                    <span className="text-white text-xl">✓</span>
+                                                        /* Success state - checkmark on left, square preview on right */
+                                                        <div className="flex items-center justify-center gap-6 py-4">
+                                                            {/* Left side - Checkmark and UPLOADED text */}
+                                                            <div className="flex flex-col items-center">
+                                                                <div className="w-14 h-14 bg-green-500 rounded-full flex items-center justify-center mb-2">
+                                                                    <span className="text-white text-3xl">✓</span>
                                                                 </div>
-                                                                <div>
-                                                                    <p className="text-green-700 font-semibold text-sm">Upload Success!</p>
-                                                                    <p className="text-green-600 text-xs">Payment proof attached</p>
-                                                                </div>
+                                                                <p className="text-green-500 font-bold text-sm uppercase tracking-wide">UPLOADED!</p>
                                                             </div>
-                                                            {/* Small preview - right side */}
-                                                            <div className="relative flex-shrink-0">
+                                                            {/* Right side - Square image preview */}
+                                                            <div className="relative">
                                                                 <img
                                                                     src={proofPreview}
                                                                     alt="Proof"
-                                                                    className="w-16 h-16 object-cover rounded-lg border-2 border-green-300 shadow-sm"
+                                                                    className="w-24 h-24 object-cover border-2 border-slate-800 bg-white"
                                                                 />
                                                                 <button
                                                                     onClick={() => { setProofFile(null); setProofPreview(''); }}
