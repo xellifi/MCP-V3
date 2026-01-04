@@ -188,9 +188,8 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
 
     initializeData();
 
-    // Check if mobile
-    const isMobile = window.innerWidth < 768;
-    setSidebarCollapsed(isMobile);
+    // Keep sidebar expanded to show node tools by default (even on mobile)
+    // Users can manually collapse if needed
   }, [id]);
 
   // Close page dropdown when clicking outside

@@ -31,12 +31,23 @@ const CustomFollowupNode: React.FC<NodeProps> = ({ data, selected }) => {
         setIsExpanded(!isExpanded);
     };
 
-    // Configuration values from data
-    const firstDelay = data.firstDelayMinutes || 30;
-    const interval = data.intervalMinutes || 120;
-    const maxFollowups = data.maxFollowups || 3;
-    const isConfigured = data.followupMessage && data.followupMessage.length > 0;
-    const hasDetails = isConfigured || firstDelay || interval;
+    // Configuration values from data - read from scheduledFollowups array
+    const scheduledFollowups = data.scheduledFollowups || [];
+    const firstFollowup = scheduledFollowups[0];
+    const secondFollowup = scheduledFollowups[1];
+
+    // Get timing from actual followups or fall back to defaults
+    const firstDelay = firstFollowup?.type === 'delay'
+        ? firstFollowup.delayMinutes
+        : (firstFollowup?.scheduledDays !== undefined ? `D${firstFollowup.scheduledDays}` : 30);
+    const interval = secondFollowup?.type === 'delay'
+        ? secondFollowup.delayMinutes
+        : (secondFollowup?.scheduledDays !== undefined ? `D${secondFollowup.scheduledDays}` : null);
+
+    const maxFollowups = scheduledFollowups.length || 0;
+    const firstMessage = firstFollowup?.message || '';
+    const isConfigured = scheduledFollowups.length > 0 && firstMessage.length > 0;
+    const hasDetails = scheduledFollowups.length > 0;
 
     return (
         <div className="relative group">
@@ -83,13 +94,25 @@ const CustomFollowupNode: React.FC<NodeProps> = ({ data, selected }) => {
                 {isExpanded && (
                     <div className="mt-3 pt-3 border-t border-rose-500/20 space-y-2">
                         {/* Timing Settings */}
-                        <div className="flex items-center gap-2 text-xs">
+                        <div className="flex items-center gap-2 text-xs flex-wrap">
                             <Clock className="w-3.5 h-3.5 text-rose-400" />
-                            <span className="text-slate-400">First:</span>
-                            <span className="text-rose-300 font-medium">{firstDelay}m</span>
-                            <span className="text-slate-500">|</span>
-                            <span className="text-slate-400">Then:</span>
-                            <span className="text-rose-300 font-medium">{interval}m</span>
+                            {firstFollowup && (
+                                <>
+                                    <span className="text-slate-400">First:</span>
+                                    <span className="text-rose-300 font-medium">
+                                        {typeof firstDelay === 'number' ? `${firstDelay}m` : firstDelay}
+                                    </span>
+                                </>
+                            )}
+                            {secondFollowup && interval !== null && (
+                                <>
+                                    <span className="text-slate-500">|</span>
+                                    <span className="text-slate-400">2nd:</span>
+                                    <span className="text-rose-300 font-medium">
+                                        {typeof interval === 'number' ? `${interval}m` : interval}
+                                    </span>
+                                </>
+                            )}
                         </div>
 
                         {/* Message Preview */}
@@ -99,7 +122,7 @@ const CustomFollowupNode: React.FC<NodeProps> = ({ data, selected }) => {
                                     📩 Message
                                 </div>
                                 <div className="text-slate-300 text-xs line-clamp-2">
-                                    {data.followupMessage?.substring(0, 60)}...
+                                    {firstMessage.substring(0, 60)}{firstMessage.length > 60 ? '...' : ''}
                                 </div>
                             </div>
                         ) : (

@@ -170,7 +170,7 @@ const InvoiceNodeForm: React.FC<InvoiceNodeFormProps> = ({
         setActiveSection(activeSection === section ? '' : section);
     };
 
-    // Color picker component
+    // Color picker component with drag support
     const ColorPicker = ({
         value,
         onChange: onColorChange,
@@ -196,6 +196,9 @@ const InvoiceNodeForm: React.FC<InvoiceNodeFormProps> = ({
                     <input
                         type="color"
                         value={value}
+                        // Use onInput for live updates while dragging (fires continuously)
+                        onInput={(e) => onColorChange((e.target as HTMLInputElement).value)}
+                        // Keep onChange as fallback for browsers that don't fire onInput
                         onChange={(e) => onColorChange(e.target.value)}
                         className="w-6 h-6 rounded-full cursor-pointer opacity-0 absolute inset-0"
                     />
