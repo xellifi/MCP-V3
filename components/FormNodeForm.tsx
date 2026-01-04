@@ -88,6 +88,11 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
     const [ewalletNumbers, setEwalletNumbers] = useState<Record<string, string>>(initialConfig?.ewalletNumbers || {});
     const [requireProofUpload, setRequireProofUpload] = useState(initialConfig?.requireProofUpload ?? true);
 
+    // Image upload state
+    const [uploading, setUploading] = useState(false);
+    const [uploadedImageUrl, setUploadedImageUrl] = useState('');
+    const [copied, setCopied] = useState(false);
+
     const [formId, setFormId] = useState(initialConfig?.formId);
 
     // Template selection mode
@@ -293,23 +298,67 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
             <div>
                 <label className={labelClass}>Header Image</label>
                 <div className="flex gap-2">
-                    <input type="text" value={headerImageUrl} onChange={(e) => setHeaderImageUrl(e.target.value)} placeholder="Image URL..." className={`${inputClass} flex-1`} />
-                    <label className="px-3 py-2 bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/50 rounded-xl cursor-pointer flex items-center">
-                        <Upload className="w-4 h-4 text-purple-400" />
-                        <input type="file" accept="image/*" className="hidden" onChange={(e) => {
+                    <input type="text" value={headerImageUrl} onChange={(e) => { setHeaderImageUrl(e.target.value); setUploadedImageUrl(''); }} placeholder="Image URL..." className={`${inputClass} flex-1`} />
+                    <label className={`px-3 py-2 bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/50 rounded-xl cursor-pointer flex items-center gap-1.5 ${uploading ? 'opacity-50 pointer-events-none' : ''}`}>
+                        {uploading ? (
+                            <div className="w-4 h-4 border-2 border-purple-400 border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                            <Upload className="w-4 h-4 text-purple-400" />
+                        )}
+                        <input type="file" accept="image/*" className="hidden" disabled={uploading} onChange={async (e) => {
                             const file = e.target.files?.[0];
-                            if (file) {
-                                const reader = new FileReader();
-                                reader.onloadend = () => setHeaderImageUrl(reader.result as string);
-                                reader.readAsDataURL(file);
+                            if (!file) return;
+
+                            setUploading(true);
+                            try {
+                                const fileName = `form-header-${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+                                const { error } = await supabase.storage.from('attachments').upload(fileName, file);
+                                if (error) throw error;
+
+                                // Use our own domain URL instead of Supabase URL
+                                const relativePath = `/api/images/${fileName}`;
+                                const fullUrl = `${window.location.origin}${relativePath}`;
+                                setHeaderImageUrl(relativePath); // Use relative for internal display
+                                setUploadedImageUrl(fullUrl); // Full URL for copying
+                            } catch (err) {
+                                console.error('Upload error:', err);
+                                alert('Failed to upload image. Please try again.');
                             }
+                            setUploading(false);
                         }} />
                     </label>
                 </div>
                 {headerImageUrl && (
-                    <div className="mt-2 relative inline-block">
-                        <img src={headerImageUrl} alt="" className="max-w-[200px] h-auto rounded-lg border border-slate-700" />
-                        <button type="button" onClick={() => setHeaderImageUrl('')} className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-white text-xs">×</button>
+                    <div className="mt-2 space-y-2">
+                        <div className="relative inline-block">
+                            <img src={headerImageUrl} alt="" className="max-w-[200px] h-auto rounded-lg border border-slate-700" />
+                            <button type="button" onClick={() => { setHeaderImageUrl(''); setUploadedImageUrl(''); }} className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-white text-xs">×</button>
+                        </div>
+                        {/* Show copyable URL when image was uploaded (not pasted URL) */}
+                        {uploadedImageUrl && (
+                            <div className="flex items-center gap-2">
+                                <input
+                                    type="text"
+                                    value={uploadedImageUrl}
+                                    readOnly
+                                    className="flex-1 px-2 py-1.5 bg-slate-900/50 border border-slate-600/50 rounded-lg text-slate-300 text-xs truncate"
+                                    onClick={(e) => (e.target as HTMLInputElement).select()}
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        navigator.clipboard.writeText(uploadedImageUrl);
+                                        setCopied(true);
+                                        setTimeout(() => setCopied(false), 2000);
+                                    }}
+                                    className={`px-2 py-1.5 rounded-lg text-xs font-medium transition-all ${copied
+                                        ? 'bg-green-500/20 text-green-400 border border-green-500/50'
+                                        : 'bg-purple-500/20 text-purple-400 border border-purple-500/50 hover:bg-purple-500/30'}`}
+                                >
+                                    {copied ? '✓ Copied!' : 'Copy URL'}
+                                </button>
+                            </div>
+                        )}
                     </div>
                 )}
             </div>
