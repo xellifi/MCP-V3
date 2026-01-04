@@ -684,232 +684,207 @@ const Forms: React.FC<FormsProps> = ({ workspace }) => {
                         <div
                             key={form.id}
                             onClick={() => openFormDetails(form)}
-                            className={`${cardBg} rounded-2xl border overflow-hidden cursor-pointer group transition-all duration-300 relative ${viewMode === 'grid' ? 'p-5' : 'p-4 flex items-center gap-4'
+                            className={`${cardBg} rounded-2xl border overflow-hidden cursor-pointer group transition-all duration-300 relative ${viewMode === 'grid' ? 'p-5' : 'p-3'
                                 }`}
                         >
-                            {/* 3-Dot Menu - Upper Right with Horizontal Icon Bar */}
-                            <div className="absolute top-3 right-3 z-10 flex items-center gap-1">
-                                {/* Horizontal Icon Menu - appears to the left of 3-dot button */}
-                                {activeMenuId === form.id && (
-                                    <div
-                                        className={`form-card-menu flex items-center gap-0.5 p-1 ${isDark ? 'bg-slate-800/95 border-slate-700' : 'bg-white/95 border-gray-200'} rounded-lg border shadow-xl backdrop-blur-sm animate-scale-in`}
-                                        onClick={(e) => e.stopPropagation()}
-                                    >
-                                        {/* Edit Button */}
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                setActiveMenuId(null);
-                                                setEditingForm(form);
-                                                setSelectedPageId(form.page_id);
-                                                setEditFormConfig({
-                                                    formName: form.name,
-                                                    isOrderForm: form.is_order_form,
-                                                    productName: form.product_name,
-                                                    productPrice: form.product_price,
-                                                    currency: form.currency,
-                                                    fields: form.fields,
-                                                    submitButtonText: form.submit_button_text,
-                                                    submitButtonColor: form.submit_button_color,
-                                                    borderRadius: form.border_radius,
-                                                    successMessage: form.success_message,
-                                                    headerImageUrl: form.header_image_url,
-                                                    countdownEnabled: form.countdown_enabled,
-                                                    countdownMinutes: form.countdown_minutes,
-                                                    countdownBlink: form.countdown_blink,
-                                                    maxQuantity: form.max_quantity,
-                                                    couponEnabled: form.coupon_enabled,
-                                                    couponCode: form.coupon_code,
-                                                    couponDiscount: form.coupon_discount,
-                                                    codEnabled: form.cod_enabled,
-                                                    ewalletEnabled: form.ewallet_enabled,
-                                                    ewalletOptions: form.ewallet_options,
-                                                    ewalletNumbers: form.ewallet_numbers,
-                                                    requireProofUpload: form.require_proof_upload,
-                                                    formTemplate: form.form_template,
-                                                    promoText: form.promo_text,
-                                                    promoIcon: form.promo_icon,
-                                                });
-                                            }}
-                                            className={`relative group/edit p-1.5 rounded-lg ${isDark ? 'hover:bg-white/10 text-slate-300 hover:text-white' : 'hover:bg-gray-100 text-gray-500 hover:text-gray-700'} transition-all`}
-                                        >
-                                            <Edit2 className="w-4 h-4" />
-                                            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 px-2 py-0.5 bg-slate-900 text-white text-[10px] rounded whitespace-nowrap opacity-0 invisible group-hover/edit:opacity-100 group-hover/edit:visible transition-all z-[100]">
-                                                Edit
+                            {viewMode === 'grid' ? (
+                                /* ===== GRID VIEW ===== */
+                                <>
+                                    {/* 3-Dot Menu - Upper Right */}
+                                    <div className="absolute top-3 right-3 z-10 flex items-center gap-1">
+                                        {activeMenuId === form.id && (
+                                            <div
+                                                className={`form-card-menu flex items-center gap-0.5 p-1 ${isDark ? 'bg-slate-800/95 border-slate-700' : 'bg-white/95 border-gray-200'} rounded-lg border shadow-xl backdrop-blur-sm animate-scale-in`}
+                                                onClick={(e) => e.stopPropagation()}
+                                            >
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setActiveMenuId(null);
+                                                        setEditingForm(form);
+                                                        setSelectedPageId(form.page_id);
+                                                        setEditFormConfig({
+                                                            formName: form.name,
+                                                            isOrderForm: form.is_order_form,
+                                                            productName: form.product_name,
+                                                            productPrice: form.product_price,
+                                                            currency: form.currency,
+                                                            fields: form.fields,
+                                                            submitButtonText: form.submit_button_text,
+                                                            submitButtonColor: form.submit_button_color,
+                                                            borderRadius: form.border_radius,
+                                                            successMessage: form.success_message,
+                                                            headerImageUrl: form.header_image_url,
+                                                            countdownEnabled: form.countdown_enabled,
+                                                            countdownMinutes: form.countdown_minutes,
+                                                            countdownBlink: form.countdown_blink,
+                                                            maxQuantity: form.max_quantity,
+                                                            couponEnabled: form.coupon_enabled,
+                                                            couponCode: form.coupon_code,
+                                                            couponDiscount: form.coupon_discount,
+                                                            codEnabled: form.cod_enabled,
+                                                            ewalletEnabled: form.ewallet_enabled,
+                                                            ewalletOptions: form.ewallet_options,
+                                                            ewalletNumbers: form.ewallet_numbers,
+                                                            requireProofUpload: form.require_proof_upload,
+                                                            formTemplate: form.form_template,
+                                                            promoText: form.promo_text,
+                                                            promoIcon: form.promo_icon,
+                                                        });
+                                                    }}
+                                                    className={`relative group/edit p-1.5 rounded-lg ${isDark ? 'hover:bg-white/10 text-slate-300 hover:text-white' : 'hover:bg-gray-100 text-gray-500 hover:text-gray-700'} transition-all`}
+                                                >
+                                                    <Edit2 className="w-4 h-4" />
+                                                </button>
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); setActiveMenuId(null); cloneForm(form); }}
+                                                    className={`relative group/clone p-1.5 rounded-lg ${isDark ? 'hover:bg-white/10 text-slate-300 hover:text-white' : 'hover:bg-gray-100 text-gray-500 hover:text-gray-700'} transition-all`}
+                                                >
+                                                    <Copy className="w-4 h-4" />
+                                                </button>
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); setActiveMenuId(null); openDeleteModal(form, e); }}
+                                                    className={`relative group/delete p-1.5 rounded-lg ${isDark ? 'hover:bg-red-500/20 text-red-400 hover:text-red-300' : 'hover:bg-red-50 text-red-400 hover:text-red-500'} transition-all`}
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
                                             </div>
-                                        </button>
-
-                                        {/* Clone Button */}
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                setActiveMenuId(null);
-                                                cloneForm(form);
-                                            }}
-                                            className={`relative group/clone p-1.5 rounded-lg ${isDark ? 'hover:bg-white/10 text-slate-300 hover:text-white' : 'hover:bg-gray-100 text-gray-500 hover:text-gray-700'} transition-all`}
-                                        >
-                                            <Copy className="w-4 h-4" />
-                                            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 px-2 py-0.5 bg-slate-900 text-white text-[10px] rounded whitespace-nowrap opacity-0 invisible group-hover/clone:opacity-100 group-hover/clone:visible transition-all z-[100]">
-                                                Clone
-                                            </div>
-                                        </button>
-
-                                        {/* Delete Button */}
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                setActiveMenuId(null);
-                                                openDeleteModal(form, e);
-                                            }}
-                                            className={`relative group/delete p-1.5 rounded-lg ${isDark ? 'hover:bg-red-500/20 text-red-400 hover:text-red-300' : 'hover:bg-red-50 text-red-400 hover:text-red-500'} transition-all`}
-                                        >
-                                            <Trash2 className="w-4 h-4" />
-                                            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 px-2 py-0.5 bg-slate-900 text-white text-[10px] rounded whitespace-nowrap opacity-0 invisible group-hover/delete:opacity-100 group-hover/delete:visible transition-all z-[100]">
-                                                Delete
-                                            </div>
-                                        </button>
-                                    </div>
-                                )}
-
-                                {/* 3-Dot Button */}
-                                <button
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        setActiveMenuId(activeMenuId === form.id ? null : form.id);
-                                    }}
-                                    className={`p-1.5 ${isDark ? 'bg-slate-700/80 hover:bg-slate-600 text-white/70 hover:text-white' : 'bg-white/80 hover:bg-white text-gray-500 hover:text-gray-700'} rounded-lg transition-all shadow-lg backdrop-blur-sm`}
-                                >
-                                    <MoreVertical className="w-4 h-4" />
-                                </button>
-                            </div>
-
-                            {/* Form Type Indicator - Upper Left */}
-                            <div className="absolute top-3 left-3 z-10">
-                                <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium ${form.is_order_form
-                                    ? `${isDark ? 'bg-emerald-500/20 text-emerald-400' : 'bg-emerald-50 text-emerald-600'}`
-                                    : `${isDark ? 'bg-indigo-500/20 text-indigo-400' : 'bg-indigo-50 text-indigo-600'}`
-                                    }`}>
-                                    {form.is_order_form ? (
-                                        <>
-                                            <ShoppingCart className="w-3 h-3" />
-                                            Multi Step
-                                        </>
-                                    ) : (
-                                        <>
-                                            <FileText className="w-3 h-3" />
-                                            Regular
-                                        </>
-                                    )}
-                                </span>
-                            </div>
-
-                            {/* Center Icon - FB Page Logo or Fallback with Notification Badge */}
-                            <div className={`${viewMode === 'grid' ? 'flex justify-center mb-4 mt-6' : 'flex-shrink-0'}`}>
-                                <div className="relative">
-                                    {/* Notification Badge - on top of center icon */}
-                                    {(form.submission_count || 0) > 0 && (
-                                        <div className="absolute -top-2 -right-2 min-w-[20px] h-[20px] bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center px-1.5 shadow-lg z-20 animate-pulse">
-                                            {form.submission_count! > 99 ? '99+' : form.submission_count}
-                                        </div>
-                                    )}
-
-                                    {/* FB Page Logo or Fallback Icon */}
-                                    {form.page_logo ? (
-                                        <img
-                                            src={form.page_logo}
-                                            alt="Page"
-                                            className={`${viewMode === 'grid' ? 'w-16 h-16' : 'w-12 h-12'} rounded-2xl object-cover border-2 ${isDark ? 'border-white/20' : 'border-gray-200'} shadow-lg`}
-                                            onError={(e) => {
-                                                // On error, replace with fallback icon
-                                                const target = e.target as HTMLImageElement;
-                                                target.style.display = 'none';
-                                                const fallback = target.nextElementSibling as HTMLElement;
-                                                if (fallback) fallback.style.display = 'flex';
-                                            }}
-                                        />
-                                    ) : null}
-
-                                    {/* Fallback Icon (shown when no page_logo or image fails to load) */}
-                                    <div
-                                        className={`${viewMode === 'grid' ? 'w-16 h-16' : 'w-12 h-12'} rounded-2xl ${form.is_order_form
-                                            ? 'bg-gradient-to-br from-emerald-500/20 to-teal-500/20'
-                                            : 'bg-gradient-to-br from-indigo-500/20 to-purple-500/20'
-                                            } items-center justify-center border ${isDark ? 'border-white/10' : 'border-gray-200'}`}
-                                        style={{ display: form.page_logo ? 'none' : 'flex' }}
-                                    >
-                                        {form.is_order_form ? (
-                                            <ShoppingCart className={`${viewMode === 'grid' ? 'w-7 h-7' : 'w-5 h-5'} text-emerald-400`} />
-                                        ) : (
-                                            <FileText className={`${viewMode === 'grid' ? 'w-7 h-7' : 'w-5 h-5'} text-indigo-400`} />
                                         )}
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); setActiveMenuId(activeMenuId === form.id ? null : form.id); }}
+                                            className={`p-1.5 ${isDark ? 'bg-slate-700/80 hover:bg-slate-600 text-white/70 hover:text-white' : 'bg-white/80 hover:bg-white text-gray-500 hover:text-gray-700'} rounded-lg transition-all shadow-lg backdrop-blur-sm`}
+                                        >
+                                            <MoreVertical className="w-4 h-4" />
+                                        </button>
                                     </div>
-                                </div>
-                            </div>
 
-                            {/* Info */}
-                            <div className={viewMode === 'grid' ? 'text-center' : 'flex-1 min-w-0'}>
-                                <h3 className={`font-bold ${textPrimary} truncate group-hover:text-indigo-400 transition-colors ${viewMode === 'grid' ? 'text-lg mb-1' : 'text-base'
-                                    }`}>
-                                    {form.name}
-                                </h3>
-
-                                {form.product_name && (
-                                    <p className={`${textSecondary} text-sm truncate ${viewMode === 'grid' ? 'mb-2' : ''}`}>
-                                        {form.product_name}{form.is_order_form && form.product_price ? ` • ${getCurrencySymbol(form.currency)}${form.product_price.toLocaleString()}` : ''}
-                                    </p>
-                                )}
-
-                                {/* Synced Badge with Sheet Name */}
-                                {form.google_sheet_id && (
-                                    <div className={`flex items-center gap-2 mt-2 flex-wrap ${viewMode === 'grid' ? 'justify-center' : ''}`}>
-                                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${isDark ? 'bg-green-500/20 text-green-400 border-green-500/30' : 'bg-green-50 text-green-600 border-green-200'
-                                            } border`}>
-                                            <CheckCircle className="w-3 h-3" />
-                                            Synced
+                                    {/* Form Type Badge - Upper Left */}
+                                    <div className="absolute top-3 left-3 z-10">
+                                        <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium ${form.is_order_form
+                                            ? `${isDark ? 'bg-emerald-500/20 text-emerald-400' : 'bg-emerald-50 text-emerald-600'}`
+                                            : `${isDark ? 'bg-indigo-500/20 text-indigo-400' : 'bg-indigo-50 text-indigo-600'}`
+                                            }`}>
+                                            {form.is_order_form ? <><ShoppingCart className="w-3 h-3" /> Multi Step</> : <><FileText className="w-3 h-3" /> Regular</>}
                                         </span>
-                                        {form.google_sheet_name && (
-                                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs ${isDark ? 'bg-emerald-500/10 text-emerald-400' : 'bg-emerald-50 text-emerald-600'} max-w-[150px] truncate`} title={`Sheet: ${form.google_sheet_name}`}>
-                                                📊 {form.google_sheet_name}
-                                            </span>
-                                        )}
                                     </div>
-                                )}
 
-                                {/* Connected Facebook Page */}
-                                {form.page_id && (
-                                    <div className={`flex items-center gap-2 mt-2 ${viewMode === 'grid' ? 'justify-center' : ''}`}>
-                                        {form.page_logo && (
-                                            <img
-                                                src={form.page_logo}
-                                                alt={form.page_name || 'Page'}
-                                                className="w-5 h-5 rounded-full object-cover"
-                                                onError={(e) => {
-                                                    (e.target as HTMLImageElement).style.display = 'none';
-                                                }}
-                                            />
-                                        )}
+                                    {/* Center Icon - Form Type Icon (not FB logo, since that's shown below) */}
+                                    <div className="flex justify-center mb-4 mt-6">
+                                        <div className="relative">
+                                            {(form.submission_count || 0) > 0 && (
+                                                <div className="absolute -top-2 -right-2 min-w-[20px] h-[20px] bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center px-1.5 shadow-lg z-20 animate-pulse">
+                                                    {form.submission_count! > 99 ? '99+' : form.submission_count}
+                                                </div>
+                                            )}
+                                            {/* Glass Style Form Type Icons */}
+                                            <div className={`w-16 h-16 rounded-2xl flex items-center justify-center border-2 ${form.is_order_form
+                                                ? 'bg-emerald-500/10 border-emerald-500/30'
+                                                : 'bg-indigo-500/10 border-indigo-500/30'}`}>
+                                                {form.is_order_form
+                                                    ? <ShoppingCart className="w-8 h-8 text-emerald-400" />
+                                                    : <FileText className="w-8 h-8 text-indigo-400" />}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Grid Info */}
+                                    <div className="text-center">
+                                        <h3 className={`font-bold ${textPrimary} truncate group-hover:text-indigo-400 transition-colors text-lg mb-1`}>{form.name}</h3>
+                                        {form.product_name && <p className={`${textSecondary} text-sm truncate mb-2`}>{form.product_name}{form.is_order_form && form.product_price ? ` • ${getCurrencySymbol(form.currency)}${form.product_price.toLocaleString()}` : ''}</p>}
                                         {form.page_name && (
-                                            <span className={`text-xs ${textMuted} truncate max-w-[120px]`} title={form.page_name}>
-                                                {form.page_name}
-                                            </span>
+                                            <div className="flex items-center gap-1.5 justify-center">
+                                                {form.page_logo && <img src={form.page_logo} alt="" className="w-4 h-4 rounded-full object-cover" />}
+                                                <span className={`text-xs ${textMuted} truncate max-w-[120px]`}>{form.page_name}</span>
+                                            </div>
                                         )}
+                                        <div className={`flex items-center justify-center gap-1 mt-3 text-xs ${textMuted}`}>
+                                            <Clock className="w-3 h-3" />
+                                            {formatTimeAgo(form.created_at)}
+                                        </div>
                                     </div>
-                                )}
-
-                                {/* Date - Grid Only */}
-                                {viewMode === 'grid' && (
-                                    <div className={`flex items-center justify-center gap-1 mt-3 text-xs ${textMuted}`}>
-                                        <Clock className="w-3 h-3" />
-                                        {formatTimeAgo(form.created_at)}
+                                </>
+                            ) : (
+                                /* ===== LIST VIEW - Redesigned ===== */
+                                <div className="flex items-center gap-4">
+                                    {/* Left: Form Type Icon with badge */}
+                                    <div className="relative flex-shrink-0">
+                                        {(form.submission_count || 0) > 0 && (
+                                            <div className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1 shadow-lg z-10">
+                                                {form.submission_count! > 99 ? '99+' : form.submission_count}
+                                            </div>
+                                        )}
+                                        {/* Glass Style Form Type Icons */}
+                                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center border-2 ${form.is_order_form
+                                            ? 'bg-emerald-500/10 border-emerald-500/30'
+                                            : 'bg-indigo-500/10 border-indigo-500/30'}`}>
+                                            {form.is_order_form
+                                                ? <ShoppingCart className="w-5 h-5 text-emerald-400" />
+                                                : <FileText className="w-5 h-5 text-indigo-400" />}
+                                        </div>
                                     </div>
-                                )}
-                            </div>
 
-                            {/* Date - List Only */}
-                            {viewMode === 'list' && (
-                                <div className={`hidden sm:flex items-center gap-1 text-xs ${textMuted}`}>
-                                    <Clock className="w-3 h-3" />
-                                    {formatTimeAgo(form.created_at)}
+                                    {/* Middle: Form Info */}
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2 mb-0.5">
+                                            <h3 className={`font-semibold ${textPrimary} truncate group-hover:text-indigo-400 transition-colors text-sm`}>{form.name}</h3>
+                                            <span className={`flex-shrink-0 inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-medium ${form.is_order_form
+                                                ? `${isDark ? 'bg-emerald-500/20 text-emerald-400' : 'bg-emerald-50 text-emerald-600'}`
+                                                : `${isDark ? 'bg-indigo-500/20 text-indigo-400' : 'bg-indigo-50 text-indigo-600'}`
+                                                }`}>
+                                                {form.is_order_form ? 'Multi Step' : 'Regular'}
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                            {form.product_name && (
+                                                <span className={`${textSecondary} text-xs truncate max-w-[200px]`}>
+                                                    {form.product_name}{form.is_order_form && form.product_price ? ` • ${getCurrencySymbol(form.currency)}${form.product_price.toLocaleString()}` : ''}
+                                                </span>
+                                            )}
+                                            {form.page_name && (
+                                                <span className={`flex items-center gap-1 text-xs ${textMuted}`}>
+                                                    <span className="w-1 h-1 rounded-full bg-slate-500" />
+                                                    {form.page_name}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Right: Date & Actions */}
+                                    <div className="flex items-center gap-3 flex-shrink-0">
+                                        <span className={`hidden sm:flex items-center gap-1 text-xs ${textMuted}`}>
+                                            <Clock className="w-3 h-3" />
+                                            {formatTimeAgo(form.created_at)}
+                                        </span>
+
+                                        {/* Action Menu */}
+                                        <div className="flex items-center gap-1">
+                                            {activeMenuId === form.id && (
+                                                <div
+                                                    className={`form-card-menu flex items-center gap-0.5 p-1 ${isDark ? 'bg-slate-800/95 border-slate-700' : 'bg-white/95 border-gray-200'} rounded-lg border shadow-xl backdrop-blur-sm animate-scale-in`}
+                                                    onClick={(e) => e.stopPropagation()}
+                                                >
+                                                    <button onClick={(e) => {
+                                                        e.stopPropagation(); setActiveMenuId(null); setEditingForm(form); setSelectedPageId(form.page_id);
+                                                        setEditFormConfig({ formName: form.name, isOrderForm: form.is_order_form, productName: form.product_name, productPrice: form.product_price, currency: form.currency, fields: form.fields, submitButtonText: form.submit_button_text, submitButtonColor: form.submit_button_color, borderRadius: form.border_radius, successMessage: form.success_message, headerImageUrl: form.header_image_url, countdownEnabled: form.countdown_enabled, countdownMinutes: form.countdown_minutes, countdownBlink: form.countdown_blink, maxQuantity: form.max_quantity, couponEnabled: form.coupon_enabled, couponCode: form.coupon_code, couponDiscount: form.coupon_discount, codEnabled: form.cod_enabled, ewalletEnabled: form.ewallet_enabled, ewalletOptions: form.ewallet_options, ewalletNumbers: form.ewallet_numbers, requireProofUpload: form.require_proof_upload, formTemplate: form.form_template, promoText: form.promo_text, promoIcon: form.promo_icon });
+                                                    }} className={`p-1.5 rounded-lg ${isDark ? 'hover:bg-white/10 text-slate-300 hover:text-white' : 'hover:bg-gray-100 text-gray-500 hover:text-gray-700'} transition-all`}>
+                                                        <Edit2 className="w-3.5 h-3.5" />
+                                                    </button>
+                                                    <button onClick={(e) => { e.stopPropagation(); setActiveMenuId(null); cloneForm(form); }} className={`p-1.5 rounded-lg ${isDark ? 'hover:bg-white/10 text-slate-300 hover:text-white' : 'hover:bg-gray-100 text-gray-500 hover:text-gray-700'} transition-all`}>
+                                                        <Copy className="w-3.5 h-3.5" />
+                                                    </button>
+                                                    <button onClick={(e) => { e.stopPropagation(); setActiveMenuId(null); openDeleteModal(form, e); }} className={`p-1.5 rounded-lg ${isDark ? 'hover:bg-red-500/20 text-red-400 hover:text-red-300' : 'hover:bg-red-50 text-red-400 hover:text-red-500'} transition-all`}>
+                                                        <Trash2 className="w-3.5 h-3.5" />
+                                                    </button>
+                                                </div>
+                                            )}
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); setActiveMenuId(activeMenuId === form.id ? null : form.id); }}
+                                                className={`p-1.5 ${isDark ? 'hover:bg-white/10 text-white/50 hover:text-white' : 'hover:bg-gray-100 text-gray-400 hover:text-gray-700'} rounded-lg transition-all`}
+                                            >
+                                                <MoreVertical className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
                             )}
                         </div>

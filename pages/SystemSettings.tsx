@@ -28,10 +28,13 @@ const DEFAULT_MENU_ORDER = [
   { id: '/subscribers', label: 'Subscribers' },
   { id: '/messages', label: 'Inbox' },
   { id: '/flows', label: 'Flows' },
+  { id: '/forms-manager', label: 'Forms' },
+  { id: '/store', label: 'Store' },
   { id: '/scheduled', label: 'Posts' },
   { id: '/academy', label: 'Academy' },
   { id: '/settings', label: 'Settings' },
   { id: '/affiliates', label: 'Affiliates' },
+  { id: '/support', label: 'Support' },
 ];
 
 const DAYS_OF_WEEK = [
