@@ -336,27 +336,33 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
                         </div>
                         {/* Show copyable URL when image was uploaded (not pasted URL) */}
                         {uploadedImageUrl && (
-                            <div className="flex items-center gap-2">
-                                <input
-                                    type="text"
-                                    value={uploadedImageUrl}
-                                    readOnly
-                                    className="flex-1 px-2 py-1.5 bg-slate-900/50 border border-slate-600/50 rounded-lg text-slate-300 text-xs truncate"
-                                    onClick={(e) => (e.target as HTMLInputElement).select()}
-                                />
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        navigator.clipboard.writeText(uploadedImageUrl);
-                                        setCopied(true);
-                                        setTimeout(() => setCopied(false), 2000);
-                                    }}
-                                    className={`px-2 py-1.5 rounded-lg text-xs font-medium transition-all ${copied
-                                        ? 'bg-green-500/20 text-green-400 border border-green-500/50'
-                                        : 'bg-purple-500/20 text-purple-400 border border-purple-500/50 hover:bg-purple-500/30'}`}
-                                >
-                                    {copied ? '✓ Copied!' : 'Copy URL'}
-                                </button>
+                            <div className="space-y-1.5">
+                                <div className="flex items-center gap-2">
+                                    <input
+                                        type="text"
+                                        value={uploadedImageUrl}
+                                        readOnly
+                                        className="flex-1 px-2 py-1.5 bg-slate-900/50 border border-slate-600/50 rounded-lg text-slate-300 text-xs truncate"
+                                        onClick={(e) => (e.target as HTMLInputElement).select()}
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            navigator.clipboard.writeText(uploadedImageUrl);
+                                            setCopied(true);
+                                            setTimeout(() => setCopied(false), 2000);
+                                        }}
+                                        className={`px-2 py-1.5 rounded-lg text-xs font-medium transition-all flex-shrink-0 ${copied
+                                            ? 'bg-green-500/20 text-green-400 border border-green-500/50'
+                                            : 'bg-purple-500/20 text-purple-400 border border-purple-500/50 hover:bg-purple-500/30'}`}
+                                    >
+                                        {copied ? '✓ Copied!' : 'Copy URL'}
+                                    </button>
+                                </div>
+                                <p className="text-[10px] text-slate-500 flex items-center gap-1">
+                                    <span>💡</span>
+                                    <span>Save this link! Use it instead of uploading the same image again to keep your forms fast.</span>
+                                </p>
                             </div>
                         )}
                     </div>
