@@ -107,7 +107,7 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
             try {
                 const { data, error } = await supabase
                     .from('forms')
-                    .select('id, name, is_order_form, product_name, product_price, currency')
+                    .select('id, name, is_order_form, product_name, product_price, currency, page_id')
                     .eq('workspace_id', workspaceId)
                     .order('created_at', { ascending: false });
 
@@ -894,8 +894,16 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
                                                     const selected = savedTemplates.find(t => t.id === selectedTemplateId);
                                                     return selected ? (
                                                         <>
-                                                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${selected.is_order_form ? 'bg-green-500/20 text-green-400' : 'bg-purple-500/20 text-purple-400'}`}>
+                                                            <div className={`relative w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${selected.is_order_form ? 'bg-green-500/20 text-green-400' : 'bg-purple-500/20 text-purple-400'}`}>
                                                                 {selected.is_order_form ? <ShoppingCart className="w-4 h-4" /> : <FileText className="w-4 h-4" />}
+                                                                {selected.page_id && (
+                                                                    <img
+                                                                        src={`https://graph.facebook.com/${selected.page_id}/picture?type=large`}
+                                                                        alt="Page"
+                                                                        className="absolute -top-2 -left-2 w-5 h-5 rounded-full border-2 border-slate-800 object-cover"
+                                                                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                                                                    />
+                                                                )}
                                                             </div>
                                                             <span className="font-medium text-white truncate">
                                                                 {selected.name}
@@ -930,11 +938,16 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
                                                             : 'hover:bg-white/5'
                                                             }`}
                                                     >
-                                                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${template.is_order_form
-                                                            ? 'bg-green-500/20 text-green-400'
-                                                            : 'bg-purple-500/20 text-purple-400'
-                                                            }`}>
+                                                        <div className={`relative w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${template.is_order_form ? 'bg-green-500/20 text-green-400' : 'bg-purple-500/20 text-purple-400'}`}>
                                                             {template.is_order_form ? <ShoppingCart className="w-4 h-4" /> : <FileText className="w-4 h-4" />}
+                                                            {template.page_id && (
+                                                                <img
+                                                                    src={`https://graph.facebook.com/${template.page_id}/picture?type=large`}
+                                                                    alt="Page"
+                                                                    className="absolute -top-2 -left-2 w-5 h-5 rounded-full border-2 border-slate-800 object-cover"
+                                                                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                                                                />
+                                                            )}
                                                         </div>
                                                         <div className="flex-1 min-w-0">
                                                             <p className={`text-sm font-medium truncate ${selectedTemplateId === template.id
