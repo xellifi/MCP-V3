@@ -950,15 +950,23 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
                                                             )}
                                                         </div>
                                                         <div className="flex-1 min-w-0">
-                                                            <p className={`text-sm font-medium truncate ${selectedTemplateId === template.id
-                                                                ? 'text-purple-400'
-                                                                : 'text-white'
-                                                                }`}>
-                                                                {template.name}
-                                                            </p>
-                                                            {template.is_order_form && template.product_name && (
+                                                            <div className="flex items-center gap-2">
+                                                                <p className={`text-sm font-medium truncate ${selectedTemplateId === template.id
+                                                                    ? 'text-purple-400'
+                                                                    : 'text-white'
+                                                                    }`}>
+                                                                    {template.name}
+                                                                </p>
+                                                                <span className={`flex-shrink-0 px-1.5 py-0.5 rounded text-[10px] font-medium ${template.is_order_form
+                                                                    ? 'bg-green-500/20 text-green-400'
+                                                                    : 'bg-indigo-500/20 text-indigo-400'
+                                                                    }`}>
+                                                                    {template.is_order_form ? 'Multi Step' : 'Regular'}
+                                                                </span>
+                                                            </div>
+                                                            {template.product_name && (
                                                                 <p className="text-slate-400 text-xs truncate">
-                                                                    {template.product_name} • {template.currency === 'PHP' ? '₱' : template.currency}{template.product_price}
+                                                                    {template.product_name}{template.is_order_form && template.product_price ? ` • ${template.currency === 'PHP' ? '₱' : template.currency}${template.product_price}` : ''}
                                                                 </p>
                                                             )}
                                                         </div>

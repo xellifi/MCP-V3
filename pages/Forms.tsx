@@ -853,9 +853,9 @@ const Forms: React.FC<FormsProps> = ({ workspace }) => {
                                     {form.name}
                                 </h3>
 
-                                {form.is_order_form && form.product_name && (
+                                {form.product_name && (
                                     <p className={`${textSecondary} text-sm truncate ${viewMode === 'grid' ? 'mb-2' : ''}`}>
-                                        {form.product_name} • {getCurrencySymbol(form.currency)}{form.product_price?.toLocaleString()}
+                                        {form.product_name}{form.is_order_form && form.product_price ? ` • ${getCurrencySymbol(form.currency)}${form.product_price.toLocaleString()}` : ''}
                                     </p>
                                 )}
 
