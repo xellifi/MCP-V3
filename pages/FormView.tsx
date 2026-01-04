@@ -738,10 +738,35 @@ const FormView: React.FC = () => {
                                                     <p className={`${textMuted} text-sm`}>Upload payment proof <span className="text-red-500">*</span></p>
                                                     <input type="file" ref={fileInputRef} accept="image/*" onChange={handleFileChange} className="hidden" />
                                                     {proofPreview ? (
-                                                        <div className="relative">
-                                                            <img src={proofPreview} alt="Proof" className={`w-full h-40 object-cover ${isMinimal ? 'border-gray-200' : 'border-white/20'} border`} style={{ borderRadius: getInputRadius() }} />
-                                                            <button onClick={() => { setProofFile(null); setProofPreview(''); }}
-                                                                className="absolute top-2 right-2 w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center">×</button>
+                                                        /* Success state - green check with small preview on right */
+                                                        <div
+                                                            className={`w-full p-4 border-2 border-green-500 bg-green-50 flex items-center gap-4`}
+                                                            style={{ borderRadius: getInputRadius() }}
+                                                        >
+                                                            {/* Success indicator - left side */}
+                                                            <div className="flex items-center gap-3 flex-1">
+                                                                <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
+                                                                    <span className="text-white text-xl">✓</span>
+                                                                </div>
+                                                                <div>
+                                                                    <p className="text-green-700 font-semibold text-sm">Upload Success!</p>
+                                                                    <p className="text-green-600 text-xs">Payment proof attached</p>
+                                                                </div>
+                                                            </div>
+                                                            {/* Small preview - right side */}
+                                                            <div className="relative flex-shrink-0">
+                                                                <img
+                                                                    src={proofPreview}
+                                                                    alt="Proof"
+                                                                    className="w-16 h-16 object-cover rounded-lg border-2 border-green-300 shadow-sm"
+                                                                />
+                                                                <button
+                                                                    onClick={() => { setProofFile(null); setProofPreview(''); }}
+                                                                    className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-sm shadow-md hover:bg-red-600 transition"
+                                                                >
+                                                                    ×
+                                                                </button>
+                                                            </div>
                                                         </div>
                                                     ) : (
                                                         <button onClick={() => fileInputRef.current?.click()}
