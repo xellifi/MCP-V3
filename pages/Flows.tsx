@@ -460,20 +460,42 @@ const Flows: React.FC<FlowsProps> = ({ workspace }) => {
               items={flows.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE).map(f => f.id)}
               strategy={rectSortingStrategy}
             >
-              <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
-                {flows.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE).map(flow => {
-                  const flowPage = getFlowPage(flow);
-                  return (
-                    <SortableFlowCard
-                      key={flow.id}
-                      flow={flow}
-                      flowPage={flowPage}
-                      onEdit={(flowId) => navigate(`/flows/${flowId}`)}
-                      onDelete={openDeleteModal}
-                    />
-                  );
-                })}
-              </div>
+              {loading ? (
+                <div className="flex items-center justify-center py-20">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
+                </div>
+              ) : flows.length === 0 ? (
+                /* Empty State for Grid View */
+                <div className="flex flex-col items-center justify-center py-20 glass-panel rounded-2xl border border-white/10">
+                  <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mb-4 border border-white/10">
+                    <Zap className="w-8 h-8 text-slate-500" />
+                  </div>
+                  <h3 className="text-lg font-bold text-white mb-1">No automations yet</h3>
+                  <p className="text-slate-400 max-w-xs text-center mb-6">Create your first flow to start automating conversations.</p>
+                  <button
+                    onClick={handleCreate}
+                    className="flex items-center gap-2 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white px-5 py-2.5 rounded-xl font-bold shadow-lg shadow-indigo-500/20 transition-all active:scale-95 border border-white/20"
+                  >
+                    <Plus className="w-5 h-5" />
+                    Create New Flow
+                  </button>
+                </div>
+              ) : (
+                <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
+                  {flows.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE).map(flow => {
+                    const flowPage = getFlowPage(flow);
+                    return (
+                      <SortableFlowCard
+                        key={flow.id}
+                        flow={flow}
+                        flowPage={flowPage}
+                        onEdit={(flowId) => navigate(`/flows/${flowId}`)}
+                        onDelete={openDeleteModal}
+                      />
+                    );
+                  })}
+                </div>
+              )}
             </SortableContext>
 
             {/* Drag Overlay - shows the dragged item */}
