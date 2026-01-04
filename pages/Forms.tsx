@@ -101,6 +101,10 @@ const ORDER_STATUSES = [
     { id: 'cancelled', label: 'Cancelled', color: 'red', icon: XCircle },
 ];
 
+import SalesSummaryModal from '../components/SalesSummaryModal';
+
+// ... imports remain the same
+
 const Forms: React.FC<FormsProps> = ({ workspace }) => {
     const { isDark } = useTheme();
     const toast = useToast();
@@ -124,6 +128,7 @@ const Forms: React.FC<FormsProps> = ({ workspace }) => {
     const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
     const [connectedPages, setConnectedPages] = useState<any[]>([]);
     const [selectedPageId, setSelectedPageId] = useState<string>('');
+    const [salesSummaryForm, setSalesSummaryForm] = useState<Form | null>(null);
 
     const itemsPerPage = 12;
 
@@ -697,6 +702,17 @@ const Forms: React.FC<FormsProps> = ({ workspace }) => {
                                                 className={`form-card-menu flex items-center gap-0.5 p-1 ${isDark ? 'bg-slate-800/95 border-slate-700' : 'bg-white/95 border-gray-200'} rounded-lg border shadow-xl backdrop-blur-sm animate-scale-in`}
                                                 onClick={(e) => e.stopPropagation()}
                                             >
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setActiveMenuId(null);
+                                                        setSalesSummaryForm(form);
+                                                    }}
+                                                    title="Sales Summary"
+                                                    className={`relative group/sales p-1.5 rounded-lg ${isDark ? 'hover:bg-emerald-500/20 text-emerald-400 hover:text-emerald-300' : 'hover:bg-emerald-50 text-emerald-500 hover:text-emerald-600'} transition-all`}
+                                                >
+                                                    <DollarSign className="w-4 h-4" />
+                                                </button>
                                                 <button
                                                     onClick={(e) => {
                                                         e.stopPropagation();
@@ -1677,6 +1693,13 @@ const Forms: React.FC<FormsProps> = ({ workspace }) => {
                     </div>
                 </div>
             )}
+            {/* Sales Summary Modal */}
+            <SalesSummaryModal
+                isOpen={!!salesSummaryForm}
+                onClose={() => setSalesSummaryForm(null)}
+                form={salesSummaryForm}
+                currencySymbol={getCurrencySymbol(salesSummaryForm?.currency)}
+            />
         </div>
     );
 };

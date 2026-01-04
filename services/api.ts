@@ -795,11 +795,16 @@ export const api = {
       // Get form IDs for submission count
       const formIds = forms.map(f => f.id);
 
-      // Get submission counts per form
+      // Get submission counts per form (ONLY FOR TODAY)
+      const now = new Date();
+      now.setHours(0, 0, 0, 0); // Reset to midnight today
+      const todayISO = now.toISOString();
+
       const { data: submissions } = await supabase
         .from('form_submissions')
         .select('form_id')
-        .in('form_id', formIds);
+        .in('form_id', formIds)
+        .gte('created_at', todayISO); // Only count submissions from today
 
       const submissionCounts: Record<string, number> = {};
       if (submissions) {
