@@ -54,7 +54,7 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
     const [submitButtonText, setSubmitButtonText] = useState(initialConfig?.submitButtonText || 'Place Order');
     const [submitButtonColor, setSubmitButtonColor] = useState(initialConfig?.submitButtonColor || '#6366f1');
     const [borderRadius, setBorderRadius] = useState<'normal' | 'rounded' | 'round' | 'full'>(initialConfig?.borderRadius || 'round');
-    const [formTemplate, setFormTemplate] = useState<'modern' | 'minimal'>(initialConfig?.formTemplate || 'modern');
+    const [formTemplate, setFormTemplate] = useState<'modern' | 'minimal'>(initialConfig?.formTemplate || 'minimal');
     const [successMessage, setSuccessMessage] = useState(initialConfig?.successMessage || 'Order placed successfully! We will contact you soon.');
     const [fields, setFields] = useState<FormField[]>(initialConfig?.fields || [
         { id: 'name', type: 'text', label: 'Full Name', placeholder: 'Enter your name', required: true },
@@ -314,12 +314,14 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
                 )}
             </div>
 
+            {/* Product Name - Always visible */}
+            <div>
+                <label className={labelClass}>Product Name</label>
+                <input type="text" value={productName} onChange={(e) => setProductName(e.target.value)} placeholder="Enter product name..." className={inputClass} />
+            </div>
+
             {isOrderForm && (
                 <>
-                    <div>
-                        <label className={labelClass}>Product Name</label>
-                        <input type="text" value={productName} onChange={(e) => setProductName(e.target.value)} placeholder="Enter product name..." className={inputClass} />
-                    </div>
 
                     <div className="grid grid-cols-2 gap-4">
                         <div>
@@ -591,29 +593,28 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
             <div className="bg-white rounded-xl overflow-hidden">
                 <div className={`${cardBg} flex flex-col`} style={{ borderRadius: borderRadiusValue }}>
 
-                    {/* Promo Banner */}
-                    {headerImageUrl && (
-                        <div className="py-2.5 px-4 bg-gradient-to-r from-red-400 via-rose-400 to-pink-300">
-                            <div className="flex items-center justify-center gap-2">
-                                <span className="text-base">{promoIcon || '🔥'}</span>
-                                <span className="text-white text-sm font-bold drop-shadow">{promoText || 'Promo Only!'}</span>
-                                <span className="text-base">{promoIcon || '🔥'}</span>
-                            </div>
+                    <div className="py-2.5 px-4 bg-gradient-to-r from-red-400 via-rose-400 to-pink-300">
+                        <div className="flex items-center justify-center gap-2">
+                            <span className="text-base">{promoIcon || '🔥'}</span>
+                            <span className="text-white text-sm font-bold drop-shadow">{promoText || 'Promo Only!'}</span>
+                            <span className="text-base">{promoIcon || '🔥'}</span>
                         </div>
-                    )}
+                    </div>
 
-                    {/* Header Image */}
-                    {headerImageUrl && (
-                        <div className="bg-white p-3 flex-shrink-0">
-                            <img src={headerImageUrl} alt="" className="w-full h-auto max-h-32 object-contain rounded" />
-                        </div>
-                    )}
+                    {/* Header Image or Placeholder */}
+                    <div className="bg-white p-3 flex-shrink-0">
+                        <img
+                            src={headerImageUrl || 'https://cdn.pixabay.com/photo/2016/06/03/17/35/shoes-1433925_1280.jpg'}
+                            alt="Header"
+                            className="w-full h-auto max-h-32 object-contain rounded"
+                        />
+                    </div>
 
                     {/* Product Name Banner - on white bg */}
                     <div className="px-3 py-2 bg-white">
                         <div className="py-2.5 px-4 bg-indigo-600 rounded-lg">
                             <h1 className="text-sm font-bold text-white text-center uppercase tracking-wide">
-                                {productName || formName || 'Product Name'}
+                                {productName || 'Product Name'}
                             </h1>
                         </div>
                     </div>
@@ -925,20 +926,20 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
                                                             setTemplateDropdownOpen(false);
                                                         }}
                                                         className={`w-full px-4 py-3 flex items-center gap-3 text-left transition-colors ${selectedTemplateId === template.id
-                                                                ? 'bg-purple-500/20'
-                                                                : 'hover:bg-white/5'
+                                                            ? 'bg-purple-500/20'
+                                                            : 'hover:bg-white/5'
                                                             }`}
                                                     >
                                                         <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${template.is_order_form
-                                                                ? 'bg-green-500/20 text-green-400'
-                                                                : 'bg-purple-500/20 text-purple-400'
+                                                            ? 'bg-green-500/20 text-green-400'
+                                                            : 'bg-purple-500/20 text-purple-400'
                                                             }`}>
                                                             {template.is_order_form ? <ShoppingCart className="w-4 h-4" /> : <FileText className="w-4 h-4" />}
                                                         </div>
                                                         <div className="flex-1 min-w-0">
                                                             <p className={`text-sm font-medium truncate ${selectedTemplateId === template.id
-                                                                    ? 'text-purple-400'
-                                                                    : 'text-white'
+                                                                ? 'text-purple-400'
+                                                                : 'text-white'
                                                                 }`}>
                                                                 {template.name}
                                                             </p>

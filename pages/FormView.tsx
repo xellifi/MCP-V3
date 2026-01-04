@@ -542,23 +542,32 @@ const FormView: React.FC = () => {
 
                                     {/* Countdown Timer - below image with 10px gap */}
                                     {form?.countdown_enabled && timeLeft > 0 && (
-                                        <div className="px-2.5 lg:px-2.5">
-                                            {/* Desktop timer */}
-                                            <div className="hidden lg:flex py-3 bg-blue-500 items-center justify-center gap-3 rounded-lg">
-                                                <span className="text-lg">⏰</span>
-                                                <div className="flex items-center gap-2">
-                                                    <span className="text-slate-800 text-lg font-bold font-mono bg-blue-400 px-2 py-0.5 rounded">{formatTime(timeLeft).hrs}</span>
-                                                    <span className="text-slate-800 text-lg font-bold font-mono bg-blue-400 px-2 py-0.5 rounded">{formatTime(timeLeft).mins}</span>
-                                                    <span className="text-slate-800 text-lg font-bold font-mono bg-blue-400 px-2 py-0.5 rounded">{formatTime(timeLeft).secs}</span>
-                                                </div>
-                                            </div>
-                                            {/* Mobile/Tablet timer (smaller) */}
-                                            <div className="lg:hidden flex py-2 bg-blue-500 items-center justify-center gap-2 rounded-lg">
-                                                <span className="text-base">⏰</span>
-                                                <div className="flex items-center gap-1">
-                                                    <span className="text-slate-800 text-lg font-bold font-mono bg-blue-400 px-2 py-0.5 rounded">{formatTime(timeLeft).hrs}</span>
-                                                    <span className="text-slate-800 text-lg font-bold font-mono bg-blue-400 px-2 py-0.5 rounded">{formatTime(timeLeft).mins}</span>
-                                                    <span className="text-slate-800 text-lg font-bold font-mono bg-blue-400 px-2 py-0.5 rounded">{formatTime(timeLeft).secs}</span>
+                                        <div className="px-3 pb-3 mt-3">
+                                            <div className="bg-gradient-to-r from-rose-500 via-pink-500 to-purple-500 p-3 rounded-xl shadow-lg">
+                                                <p className="text-center text-white/90 text-xs font-medium mb-2 tracking-wide uppercase">
+                                                    ⚡ Limited Time Offer
+                                                </p>
+                                                <div className="flex items-center justify-center gap-2">
+                                                    <div className="flex flex-col items-center">
+                                                        <div className="bg-white/20 backdrop-blur-sm px-3 py-2 rounded-lg border border-white/30">
+                                                            <span className="text-white text-xl font-bold font-mono tabular-nums">{formatTime(timeLeft).hrs}</span>
+                                                        </div>
+                                                        <span className="text-white/70 text-[9px] mt-1 uppercase tracking-wider">Hours</span>
+                                                    </div>
+                                                    <span className="text-white/60 text-xl font-light mb-4">:</span>
+                                                    <div className="flex flex-col items-center">
+                                                        <div className="bg-white/20 backdrop-blur-sm px-3 py-2 rounded-lg border border-white/30 animate-pulse">
+                                                            <span className="text-white text-xl font-bold font-mono tabular-nums">{formatTime(timeLeft).mins}</span>
+                                                        </div>
+                                                        <span className="text-white/70 text-[9px] mt-1 uppercase tracking-wider">Mins</span>
+                                                    </div>
+                                                    <span className="text-white/60 text-xl font-light mb-4">:</span>
+                                                    <div className="flex flex-col items-center">
+                                                        <div className="bg-white/20 backdrop-blur-sm px-3 py-2 rounded-lg border border-white/30">
+                                                            <span className="text-white text-xl font-bold font-mono tabular-nums">{formatTime(timeLeft).secs}</span>
+                                                        </div>
+                                                        <span className="text-white/70 text-[9px] mt-1 uppercase tracking-wider">Secs</span>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
