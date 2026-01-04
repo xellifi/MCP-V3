@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Workspace } from '../types';
 import { api } from '../services/api';
 import { supabase } from '../lib/supabase';
@@ -6,6 +6,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useToast } from '../context/ToastContext';
 import { format, formatDistanceToNow } from 'date-fns';
 import FormNodeForm from '../components/FormNodeForm';
+import FacebookPageDropdown from '../components/FacebookPageDropdown';
 import {
     Search,
     Plus,
@@ -36,7 +37,8 @@ import {
     ThumbsUp,
     ThumbsDown,
     ArrowLeft,
-    Users
+    Users,
+    Copy
 } from 'lucide-react';
 
 interface FormsProps {
@@ -125,6 +127,66 @@ const Forms: React.FC<FormsProps> = ({ workspace }) => {
 
     const itemsPerPage = 12;
 
+    // Click outside handler for form card menus
+    useEffect(() => {
+        const handleClickOutside = (e: MouseEvent) => {
+            const target = e.target as HTMLElement;
+            if (!target.closest('.form-card-menu') && !target.closest('button')) {
+                setActiveMenuId(null);
+            }
+        };
+        if (activeMenuId) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [activeMenuId]);
+
+    // Clone form function
+    const cloneForm = async (form: Form) => {
+        try {
+            const { data, error } = await supabase
+                .from('forms')
+                .insert({
+                    workspace_id: workspace.id,
+                    name: `${form.name} (Copy)`,
+                    is_order_form: form.is_order_form,
+                    product_name: form.product_name,
+                    product_price: form.product_price,
+                    currency: form.currency,
+                    fields: form.fields,
+                    submit_button_text: form.submit_button_text,
+                    submit_button_color: form.submit_button_color,
+                    border_radius: form.border_radius,
+                    success_message: form.success_message,
+                    header_image_url: form.header_image_url,
+                    countdown_enabled: form.countdown_enabled,
+                    countdown_minutes: form.countdown_minutes,
+                    countdown_blink: form.countdown_blink,
+                    max_quantity: form.max_quantity,
+                    coupon_enabled: form.coupon_enabled,
+                    coupon_code: form.coupon_code,
+                    coupon_discount: form.coupon_discount,
+                    cod_enabled: form.cod_enabled,
+                    ewallet_enabled: form.ewallet_enabled,
+                    ewallet_options: form.ewallet_options,
+                    ewallet_numbers: form.ewallet_numbers,
+                    require_proof_upload: form.require_proof_upload,
+                    form_template: form.form_template,
+                    promo_text: form.promo_text,
+                    promo_icon: form.promo_icon,
+                })
+                .select()
+                .single();
+
+            if (error) throw error;
+            toast.success('Form cloned successfully!');
+            loadForms();
+        } catch (error) {
+            console.error('Error cloning form:', error);
+            toast.error('Failed to clone form');
+        }
+    };
+
     useEffect(() => {
         loadForms();
         loadConnectedPages();
@@ -135,7 +197,8 @@ const Forms: React.FC<FormsProps> = ({ workspace }) => {
             const { data, error } = await supabase
                 .from('connected_pages')
                 .select('*')
-                .eq('workspace_id', workspace.id);
+                .eq('workspace_id', workspace.id)
+                .eq('is_automation_enabled', true);
 
             if (!error && data) {
                 setConnectedPages(data);
@@ -624,29 +687,21 @@ const Forms: React.FC<FormsProps> = ({ workspace }) => {
                             className={`${cardBg} rounded-2xl border overflow-hidden cursor-pointer group transition-all duration-300 relative ${viewMode === 'grid' ? 'p-5' : 'p-4 flex items-center gap-4'
                                 }`}
                         >
-                            {/* 3-Dot Menu - Upper Right */}
-                            <div className="absolute top-3 right-3 z-10">
-                                <button
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        setActiveMenuId(activeMenuId === form.id ? null : form.id);
-                                    }}
-                                    className={`p-1.5 ${isDark ? 'bg-slate-700/80 hover:bg-slate-600 text-white/70 hover:text-white' : 'bg-white/80 hover:bg-white text-gray-500 hover:text-gray-700'} rounded-lg transition-all shadow-lg backdrop-blur-sm`}
-                                >
-                                    <MoreVertical className="w-4 h-4" />
-                                </button>
-
-                                {/* Dropdown Menu */}
+                            {/* 3-Dot Menu - Upper Right with Horizontal Icon Bar */}
+                            <div className="absolute top-3 right-3 z-10 flex items-center gap-1">
+                                {/* Horizontal Icon Menu - appears to the left of 3-dot button */}
                                 {activeMenuId === form.id && (
                                     <div
-                                        className={`absolute right-0 mt-1 w-36 ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-200'} rounded-xl border shadow-xl overflow-hidden animate-scale-in`}
+                                        className={`form-card-menu flex items-center gap-0.5 p-1 ${isDark ? 'bg-slate-800/95 border-slate-700' : 'bg-white/95 border-gray-200'} rounded-lg border shadow-xl backdrop-blur-sm animate-scale-in`}
                                         onClick={(e) => e.stopPropagation()}
                                     >
+                                        {/* Edit Button */}
                                         <button
                                             onClick={(e) => {
                                                 e.stopPropagation();
                                                 setActiveMenuId(null);
                                                 setEditingForm(form);
+                                                setSelectedPageId(form.page_id);
                                                 setEditFormConfig({
                                                     formName: form.name,
                                                     isOrderForm: form.is_order_form,
@@ -676,23 +731,56 @@ const Forms: React.FC<FormsProps> = ({ workspace }) => {
                                                     promoIcon: form.promo_icon,
                                                 });
                                             }}
-                                            className={`w-full px-3 py-2.5 flex items-center gap-2 ${isDark ? 'hover:bg-slate-700 text-white' : 'hover:bg-gray-50 text-gray-700'} transition-colors text-sm`}
+                                            className={`relative group/edit p-1.5 rounded-lg ${isDark ? 'hover:bg-white/10 text-slate-300 hover:text-white' : 'hover:bg-gray-100 text-gray-500 hover:text-gray-700'} transition-all`}
                                         >
-                                            <Edit2 className="w-4 h-4 text-indigo-400" />
-                                            Edit
+                                            <Edit2 className="w-4 h-4" />
+                                            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 px-2 py-0.5 bg-slate-900 text-white text-[10px] rounded whitespace-nowrap opacity-0 invisible group-hover/edit:opacity-100 group-hover/edit:visible transition-all z-[100]">
+                                                Edit
+                                            </div>
                                         </button>
+
+                                        {/* Clone Button */}
                                         <button
                                             onClick={(e) => {
+                                                e.stopPropagation();
+                                                setActiveMenuId(null);
+                                                cloneForm(form);
+                                            }}
+                                            className={`relative group/clone p-1.5 rounded-lg ${isDark ? 'hover:bg-white/10 text-slate-300 hover:text-white' : 'hover:bg-gray-100 text-gray-500 hover:text-gray-700'} transition-all`}
+                                        >
+                                            <Copy className="w-4 h-4" />
+                                            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 px-2 py-0.5 bg-slate-900 text-white text-[10px] rounded whitespace-nowrap opacity-0 invisible group-hover/clone:opacity-100 group-hover/clone:visible transition-all z-[100]">
+                                                Clone
+                                            </div>
+                                        </button>
+
+                                        {/* Delete Button */}
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
                                                 setActiveMenuId(null);
                                                 openDeleteModal(form, e);
                                             }}
-                                            className={`w-full px-3 py-2.5 flex items-center gap-2 ${isDark ? 'hover:bg-red-500/20 text-red-400' : 'hover:bg-red-50 text-red-500'} transition-colors text-sm`}
+                                            className={`relative group/delete p-1.5 rounded-lg ${isDark ? 'hover:bg-red-500/20 text-red-400 hover:text-red-300' : 'hover:bg-red-50 text-red-400 hover:text-red-500'} transition-all`}
                                         >
                                             <Trash2 className="w-4 h-4" />
-                                            Delete
+                                            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 px-2 py-0.5 bg-slate-900 text-white text-[10px] rounded whitespace-nowrap opacity-0 invisible group-hover/delete:opacity-100 group-hover/delete:visible transition-all z-[100]">
+                                                Delete
+                                            </div>
                                         </button>
                                     </div>
                                 )}
+
+                                {/* 3-Dot Button */}
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setActiveMenuId(activeMenuId === form.id ? null : form.id);
+                                    }}
+                                    className={`p-1.5 ${isDark ? 'bg-slate-700/80 hover:bg-slate-600 text-white/70 hover:text-white' : 'bg-white/80 hover:bg-white text-gray-500 hover:text-gray-700'} rounded-lg transition-all shadow-lg backdrop-blur-sm`}
+                                >
+                                    <MoreVertical className="w-4 h-4" />
+                                </button>
                             </div>
 
                             {/* Form Type Indicator - Upper Left */}
@@ -1388,50 +1476,12 @@ const Forms: React.FC<FormsProps> = ({ workspace }) => {
                                 <p className={`text-xs ${textMuted} mb-3`}>
                                     Select which Facebook page this form will be connected to for automation
                                 </p>
-                                {connectedPages.length === 0 ? (
-                                    <div className={`text-center py-4 ${textSecondary}`}>
-                                        <p className="mb-2">No connected pages found</p>
-                                        <a
-                                            href="/connections"
-                                            className="text-indigo-400 hover:text-indigo-300 underline"
-                                        >
-                                            Connect a Facebook page first
-                                        </a>
-                                    </div>
-                                ) : (
-                                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                                        {connectedPages.map(page => (
-                                            <button
-                                                key={page.page_id}
-                                                type="button"
-                                                onClick={() => setSelectedPageId(page.page_id)}
-                                                className={`flex items-center gap-3 p-3 rounded-xl border-2 transition-all ${selectedPageId === page.page_id
-                                                    ? 'border-indigo-500 bg-indigo-500/10'
-                                                    : isDark
-                                                        ? 'border-white/10 hover:border-white/30 bg-white/5'
-                                                        : 'border-gray-200 hover:border-gray-300 bg-white'
-                                                    }`}
-                                            >
-                                                <img
-                                                    src={`https://graph.facebook.com/${page.page_id}/picture?type=small`}
-                                                    alt={page.name}
-                                                    className="w-10 h-10 rounded-full object-cover"
-                                                    onError={(e) => {
-                                                        (e.target as HTMLImageElement).src = 'https://via.placeholder.com/40?text=FB';
-                                                    }}
-                                                />
-                                                <div className="flex-1 min-w-0 text-left">
-                                                    <p className={`font-medium ${textPrimary} truncate text-sm`}>
-                                                        {page.name}
-                                                    </p>
-                                                    {selectedPageId === page.page_id && (
-                                                        <p className="text-xs text-indigo-400">Selected</p>
-                                                    )}
-                                                </div>
-                                            </button>
-                                        ))}
-                                    </div>
-                                )}
+                                <FacebookPageDropdown
+                                    workspaceId={workspace.id}
+                                    selectedPageId={selectedPageId}
+                                    onSelect={(pageId) => setSelectedPageId(pageId)}
+                                    automationEnabledOnly={true}
+                                />
                             </div>
 
                             <FormNodeForm
@@ -1547,6 +1597,22 @@ const Forms: React.FC<FormsProps> = ({ workspace }) => {
                             </button>
                         </div>
                         <div className="flex-1 overflow-y-auto p-4">
+                            {/* Facebook Page Selector */}
+                            <div className={`mb-6 p-4 rounded-xl ${isDark ? 'bg-white/5 border-white/10' : 'bg-gray-50 border-gray-200'} border`}>
+                                <label className={`block text-sm font-medium ${textPrimary} mb-2`}>
+                                    Connected Page <span className="text-red-500">*</span>
+                                </label>
+                                <p className={`text-xs ${textMuted} mb-3`}>
+                                    Select which Facebook page this form is connected to
+                                </p>
+                                <FacebookPageDropdown
+                                    workspaceId={workspace.id}
+                                    selectedPageId={selectedPageId}
+                                    onSelect={(pageId) => setSelectedPageId(pageId)}
+                                    automationEnabledOnly={true}
+                                />
+                            </div>
+
                             <FormNodeForm
                                 workspaceId={workspace.id}
                                 initialConfig={editFormConfig}
@@ -1574,6 +1640,7 @@ const Forms: React.FC<FormsProps> = ({ workspace }) => {
                                         const { error } = await supabase
                                             .from('forms')
                                             .update({
+                                                page_id: selectedPageId,
                                                 name: editFormConfig.formName,
                                                 is_order_form: editFormConfig.isOrderForm ?? true,
                                                 product_name: editFormConfig.productName || '',

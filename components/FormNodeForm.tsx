@@ -95,6 +95,8 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
     const [savedTemplates, setSavedTemplates] = useState<any[]>([]);
     const [selectedTemplateId, setSelectedTemplateId] = useState<string>(initialConfig?.formId || '');
     const [loadingTemplates, setLoadingTemplates] = useState(false);
+    const [templateDropdownOpen, setTemplateDropdownOpen] = useState(false);
+    const templateDropdownRef = useRef<HTMLDivElement>(null);
 
     // Fetch saved templates
     useEffect(() => {
@@ -124,6 +126,18 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
 
         fetchTemplates();
     }, [workspaceId]);
+
+    // Click outside handler for template dropdown
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (templateDropdownRef.current && !templateDropdownRef.current.contains(event.target as Node)) {
+                setTemplateDropdownOpen(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
     // Load template data when selected
     const loadTemplate = async (templateId: string) => {
@@ -857,7 +871,7 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
                     </div>
 
                     {templateMode === 'template' && (
-                        <div>
+                        <div ref={templateDropdownRef} className="relative">
                             <label className="block text-xs font-medium text-slate-400 mb-2">
                                 Select a saved form template
                             </label>
@@ -866,39 +880,83 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
                                     Loading templates...
                                 </div>
                             ) : (
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto">
-                                    {savedTemplates.map(template => (
-                                        <button
-                                            key={template.id}
-                                            type="button"
-                                            onClick={() => {
-                                                setSelectedTemplateId(template.id);
-                                                loadTemplate(template.id);
-                                            }}
-                                            className={`flex items-center gap-3 p-3 rounded-lg border-2 text-left transition-all ${selectedTemplateId === template.id
-                                                ? 'border-purple-500 bg-purple-500/10'
-                                                : 'border-slate-600 hover:border-slate-500 bg-slate-700/50'
-                                                }`}
-                                        >
-                                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${template.is_order_form
-                                                ? 'bg-green-500/20 text-green-400'
-                                                : 'bg-purple-500/20 text-purple-400'
-                                                }`}>
-                                                {template.is_order_form ? <ShoppingCart className="w-4 h-4" /> : <FileText className="w-4 h-4" />}
+                                <>
+                                    {/* Dropdown Trigger */}
+                                    <button
+                                        type="button"
+                                        onClick={() => setTemplateDropdownOpen(!templateDropdownOpen)}
+                                        className={`w-full px-4 py-3 rounded-xl border text-left flex items-center justify-between transition-colors bg-slate-800 border-slate-600 hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500/50`}
+                                    >
+                                        {selectedTemplateId ? (
+                                            <div className="flex items-center gap-3">
+                                                {(() => {
+                                                    const selected = savedTemplates.find(t => t.id === selectedTemplateId);
+                                                    return selected ? (
+                                                        <>
+                                                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${selected.is_order_form ? 'bg-green-500/20 text-green-400' : 'bg-purple-500/20 text-purple-400'}`}>
+                                                                {selected.is_order_form ? <ShoppingCart className="w-4 h-4" /> : <FileText className="w-4 h-4" />}
+                                                            </div>
+                                                            <span className="font-medium text-white truncate">
+                                                                {selected.name}
+                                                            </span>
+                                                        </>
+                                                    ) : (
+                                                        <span className="text-slate-400">-- Select a template --</span>
+                                                    );
+                                                })()}
                                             </div>
-                                            <div className="flex-1 min-w-0">
-                                                <p className="text-white text-sm font-medium truncate">
-                                                    {template.name}
-                                                </p>
-                                                {template.is_order_form && template.product_name && (
-                                                    <p className="text-slate-400 text-xs truncate">
-                                                        {template.product_name} • {template.currency === 'PHP' ? '₱' : template.currency}{template.product_price}
-                                                    </p>
-                                                )}
+                                        ) : (
+                                            <span className="text-slate-400">-- Select a template --</span>
+                                        )}
+                                        <ChevronDown className={`w-5 h-5 text-slate-400 transition-transform ${templateDropdownOpen ? 'rotate-180' : ''}`} />
+                                    </button>
+
+                                    {/* Dropdown Options */}
+                                    {templateDropdownOpen && (
+                                        <div className="absolute z-50 w-full mt-2 rounded-xl border shadow-xl overflow-hidden bg-slate-800 border-slate-600">
+                                            <div className="max-h-48 overflow-y-auto">
+                                                {savedTemplates.map(template => (
+                                                    <button
+                                                        key={template.id}
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setSelectedTemplateId(template.id);
+                                                            loadTemplate(template.id);
+                                                            setTemplateDropdownOpen(false);
+                                                        }}
+                                                        className={`w-full px-4 py-3 flex items-center gap-3 text-left transition-colors ${selectedTemplateId === template.id
+                                                                ? 'bg-purple-500/20'
+                                                                : 'hover:bg-white/5'
+                                                            }`}
+                                                    >
+                                                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${template.is_order_form
+                                                                ? 'bg-green-500/20 text-green-400'
+                                                                : 'bg-purple-500/20 text-purple-400'
+                                                            }`}>
+                                                            {template.is_order_form ? <ShoppingCart className="w-4 h-4" /> : <FileText className="w-4 h-4" />}
+                                                        </div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <p className={`text-sm font-medium truncate ${selectedTemplateId === template.id
+                                                                    ? 'text-purple-400'
+                                                                    : 'text-white'
+                                                                }`}>
+                                                                {template.name}
+                                                            </p>
+                                                            {template.is_order_form && template.product_name && (
+                                                                <p className="text-slate-400 text-xs truncate">
+                                                                    {template.product_name} • {template.currency === 'PHP' ? '₱' : template.currency}{template.product_price}
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                        {selectedTemplateId === template.id && (
+                                                            <div className="w-2 h-2 rounded-full bg-purple-500 flex-shrink-0" />
+                                                        )}
+                                                    </button>
+                                                ))}
                                             </div>
-                                        </button>
-                                    ))}
-                                </div>
+                                        </div>
+                                    )}
+                                </>
                             )}
                         </div>
                     )}
