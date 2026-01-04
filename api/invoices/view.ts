@@ -279,41 +279,41 @@ function renderInvoice(data: InvoiceData): string {
         }
         .footer p { font-size: 11px; color: #9ca3af; margin-bottom: 4px; }
         
-        /* Download buttons */
+        /* Download buttons - compact style */
         .download-section {
             display: flex;
-            gap: 12px;
+            gap: 8px;
             justify-content: center;
-            margin-bottom: 16px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
         }
         .download-btn {
             display: flex;
             align-items: center;
-            gap: 8px;
-            padding: 12px 20px;
+            gap: 4px;
+            padding: 6px 12px;
             background: white;
             border: 1px solid #e5e7eb;
-            border-radius: 12px;
-            font-size: 14px;
+            border-radius: 8px;
+            font-size: 11px;
             font-weight: 500;
             color: #374151;
             cursor: pointer;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
             transition: all 0.2s;
         }
         .download-btn:hover {
             background: #f9fafb;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.12);
-            transform: translateY(-1px);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
         }
         .download-btn:disabled {
             opacity: 0.6;
             cursor: not-allowed;
         }
-        .download-btn .icon { font-size: 18px; }
+        .download-btn .icon { font-size: 12px; }
         .download-btn .spinner {
-            width: 16px;
-            height: 16px;
+            width: 12px;
+            height: 12px;
             border: 2px solid #e5e7eb;
             border-top-color: #6366f1;
             border-radius: 50%;
@@ -323,22 +323,21 @@ function renderInvoice(data: InvoiceData): string {
         .track-btn {
             display: flex;
             align-items: center;
-            gap: 8px;
-            padding: 12px 20px;
+            gap: 4px;
+            padding: 6px 12px;
             background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
             border: none;
-            border-radius: 12px;
-            font-size: 14px;
+            border-radius: 8px;
+            font-size: 11px;
             font-weight: 600;
             color: white;
             cursor: pointer;
-            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+            box-shadow: 0 2px 6px rgba(99, 102, 241, 0.25);
             transition: all 0.2s;
             text-decoration: none;
         }
         .track-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
+            box-shadow: 0 3px 8px rgba(99, 102, 241, 0.35);
         }
     </style>
     
