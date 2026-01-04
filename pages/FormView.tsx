@@ -752,7 +752,7 @@ const FormView: React.FC = () => {
                                                                 <img
                                                                     src={proofPreview}
                                                                     alt="Proof"
-                                                                    className="w-24 h-24 object-cover border-2 border-slate-800 bg-white"
+                                                                    className="w-24 h-24 object-contain bg-gray-50 rounded-md shadow-sm"
                                                                 />
                                                                 <button
                                                                     onClick={() => { setProofFile(null); setProofPreview(''); }}
