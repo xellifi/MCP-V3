@@ -712,11 +712,11 @@ const DownsellNodeForm: React.FC<DownsellNodeFormProps> = ({
                         <p className="text-xs text-slate-400 mb-3">
                             What happens when customer accepts this downsell?
                         </p>
-                        <div className="grid grid-cols-1 gap-2">
+                        <div className="grid grid-cols-1 gap-2 relative z-10">
                             <button
                                 type="button"
                                 onClick={() => { setCartAction('add'); notifyChange({ cartAction: 'add' }); }}
-                                className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${cartAction === 'add'
+                                className={`p-3 rounded-xl border text-left transition-all cursor-pointer relative z-10 ${cartAction === 'add'
                                     ? 'bg-teal-500/20 border-teal-500/50 text-white'
                                     : 'bg-black/30 border-white/10 text-slate-400 hover:border-white/20 hover:bg-black/40'
                                     }`}
@@ -733,7 +733,7 @@ const DownsellNodeForm: React.FC<DownsellNodeFormProps> = ({
                             <button
                                 type="button"
                                 onClick={() => { setCartAction('replace'); notifyChange({ cartAction: 'replace' }); }}
-                                className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${cartAction === 'replace'
+                                className={`p-3 rounded-xl border text-left transition-all cursor-pointer relative z-10 ${cartAction === 'replace'
                                     ? 'bg-orange-500/20 border-orange-500/50 text-white'
                                     : 'bg-black/30 border-white/10 text-slate-400 hover:border-white/20 hover:bg-black/40'
                                     }`}
