@@ -740,11 +740,11 @@ async function processPostback(messagingEvent: any, pageId: string) {
             let cart: any[] = [];
 
             // Try to get existing cart from subscriber metadata
-            console.log(`  🔍 Looking up subscriber: page_subscriber_id=${senderId}, workspace_id=${workspaceId}`);
+            console.log(`  🔍 Looking up subscriber: external_id=${senderId}, workspace_id=${workspaceId}`);
             const { data: subscriber, error: subError } = await supabase
                 .from('subscribers')
                 .select('id, metadata')
-                .eq('page_subscriber_id', senderId)
+                .eq('external_id', senderId)
                 .eq('workspace_id', workspaceId)
                 .single();
 
@@ -790,7 +790,7 @@ async function processPostback(messagingEvent: any, pageId: string) {
                         cartUpdatedAt: new Date().toISOString()
                     }
                 })
-                .eq('page_subscriber_id', senderId)
+                .eq('external_id', senderId)
                 .eq('workspace_id', workspaceId)
                 .select();
 
@@ -883,7 +883,7 @@ async function processPostback(messagingEvent: any, pageId: string) {
             const { data: subscriber } = await supabase
                 .from('subscribers')
                 .select('metadata')
-                .eq('page_subscriber_id', senderId)
+                .eq('external_id', senderId)
                 .eq('workspace_id', workspaceId)
                 .single();
 
@@ -921,7 +921,7 @@ async function processPostback(messagingEvent: any, pageId: string) {
                         cartUpdatedAt: new Date().toISOString()
                     }
                 })
-                .eq('page_subscriber_id', senderId)
+                .eq('external_id', senderId)
                 .eq('workspace_id', workspaceId);
 
             // Find Accept path edges (sourceHandle contains 'accept' or is first output)
@@ -995,7 +995,7 @@ async function processPostback(messagingEvent: any, pageId: string) {
             const { data: subscriber } = await supabase
                 .from('subscribers')
                 .select('metadata')
-                .eq('page_subscriber_id', senderId)
+                .eq('external_id', senderId)
                 .eq('workspace_id', workspaceId)
                 .single();
 
@@ -1027,6 +1027,79 @@ async function processPostback(messagingEvent: any, pageId: string) {
                             commenterId: senderId,
                             commenterName: userName,
                             commentText: `Declined ${nodeType}`,
+                            pageId: pageId,
+                            pageName: pageName,
+                            postId: '',
+                            commentId: stableId,
+                            workspaceId,
+                            pageDbId,
+                            cart: cart,
+                            cartTotal: cartTotal
+                        },
+                        pageAccessToken,
+                        flow.id,
+                        stableId
+                    );
+                }
+            }
+
+            return;
+        }
+
+        // Handle checkout_confirm - continue flow after checkout button is clicked
+        if (parsedPayload.action === 'checkout_confirm') {
+            console.log(`✓ Checkout CONFIRM from node: ${parsedPayload.nodeId}`);
+
+            // Fetch the flow to get nodes and edges
+            const { data: flow, error: flowError } = await supabase
+                .from('flows')
+                .select('*')
+                .eq('id', parsedPayload.flowId)
+                .single();
+
+            if (flowError || !flow) {
+                console.error('✗ Could not find flow:', parsedPayload.flowId);
+                return;
+            }
+
+            const nodes = flow.nodes || [];
+            const edges = flow.edges || [];
+            const configurations = flow.configurations || {};
+
+            // Get cart from subscriber metadata
+            const { data: subscriber } = await supabase
+                .from('subscribers')
+                .select('metadata, name')
+                .eq('external_id', senderId)
+                .eq('workspace_id', workspaceId)
+                .single();
+
+            const cart = subscriber?.metadata?.cart || [];
+            const cartTotal = subscriber?.metadata?.cartTotal || 0;
+            const customerName = subscriber?.name || await fetchUserName(senderId, pageAccessToken);
+
+            // Find outgoing edges from checkout node
+            const outgoingEdges = edges.filter((e: any) => e.source === parsedPayload.nodeId);
+
+            const timestamp = messagingEvent.timestamp || Date.now();
+            const stableId = mid ? `checkout_mid_${mid}` : `checkout_${senderId}_${parsedPayload.nodeId}_${Math.floor(timestamp / 5000)}`;
+
+            console.log(`  → ${outgoingEdges.length} outgoing edge(s) from Checkout node`);
+
+            // Execute from each connected node
+            for (const edge of outgoingEdges) {
+                const targetNode = nodes.find((n: any) => n.id === edge.target);
+                if (targetNode) {
+                    console.log(`  → Continuing to: ${targetNode.data?.label}`);
+                    await executeFlowFromNode(
+                        targetNode,
+                        nodes,
+                        edges,
+                        configurations,
+                        {
+                            commenterId: senderId,
+                            commenterName: customerName,
+                            commentText: `Checkout confirmed`,
                             pageId: pageId,
                             pageName: pageName,
                             postId: '',
@@ -2990,6 +3063,125 @@ async function executeAction(
         return;
     }
 
+    // Checkout Node - display cart summary and wait for checkout button click
+    if (nodeType === 'checkoutNode') {
+        console.log(`    ✓ Detected as Checkout Node`);
+        const headerText = config.headerText || '🛒 Your Order Summary';
+        const buttonText = config.buttonText || '✅ Proceed to Checkout';
+        const companyName = config.companyName || '';
+
+        try {
+            // Get cart from context or subscriber metadata
+            let cart = (context as any).cart || [];
+            let cartTotal = (context as any).cartTotal || 0;
+
+            // If no cart in context, try to get from subscriber metadata
+            if (cart.length === 0) {
+                const { createClient } = await import('@supabase/supabase-js');
+                const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '';
+                const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';
+                const supabase = createClient(supabaseUrl, supabaseKey);
+
+                const { data: subscriber } = await supabase
+                    .from('subscribers')
+                    .select('metadata')
+                    .eq('external_id', context.commenterId)
+                    .eq('workspace_id', context.workspaceId)
+                    .single();
+
+                if (subscriber?.metadata?.cart) {
+                    cart = subscriber.metadata.cart;
+                    cartTotal = subscriber.metadata.cartTotal || 0;
+                }
+            }
+
+            console.log(`    🛒 Cart items: ${cart.length}`);
+            console.log(`    💰 Total: ₱${cartTotal}`);
+
+            if (cart.length === 0) {
+                console.log('    ⊘ Empty cart, sending empty cart message');
+                await sendTypingIndicator(context.commenterId, pageAccessToken, 'typing_on');
+                await new Promise(resolve => setTimeout(resolve, 500));
+                await sendTypingIndicator(context.commenterId, pageAccessToken, 'typing_off');
+
+                await fetch(`https://graph.facebook.com/v21.0/me/messages`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        recipient: { id: context.commenterId },
+                        message: { text: '🛒 Your cart is empty. Please add some items first!' },
+                        access_token: pageAccessToken
+                    })
+                });
+                return;
+            }
+
+            // Build checkout message with cart items
+            let checkoutText = `${headerText}\n`;
+            if (companyName) {
+                checkoutText += `🏪 ${companyName}\n`;
+            }
+            checkoutText += `━━━━━━━━━━━━━━━━━━\n\n`;
+
+            cart.forEach((item: any, index: number) => {
+                const price = typeof item.productPrice === 'number' ? item.productPrice : 0;
+                const qty = item.quantity || 1;
+                checkoutText += `📦 ${item.productName}\n`;
+                checkoutText += `   Qty: ${qty} × ₱${price.toLocaleString()}\n\n`;
+            });
+
+            checkoutText += `━━━━━━━━━━━━━━━━━━\n`;
+            checkoutText += `💰 TOTAL: ₱${cartTotal.toLocaleString()}\n`;
+
+            // Send checkout message with button
+            await sendTypingIndicator(context.commenterId, pageAccessToken, 'typing_on');
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            await sendTypingIndicator(context.commenterId, pageAccessToken, 'typing_off');
+
+            const payload = JSON.stringify({
+                action: 'checkout_confirm',
+                nodeId: node.id,
+                flowId: flowId,
+                cartTotal: cartTotal
+            });
+
+            const response = await fetch(`https://graph.facebook.com/v21.0/me/messages`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    recipient: { id: context.commenterId },
+                    message: {
+                        attachment: {
+                            type: 'template',
+                            payload: {
+                                template_type: 'button',
+                                text: checkoutText,
+                                buttons: [{
+                                    type: 'postback',
+                                    title: buttonText,
+                                    payload: payload
+                                }]
+                            }
+                        }
+                    },
+                    access_token: pageAccessToken
+                })
+            });
+
+            const result = await response.json();
+            if (result.error) {
+                console.error('    ✗ Facebook API error:', result.error.message);
+            } else {
+                console.log('    ✓ Checkout card sent successfully!');
+                console.log('    ⏸ Waiting for user to click checkout button...');
+            }
+        } catch (error: any) {
+            console.error('    ✗ Exception sending checkout:', error.message);
+        }
+
+        return; // Stop execution - wait for checkout button click
+    }
+
     // Cart Invoice Node - send cart summary with all items and total
     if (nodeType === 'cartInvoiceNode') {
         console.log(`    ✓ Detected as Cart Invoice Node`);
@@ -3014,7 +3206,7 @@ async function executeAction(
                 const { data: subscriber } = await supabase
                     .from('subscribers')
                     .select('metadata')
-                    .eq('page_subscriber_id', context.commenterId)
+                    .eq('external_id', context.commenterId)
                     .eq('workspace_id', context.workspaceId)
                     .single();
 
@@ -3122,7 +3314,7 @@ async function executeAction(
                 const { data: subscriber } = await supabase
                     .from('subscribers')
                     .select('metadata, name')
-                    .eq('page_subscriber_id', context.commenterId)
+                    .eq('external_id', context.commenterId)
                     .eq('workspace_id', context.workspaceId)
                     .single();
 

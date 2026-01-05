@@ -61,6 +61,7 @@ import CustomInvoiceNode from '../components/nodes/CustomInvoiceNode';
 import CustomProductNode from '../components/nodes/CustomProductNode';
 import CustomCartInvoiceNode from '../components/nodes/CustomCartInvoiceNode';
 import CustomCartSheetNode from '../components/nodes/CustomCartSheetNode';
+import CustomCheckoutNode from '../components/nodes/CustomCheckoutNode';
 import { api } from '../services/api';
 import { supabase } from '../lib/supabase';
 // Import node configuration registry
@@ -97,6 +98,7 @@ const nodeTypes: NodeTypes = {
   productNode: CustomProductNode,
   cartInvoiceNode: CustomCartInvoiceNode,
   cartSheetNode: CustomCartSheetNode,
+  checkoutNode: CustomCheckoutNode,
 };
 
 // Define custom edge types
