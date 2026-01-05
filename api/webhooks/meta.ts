@@ -147,6 +147,59 @@ async function saveOrUpdateSubscriber(
     }
 }
 
+// Helper function to update subscriber labels (add/remove labels during flow execution)
+async function updateSubscriberLabels(
+    workspaceId: string,
+    subscriberExternalId: string,
+    addLabel?: string,
+    removeLabel?: string
+): Promise<void> {
+    if (!addLabel && !removeLabel) return;
+
+    console.log(`    🏷️ Updating labels for subscriber ${subscriberExternalId}: add="${addLabel || ''}", remove="${removeLabel || ''}"`);
+
+    try {
+        // Get current subscriber
+        const { data: subscriber, error: fetchError } = await supabase
+            .from('subscribers')
+            .select('id, labels')
+            .eq('workspace_id', workspaceId)
+            .eq('external_id', subscriberExternalId)
+            .single();
+
+        if (fetchError || !subscriber) {
+            console.log('    ⚠️ Subscriber not found for label update');
+            return;
+        }
+
+        let labels: string[] = subscriber.labels || [];
+
+        // Remove label if specified
+        if (removeLabel) {
+            labels = labels.filter(l => l.toLowerCase() !== removeLabel.toLowerCase());
+        }
+
+        // Add label if specified and not already present
+        if (addLabel && !labels.some(l => l.toLowerCase() === addLabel.toLowerCase())) {
+            labels.push(addLabel);
+        }
+
+        // Update subscriber labels
+        const { error: updateError } = await supabase
+            .from('subscribers')
+            .update({ labels })
+            .eq('id', subscriber.id);
+
+        if (updateError) {
+            console.error('    ✗ Error updating subscriber labels:', updateError);
+        } else {
+            console.log(`    ✓ Labels updated: [${labels.join(', ')}]`);
+        }
+    } catch (error) {
+        console.error('    ✗ Error in updateSubscriberLabels:', error);
+    }
+}
+
 // Helper function to fetch user name from Facebook API
 async function fetchUserName(userId: string, pageAccessToken: string): Promise<string> {
     try {
@@ -496,10 +549,31 @@ async function processPostback(messagingEvent: any, pageId: string) {
     const pageName = (pageData as any).name || 'Page';
     const pageDbId = (pageData as any).id;
 
-    // Check if payload is a direct flow trigger (FLOW_{flowId})
+    // Check if payload is a direct flow trigger (FLOW_{flowId} or FLOW_{flowId}|ADD:label|REM:label)
     if (payload.startsWith('FLOW_')) {
-        const flowId = payload.replace('FLOW_', '');
+        // Parse flow ID and optional label data from payload
+        // Format: FLOW_{flowId}|ADD:{addLabel}|REM:{removeLabel}
+        let flowId = payload.replace('FLOW_', '');
+        let buttonAddLabel = '';
+        let buttonRemoveLabel = '';
+
+        // Check for label data in payload
+        if (flowId.includes('|ADD:')) {
+            const parts = flowId.split('|');
+            flowId = parts[0];
+            for (const part of parts) {
+                if (part.startsWith('ADD:')) {
+                    buttonAddLabel = part.replace('ADD:', '');
+                } else if (part.startsWith('REM:')) {
+                    buttonRemoveLabel = part.replace('REM:', '');
+                }
+            }
+        }
+
         console.log(`✓ Direct flow trigger detected: ${flowId}`);
+        if (buttonAddLabel || buttonRemoveLabel) {
+            console.log(`  🏷️ Button labels: add="${buttonAddLabel}", remove="${buttonRemoveLabel}"`);
+        }
 
         // Find the specific flow
         const { data: flow, error: flowError } = await supabase
@@ -539,6 +613,11 @@ async function processPostback(messagingEvent: any, pageId: string) {
 
         // Fetch user's actual name from Facebook API BEFORE executing flow
         const userName = await fetchUserName(senderId, pageAccessToken);
+
+        // Apply button labels from the clicked button (if present)
+        if (buttonAddLabel || buttonRemoveLabel) {
+            await updateSubscriberLabels(workspaceId, senderId, buttonAddLabel || undefined, buttonRemoveLabel || undefined);
+        }
 
         // Execute the flow starting from the Start node
         await executeFlowFromNode(
@@ -701,6 +780,12 @@ async function processPostback(messagingEvent: any, pageId: string) {
 
                 // Fetch user's actual name from Facebook API BEFORE executing flow
                 const userName = await fetchUserName(senderId, pageAccessToken);
+
+                // Apply entry label from Start Node config if configured
+                const entryLabel = config.entryLabel;
+                if (entryLabel) {
+                    await updateSubscriberLabels(workspaceId, senderId, entryLabel);
+                }
 
                 // Execute flow starting from this Start node
                 await executeFlowFromNode(
@@ -874,6 +959,12 @@ async function processTextMessage(messagingEvent: any, pageId: string) {
 
                 // Fetch user's actual name from Facebook API BEFORE executing flow
                 const userName = await fetchUserName(senderId, pageAccessToken);
+
+                // Apply entry label from Start Node config if configured
+                const entryLabel = config.entryLabel;
+                if (entryLabel) {
+                    await updateSubscriberLabels(workspaceId, senderId, entryLabel);
+                }
 
                 // Execute flow starting from this Start node
                 await executeFlowFromNode(
@@ -1912,13 +2003,18 @@ async function executeAction(
                                     webview_height_ratio: btn.webviewHeight || 'full'
                                 };
                             }
-                            // startFlow button type - use flowId as payload
+                            // startFlow button type - use flowId as payload with optional label data
                             if (btn.type === 'startFlow' && btn.flowId) {
-                                console.log(`      → Flow button: "${btn.title}" -> FLOW_${btn.flowId}`);
+                                // Include label data in payload if configured
+                                const labelData = (btn.addLabel || btn.removeLabel)
+                                    ? `|ADD:${btn.addLabel || ''}|REM:${btn.removeLabel || ''}`
+                                    : '';
+                                const buttonPayload = `FLOW_${btn.flowId}${labelData}`;
+                                console.log(`      → Flow button: "${btn.title}" -> ${buttonPayload}`);
                                 return {
                                     type: 'postback',
                                     title: btn.title,
-                                    payload: `FLOW_${btn.flowId}`
+                                    payload: buttonPayload
                                 };
                             }
                             // newFlow button type - use flowName as payload (will be matched via keyword)

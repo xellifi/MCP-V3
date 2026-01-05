@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Clock, MessageSquare, Plus, X, Link, ChevronDown, Zap, PlusCircle } from 'lucide-react';
+import { Clock, MessageSquare, Plus, X, Link, ChevronDown, Zap, PlusCircle, Tag } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import CollapsibleTips from './CollapsibleTips';
 
@@ -10,6 +10,8 @@ interface Button {
     url?: string;
     webviewHeight?: 'compact' | 'tall' | 'full';
     flowName?: string; // For newFlow type - name of the flow to create
+    addLabel?: string; // Label to add when button clicked
+    removeLabel?: string; // Label to remove when button clicked
 }
 
 interface TextNodeFormProps {
@@ -451,6 +453,39 @@ const TextNodeForm: React.FC<TextNodeFormProps> = ({
                                     </div>
                                 </>
                             )}
+
+                            {/* Label Management */}
+                            <div className="border-t border-white/10 pt-3">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <Tag className="w-3 h-3 text-purple-400" />
+                                    <span className="text-xs font-medium text-purple-300">Label Management (optional)</span>
+                                </div>
+                                <div className="grid grid-cols-2 gap-2">
+                                    <div>
+                                        <label className="block text-xs text-slate-400 mb-1">Add Label</label>
+                                        <input
+                                            type="text"
+                                            value={button.addLabel || ''}
+                                            onChange={(e) => updateButton(index, { addLabel: e.target.value })}
+                                            placeholder="e.g., 50% Interested"
+                                            className="w-full bg-black/20 border border-white/10 rounded-lg px-2 py-1.5 text-white text-xs focus:ring-2 focus:ring-purple-500/50 outline-none"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs text-slate-400 mb-1">Remove Label</label>
+                                        <input
+                                            type="text"
+                                            value={button.removeLabel || ''}
+                                            onChange={(e) => updateButton(index, { removeLabel: e.target.value })}
+                                            placeholder="e.g., 10% Interested"
+                                            className="w-full bg-black/20 border border-white/10 rounded-lg px-2 py-1.5 text-white text-xs focus:ring-2 focus:ring-purple-500/50 outline-none"
+                                        />
+                                    </div>
+                                </div>
+                                <p className="text-xs text-slate-500 mt-1">
+                                    Labels update when user clicks this button
+                                </p>
+                            </div>
 
                             {/* Remove Button */}
                             <button

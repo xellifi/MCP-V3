@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Plus, X, Play, Facebook, ChevronDown, AlertCircle } from 'lucide-react';
+import { Plus, X, Play, Facebook, ChevronDown, AlertCircle, Tag } from 'lucide-react';
 import { api } from '../services/api';
 import { ConnectedPage } from '../types';
 import CollapsibleTips from './CollapsibleTips';
@@ -12,6 +12,7 @@ interface StartNodeFormProps {
         pageId?: string;
         keywords?: string[];
         matchType?: 'exact' | 'contains';
+        entryLabel?: string;
     };
     onChange: (config: any) => void;
 }
@@ -35,6 +36,9 @@ const StartNodeForm: React.FC<StartNodeFormProps> = ({
     );
     const [matchType, setMatchType] = useState<'exact' | 'contains'>(
         initialConfig?.matchType || 'exact'
+    );
+    const [entryLabel, setEntryLabel] = useState<string>(
+        initialConfig?.entryLabel || ''
     );
 
     // Fetch connected pages
@@ -87,8 +91,8 @@ const StartNodeForm: React.FC<StartNodeFormProps> = ({
     // Notify parent of changes
     useEffect(() => {
         const validKeywords = keywords.filter(k => k.trim());
-        onChange({ pageId: selectedPageId, keywords: validKeywords, matchType });
-    }, [selectedPageId, keywords, matchType]);
+        onChange({ pageId: selectedPageId, keywords: validKeywords, matchType, entryLabel: entryLabel.trim() || undefined });
+    }, [selectedPageId, keywords, matchType, entryLabel]);
 
     const handlePageChange = (pageId: string) => {
         console.log('[StartNodeForm] User selected page:', pageId);
@@ -286,6 +290,24 @@ const StartNodeForm: React.FC<StartNodeFormProps> = ({
                         </div>
                     ))}
                 </div>
+            </div>
+
+            {/* Entry Label */}
+            <div>
+                <label className="block text-sm font-semibold text-slate-300 mb-2">
+                    <Tag className="w-4 h-4 inline mr-2" />
+                    Label on Entry (optional)
+                </label>
+                <input
+                    type="text"
+                    value={entryLabel}
+                    onChange={(e) => setEntryLabel(e.target.value)}
+                    placeholder="e.g., New Lead, 10% Interested"
+                    className="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:ring-2 focus:ring-emerald-500/50 outline-none"
+                />
+                <p className="text-xs text-slate-500 mt-1">
+                    This label will be added to subscribers when they trigger this flow
+                </p>
             </div>
 
             {/* Info */}
