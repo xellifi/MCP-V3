@@ -1,84 +1,151 @@
-import React, { memo } from 'react';
+import React, { useState } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
-import { ShoppingCart, CheckCircle2, Package } from 'lucide-react';
+import { ShoppingCart, Settings, Trash2, ChevronDown, ChevronUp, Package, Copy } from 'lucide-react';
 
-interface CheckoutNodeData {
-    label: string;
-    buttonText?: string;
-    headerText?: string;
-}
+const CustomCheckoutNode: React.FC<NodeProps> = ({ data, selected }) => {
+    const [isExpanded, setIsExpanded] = useState(false);
 
-const CustomCheckoutNode: React.FC<NodeProps<CheckoutNodeData>> = ({ data, selected }) => {
+    const handleConfigure = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (data.onConfigure) {
+            data.onConfigure();
+        }
+    };
+
+    const handleDelete = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (data.onDelete) {
+            data.onDelete();
+        }
+    };
+
+    const handleClone = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (data.onClone) {
+            data.onClone();
+        }
+    };
+
+    const toggleExpand = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        setIsExpanded(!isExpanded);
+    };
+
+    // Configuration values from data
+    const headerText = data.headerText || '🛒 Your Order Summary';
+    const buttonText = data.buttonText || '✅ Proceed to Checkout';
+    const isConfigured = headerText && buttonText;
+
     return (
-        <div
-            className={`relative min-w-[200px] rounded-2xl transition-all duration-200 ${selected
-                    ? 'ring-2 ring-emerald-500/50 shadow-lg shadow-emerald-500/20'
-                    : 'shadow-lg hover:shadow-xl'
-                }`}
-            style={{
-                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-            }}
-        >
-            {/* Header */}
-            <div className="px-4 py-3 border-b border-white/20">
+        <div className="relative group">
+            {/* Node Container */}
+            <div
+                className={`
+                    relative px-4 py-3 rounded-2xl
+                    bg-emerald-500/10 hover:bg-emerald-500/20 backdrop-blur-md
+                    border ${selected ? 'border-emerald-500/50 shadow-2xl shadow-emerald-500/20' : 'border-emerald-500/30 shadow-xl'}
+                    transition-all duration-300
+                    w-[200px]
+                `}
+            >
+                {/* Input Handle */}
+                <Handle
+                    type="target"
+                    position={Position.Left}
+                    className="!w-3 !h-3 !bg-emerald-400 !border-2 !border-emerald-300"
+                    style={{ left: -6 }}
+                />
+
+                {/* Header - Icon, Label, and Expand Toggle */}
                 <div className="flex items-center gap-2">
-                    <div className="p-2 bg-white/20 rounded-xl backdrop-blur-sm">
-                        <ShoppingCart className="w-5 h-5 text-white" />
+                    <div className="p-2 bg-emerald-500/20 rounded-lg backdrop-blur-sm flex-shrink-0">
+                        <ShoppingCart className="w-5 h-5 text-emerald-400" />
                     </div>
-                    <div>
-                        <span className="font-bold text-white text-sm">
+                    <div className="flex-1 min-w-0">
+                        <div className="text-slate-200 font-bold text-sm truncate">
                             {data.label || 'Checkout'}
-                        </span>
-                        <div className="text-xs text-white/70">Order Review</div>
+                        </div>
+                        <div className="text-emerald-300 text-xs flex items-center gap-1">
+                            <Package className="w-3 h-3" />
+                            Order Review
+                        </div>
                     </div>
+                    {/* Expand Toggle */}
+                    <button
+                        onClick={toggleExpand}
+                        className="p-1 hover:bg-white/10 rounded transition-colors"
+                        title={isExpanded ? "Collapse" : "Expand"}
+                    >
+                        {isExpanded ? (
+                            <ChevronUp className="w-4 h-4 text-slate-400" />
+                        ) : (
+                            <ChevronDown className="w-4 h-4 text-slate-400" />
+                        )}
+                    </button>
                 </div>
-            </div>
 
-            {/* Body - Cart Preview */}
-            <div className="px-4 py-3 bg-black/20">
-                <div className="flex items-center gap-2 text-white/80 text-xs mb-2">
-                    <Package className="w-4 h-4" />
-                    <span>Cart Items Summary</span>
-                </div>
-                <div className="bg-black/30 rounded-lg p-2 space-y-1">
-                    <div className="flex items-center justify-between text-white/70 text-xs">
-                        <span>📦 Product 1</span>
-                        <span>₱XXX</span>
+                {/* Expandable Content - Checkout Preview */}
+                {isExpanded && (
+                    <div className="mt-3 pt-3 border-t border-emerald-500/20">
+                        {/* Checkout Preview Card */}
+                        <div className="rounded-xl overflow-hidden bg-white shadow-lg p-3">
+                            <div className="text-[10px] font-medium text-gray-500 mb-2">Cart Preview</div>
+                            <div className="space-y-1.5">
+                                <div className="flex justify-between text-[10px]">
+                                    <span className="text-gray-600">📦 Product 1</span>
+                                    <span className="font-medium">₱XXX</span>
+                                </div>
+                                <div className="flex justify-between text-[10px]">
+                                    <span className="text-gray-600">📦 Product 2</span>
+                                    <span className="font-medium">₱XXX</span>
+                                </div>
+                                <div className="border-t pt-1.5 flex justify-between text-xs font-bold">
+                                    <span>Total:</span>
+                                    <span className="text-emerald-600">₱X,XXX</span>
+                                </div>
+                            </div>
+                            <div className="mt-2 bg-emerald-500 text-white text-[10px] font-medium py-1.5 rounded-lg text-center">
+                                {buttonText}
+                            </div>
+                        </div>
                     </div>
-                    <div className="flex items-center justify-between text-white/70 text-xs">
-                        <span>📦 Product 2</span>
-                        <span>₱XXX</span>
-                    </div>
-                    <div className="border-t border-white/20 mt-2 pt-2 flex justify-between text-white font-semibold text-sm">
-                        <span>Total:</span>
-                        <span>₱X,XXX</span>
-                    </div>
-                </div>
-            </div>
+                )}
 
-            {/* Checkout Button Preview */}
-            <div className="px-4 py-3">
-                <div className="bg-white rounded-xl py-2 px-4 flex items-center justify-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                    <span className="text-emerald-600 font-semibold text-sm">
-                        {data.buttonText || 'Proceed to Checkout'}
-                    </span>
+                {/* Hover Actions */}
+                <div className="absolute -top-2 -right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                    <button
+                        onClick={handleClone}
+                        className="p-1.5 bg-slate-600 hover:bg-slate-500 rounded-lg shadow-lg transition-colors"
+                        title="Clone node"
+                    >
+                        <Copy className="w-3.5 h-3.5 text-white" />
+                    </button>
+                    <button
+                        onClick={handleConfigure}
+                        className="p-1.5 bg-emerald-500 hover:bg-emerald-600 rounded-lg shadow-lg transition-colors"
+                        title="Configure"
+                    >
+                        <Settings className="w-3.5 h-3.5 text-white" />
+                    </button>
+                    <button
+                        onClick={handleDelete}
+                        className="p-1.5 bg-red-500 hover:bg-red-600 rounded-lg shadow-lg transition-colors"
+                        title="Delete"
+                    >
+                        <Trash2 className="w-3.5 h-3.5 text-white" />
+                    </button>
                 </div>
-            </div>
 
-            {/* Handles */}
-            <Handle
-                type="target"
-                position={Position.Left}
-                className="!w-3 !h-3 !bg-white !border-2 !border-emerald-500"
-            />
-            <Handle
-                type="source"
-                position={Position.Right}
-                className="!w-3 !h-3 !bg-white !border-2 !border-emerald-500"
-            />
+                {/* Output Handle */}
+                <Handle
+                    type="source"
+                    position={Position.Right}
+                    className="!w-3 !h-3 !bg-emerald-400 !border-2 !border-emerald-300"
+                    style={{ right: -6 }}
+                />
+            </div>
         </div>
     );
 };
 
-export default memo(CustomCheckoutNode);
+export default CustomCheckoutNode;

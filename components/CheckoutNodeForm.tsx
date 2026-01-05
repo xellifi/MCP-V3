@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShoppingCart, Type, Palette, Check, MessageSquare, Image } from 'lucide-react';
+import { ShoppingCart, Type, Palette, Check, Image, Settings } from 'lucide-react';
 import CollapsibleTips from './CollapsibleTips';
 
 interface CheckoutNodeFormProps {
@@ -34,7 +34,6 @@ const CheckoutNodeForm: React.FC<CheckoutNodeFormProps> = ({
     const [headerText, setHeaderText] = useState(initialConfig?.headerText || '🛒 Your Order Summary');
     const [buttonText, setButtonText] = useState(initialConfig?.buttonText || '✅ Proceed to Checkout');
     const [primaryColor, setPrimaryColor] = useState(initialConfig?.primaryColor || '#10b981');
-    const [confirmationMessage, setConfirmationMessage] = useState(initialConfig?.confirmationMessage || '');
     const [showItemDetails, setShowItemDetails] = useState(initialConfig?.showItemDetails ?? true);
     const [showTotal, setShowTotal] = useState(initialConfig?.showTotal ?? true);
     const [companyLogo, setCompanyLogo] = useState(initialConfig?.companyLogo || '');
@@ -42,19 +41,29 @@ const CheckoutNodeForm: React.FC<CheckoutNodeFormProps> = ({
     const [activeSection, setActiveSection] = useState<string>('content');
 
     // Notify parent of config changes
-    useEffect(() => {
+    const notifyChange = (updates: Partial<typeof initialConfig> = {}) => {
         onChange({
             headerText,
             buttonText,
             primaryColor,
-            confirmationMessage,
             showItemDetails,
             showTotal,
             companyLogo,
-            companyName
+            companyName,
+            ...updates
         });
-    }, [headerText, buttonText, primaryColor, confirmationMessage, showItemDetails, showTotal, companyLogo, companyName]);
+    };
 
+    // Initial notification
+    useEffect(() => {
+        notifyChange();
+    }, []);
+
+    const toggleSection = (id: string) => {
+        setActiveSection(activeSection === id ? '' : id);
+    };
+
+    // Section header component - copied from UpsellNodeForm pattern
     const SectionHeader = ({
         id,
         icon: Icon,
@@ -67,7 +76,7 @@ const CheckoutNodeForm: React.FC<CheckoutNodeFormProps> = ({
         color: string;
     }) => (
         <button
-            onClick={() => setActiveSection(activeSection === id ? '' : id)}
+            onClick={() => toggleSection(id)}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border transition-all ${activeSection === id
                 ? `bg-${color}-500/20 border-${color}-500/30`
                 : 'bg-black/20 border-white/10 hover:bg-white/5'
@@ -87,6 +96,15 @@ const CheckoutNodeForm: React.FC<CheckoutNodeFormProps> = ({
 
     return (
         <div className="space-y-4">
+            {/* Header Info */}
+            <div className="flex items-start gap-3 p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-xl">
+                <ShoppingCart className="w-5 h-5 text-emerald-400 mt-0.5" />
+                <div className="text-sm text-slate-300">
+                    <p className="font-medium text-emerald-400 mb-1">Checkout Node</p>
+                    <p>Shows cart summary with all items (product + upsells). Customer clicks to proceed to invoice.</p>
+                </div>
+            </div>
+
             {/* Content Section */}
             <div className="space-y-3">
                 <SectionHeader id="content" icon={Type} title="Checkout Content" color="emerald" />
@@ -100,7 +118,10 @@ const CheckoutNodeForm: React.FC<CheckoutNodeFormProps> = ({
                             <input
                                 type="text"
                                 value={headerText}
-                                onChange={(e) => setHeaderText(e.target.value)}
+                                onChange={(e) => {
+                                    setHeaderText(e.target.value);
+                                    notifyChange({ headerText: e.target.value });
+                                }}
                                 placeholder="🛒 Your Order Summary"
                                 className="w-full px-4 py-3 bg-black/30 border border-white/10 rounded-xl text-white placeholder-white/40 focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/30 transition-all"
                             />
@@ -114,7 +135,10 @@ const CheckoutNodeForm: React.FC<CheckoutNodeFormProps> = ({
                             <input
                                 type="text"
                                 value={buttonText}
-                                onChange={(e) => setButtonText(e.target.value)}
+                                onChange={(e) => {
+                                    setButtonText(e.target.value);
+                                    notifyChange({ buttonText: e.target.value });
+                                }}
                                 placeholder="✅ Proceed to Checkout"
                                 className="w-full px-4 py-3 bg-black/30 border border-white/10 rounded-xl text-white placeholder-white/40 focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/30 transition-all"
                             />
@@ -128,7 +152,10 @@ const CheckoutNodeForm: React.FC<CheckoutNodeFormProps> = ({
                             <div className="flex items-center justify-between p-3 bg-black/30 rounded-xl border border-white/10">
                                 <span className="text-white/80 text-sm">Show Item Details</span>
                                 <button
-                                    onClick={() => setShowItemDetails(!showItemDetails)}
+                                    onClick={() => {
+                                        setShowItemDetails(!showItemDetails);
+                                        notifyChange({ showItemDetails: !showItemDetails });
+                                    }}
                                     className={`relative w-12 h-6 rounded-full transition-colors ${showItemDetails ? 'bg-emerald-500' : 'bg-slate-600'}`}
                                 >
                                     <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${showItemDetails ? 'left-7' : 'left-1'}`} />
@@ -137,7 +164,10 @@ const CheckoutNodeForm: React.FC<CheckoutNodeFormProps> = ({
                             <div className="flex items-center justify-between p-3 bg-black/30 rounded-xl border border-white/10">
                                 <span className="text-white/80 text-sm">Show Total</span>
                                 <button
-                                    onClick={() => setShowTotal(!showTotal)}
+                                    onClick={() => {
+                                        setShowTotal(!showTotal);
+                                        notifyChange({ showTotal: !showTotal });
+                                    }}
                                     className={`relative w-12 h-6 rounded-full transition-colors ${showTotal ? 'bg-emerald-500' : 'bg-slate-600'}`}
                                 >
                                     <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${showTotal ? 'left-7' : 'left-1'}`} />
@@ -161,7 +191,10 @@ const CheckoutNodeForm: React.FC<CheckoutNodeFormProps> = ({
                             <input
                                 type="text"
                                 value={companyName}
-                                onChange={(e) => setCompanyName(e.target.value)}
+                                onChange={(e) => {
+                                    setCompanyName(e.target.value);
+                                    notifyChange({ companyName: e.target.value });
+                                }}
                                 placeholder="Your Store Name"
                                 className="w-full px-4 py-3 bg-black/30 border border-white/10 rounded-xl text-white placeholder-white/40 focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/30 transition-all"
                             />
@@ -175,7 +208,10 @@ const CheckoutNodeForm: React.FC<CheckoutNodeFormProps> = ({
                             <input
                                 type="text"
                                 value={companyLogo}
-                                onChange={(e) => setCompanyLogo(e.target.value)}
+                                onChange={(e) => {
+                                    setCompanyLogo(e.target.value);
+                                    notifyChange({ companyLogo: e.target.value });
+                                }}
                                 placeholder="https://example.com/logo.png"
                                 className="w-full px-4 py-3 bg-black/30 border border-white/10 rounded-xl text-white placeholder-white/40 focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/30 transition-all"
                             />
@@ -198,7 +234,10 @@ const CheckoutNodeForm: React.FC<CheckoutNodeFormProps> = ({
                                 {PRESET_COLORS.map((color) => (
                                     <button
                                         key={color}
-                                        onClick={() => setPrimaryColor(color)}
+                                        onClick={() => {
+                                            setPrimaryColor(color);
+                                            notifyChange({ primaryColor: color });
+                                        }}
                                         className={`w-10 h-10 rounded-xl transition-all ${primaryColor === color ? 'ring-2 ring-white ring-offset-2 ring-offset-slate-900 scale-110' : 'hover:scale-105'}`}
                                         style={{ backgroundColor: color }}
                                     >
