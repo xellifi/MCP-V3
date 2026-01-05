@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Workspace, Subscriber, Conversation, ConnectedPage } from '../types';
 import { api } from '../services/api';
-import { Search, Download, User, Facebook, Instagram, X, MessageCircle, Calendar, Tag, ExternalLink, ChevronLeft, ChevronRight, LayoutGrid, List, Clock, Users, Plus, Check, Filter, Trash2, MoreVertical } from 'lucide-react';
+import { Search, Download, User, Facebook, Instagram, X, MessageCircle, Calendar, Tag, ExternalLink, ChevronLeft, ChevronRight, LayoutGrid, List, Clock, Users, Plus, Check, Filter, Trash2, MoreVertical, ChevronDown } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
 import { useTheme } from '../context/ThemeContext';
 import { useToast } from '../context/ToastContext';
@@ -48,6 +48,7 @@ const Subscribers: React.FC<SubscribersProps> = ({ workspace }) => {
   const [subscriberToDelete, setSubscriberToDelete] = useState<Subscriber | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
+  const [showPageDropdown, setShowPageDropdown] = useState(false);
   const itemsPerPage = 12;
   const toast = useToast();
   const { isDark } = useTheme();
@@ -316,7 +317,7 @@ const Subscribers: React.FC<SubscribersProps> = ({ workspace }) => {
       </div>
 
       {/* Toolbar */}
-      <div className="glass-panel rounded-2xl p-4 border border-white/10">
+      <div className="glass-panel rounded-2xl p-4 border border-white/10 overflow-visible relative z-20">
         <div className="flex flex-col lg:flex-row gap-4">
           {/* Search */}
           <div className="relative flex-1">
@@ -333,16 +334,85 @@ const Subscribers: React.FC<SubscribersProps> = ({ workspace }) => {
           {/* Page Filter */}
           <div className="flex items-center gap-2">
             <Filter className="w-4 h-4 text-slate-400" />
-            <select
-              value={selectedPageId}
-              onChange={(e) => setSelectedPageId(e.target.value)}
-              className="px-4 py-2.5 bg-black/20 border border-white/10 text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/50 text-sm min-w-[180px]"
-            >
-              <option value="">All Pages</option>
-              {pages.map(page => (
-                <option key={page.id} value={page.id}>{page.name}</option>
-              ))}
-            </select>
+            <div className="relative min-w-[200px]">
+              <button
+                onClick={() => setShowPageDropdown(!showPageDropdown)}
+                className="w-full px-3 py-2.5 bg-black/20 border border-white/10 rounded-xl text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all cursor-pointer flex items-center gap-2 hover:bg-white/5"
+              >
+                {selectedPageId ? (
+                  <>
+                    {pages.find(p => p.id === selectedPageId)?.pageImageUrl ? (
+                      <img
+                        src={pages.find(p => p.id === selectedPageId)?.pageImageUrl}
+                        alt=""
+                        className="w-6 h-6 rounded-full object-cover ring-1 ring-white/10"
+                      />
+                    ) : (
+                      <Facebook className="w-5 h-5 text-blue-500" />
+                    )}
+                    <span className="flex-1 text-left truncate font-medium">
+                      {pages.find(p => p.id === selectedPageId)?.name}
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <div className="w-6 h-6 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400">
+                      <Facebook className="w-4 h-4" />
+                    </div>
+                    <span className="flex-1 text-left font-medium">All Pages</span>
+                  </>
+                )}
+                <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${showPageDropdown ? 'rotate-180' : ''}`} />
+              </button>
+
+              {showPageDropdown && (
+                <div className="absolute z-[999] w-full mt-2 bg-slate-900 border border-white/10 rounded-xl shadow-2xl max-h-64 overflow-y-auto custom-scrollbar backdrop-blur-xl">
+                  {/* All Pages Option */}
+                  <button
+                    onClick={() => {
+                      setSelectedPageId('');
+                      setShowPageDropdown(false);
+                    }}
+                    className={`w-full px-3 py-2.5 text-left hover:bg-white/5 transition-colors flex items-center gap-2 ${!selectedPageId ? 'bg-indigo-500/20 text-indigo-300' : 'text-slate-300'}`}
+                  >
+                    <div className="w-6 h-6 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400">
+                      <Facebook className="w-4 h-4" />
+                    </div>
+                    <span className="flex-1 text-sm font-medium">All Pages ({pages.length})</span>
+                  </button>
+
+                  {/* Individual Pages */}
+                  {pages.map(page => (
+                    <button
+                      key={page.id}
+                      onClick={() => {
+                        setSelectedPageId(page.id);
+                        setShowPageDropdown(false);
+                      }}
+                      className={`w-full px-3 py-2.5 text-left hover:bg-white/5 transition-colors flex items-center gap-2 ${selectedPageId === page.id ? 'bg-indigo-500/20 text-indigo-300' : 'text-slate-300'}`}
+                    >
+                      {page.pageImageUrl ? (
+                        <img
+                          src={page.pageImageUrl}
+                          alt={page.name}
+                          className="w-6 h-6 rounded-full object-cover flex-shrink-0"
+                        />
+                      ) : (
+                        <div className="w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0">
+                          <span className="text-white text-xs font-bold">
+                            {page.name.charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium truncate">{page.name}</div>
+                        <div className="text-xs text-slate-500">{page.pageFollowers?.toLocaleString() || 0} followers</div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Status Filter */}
@@ -371,10 +441,10 @@ const Subscribers: React.FC<SubscribersProps> = ({ workspace }) => {
 
       {/* Subscribers Grid/List */}
       {paginatedSubscribers.length > 0 ? (
-        <div className={viewMode === 'grid'
+        <div className={`relative z-10 ${viewMode === 'grid'
           ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4'
           : 'space-y-3'
-        }>
+          }`}>
           {paginatedSubscribers.map(subscriber => (
             <div
               key={subscriber.id}
@@ -490,8 +560,9 @@ const Subscribers: React.FC<SubscribersProps> = ({ workspace }) => {
                 </div>
               )}
             </div>
-          ))}
-        </div>
+          ))
+          }
+        </div >
       ) : (
         <div className="py-20 text-center glass-panel rounded-3xl border border-dashed border-white/10">
           <div className="w-20 h-20 bg-indigo-500/10 text-indigo-400 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
@@ -507,297 +578,301 @@ const Subscribers: React.FC<SubscribersProps> = ({ workspace }) => {
       )}
 
       {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between border-t border-white/10 pt-4">
-          <p className="text-sm text-slate-400">
-            Showing <span className="font-medium text-white">{(currentPage - 1) * itemsPerPage + 1}</span> to{' '}
-            <span className="font-medium text-white">{Math.min(currentPage * itemsPerPage, filteredSubscribers.length)}</span> of{' '}
-            <span className="font-medium text-white">{filteredSubscribers.length}</span>
-          </p>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-              disabled={currentPage === 1}
-              className="p-2 rounded-lg bg-white/5 border border-white/10 text-slate-400 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              <ChevronLeft className="w-5 h-5" />
-            </button>
-            <div className="flex items-center gap-1">
-              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                let pageNum;
-                if (totalPages <= 5) {
-                  pageNum = i + 1;
-                } else if (currentPage <= 3) {
-                  pageNum = i + 1;
-                } else if (currentPage >= totalPages - 2) {
-                  pageNum = totalPages - 4 + i;
-                } else {
-                  pageNum = currentPage - 2 + i;
-                }
-                return (
-                  <button
-                    key={pageNum}
-                    onClick={() => setCurrentPage(pageNum)}
-                    className={`w-8 h-8 rounded-lg text-sm font-medium transition-colors ${currentPage === pageNum
-                      ? 'bg-indigo-500 text-white'
-                      : 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white'
-                      }`}
-                  >
-                    {pageNum}
-                  </button>
-                );
-              })}
+      {
+        totalPages > 1 && (
+          <div className="flex items-center justify-between border-t border-white/10 pt-4">
+            <p className="text-sm text-slate-400">
+              Showing <span className="font-medium text-white">{(currentPage - 1) * itemsPerPage + 1}</span> to{' '}
+              <span className="font-medium text-white">{Math.min(currentPage * itemsPerPage, filteredSubscribers.length)}</span> of{' '}
+              <span className="font-medium text-white">{filteredSubscribers.length}</span>
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="p-2 rounded-lg bg-white/5 border border-white/10 text-slate-400 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+              <div className="flex items-center gap-1">
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  let pageNum;
+                  if (totalPages <= 5) {
+                    pageNum = i + 1;
+                  } else if (currentPage <= 3) {
+                    pageNum = i + 1;
+                  } else if (currentPage >= totalPages - 2) {
+                    pageNum = totalPages - 4 + i;
+                  } else {
+                    pageNum = currentPage - 2 + i;
+                  }
+                  return (
+                    <button
+                      key={pageNum}
+                      onClick={() => setCurrentPage(pageNum)}
+                      className={`w-8 h-8 rounded-lg text-sm font-medium transition-colors ${currentPage === pageNum
+                        ? 'bg-indigo-500 text-white'
+                        : 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white'
+                        }`}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                })}
+              </div>
+              <button
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="p-2 rounded-lg bg-white/5 border border-white/10 text-slate-400 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                <ChevronRight className="w-5 h-5" />
+              </button>
             </div>
-            <button
-              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-              disabled={currentPage === totalPages}
-              className="p-2 rounded-lg bg-white/5 border border-white/10 text-slate-400 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              <ChevronRight className="w-5 h-5" />
-            </button>
           </div>
-        </div>
-      )}
+        )
+      }
 
       {/* Subscriber Profile Modal */}
-      {selectedSubscriber && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in" onClick={closeProfile}>
-          <div
-            className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto glass-panel rounded-3xl border border-white/10 shadow-2xl animate-scale-in"
-            onClick={e => e.stopPropagation()}
-          >
-            {/* Close Button */}
-            <button
-              onClick={closeProfile}
-              className="absolute top-4 right-4 p-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors z-10"
+      {
+        selectedSubscriber && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in" onClick={closeProfile}>
+            <div
+              className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto glass-panel rounded-3xl border border-white/10 shadow-2xl animate-scale-in"
+              onClick={e => e.stopPropagation()}
             >
-              <X className="w-5 h-5" />
-            </button>
+              {/* Close Button */}
+              <button
+                onClick={closeProfile}
+                className="absolute top-4 right-4 p-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors z-10"
+              >
+                <X className="w-5 h-5" />
+              </button>
 
-            {/* Profile Header */}
-            <div className="relative p-6 pb-0">
-              <div className="absolute inset-0 h-32 bg-gradient-to-b from-indigo-500/20 to-transparent rounded-t-3xl"></div>
+              {/* Profile Header */}
+              <div className="relative p-6 pb-0">
+                <div className="absolute inset-0 h-32 bg-gradient-to-b from-indigo-500/20 to-transparent rounded-t-3xl"></div>
 
-              <div className="relative flex flex-col sm:flex-row items-center gap-6">
-                {/* Avatar */}
-                <div className="relative">
-                  {selectedSubscriber.avatarUrl ? (
-                    <img
-                      src={selectedSubscriber.avatarUrl}
-                      alt={selectedSubscriber.name}
-                      className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl object-cover border-4 border-slate-800 shadow-2xl"
-                    />
-                  ) : (
-                    <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl bg-gradient-to-br from-indigo-500/40 to-purple-500/40 flex items-center justify-center text-slate-300 border-4 border-slate-800 shadow-2xl">
-                      <User className="w-12 h-12" />
-                    </div>
-                  )}
-                  <div className="absolute -bottom-2 -right-2 p-1.5 rounded-xl bg-slate-900 border border-slate-700 shadow-lg">
-                    {selectedSubscriber.platform === 'FACEBOOK' ? (
-                      <Facebook className="w-5 h-5 text-blue-500 fill-current" />
+                <div className="relative flex flex-col sm:flex-row items-center gap-6">
+                  {/* Avatar */}
+                  <div className="relative">
+                    {selectedSubscriber.avatarUrl ? (
+                      <img
+                        src={selectedSubscriber.avatarUrl}
+                        alt={selectedSubscriber.name}
+                        className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl object-cover border-4 border-slate-800 shadow-2xl"
+                      />
                     ) : (
-                      <Instagram className="w-5 h-5 text-pink-500" />
+                      <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl bg-gradient-to-br from-indigo-500/40 to-purple-500/40 flex items-center justify-center text-slate-300 border-4 border-slate-800 shadow-2xl">
+                        <User className="w-12 h-12" />
+                      </div>
                     )}
+                    <div className="absolute -bottom-2 -right-2 p-1.5 rounded-xl bg-slate-900 border border-slate-700 shadow-lg">
+                      {selectedSubscriber.platform === 'FACEBOOK' ? (
+                        <Facebook className="w-5 h-5 text-blue-500 fill-current" />
+                      ) : (
+                        <Instagram className="w-5 h-5 text-pink-500" />
+                      )}
+                    </div>
                   </div>
-                </div>
 
-                {/* Name & Info */}
-                <div className="flex-1 text-center sm:text-left">
-                  <h2 className="text-2xl sm:text-3xl font-bold text-white mb-1">{selectedSubscriber.name}</h2>
-                  {selectedSubscriber.email && (
-                    <p className="text-sm text-indigo-400 mb-1">📧 {selectedSubscriber.email}</p>
-                  )}
-                  <p className="text-sm text-slate-500 font-mono mb-1">ID: {selectedSubscriber.externalId}</p>
-                  {selectedSubscriber.pageId && (
-                    <p className="text-sm text-slate-400 mb-3">From: {getPageName(selectedSubscriber.pageId)}</p>
-                  )}
+                  {/* Name & Info */}
+                  <div className="flex-1 text-center sm:text-left">
+                    <h2 className="text-2xl sm:text-3xl font-bold text-white mb-1">{selectedSubscriber.name}</h2>
+                    {selectedSubscriber.email && (
+                      <p className="text-sm text-indigo-400 mb-1">📧 {selectedSubscriber.email}</p>
+                    )}
+                    <p className="text-sm text-slate-500 font-mono mb-1">ID: {selectedSubscriber.externalId}</p>
+                    {selectedSubscriber.pageId && (
+                      <p className="text-sm text-slate-400 mb-3">From: {getPageName(selectedSubscriber.pageId)}</p>
+                    )}
 
-                  <div className="flex flex-wrap justify-center sm:justify-start gap-2">
-                    <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-semibold ${selectedSubscriber.status === 'SUBSCRIBED'
-                      ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                      : 'bg-slate-500/20 text-slate-400 border border-slate-500/30'
-                      }`}>
-                      {selectedSubscriber.status === 'SUBSCRIBED' ? 'Active Subscriber' : 'Inactive'}
-                    </span>
-                    {selectedSubscriber.source && (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium bg-white/5 text-slate-300 border border-white/10">
-                        {selectedSubscriber.source === 'COMMENT' ? 'From Comment' :
-                          selectedSubscriber.source === 'MESSAGE' ? 'From Message' : 'From Button'}
+                    <div className="flex flex-wrap justify-center sm:justify-start gap-2">
+                      <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-semibold ${selectedSubscriber.status === 'SUBSCRIBED'
+                        ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                        : 'bg-slate-500/20 text-slate-400 border border-slate-500/30'
+                        }`}>
+                        {selectedSubscriber.status === 'SUBSCRIBED' ? 'Active Subscriber' : 'Inactive'}
                       </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Profile Details */}
-            <div className="p-6 space-y-6">
-              {/* Quick Stats */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-white/5 rounded-xl p-4 border border-white/10">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-indigo-500/20 rounded-lg">
-                      <Calendar className="w-5 h-5 text-indigo-400" />
-                    </div>
-                    <div>
-                      <p className="text-xs text-slate-400">Last Active</p>
-                      <p className="text-sm font-semibold text-white">{formatDateTime(selectedSubscriber.lastActiveAt)}</p>
-                    </div>
-                  </div>
-                </div>
-                <div className="bg-white/5 rounded-xl p-4 border border-white/10">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-purple-500/20 rounded-lg">
-                      <MessageCircle className="w-5 h-5 text-purple-400" />
-                    </div>
-                    <div>
-                      <p className="text-xs text-slate-400">Conversations</p>
-                      <p className="text-sm font-semibold text-white">
-                        {loadingConversations ? '...' : subscriberConversations.length}
-                      </p>
+                      {selectedSubscriber.source && (
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium bg-white/5 text-slate-300 border border-white/10">
+                          {selectedSubscriber.source === 'COMMENT' ? 'From Comment' :
+                            selectedSubscriber.source === 'MESSAGE' ? 'From Message' : 'From Button'}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Labels */}
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <h4 className="text-sm font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-2">
-                    <Tag className="w-4 h-4" />
-                    Labels
+              {/* Profile Details */}
+              <div className="p-6 space-y-6">
+                {/* Quick Stats */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-indigo-500/20 rounded-lg">
+                        <Calendar className="w-5 h-5 text-indigo-400" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-slate-400">Last Active</p>
+                        <p className="text-sm font-semibold text-white">{formatDateTime(selectedSubscriber.lastActiveAt)}</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-purple-500/20 rounded-lg">
+                        <MessageCircle className="w-5 h-5 text-purple-400" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-slate-400">Conversations</p>
+                        <p className="text-sm font-semibold text-white">
+                          {loadingConversations ? '...' : subscriberConversations.length}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Labels */}
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="text-sm font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                      <Tag className="w-4 h-4" />
+                      Labels
+                    </h4>
+                    <button
+                      onClick={() => setShowLabelManager(!showLabelManager)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-indigo-400 hover:text-indigo-300 bg-indigo-500/10 hover:bg-indigo-500/20 rounded-lg border border-indigo-500/30 transition-colors"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      Manage Labels
+                    </button>
+                  </div>
+
+                  {/* Current Labels */}
+                  {selectedSubscriber.labels && selectedSubscriber.labels.length > 0 ? (
+                    <div className="flex flex-wrap gap-2 mb-3">
+                      {selectedSubscriber.labels.map(label => (
+                        <span key={label} className={`px-3 py-1.5 rounded-lg text-sm border font-medium ${getLabelColor(label)}`}>
+                          {label}
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-slate-500 text-sm mb-3">No labels assigned</p>
+                  )}
+
+                  {/* Label Manager */}
+                  {showLabelManager && (
+                    <div className="bg-white/5 rounded-xl p-4 border border-white/10 mt-3">
+                      <p className="text-xs text-slate-400 mb-3">Click to add/remove labels:</p>
+                      <div className="flex flex-wrap gap-2">
+                        {LABEL_OPTIONS.map(labelOption => {
+                          const isActive = selectedSubscriber.labels?.includes(labelOption.name);
+                          return (
+                            <button
+                              key={labelOption.name}
+                              onClick={() => toggleLabel(labelOption.name)}
+                              disabled={savingLabels}
+                              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border transition-all ${isActive
+                                ? labelOption.color + ' ring-2 ring-white/20'
+                                : 'bg-white/5 text-slate-400 border-white/10 hover:bg-white/10'
+                                } ${savingLabels ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            >
+                              {isActive && <Check className="w-3.5 h-3.5" />}
+                              {labelOption.name}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Tags */}
+                {selectedSubscriber.tags && selectedSubscriber.tags.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">Tags</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedSubscriber.tags.map(tag => (
+                        <span key={tag} className="px-3 py-1.5 bg-indigo-500/20 text-indigo-300 rounded-lg text-sm border border-indigo-500/30 font-medium">
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Recent Conversations */}
+                <div>
+                  <h4 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                    <MessageCircle className="w-4 h-4" />
+                    Recent Conversations
                   </h4>
-                  <button
-                    onClick={() => setShowLabelManager(!showLabelManager)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-indigo-400 hover:text-indigo-300 bg-indigo-500/10 hover:bg-indigo-500/20 rounded-lg border border-indigo-500/30 transition-colors"
+                  {loadingConversations ? (
+                    <div className="flex items-center justify-center py-8">
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-500"></div>
+                    </div>
+                  ) : subscriberConversations.length > 0 ? (
+                    <div className="space-y-2">
+                      {subscriberConversations.slice(0, 3).map(conv => (
+                        <div key={conv.id} className="bg-white/5 rounded-xl p-4 border border-white/10 hover:bg-white/10 transition-colors">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm text-white truncate">{conv.lastMessagePreview || 'No messages'}</p>
+                              <p className="text-xs text-slate-500 mt-1">{formatTimeAgo(conv.updatedAt)}</p>
+                            </div>
+                            {conv.unreadCount > 0 && (
+                              <span className="flex-shrink-0 bg-indigo-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                                {conv.unreadCount}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="bg-white/5 rounded-xl p-6 border border-white/10 text-center">
+                      <MessageCircle className="w-8 h-8 text-slate-600 mx-auto mb-2" />
+                      <p className="text-slate-500 text-sm">No conversations yet</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Actions */}
+                <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-white/10">
+                  <a
+                    href={`https://www.facebook.com/messages/t/${selectedSubscriber.externalId}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold transition-colors"
                   >
-                    <Plus className="w-3.5 h-3.5" />
-                    Manage Labels
+                    <MessageCircle className="w-4 h-4" />
+                    Open Chat
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteSubscriber(selectedSubscriber.id, selectedSubscriber.name)}
+                    disabled={deleting}
+                    className="flex items-center justify-center gap-2 px-4 py-3 bg-red-500/20 hover:bg-red-500/30 text-red-400 hover:text-red-300 rounded-xl font-semibold transition-colors border border-red-500/30 disabled:opacity-50"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    {deleting ? 'Deleting...' : 'Delete'}
+                  </button>
+                  <button
+                    onClick={closeProfile}
+                    className="flex-1 px-4 py-3 bg-white/5 hover:bg-white/10 text-slate-300 rounded-xl font-semibold transition-colors border border-white/10"
+                  >
+                    Close
                   </button>
                 </div>
-
-                {/* Current Labels */}
-                {selectedSubscriber.labels && selectedSubscriber.labels.length > 0 ? (
-                  <div className="flex flex-wrap gap-2 mb-3">
-                    {selectedSubscriber.labels.map(label => (
-                      <span key={label} className={`px-3 py-1.5 rounded-lg text-sm border font-medium ${getLabelColor(label)}`}>
-                        {label}
-                      </span>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-slate-500 text-sm mb-3">No labels assigned</p>
-                )}
-
-                {/* Label Manager */}
-                {showLabelManager && (
-                  <div className="bg-white/5 rounded-xl p-4 border border-white/10 mt-3">
-                    <p className="text-xs text-slate-400 mb-3">Click to add/remove labels:</p>
-                    <div className="flex flex-wrap gap-2">
-                      {LABEL_OPTIONS.map(labelOption => {
-                        const isActive = selectedSubscriber.labels?.includes(labelOption.name);
-                        return (
-                          <button
-                            key={labelOption.name}
-                            onClick={() => toggleLabel(labelOption.name)}
-                            disabled={savingLabels}
-                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border transition-all ${isActive
-                              ? labelOption.color + ' ring-2 ring-white/20'
-                              : 'bg-white/5 text-slate-400 border-white/10 hover:bg-white/10'
-                              } ${savingLabels ? 'opacity-50 cursor-not-allowed' : ''}`}
-                          >
-                            {isActive && <Check className="w-3.5 h-3.5" />}
-                            {labelOption.name}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Tags */}
-              {selectedSubscriber.tags && selectedSubscriber.tags.length > 0 && (
-                <div>
-                  <h4 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">Tags</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {selectedSubscriber.tags.map(tag => (
-                      <span key={tag} className="px-3 py-1.5 bg-indigo-500/20 text-indigo-300 rounded-lg text-sm border border-indigo-500/30 font-medium">
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Recent Conversations */}
-              <div>
-                <h4 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
-                  <MessageCircle className="w-4 h-4" />
-                  Recent Conversations
-                </h4>
-                {loadingConversations ? (
-                  <div className="flex items-center justify-center py-8">
-                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-500"></div>
-                  </div>
-                ) : subscriberConversations.length > 0 ? (
-                  <div className="space-y-2">
-                    {subscriberConversations.slice(0, 3).map(conv => (
-                      <div key={conv.id} className="bg-white/5 rounded-xl p-4 border border-white/10 hover:bg-white/10 transition-colors">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm text-white truncate">{conv.lastMessagePreview || 'No messages'}</p>
-                            <p className="text-xs text-slate-500 mt-1">{formatTimeAgo(conv.updatedAt)}</p>
-                          </div>
-                          {conv.unreadCount > 0 && (
-                            <span className="flex-shrink-0 bg-indigo-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                              {conv.unreadCount}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="bg-white/5 rounded-xl p-6 border border-white/10 text-center">
-                    <MessageCircle className="w-8 h-8 text-slate-600 mx-auto mb-2" />
-                    <p className="text-slate-500 text-sm">No conversations yet</p>
-                  </div>
-                )}
-              </div>
-
-              {/* Actions */}
-              <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-white/10">
-                <a
-                  href={`https://www.facebook.com/messages/t/${selectedSubscriber.externalId}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold transition-colors"
-                >
-                  <MessageCircle className="w-4 h-4" />
-                  Open Chat
-                </a>
-                <button
-                  type="button"
-                  onClick={() => handleDeleteSubscriber(selectedSubscriber.id, selectedSubscriber.name)}
-                  disabled={deleting}
-                  className="flex items-center justify-center gap-2 px-4 py-3 bg-red-500/20 hover:bg-red-500/30 text-red-400 hover:text-red-300 rounded-xl font-semibold transition-colors border border-red-500/30 disabled:opacity-50"
-                >
-                  <Trash2 className="w-4 h-4" />
-                  {deleting ? 'Deleting...' : 'Delete'}
-                </button>
-                <button
-                  onClick={closeProfile}
-                  className="flex-1 px-4 py-3 bg-white/5 hover:bg-white/10 text-slate-300 rounded-xl font-semibold transition-colors border border-white/10"
-                >
-                  Close
-                </button>
               </div>
             </div>
           </div>
-        </div>
-      )}
-    </div>
+        )
+      }
+    </div >
   );
 };
 
