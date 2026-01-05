@@ -716,9 +716,9 @@ const DownsellNodeForm: React.FC<DownsellNodeFormProps> = ({
                             <button
                                 type="button"
                                 onClick={() => { setCartAction('add'); notifyChange({ cartAction: 'add' }); }}
-                                className={`p-3 rounded-xl border text-left transition-all ${cartAction === 'add'
+                                className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${cartAction === 'add'
                                     ? 'bg-teal-500/20 border-teal-500/50 text-white'
-                                    : 'bg-black/30 border-white/10 text-slate-400 hover:border-white/20'
+                                    : 'bg-black/30 border-white/10 text-slate-400 hover:border-white/20 hover:bg-black/40'
                                     }`}
                             >
                                 <div className="flex items-center justify-between">
@@ -733,9 +733,9 @@ const DownsellNodeForm: React.FC<DownsellNodeFormProps> = ({
                             <button
                                 type="button"
                                 onClick={() => { setCartAction('replace'); notifyChange({ cartAction: 'replace' }); }}
-                                className={`p-3 rounded-xl border text-left transition-all ${cartAction === 'replace'
+                                className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${cartAction === 'replace'
                                     ? 'bg-orange-500/20 border-orange-500/50 text-white'
-                                    : 'bg-black/30 border-white/10 text-slate-400 hover:border-white/20'
+                                    : 'bg-black/30 border-white/10 text-slate-400 hover:border-white/20 hover:bg-black/40'
                                     }`}
                             >
                                 <div className="flex items-center justify-between">
