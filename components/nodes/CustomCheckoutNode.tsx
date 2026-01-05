@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
 import { ShoppingCart, Settings, Trash2, ChevronDown, ChevronUp, Package, Copy } from 'lucide-react';
+import NodeInsights from '../NodeInsights';
 
 const CustomCheckoutNode: React.FC<NodeProps> = ({ data, selected }) => {
     const [isExpanded, setIsExpanded] = useState(false);
@@ -135,6 +136,9 @@ const CustomCheckoutNode: React.FC<NodeProps> = ({ data, selected }) => {
                         <Trash2 className="w-3.5 h-3.5 text-white" />
                     </button>
                 </div>
+
+                {/* Node Insights */}
+                <NodeInsights />
 
                 {/* Output Handle */}
                 <Handle

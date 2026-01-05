@@ -1,7 +1,5 @@
 import React, { useState } from 'react';
-import {
-    Table2, Link2, FileSpreadsheet, Copy, Check, AlertCircle, ExternalLink, ChevronDown, ChevronUp
-} from 'lucide-react';
+import { Table2, Link2, FileSpreadsheet, Copy, Check, ChevronDown, Settings, List } from 'lucide-react';
 import CollapsibleTips from './CollapsibleTips';
 
 interface CartSheetNodeFormProps {
@@ -27,8 +25,8 @@ const CartSheetNodeForm: React.FC<CartSheetNodeFormProps> = ({
     const [includeTimestamp, setIncludeTimestamp] = useState(initialConfig?.includeTimestamp ?? true);
     const [includeCustomerName, setIncludeCustomerName] = useState(initialConfig?.includeCustomerName ?? true);
     const [includeProductDetails, setIncludeProductDetails] = useState(initialConfig?.includeProductDetails ?? true);
-    const [showSetupGuide, setShowSetupGuide] = useState(false);
     const [copied, setCopied] = useState(false);
+    const [activeSection, setActiveSection] = useState<string>('connection');
 
     // Notify parent of changes
     const notifyChange = (updates: Partial<typeof initialConfig> = {}) => {
@@ -41,6 +39,39 @@ const CartSheetNodeForm: React.FC<CartSheetNodeFormProps> = ({
             ...updates
         });
     };
+
+    const toggleSection = (id: string) => {
+        setActiveSection(activeSection === id ? '' : id);
+    };
+
+    // Section header component - matching UpsellNodeForm pattern
+    const SectionHeader = ({
+        id,
+        icon: Icon,
+        title,
+        color
+    }: {
+        id: string;
+        icon: React.ElementType;
+        title: string;
+        color: string;
+    }) => (
+        <button
+            onClick={() => toggleSection(id)}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border transition-all ${activeSection === id
+                ? `bg-${color}-500/20 border-${color}-500/30`
+                : 'bg-black/20 border-white/10 hover:bg-white/5'
+                }`}
+        >
+            <div className={`p-1.5 rounded-lg bg-${color}-500/20`}>
+                <Icon className={`w-4 h-4 text-${color}-400`} />
+            </div>
+            <span className="font-semibold text-sm text-white">{title}</span>
+            <div className={`ml-auto transition-transform ${activeSection === id ? 'rotate-180' : ''}`}>
+                <ChevronDown className="w-4 h-4 text-slate-400" />
+            </div>
+        </button>
+    );
 
     const appsScriptCode = `function doPost(e) {
   try {
@@ -82,7 +113,7 @@ const CartSheetNodeForm: React.FC<CartSheetNodeFormProps> = ({
     };
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-4">
             {/* Header Info */}
             <div className="flex items-start gap-3 p-4 bg-green-500/10 border border-green-500/30 rounded-xl">
                 <Table2 className="w-5 h-5 text-green-400 mt-0.5" />
@@ -92,104 +123,106 @@ const CartSheetNodeForm: React.FC<CartSheetNodeFormProps> = ({
                 </div>
             </div>
 
-            {/* Webhook URL */}
-            <div className="space-y-2">
-                <label className="flex items-center gap-2 text-sm font-medium text-slate-300">
-                    <Link2 className="w-4 h-4 text-slate-400" />
-                    Google Apps Script Webhook URL
-                </label>
-                <input
-                    type="url"
-                    value={webhookUrl}
-                    onChange={(e) => {
-                        setWebhookUrl(e.target.value);
-                        notifyChange({ webhookUrl: e.target.value });
-                    }}
-                    placeholder="https://script.google.com/macros/s/..."
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-green-500/50 focus:border-green-500 outline-none transition-all placeholder-slate-500"
-                />
-                {webhookUrl && webhookUrl.includes('script.google.com') && (
-                    <div className="flex items-center gap-2 text-green-400 text-xs">
-                        <Check className="w-3 h-3" />
-                        Valid Google Apps Script URL
+            {/* Connection Section */}
+            <div className="space-y-3">
+                <SectionHeader id="connection" icon={Link2} title="Webhook Connection" color="green" />
+                {activeSection === 'connection' && (
+                    <div className="space-y-4 p-4 bg-black/20 rounded-xl border border-white/10">
+                        {/* Webhook URL */}
+                        <div>
+                            <label className="block text-sm font-medium text-white/80 mb-2">
+                                Google Apps Script Webhook URL
+                            </label>
+                            <input
+                                type="url"
+                                value={webhookUrl}
+                                onChange={(e) => {
+                                    setWebhookUrl(e.target.value);
+                                    notifyChange({ webhookUrl: e.target.value });
+                                }}
+                                placeholder="https://script.google.com/macros/s/..."
+                                className="w-full px-4 py-3 bg-black/30 border border-white/10 rounded-xl text-white placeholder-white/40 focus:border-green-500/50 focus:ring-1 focus:ring-green-500/30 transition-all"
+                            />
+                            {webhookUrl && webhookUrl.includes('script.google.com') && (
+                                <div className="flex items-center gap-2 text-green-400 text-xs mt-2">
+                                    <Check className="w-3 h-3" />
+                                    Valid Google Apps Script URL
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Sheet Name */}
+                        <div>
+                            <label className="block text-sm font-medium text-white/80 mb-2">
+                                Sheet Name
+                            </label>
+                            <input
+                                type="text"
+                                value={sheetName}
+                                onChange={(e) => {
+                                    setSheetName(e.target.value);
+                                    notifyChange({ sheetName: e.target.value });
+                                }}
+                                placeholder="Cart Orders"
+                                className="w-full px-4 py-3 bg-black/30 border border-white/10 rounded-xl text-white placeholder-white/40 focus:border-green-500/50 focus:ring-1 focus:ring-green-500/30 transition-all"
+                            />
+                        </div>
                     </div>
                 )}
             </div>
 
-            {/* Sheet Name */}
-            <div className="space-y-2">
-                <label className="flex items-center gap-2 text-sm font-medium text-slate-300">
-                    <FileSpreadsheet className="w-4 h-4 text-slate-400" />
-                    Sheet Name
-                </label>
-                <input
-                    type="text"
-                    value={sheetName}
-                    onChange={(e) => {
-                        setSheetName(e.target.value);
-                        notifyChange({ sheetName: e.target.value });
-                    }}
-                    placeholder="Cart Orders"
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-green-500/50 focus:border-green-500 outline-none transition-all placeholder-slate-500"
-                />
+            {/* Data Options Section */}
+            <div className="space-y-3">
+                <SectionHeader id="data" icon={List} title="Data Options" color="blue" />
+                {activeSection === 'data' && (
+                    <div className="space-y-3 p-4 bg-black/20 rounded-xl border border-white/10">
+                        <div className="flex items-center justify-between p-3 bg-black/30 rounded-xl border border-white/10">
+                            <span className="text-white/80 text-sm">Include Timestamp</span>
+                            <button
+                                onClick={() => {
+                                    setIncludeTimestamp(!includeTimestamp);
+                                    notifyChange({ includeTimestamp: !includeTimestamp });
+                                }}
+                                className={`relative w-12 h-6 rounded-full transition-colors ${includeTimestamp ? 'bg-green-500' : 'bg-slate-600'}`}
+                            >
+                                <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${includeTimestamp ? 'left-7' : 'left-1'}`} />
+                            </button>
+                        </div>
+
+                        <div className="flex items-center justify-between p-3 bg-black/30 rounded-xl border border-white/10">
+                            <span className="text-white/80 text-sm">Include Customer Name</span>
+                            <button
+                                onClick={() => {
+                                    setIncludeCustomerName(!includeCustomerName);
+                                    notifyChange({ includeCustomerName: !includeCustomerName });
+                                }}
+                                className={`relative w-12 h-6 rounded-full transition-colors ${includeCustomerName ? 'bg-green-500' : 'bg-slate-600'}`}
+                            >
+                                <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${includeCustomerName ? 'left-7' : 'left-1'}`} />
+                            </button>
+                        </div>
+
+                        <div className="flex items-center justify-between p-3 bg-black/30 rounded-xl border border-white/10">
+                            <span className="text-white/80 text-sm">Include Product Details</span>
+                            <button
+                                onClick={() => {
+                                    setIncludeProductDetails(!includeProductDetails);
+                                    notifyChange({ includeProductDetails: !includeProductDetails });
+                                }}
+                                className={`relative w-12 h-6 rounded-full transition-colors ${includeProductDetails ? 'bg-green-500' : 'bg-slate-600'}`}
+                            >
+                                <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${includeProductDetails ? 'left-7' : 'left-1'}`} />
+                            </button>
+                        </div>
+                    </div>
+                )}
             </div>
 
-            {/* Data Options */}
-            <div className="space-y-3 p-4 bg-slate-800/50 rounded-xl border border-slate-700">
-                <div className="text-sm font-medium text-slate-300 mb-3">Data to Include</div>
-
-                <div className="flex items-center justify-between">
-                    <span className="text-sm text-slate-400">Timestamp</span>
-                    <button
-                        onClick={() => {
-                            setIncludeTimestamp(!includeTimestamp);
-                            notifyChange({ includeTimestamp: !includeTimestamp });
-                        }}
-                        className={`w-10 h-5 rounded-full transition-all ${includeTimestamp ? 'bg-green-500' : 'bg-slate-600'}`}
-                    >
-                        <div className={`w-4 h-4 bg-white rounded-full shadow transition-transform ${includeTimestamp ? 'translate-x-5' : 'translate-x-0.5'}`} />
-                    </button>
-                </div>
-
-                <div className="flex items-center justify-between">
-                    <span className="text-sm text-slate-400">Customer Name</span>
-                    <button
-                        onClick={() => {
-                            setIncludeCustomerName(!includeCustomerName);
-                            notifyChange({ includeCustomerName: !includeCustomerName });
-                        }}
-                        className={`w-10 h-5 rounded-full transition-all ${includeCustomerName ? 'bg-green-500' : 'bg-slate-600'}`}
-                    >
-                        <div className={`w-4 h-4 bg-white rounded-full shadow transition-transform ${includeCustomerName ? 'translate-x-5' : 'translate-x-0.5'}`} />
-                    </button>
-                </div>
-
-                <div className="flex items-center justify-between">
-                    <span className="text-sm text-slate-400">Product Details (names, prices)</span>
-                    <button
-                        onClick={() => {
-                            setIncludeProductDetails(!includeProductDetails);
-                            notifyChange({ includeProductDetails: !includeProductDetails });
-                        }}
-                        className={`w-10 h-5 rounded-full transition-all ${includeProductDetails ? 'bg-green-500' : 'bg-slate-600'}`}
-                    >
-                        <div className={`w-4 h-4 bg-white rounded-full shadow transition-transform ${includeProductDetails ? 'translate-x-5' : 'translate-x-0.5'}`} />
-                    </button>
-                </div>
-            </div>
-
-            {/* Setup Guide */}
-            <div className="border border-slate-700 rounded-xl overflow-hidden">
-                <button
-                    onClick={() => setShowSetupGuide(!showSetupGuide)}
-                    className="w-full flex items-center justify-between p-4 bg-slate-800/50 hover:bg-slate-800 transition-colors"
-                >
-                    <span className="text-sm font-medium text-slate-300">📋 Setup Guide & Script</span>
-                    {showSetupGuide ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
-                </button>
-
-                {showSetupGuide && (
-                    <div className="p-4 space-y-4 border-t border-slate-700">
+            {/* Setup Guide Section */}
+            <div className="space-y-3">
+                <SectionHeader id="setup" icon={Settings} title="Setup Guide & Script" color="violet" />
+                {activeSection === 'setup' && (
+                    <div className="p-4 space-y-4 bg-black/20 rounded-xl border border-white/10">
                         <ol className="text-sm text-slate-400 space-y-2 list-decimal list-inside">
                             <li>Open your Google Sheet</li>
                             <li>Go to Extensions → Apps Script</li>

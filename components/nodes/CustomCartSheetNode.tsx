@@ -1,8 +1,9 @@
 import React from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
 import { Table2, Settings, Trash2, Copy, ShoppingCart, ExternalLink } from 'lucide-react';
+import NodeInsights from '../NodeInsights';
 
-const CustomCartSheetNode: React.FC<NodeProps> = ({ data, selected }) => {
+const CustomCartSheetNode: React.FC<NodeProps> = ({ data, id, selected }) => {
     const handleConfigure = (e: React.MouseEvent) => {
         e.stopPropagation();
         if (data.onConfigure) {
@@ -119,6 +120,9 @@ const CustomCartSheetNode: React.FC<NodeProps> = ({ data, selected }) => {
                         <Trash2 className="w-3 h-3" />
                     </button>
                 </div>
+
+                {/* Node Insights */}
+                <NodeInsights />
             </div>
 
             {/* Connection Handles */}
