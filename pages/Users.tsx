@@ -33,7 +33,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ user }) => {
     name: '',
     email: '',
     password: '',
-    role: UserRole.EDITOR, // Default
+    role: UserRole.MEMBER, // Default
     features: [] as string[]
   });
 
@@ -61,7 +61,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ user }) => {
     let features: string[] = [];
     if (role === UserRole.ADMIN || role === UserRole.OWNER) {
       features = AVAILABLE_FEATURES.map(f => f.id);
-    } else if (role === 'VIEWER') { // Assuming 'VIEWER' might be a type string if not in enum
+    } else if (role === UserRole.MEMBER) { // Member gets limited access
       features = ['dashboard', 'academy'];
     } else {
       // Editor default
@@ -100,7 +100,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ user }) => {
       name: '',
       email: '',
       password: '',
-      role: UserRole.EDITOR,
+      role: UserRole.MEMBER,
       features: []
     });
   };
@@ -278,7 +278,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ user }) => {
                       onChange={e => handleRoleChange(e.target.value as any)}
                     >
                       <option value={UserRole.ADMIN}>Admin (Full Access)</option>
-                      <option value={UserRole.EDITOR}>Editor</option>
+                      <option value={UserRole.MEMBER}>Member</option>
                       <option value="VIEWER">Viewer</option>
                       <option value="SUPPORT">Support</option>
                     </select>
