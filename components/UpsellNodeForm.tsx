@@ -695,7 +695,7 @@ const UpsellNodeForm: React.FC<UpsellNodeFormProps> = ({
                 {activeSection === 'cart' && (
                     <div className="space-y-4 p-4 bg-black/20 rounded-xl border border-white/10 animate-fade-in">
                         <p className="text-xs text-slate-400 mb-3">
-                            Choose what happens when customer accepts this upsell
+                            What happens when customer accepts this upsell?
                         </p>
                         <div className="grid grid-cols-1 gap-2">
                             <button
@@ -707,11 +707,12 @@ const UpsellNodeForm: React.FC<UpsellNodeFormProps> = ({
                                     }`}
                             >
                                 <div className="flex items-center justify-between">
-                                    <div className="font-medium">➕ Add to Cart</div>
+                                    <div className="font-medium">➕ Add to Main Product</div>
                                     {cartAction === 'add' && <Check className="w-5 h-5 text-teal-400" />}
                                 </div>
                                 <div className="text-xs mt-1 opacity-70">
-                                    Adds this item to existing cart (Product + Upsell)
+                                    Upsell will be <span className="text-teal-400 font-semibold">ADDED</span> to the cart.
+                                    Customer pays for both (Product ₱888 + Upsell ₱588 = ₱1,476)
                                 </div>
                             </button>
                             <button
@@ -723,11 +724,12 @@ const UpsellNodeForm: React.FC<UpsellNodeFormProps> = ({
                                     }`}
                             >
                                 <div className="flex items-center justify-between">
-                                    <div className="font-medium">🔄 Replace Cart</div>
+                                    <div className="font-medium">🔄 Replace Main Product</div>
                                     {cartAction === 'replace' && <Check className="w-5 h-5 text-orange-400" />}
                                 </div>
                                 <div className="text-xs mt-1 opacity-70">
-                                    Replaces cart with only this item (Upsell only)
+                                    Upsell will <span className="text-orange-400 font-semibold">REPLACE</span> the main product.
+                                    Customer pays only for upsell (₱588 only)
                                 </div>
                             </button>
                         </div>

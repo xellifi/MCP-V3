@@ -734,19 +734,32 @@ async function processPostback(messagingEvent: any, pageId: string) {
                 quantity: 1
             };
 
+            console.log(`  📦 Creating cart item: ${cartItem.productName} (₱${cartItem.productPrice})`);
+
             // Get existing cart from subscriber context or create new
             let cart: any[] = [];
 
             // Try to get existing cart from subscriber metadata
-            const { data: subscriber } = await supabase
+            console.log(`  🔍 Looking up subscriber: page_subscriber_id=${senderId}, workspace_id=${workspaceId}`);
+            const { data: subscriber, error: subError } = await supabase
                 .from('subscribers')
-                .select('metadata')
+                .select('id, metadata')
                 .eq('page_subscriber_id', senderId)
                 .eq('workspace_id', workspaceId)
                 .single();
 
-            if (subscriber?.metadata?.cart) {
-                cart = subscriber.metadata.cart;
+            if (subError) {
+                console.log(`  ⚠️ Subscriber lookup error: ${subError.message}`);
+            } else if (subscriber) {
+                console.log(`  ✓ Found subscriber ID: ${subscriber.id}`);
+                if (subscriber?.metadata?.cart) {
+                    cart = subscriber.metadata.cart;
+                    console.log(`  📦 Existing cart has ${cart.length} item(s)`);
+                } else {
+                    console.log(`  📦 No existing cart in metadata`);
+                }
+            } else {
+                console.log(`  ⚠️ No subscriber found`);
             }
 
             // Apply cart action
@@ -765,7 +778,9 @@ async function processPostback(messagingEvent: any, pageId: string) {
             console.log(`  💰 Cart total: ₱${cartTotal}`);
 
             // Save cart to subscriber metadata
-            await supabase
+            console.log(`  📝 Saving cart to subscriber metadata...`);
+            console.log(`  📝 Cart items:`, JSON.stringify(cart));
+            const { data: updateData, error: updateError } = await supabase
                 .from('subscribers')
                 .update({
                     metadata: {
@@ -776,7 +791,14 @@ async function processPostback(messagingEvent: any, pageId: string) {
                     }
                 })
                 .eq('page_subscriber_id', senderId)
-                .eq('workspace_id', workspaceId);
+                .eq('workspace_id', workspaceId)
+                .select();
+
+            if (updateError) {
+                console.error(`  ❌ Cart save error:`, updateError.message);
+            } else {
+                console.log(`  ✓ Cart saved successfully. Updated rows:`, updateData?.length || 0);
+            }
 
             // Create stable ID for deduplication
             const timestamp = messagingEvent.timestamp || Date.now();
