@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Clock, MessageSquare, Plus, X, Link, ChevronDown, Zap, PlusCircle, Tag } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { api } from '../services/api';
 import CollapsibleTips from './CollapsibleTips';
 
 interface Button {
@@ -39,13 +40,24 @@ const TextNodeForm: React.FC<TextNodeFormProps> = ({
     const [startFlows, setStartFlows] = useState<any[]>([]);
     const [pages, setPages] = useState<any[]>([]);
     const [openFlowDropdown, setOpenFlowDropdown] = useState<number | null>(null);
+    const [workspaceLabels, setWorkspaceLabels] = useState<string[]>([]);
 
-    // Fetch flows on mount
+    // Fetch flows and labels on mount
     useEffect(() => {
         if (workspaceId) {
             fetchStartFlows();
+            fetchWorkspaceLabels();
         }
     }, [workspaceId, pageId]);
+
+    const fetchWorkspaceLabels = async () => {
+        try {
+            const labels = await api.workspace.getWorkspaceLabels(workspaceId);
+            setWorkspaceLabels(labels);
+        } catch (error) {
+            console.error('Error fetching workspace labels:', error);
+        }
+    };
 
     const fetchStartFlows = async () => {
         console.log('TextNodeForm: Fetching flows for workspace:', workspaceId, 'pageId:', pageId);
@@ -473,13 +485,16 @@ const TextNodeForm: React.FC<TextNodeFormProps> = ({
                                     </div>
                                     <div>
                                         <label className="block text-xs text-slate-400 mb-1">Remove Label</label>
-                                        <input
-                                            type="text"
+                                        <select
                                             value={button.removeLabel || ''}
                                             onChange={(e) => updateButton(index, { removeLabel: e.target.value })}
-                                            placeholder="e.g., 10% Interested"
                                             className="w-full bg-black/20 border border-white/10 rounded-lg px-2 py-1.5 text-white text-xs focus:ring-2 focus:ring-purple-500/50 outline-none"
-                                        />
+                                        >
+                                            <option value="">None</option>
+                                            {workspaceLabels.map(label => (
+                                                <option key={label} value={label}>{label}</option>
+                                            ))}
+                                        </select>
                                     </div>
                                 </div>
                                 <p className="text-xs text-slate-500 mt-1">

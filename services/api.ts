@@ -663,6 +663,33 @@ export const api = {
       }
     },
 
+    // Get all unique labels from subscribers in a workspace
+    getWorkspaceLabels: async (workspaceId: string): Promise<string[]> => {
+      const { data, error } = await supabase
+        .from('subscribers')
+        .select('labels')
+        .eq('workspace_id', workspaceId);
+
+      if (error) {
+        console.error('Error fetching workspace labels:', error);
+        return [];
+      }
+
+      // Extract unique labels from all subscribers
+      const allLabels = new Set<string>();
+      data?.forEach((subscriber: any) => {
+        if (subscriber.labels && Array.isArray(subscriber.labels)) {
+          subscriber.labels.forEach((label: string) => {
+            if (label && label.trim()) {
+              allLabels.add(label.trim());
+            }
+          });
+        }
+      });
+
+      return Array.from(allLabels).sort();
+    },
+
     // Form CRUD operations
     createForm: async (workspaceId: string, formData: any): Promise<any> => {
       const { data, error } = await supabase
