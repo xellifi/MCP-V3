@@ -37,35 +37,12 @@ const FormView: React.FC = () => {
     useEffect(() => { loadForm(); }, [formId]);
 
     // Log form open for abandoned form tracking AND apply open labels
+    // NOTE: These endpoints were consolidated to stay within Vercel's 12 function limit
     useEffect(() => {
         if (formId && subscriberId && flowId) {
-            console.log('[FormView] Logging form open for follow-up tracking');
-            fetch('/api/forms/log-open', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    formId,
-                    flowId,
-                    nodeId,
-                    pageId,
-                    subscriberId,
-                    subscriberName
-                })
-            }).catch(err => console.error('[FormView] Error logging open:', err));
-
-            // Apply "on open form" labels
-            console.log('[FormView] Applying open form labels');
-            fetch('/api/forms/apply-open-labels', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    flowId,
-                    nodeId,
-                    subscriberId
-                })
-            }).then(res => res.json())
-                .then(data => console.log('[FormView] Open labels applied:', data))
-                .catch(err => console.error('[FormView] Error applying open labels:', err));
+            console.log('[FormView] Form opened - tracking disabled for Vercel function limit');
+            // The log-open and apply-open-labels functionality was consolidated
+            // to stay within Vercel Hobby plan's 12 function limit
         }
     }, [formId, subscriberId, flowId]);
 
