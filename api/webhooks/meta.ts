@@ -825,6 +825,195 @@ async function processPostback(messagingEvent: any, pageId: string) {
 
             return; // Flow executed successfully
         }
+
+        // Handle upsell_accept - add item to cart and continue to Accept path
+        if (parsedPayload.action === 'upsell_accept' || parsedPayload.action === 'downsell_accept') {
+            const nodeType = parsedPayload.action === 'upsell_accept' ? 'upsell' : 'downsell';
+            console.log(`✓ ${nodeType} ACCEPT from node: ${parsedPayload.nodeId}`);
+            console.log(`  🛒 Product: ${parsedPayload.productName} (₱${parsedPayload.productPrice})`);
+
+            // Find the flow
+            const { data: flow, error: flowError } = await supabase
+                .from('flows')
+                .select('*')
+                .eq('id', parsedPayload.flowId)
+                .single();
+
+            if (flowError || !flow) {
+                console.error('✗ Flow not found:', parsedPayload.flowId);
+                return;
+            }
+
+            const nodes = flow.nodes || [];
+            const edges = flow.edges || [];
+            const configurations = flow.configurations || {};
+
+            // Get or create cart
+            const { data: subscriber } = await supabase
+                .from('subscribers')
+                .select('metadata')
+                .eq('page_subscriber_id', senderId)
+                .eq('workspace_id', workspaceId)
+                .single();
+
+            let cart: any[] = subscriber?.metadata?.cart || [];
+
+            // Apply cart action
+            const cartAction = parsedPayload.cartAction || 'add';
+            const cartItem = {
+                nodeId: parsedPayload.nodeId,
+                productId: '',
+                productName: parsedPayload.productName || 'Product',
+                productPrice: parsedPayload.productPrice || 0,
+                quantity: 1
+            };
+
+            if (cartAction === 'replace') {
+                cart = [cartItem];
+                console.log(`  🔄 Cart replaced with: ${cartItem.productName}`);
+            } else {
+                cart.push(cartItem);
+                console.log(`  ➕ Added to cart: ${cartItem.productName} (${cart.length} items)`);
+            }
+
+            const cartTotal = cart.reduce((sum: number, item: any) => sum + (item.productPrice * item.quantity), 0);
+            console.log(`  💰 Cart total: ₱${cartTotal}`);
+
+            // Save cart
+            await supabase
+                .from('subscribers')
+                .update({
+                    metadata: {
+                        ...(subscriber?.metadata || {}),
+                        cart: cart,
+                        cartTotal: cartTotal,
+                        cartUpdatedAt: new Date().toISOString()
+                    }
+                })
+                .eq('page_subscriber_id', senderId)
+                .eq('workspace_id', workspaceId);
+
+            // Find Accept path edges (sourceHandle contains 'accept' or is first output)
+            const sourceNode = nodes.find((n: any) => n.id === parsedPayload.nodeId);
+            const acceptEdges = edges.filter((e: any) =>
+                e.source === parsedPayload.nodeId &&
+                (e.sourceHandle?.toLowerCase().includes('accept') ||
+                    e.sourceHandle?.toLowerCase().includes('yes') ||
+                    !e.sourceHandle) // Default handle = accept
+            );
+
+            const userName = await fetchUserName(senderId, pageAccessToken);
+            const timestamp = messagingEvent.timestamp || Date.now();
+            const stableId = mid ? `upsell_mid_${mid}` : `upsell_${senderId}_${parsedPayload.nodeId}_${Math.floor(timestamp / 5000)}`;
+
+            // Execute from each Accept target node
+            for (const edge of acceptEdges) {
+                const targetNode = nodes.find((n: any) => n.id === edge.target);
+                if (targetNode) {
+                    console.log(`  → Continuing to Accept path: ${targetNode.data?.label}`);
+                    await executeFlowFromNode(
+                        targetNode,
+                        nodes,
+                        edges,
+                        configurations,
+                        {
+                            commenterId: senderId,
+                            commenterName: userName,
+                            commentText: `Accepted ${nodeType}`,
+                            pageId: pageId,
+                            pageName: pageName,
+                            postId: '',
+                            commentId: stableId,
+                            workspaceId,
+                            pageDbId,
+                            cart: cart,
+                            cartTotal: cartTotal
+                        },
+                        pageAccessToken,
+                        flow.id,
+                        stableId
+                    );
+                }
+            }
+
+            return;
+        }
+
+        // Handle upsell_decline / downsell_decline - continue to Decline path
+        if (parsedPayload.action === 'upsell_decline' || parsedPayload.action === 'downsell_decline') {
+            const nodeType = parsedPayload.action === 'upsell_decline' ? 'upsell' : 'downsell';
+            console.log(`✓ ${nodeType} DECLINE from node: ${parsedPayload.nodeId}`);
+
+            // Find the flow
+            const { data: flow, error: flowError } = await supabase
+                .from('flows')
+                .select('*')
+                .eq('id', parsedPayload.flowId)
+                .single();
+
+            if (flowError || !flow) {
+                console.error('✗ Flow not found:', parsedPayload.flowId);
+                return;
+            }
+
+            const nodes = flow.nodes || [];
+            const edges = flow.edges || [];
+            const configurations = flow.configurations || {};
+
+            // Get existing cart (don't modify)
+            const { data: subscriber } = await supabase
+                .from('subscribers')
+                .select('metadata')
+                .eq('page_subscriber_id', senderId)
+                .eq('workspace_id', workspaceId)
+                .single();
+
+            const cart = subscriber?.metadata?.cart || [];
+            const cartTotal = subscriber?.metadata?.cartTotal || 0;
+
+            // Find Decline path edges (sourceHandle contains 'decline' or 'no')
+            const declineEdges = edges.filter((e: any) =>
+                e.source === parsedPayload.nodeId &&
+                (e.sourceHandle?.toLowerCase().includes('decline') ||
+                    e.sourceHandle?.toLowerCase().includes('no'))
+            );
+
+            const userName = await fetchUserName(senderId, pageAccessToken);
+            const timestamp = messagingEvent.timestamp || Date.now();
+            const stableId = mid ? `decline_mid_${mid}` : `decline_${senderId}_${parsedPayload.nodeId}_${Math.floor(timestamp / 5000)}`;
+
+            // Execute from each Decline target node
+            for (const edge of declineEdges) {
+                const targetNode = nodes.find((n: any) => n.id === edge.target);
+                if (targetNode) {
+                    console.log(`  → Continuing to Decline path: ${targetNode.data?.label}`);
+                    await executeFlowFromNode(
+                        targetNode,
+                        nodes,
+                        edges,
+                        configurations,
+                        {
+                            commenterId: senderId,
+                            commenterName: userName,
+                            commentText: `Declined ${nodeType}`,
+                            pageId: pageId,
+                            pageName: pageName,
+                            postId: '',
+                            commentId: stableId,
+                            workspaceId,
+                            pageDbId,
+                            cart: cart,
+                            cartTotal: cartTotal
+                        },
+                        pageAccessToken,
+                        flow.id,
+                        stableId
+                    );
+                }
+            }
+
+            return;
+        }
     } catch (e) {
         // Not a JSON payload, continue to other handlers
     }
@@ -1508,6 +1697,19 @@ async function executeFlowFromNode(
         if (node.type === 'formNode') {
             console.log(`  ⏸ Stopping traversal at Form node: "${node.data?.label}" - will continue after form submission`);
             continue; // Don't add successors to queue
+        }
+
+        // STOP TRAVERSAL AT PRODUCT NODE if using continue_flow (wait for Add to Cart click)
+        const nodeConfig = configurations[node.id] || {};
+        if (node.type === 'productNode' && nodeConfig.buttonAction === 'continue_flow') {
+            console.log(`  ⏸ Stopping traversal at Product node: "${node.data?.label}" - waiting for Add to Cart click`);
+            continue; // Don't add successors to queue - continue_flow postback will resume
+        }
+
+        // STOP TRAVERSAL AT UPSELL/DOWNSELL NODES - wait for Accept/Decline click
+        if (node.type === 'upsellNode' || node.type === 'downsellNode') {
+            console.log(`  ⏸ Stopping traversal at ${node.type}: "${node.data?.label}" - waiting for user choice`);
+            continue; // Don't add successors to queue - button click will resume flow
         }
 
         // Find ALL edges from this node and add targets to queue
@@ -2591,6 +2793,167 @@ async function executeAction(
             }
         } catch (error: any) {
             console.error('    ✗ Exception sending product card:', error.message);
+        }
+
+        return;
+    }
+
+    // Upsell Node - send upsell offer with Accept/Decline buttons
+    if (nodeType === 'upsellNode') {
+        console.log(`    ✓ Detected as Upsell Node`);
+        const headline = config.headline || 'Special Offer!';
+        const price = config.price || '₱0';
+        const productImage = config.productImage || config.imageUrl || '';
+        const description = config.description || '';
+        const acceptButtonText = config.acceptButtonText || '✓ Yes, Add This!';
+        const cartAction = config.cartAction || 'add';
+
+        try {
+            await sendTypingIndicator(context.commenterId, pageAccessToken, 'typing_on');
+            await new Promise(resolve => setTimeout(resolve, 500));
+            await sendTypingIndicator(context.commenterId, pageAccessToken, 'typing_off');
+
+            // Create postback buttons for Accept/Decline
+            const buttons = [
+                {
+                    type: 'postback',
+                    title: acceptButtonText,
+                    payload: JSON.stringify({
+                        action: 'upsell_accept',
+                        nodeId: node.id,
+                        flowId: flowId,
+                        productName: headline,
+                        productPrice: parseFloat(price.replace(/[^\d.]/g, '')) || 0,
+                        cartAction: cartAction
+                    })
+                },
+                {
+                    type: 'postback',
+                    title: '✗ No Thanks',
+                    payload: JSON.stringify({
+                        action: 'upsell_decline',
+                        nodeId: node.id,
+                        flowId: flowId
+                    })
+                }
+            ];
+
+            const elements = [{
+                title: headline,
+                subtitle: description ? `${price} - ${description.substring(0, 60)}` : price,
+                image_url: productImage || undefined,
+                buttons: buttons
+            }];
+
+            if (!elements[0].image_url) delete elements[0].image_url;
+
+            const response = await fetch(`https://graph.facebook.com/v21.0/me/messages`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    recipient: { id: context.commenterId },
+                    message: {
+                        attachment: {
+                            type: 'template',
+                            payload: {
+                                template_type: 'generic',
+                                image_aspect_ratio: 'square',
+                                elements: elements
+                            }
+                        }
+                    },
+                    access_token: pageAccessToken
+                })
+            });
+
+            const result = await response.json();
+            if (result.error) {
+                console.error('    ✗ Facebook API error:', result.error.message);
+            } else {
+                console.log('    ✓ Upsell card sent successfully!');
+            }
+        } catch (error: any) {
+            console.error('    ✗ Exception sending upsell:', error.message);
+        }
+
+        return;
+    }
+
+    // Downsell Node - send downsell offer with Accept/Decline buttons
+    if (nodeType === 'downsellNode') {
+        console.log(`    ✓ Detected as Downsell Node`);
+        const headline = config.headline || 'Wait! Special Deal';
+        const price = config.price || '₱0';
+        const productImage = config.productImage || config.imageUrl || '';
+        const description = config.description || '';
+        const acceptButtonText = config.acceptButtonText || '✓ Yes, I Want This';
+        const cartAction = config.cartAction || 'add';
+
+        try {
+            await sendTypingIndicator(context.commenterId, pageAccessToken, 'typing_on');
+            await new Promise(resolve => setTimeout(resolve, 500));
+            await sendTypingIndicator(context.commenterId, pageAccessToken, 'typing_off');
+
+            const buttons = [
+                {
+                    type: 'postback',
+                    title: acceptButtonText,
+                    payload: JSON.stringify({
+                        action: 'downsell_accept',
+                        nodeId: node.id,
+                        flowId: flowId,
+                        productName: headline,
+                        productPrice: parseFloat(price.replace(/[^\d.]/g, '')) || 0,
+                        cartAction: cartAction
+                    })
+                },
+                {
+                    type: 'postback',
+                    title: '✗ No Thanks',
+                    payload: JSON.stringify({
+                        action: 'downsell_decline',
+                        nodeId: node.id,
+                        flowId: flowId
+                    })
+                }
+            ];
+
+            const elements = [{
+                title: headline,
+                subtitle: description ? `${price} - ${description.substring(0, 60)}` : price,
+                image_url: productImage || undefined,
+                buttons: buttons
+            }];
+
+            if (!elements[0].image_url) delete elements[0].image_url;
+
+            const response = await fetch(`https://graph.facebook.com/v21.0/me/messages`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    recipient: { id: context.commenterId },
+                    message: {
+                        attachment: {
+                            type: 'template',
+                            payload: {
+                                template_type: 'generic',
+                                image_aspect_ratio: 'square',
+                                elements: elements
+                            }
+                        }
+                    },
+                    access_token: pageAccessToken
+                })
+            });
+
+            const result = await response.json();
+            if (result.error) {
+                console.error('    ✗ Facebook API error:', result.error.message);
+            } else {
+                console.log('    ✓ Downsell card sent successfully!');
+            }
+        } catch (error: any) {
+            console.error('    ✗ Exception sending downsell:', error.message);
         }
 
         return;
