@@ -787,31 +787,40 @@ async function processPostback(messagingEvent: any, pageId: string) {
             // Fetch user's actual name from Facebook API
             const userName = await fetchUserName(senderId, pageAccessToken);
 
-            // Execute flow continuing from the source node
-            // The nodes connected from sourceNode will be executed next
-            await executeFlowFromNode(
-                sourceNode,
-                nodes,
-                edges,
-                configurations,
-                {
-                    commenterId: senderId,
-                    commenterName: userName,
-                    commentText: `Added to cart: ${cartItem.productName}`,
-                    pageId: pageId,
-                    pageName: pageName,
-                    postId: '',
-                    commentId: stableContinueFlowId,
-                    workspaceId,
-                    pageDbId,
-                    // Pass cart context for downstream nodes
-                    cart: cart,
-                    cartTotal: cartTotal
-                },
-                pageAccessToken,
-                flow.id,
-                stableContinueFlowId
-            );
+            // Find nodes connected FROM the source node (don't re-execute source)
+            const outgoingEdges = edges.filter((e: any) => e.source === sourceNode.id);
+            console.log(`  → Found ${outgoingEdges.length} outgoing edge(s) from Product node`);
+
+            // Execute each connected node
+            for (const edge of outgoingEdges) {
+                const targetNode = nodes.find((n: any) => n.id === edge.target);
+                if (targetNode) {
+                    console.log(`  → Continuing to: ${targetNode.data?.label || targetNode.id}`);
+                    await executeFlowFromNode(
+                        targetNode,
+                        nodes,
+                        edges,
+                        configurations,
+                        {
+                            commenterId: senderId,
+                            commenterName: userName,
+                            commentText: `Added to cart: ${cartItem.productName}`,
+                            pageId: pageId,
+                            pageName: pageName,
+                            postId: '',
+                            commentId: stableContinueFlowId,
+                            workspaceId,
+                            pageDbId,
+                            // Pass cart context for downstream nodes
+                            cart: cart,
+                            cartTotal: cartTotal
+                        },
+                        pageAccessToken,
+                        flow.id,
+                        stableContinueFlowId
+                    );
+                }
+            }
 
             // Update subscriber
             await saveOrUpdateSubscriber(
