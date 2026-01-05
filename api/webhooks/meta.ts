@@ -2726,13 +2726,13 @@ async function executeAction(
                     payload: JSON.stringify({
                         action: 'continue_flow',
                         nodeId: node.id,
-                        flowId: context.flowId,
+                        flowId: flowId,
                         productId: productId,
                         productName: productName,
                         productPrice: productPrice
                     })
                 }];
-                console.log(`    🔗 Button action: continue_flow (postback)`);
+                console.log(`    🔗 Button action: continue_flow (postback), flowId: ${flowId}`);
             } else if (buyNowUrl) {
                 // Use web_url to open store page
                 buttons = [{
