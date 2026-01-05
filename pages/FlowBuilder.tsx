@@ -41,6 +41,7 @@ import InvoiceNodeForm from '../components/InvoiceNodeForm';
 import ProductNodeForm from '../components/ProductNodeForm';
 import CartInvoiceNodeForm from '../components/CartInvoiceNodeForm';
 import CartSheetNodeForm from '../components/CartSheetNodeForm';
+import CheckoutNodeForm from '../components/CheckoutNodeForm';
 import CustomEdge from '../components/edges/CustomEdge';
 import CustomTriggerNode from '../components/nodes/CustomTriggerNode';
 import CustomActionNode from '../components/nodes/CustomActionNode';
@@ -1676,6 +1677,17 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
       );
     }
 
+    // Checkout Node
+    if (nodeType === 'checkoutNode' || label.toLowerCase().includes('checkout')) {
+      return (
+        <CheckoutNodeForm
+          workspaceId={workspace?.id || ''}
+          initialConfig={initialConfigRef.current}
+          onChange={handleConfigChange}
+        />
+      );
+    }
+
     // Start Node
     if (nodeType === 'startNode' || label.toLowerCase().includes('start')) {
       // Check if this is a "New Flow" node (sub-flow start point)
@@ -2061,6 +2073,11 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
               <Table2 className="w-5 h-5" />
               <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">Cart Sheet</span>
             </div>
+            <div draggable onDragStart={(e) => onDragStart(e, 'checkoutNode', 'Checkout')} onClick={() => addNode('checkoutNode', 'Checkout')}
+              className="group relative w-10 h-10 bg-emerald-500/20 hover:bg-emerald-500/40 border border-emerald-500/30 rounded-xl flex items-center justify-center text-emerald-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
+              <ShoppingCart className="w-5 h-5" />
+              <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">Checkout</span>
+            </div>
           </div>
         </div>
 
@@ -2122,6 +2139,10 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
           <div draggable onDragStart={(e) => onDragStart(e, 'productNode', 'Product')} onClick={() => addNode('productNode', 'Product')}
             className="w-12 h-12 bg-emerald-500/20 hover:bg-emerald-500/40 border border-emerald-500/30 rounded-xl flex items-center justify-center text-emerald-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing" title="Product">
             <Package className="w-6 h-6" />
+          </div>
+          <div draggable onDragStart={(e) => onDragStart(e, 'checkoutNode', 'Checkout')} onClick={() => addNode('checkoutNode', 'Checkout')}
+            className="w-12 h-12 bg-emerald-500/20 hover:bg-emerald-500/40 border border-emerald-500/30 rounded-xl flex items-center justify-center text-emerald-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing" title="Checkout">
+            <ShoppingCart className="w-6 h-6" />
           </div>
         </div>
       </div>
