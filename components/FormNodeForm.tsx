@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Plus, Trash2, GripVertical, Type, Mail, Phone, Hash, AlignLeft, ChevronDown, CircleDot, CheckSquare, Timer, ShoppingCart, Wallet, Upload, X, ArrowLeft, ArrowRight, Eye, EyeOff, Check, FileText } from 'lucide-react';
+import { Plus, Trash2, GripVertical, Type, Mail, Phone, Hash, AlignLeft, ChevronDown, CircleDot, CheckSquare, Timer, ShoppingCart, Wallet, Upload, X, ArrowLeft, ArrowRight, Eye, EyeOff, Check, FileText, Tag } from 'lucide-react';
 import { FormField } from '../types';
 import { supabase } from '../lib/supabase';
+import { api } from '../services/api';
 
 interface FormNodeFormProps {
     workspaceId: string;
@@ -103,6 +104,24 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
     const [templateDropdownOpen, setTemplateDropdownOpen] = useState(false);
     const templateDropdownRef = useRef<HTMLDivElement>(null);
 
+    // Label management - On Open Form Click
+    const [openAddLabel, setOpenAddLabel] = useState<string>(initialConfig?.openAddLabel || '');
+    const [openRemoveLabel, setOpenRemoveLabel] = useState<string>(initialConfig?.openRemoveLabel || '');
+    const [openLabelDropdownOpen, setOpenLabelDropdownOpen] = useState(false);
+
+    // Label management - On Form Submit
+    const [submitAddLabel, setSubmitAddLabel] = useState<string>(initialConfig?.submitAddLabel || '');
+    const [submitRemoveLabel, setSubmitRemoveLabel] = useState<string>(initialConfig?.submitRemoveLabel || '');
+    const [submitLabelDropdownOpen, setSubmitLabelDropdownOpen] = useState(false);
+
+    // Confirmation message to buyer after order submission
+    const [confirmationMessage, setConfirmationMessage] = useState<string>(
+        initialConfig?.confirmationMessage ||
+        '🧾 Thank you for your order!\n\n✅ Order Confirmed\n📦 We will process your order soon.'
+    );
+
+    const [workspaceLabels, setWorkspaceLabels] = useState<string[]>([]);
+
     // Fetch saved templates
     useEffect(() => {
         const fetchTemplates = async () => {
@@ -130,6 +149,20 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
         };
 
         fetchTemplates();
+    }, [workspaceId]);
+
+    // Fetch workspace labels
+    useEffect(() => {
+        const fetchLabels = async () => {
+            if (!workspaceId) return;
+            try {
+                const labels = await api.workspace.getWorkspaceLabels(workspaceId);
+                setWorkspaceLabels(labels);
+            } catch (error) {
+                console.error('Error fetching workspace labels:', error);
+            }
+        };
+        fetchLabels();
     }, [workspaceId]);
 
     // Click outside handler for template dropdown
@@ -221,6 +254,11 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
                 countdownEnabled, countdownMinutes, countdownBlink, promoText, promoIcon, formTemplate,
                 isOrderForm, productName, productPrice, currency, maxQuantity, couponEnabled, couponCode, couponDiscount,
                 codEnabled, ewalletEnabled, ewalletOptions, ewalletNumbers, requireProofUpload,
+                openAddLabel: openAddLabel.trim() || undefined,
+                openRemoveLabel: openRemoveLabel.trim() || undefined,
+                submitAddLabel: submitAddLabel.trim() || undefined,
+                submitRemoveLabel: submitRemoveLabel.trim() || undefined,
+                confirmationMessage: confirmationMessage.trim() || undefined,
             });
         }, 300);
 
@@ -232,7 +270,7 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
     }, [formId, formName, headerImageUrl, submitButtonText, submitButtonColor, borderRadius, successMessage, fields,
         countdownEnabled, countdownMinutes, countdownBlink, promoText, promoIcon, formTemplate, isOrderForm, productName,
         productPrice, currency, maxQuantity, couponEnabled, couponCode, couponDiscount, codEnabled, ewalletEnabled,
-        ewalletOptions, ewalletNumbers, requireProofUpload]);
+        ewalletOptions, ewalletNumbers, requireProofUpload, openAddLabel, openRemoveLabel, submitAddLabel, submitRemoveLabel, confirmationMessage]);
 
     // Field operations
     const addField = (type: string) => {
@@ -625,6 +663,129 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
             <div>
                 <label className={labelClass}>Success Message</label>
                 <textarea value={successMessage} onChange={(e) => setSuccessMessage(e.target.value)} rows={2} className={`${inputClass} resize-none`} />
+            </div>
+
+            {/* Confirmation Message to Buyer Section */}
+            <div className="border-t border-slate-700 pt-4">
+                <div className="flex items-center gap-2 mb-2">
+                    <span className="text-lg">💬</span>
+                    <span className="text-sm font-medium text-amber-300">Confirmation Message to Buyer</span>
+                </div>
+                <p className="text-xs text-slate-500 mb-2">
+                    This message will be sent to the buyer in Messenger after they submit the order
+                </p>
+                <textarea
+                    value={confirmationMessage}
+                    onChange={(e) => setConfirmationMessage(e.target.value)}
+                    rows={4}
+                    className={`${inputClass} resize-none`}
+                    placeholder="🧾 Thank you for your order!
+
+✅ Order Confirmed
+📦 We will process your order soon."
+                />
+            </div>
+
+            {/* Label Management Section */}
+            <div className="border-t border-slate-700 pt-4">
+                <div className="flex items-center gap-2 mb-3">
+                    <Tag className="w-4 h-4 text-purple-400" />
+                    <span className="text-sm font-medium text-purple-300">Label Management (optional)</span>
+                </div>
+
+                {/* On Open Form Click */}
+                <div className="mb-4 p-3 bg-blue-500/10 border border-blue-500/20 rounded-xl">
+                    <div className="text-xs font-medium text-blue-300 mb-2">📋 On "Open Form" Button Click</div>
+                    <div className="grid grid-cols-2 gap-3">
+                        <div>
+                            <label className={labelClass}>Add Label</label>
+                            <input
+                                type="text"
+                                value={openAddLabel}
+                                onChange={(e) => setOpenAddLabel(e.target.value)}
+                                placeholder="e.g., Viewed Form"
+                                className={inputClass}
+                            />
+                        </div>
+                        <div className="relative">
+                            <label className={labelClass}>Remove Label</label>
+                            <button
+                                type="button"
+                                onClick={() => setOpenLabelDropdownOpen(!openLabelDropdownOpen)}
+                                className={`${inputClass} text-left flex items-center justify-between`}
+                            >
+                                <span className={openRemoveLabel ? 'text-white' : 'text-slate-400'}>
+                                    {openRemoveLabel || 'None'}
+                                </span>
+                                <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${openLabelDropdownOpen ? 'rotate-180' : ''}`} />
+                            </button>
+                            {openLabelDropdownOpen && (
+                                <div className="absolute z-50 w-full mt-1 bg-slate-800 border border-slate-600/50 rounded-xl shadow-xl overflow-hidden">
+                                    <div className="max-h-32 overflow-y-auto">
+                                        <button type="button" onClick={() => { setOpenRemoveLabel(''); setOpenLabelDropdownOpen(false); }}
+                                            className={`w-full px-3 py-2 text-left text-sm hover:bg-white/10 flex items-center gap-2 ${!openRemoveLabel ? 'bg-blue-500/20 text-blue-300' : 'text-slate-300'}`}>
+                                            <X className="w-3 h-3" /><span>None</span>
+                                        </button>
+                                        {workspaceLabels.map(label => (
+                                            <button key={label} type="button" onClick={() => { setOpenRemoveLabel(label); setOpenLabelDropdownOpen(false); }}
+                                                className={`w-full px-3 py-2 text-left text-sm hover:bg-white/10 flex items-center gap-2 ${openRemoveLabel === label ? 'bg-blue-500/20 text-blue-300' : 'text-slate-300'}`}>
+                                                <Tag className="w-3 h-3 text-blue-400" /><span>{label}</span>
+                                            </button>
+                                        ))}
+                                        {workspaceLabels.length === 0 && (<div className="px-3 py-2 text-xs text-slate-500 text-center">No labels yet</div>)}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                {/* On Form Submit */}
+                <div className="p-3 bg-green-500/10 border border-green-500/20 rounded-xl">
+                    <div className="text-xs font-medium text-green-300 mb-2">✅ On Form Submit (Place Order)</div>
+                    <div className="grid grid-cols-2 gap-3">
+                        <div>
+                            <label className={labelClass}>Add Label</label>
+                            <input
+                                type="text"
+                                value={submitAddLabel}
+                                onChange={(e) => setSubmitAddLabel(e.target.value)}
+                                placeholder="e.g., Customer, Buyer"
+                                className={inputClass}
+                            />
+                        </div>
+                        <div className="relative">
+                            <label className={labelClass}>Remove Label</label>
+                            <button
+                                type="button"
+                                onClick={() => setSubmitLabelDropdownOpen(!submitLabelDropdownOpen)}
+                                className={`${inputClass} text-left flex items-center justify-between`}
+                            >
+                                <span className={submitRemoveLabel ? 'text-white' : 'text-slate-400'}>
+                                    {submitRemoveLabel || 'None'}
+                                </span>
+                                <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${submitLabelDropdownOpen ? 'rotate-180' : ''}`} />
+                            </button>
+                            {submitLabelDropdownOpen && (
+                                <div className="absolute z-50 w-full mt-1 bg-slate-800 border border-slate-600/50 rounded-xl shadow-xl overflow-hidden">
+                                    <div className="max-h-32 overflow-y-auto">
+                                        <button type="button" onClick={() => { setSubmitRemoveLabel(''); setSubmitLabelDropdownOpen(false); }}
+                                            className={`w-full px-3 py-2 text-left text-sm hover:bg-white/10 flex items-center gap-2 ${!submitRemoveLabel ? 'bg-green-500/20 text-green-300' : 'text-slate-300'}`}>
+                                            <X className="w-3 h-3" /><span>None</span>
+                                        </button>
+                                        {workspaceLabels.map(label => (
+                                            <button key={label} type="button" onClick={() => { setSubmitRemoveLabel(label); setSubmitLabelDropdownOpen(false); }}
+                                                className={`w-full px-3 py-2 text-left text-sm hover:bg-white/10 flex items-center gap-2 ${submitRemoveLabel === label ? 'bg-green-500/20 text-green-300' : 'text-slate-300'}`}>
+                                                <Tag className="w-3 h-3 text-green-400" /><span>{label}</span>
+                                            </button>
+                                        ))}
+                                        {workspaceLabels.length === 0 && (<div className="px-3 py-2 text-xs text-slate-500 text-center">No labels yet</div>)}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     );

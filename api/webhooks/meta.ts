@@ -200,6 +200,46 @@ async function updateSubscriberLabels(
     }
 }
 
+// Helper function to increment node analytics counters
+async function incrementNodeAnalytics(
+    flowId: string,
+    nodeId: string,
+    field: 'sent_count' | 'delivered_count' | 'subscriber_count' | 'error_count'
+): Promise<void> {
+    try {
+        // First, try to upsert the record
+        const { data: existing } = await supabase
+            .from('node_analytics')
+            .select('id, ' + field)
+            .eq('flow_id', flowId)
+            .eq('node_id', nodeId)
+            .single();
+
+        if (existing) {
+            // Update existing record
+            await supabase
+                .from('node_analytics')
+                .update({
+                    [field]: ((existing as any)[field] || 0) + 1,
+                    updated_at: new Date().toISOString()
+                })
+                .eq('id', (existing as any).id);
+        } else {
+            // Insert new record
+            await supabase
+                .from('node_analytics')
+                .insert({
+                    flow_id: flowId,
+                    node_id: nodeId,
+                    [field]: 1
+                });
+        }
+    } catch (error) {
+        // Silently fail - analytics shouldn't break flow execution
+        console.log(`    ⚠️ Analytics update failed for ${nodeId}:`, error);
+    }
+}
+
 // Helper function to fetch user name from Facebook API
 async function fetchUserName(userId: string, pageAccessToken: string): Promise<string> {
     try {
@@ -652,6 +692,141 @@ async function processPostback(messagingEvent: any, pageId: string) {
         );
 
         return; // Flow executed successfully
+    }
+
+    // Check if payload is a continue_flow JSON (from ProductNode, UpsellNode, DownsellNode Add to Cart)
+    try {
+        const parsedPayload = JSON.parse(payload);
+        if (parsedPayload.action === 'continue_flow') {
+            console.log(`✓ Continue Flow payload detected from node: ${parsedPayload.nodeId}`);
+            console.log(`  🛒 Product: ${parsedPayload.productName} (₱${parsedPayload.productPrice})`);
+
+            // Find the flow that contains this node
+            const { data: flow, error: flowError } = await supabase
+                .from('flows')
+                .select('*')
+                .eq('id', parsedPayload.flowId)
+                .single();
+
+            if (flowError || !flow) {
+                console.error('✗ Flow not found:', parsedPayload.flowId);
+                return;
+            }
+
+            const nodes = flow.nodes || [];
+            const edges = flow.edges || [];
+            const configurations = flow.configurations || {};
+
+            // Find the source node (ProductNode, UpsellNode, or DownsellNode)
+            const sourceNode = nodes.find((n: any) => n.id === parsedPayload.nodeId);
+            if (!sourceNode) {
+                console.error('✗ Source node not found:', parsedPayload.nodeId);
+                return;
+            }
+
+            // Initialize or update cart based on cartAction
+            const cartAction = parsedPayload.cartAction || 'add';
+            const cartItem = {
+                nodeId: parsedPayload.nodeId,
+                productId: parsedPayload.productId || '',
+                productName: parsedPayload.productName || 'Product',
+                productPrice: parsedPayload.productPrice || 0,
+                quantity: 1
+            };
+
+            // Get existing cart from subscriber context or create new
+            let cart: any[] = [];
+
+            // Try to get existing cart from subscriber metadata
+            const { data: subscriber } = await supabase
+                .from('subscribers')
+                .select('metadata')
+                .eq('page_subscriber_id', senderId)
+                .eq('workspace_id', workspaceId)
+                .single();
+
+            if (subscriber?.metadata?.cart) {
+                cart = subscriber.metadata.cart;
+            }
+
+            // Apply cart action
+            if (cartAction === 'replace') {
+                // Replace entire cart with just this item
+                cart = [cartItem];
+                console.log(`  🔄 Cart replaced with: ${cartItem.productName}`);
+            } else {
+                // Add item to cart
+                cart.push(cartItem);
+                console.log(`  ➕ Added to cart: ${cartItem.productName} (${cart.length} items total)`);
+            }
+
+            // Calculate cart total
+            const cartTotal = cart.reduce((sum: number, item: any) => sum + (item.productPrice * item.quantity), 0);
+            console.log(`  💰 Cart total: ₱${cartTotal}`);
+
+            // Save cart to subscriber metadata
+            await supabase
+                .from('subscribers')
+                .update({
+                    metadata: {
+                        ...(subscriber?.metadata || {}),
+                        cart: cart,
+                        cartTotal: cartTotal,
+                        cartUpdatedAt: new Date().toISOString()
+                    }
+                })
+                .eq('page_subscriber_id', senderId)
+                .eq('workspace_id', workspaceId);
+
+            // Create stable ID for deduplication
+            const timestamp = messagingEvent.timestamp || Date.now();
+            const stableContinueFlowId = mid
+                ? `continue_flow_mid_${mid}`
+                : `continue_flow_${senderId}_${parsedPayload.nodeId}_${Math.floor(timestamp / 5000)}`;
+
+            // Fetch user's actual name from Facebook API
+            const userName = await fetchUserName(senderId, pageAccessToken);
+
+            // Execute flow continuing from the source node
+            // The nodes connected from sourceNode will be executed next
+            await executeFlowFromNode(
+                sourceNode,
+                nodes,
+                edges,
+                configurations,
+                {
+                    commenterId: senderId,
+                    commenterName: userName,
+                    commentText: `Added to cart: ${cartItem.productName}`,
+                    pageId: pageId,
+                    pageName: pageName,
+                    postId: '',
+                    commentId: stableContinueFlowId,
+                    workspaceId,
+                    pageDbId,
+                    // Pass cart context for downstream nodes
+                    cart: cart,
+                    cartTotal: cartTotal
+                },
+                pageAccessToken,
+                flow.id,
+                stableContinueFlowId
+            );
+
+            // Update subscriber
+            await saveOrUpdateSubscriber(
+                workspaceId,
+                pageDbId,
+                senderId,
+                userName,
+                'POSTBACK',
+                pageAccessToken
+            );
+
+            return; // Flow executed successfully
+        }
+    } catch (e) {
+        // Not a JSON payload, continue to other handlers
     }
 
     // Check if payload is a New Flow trigger (NEWFLOW_{flowName})
@@ -2337,18 +2512,41 @@ async function executeAction(
             }
 
             // Build message payload using generic template for rich product card
+            const buttonAction = config.buttonAction || 'store_page';
+
+            // Build button based on action type
+            let buttons: any[] = [];
+            if (buttonAction === 'continue_flow') {
+                // Use postback to continue the flow
+                buttons = [{
+                    type: 'postback',
+                    title: '🛒 Add to Cart',
+                    payload: JSON.stringify({
+                        action: 'continue_flow',
+                        nodeId: node.id,
+                        flowId: context.flowId,
+                        productId: productId,
+                        productName: productName,
+                        productPrice: productPrice
+                    })
+                }];
+                console.log(`    🔗 Button action: continue_flow (postback)`);
+            } else if (buyNowUrl) {
+                // Use web_url to open store page
+                buttons = [{
+                    type: 'web_url',
+                    title: '🛒 Buy Now',
+                    url: buyNowUrl,
+                    webview_height_ratio: 'full'
+                }];
+                console.log(`    🔗 Button action: store_page (web_url)`);
+            }
+
             const elements: any[] = [{
                 title: productName,
                 subtitle: subtitle,
                 image_url: productImage || undefined,
-                buttons: buyNowUrl ? [
-                    {
-                        type: 'web_url',
-                        title: '🛒 Buy Now',
-                        url: buyNowUrl,
-                        webview_height_ratio: 'full'
-                    }
-                ] : undefined
+                buttons: buttons.length > 0 ? buttons : undefined
             }];
 
             // Remove undefined properties
@@ -2393,6 +2591,194 @@ async function executeAction(
             }
         } catch (error: any) {
             console.error('    ✗ Exception sending product card:', error.message);
+        }
+
+        return;
+    }
+
+    // Cart Invoice Node - send cart summary with all items and total
+    if (nodeType === 'cartInvoiceNode') {
+        console.log(`    ✓ Detected as Cart Invoice Node`);
+        const companyName = config.companyName || 'Store';
+        const primaryColor = config.primaryColor || '#10b981';
+        const showShipping = config.showShipping ?? true;
+        const shippingFee = config.shippingFee || 0;
+        const thankYouMessage = config.thankYouMessage || 'Thank you for your order! 🎉';
+
+        try {
+            // Get cart from context or subscriber metadata
+            let cart = (context as any).cart || [];
+            let cartTotal = (context as any).cartTotal || 0;
+
+            // If no cart in context, try to get from subscriber metadata
+            if (cart.length === 0) {
+                const { createClient } = await import('@supabase/supabase-js');
+                const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '';
+                const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';
+                const supabase = createClient(supabaseUrl, supabaseKey);
+
+                const { data: subscriber } = await supabase
+                    .from('subscribers')
+                    .select('metadata')
+                    .eq('page_subscriber_id', context.commenterId)
+                    .eq('workspace_id', context.workspaceId)
+                    .single();
+
+                if (subscriber?.metadata?.cart) {
+                    cart = subscriber.metadata.cart;
+                    cartTotal = subscriber.metadata.cartTotal || 0;
+                }
+            }
+
+            console.log(`    🛒 Cart items: ${cart.length}`);
+            console.log(`    💰 Subtotal: ₱${cartTotal}`);
+
+            if (cart.length === 0) {
+                console.log('    ⊘ Empty cart, sending empty cart message');
+                await sendTypingIndicator(context.commenterId, pageAccessToken, 'typing_on');
+                await new Promise(resolve => setTimeout(resolve, 500));
+                await sendTypingIndicator(context.commenterId, pageAccessToken, 'typing_off');
+
+                await fetch(`https://graph.facebook.com/v21.0/me/messages`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        recipient: { id: context.commenterId },
+                        message: { text: '🛒 Your cart is empty. Please add some items first!' },
+                        access_token: pageAccessToken
+                    })
+                });
+                return;
+            }
+
+            // Build invoice message
+            let invoiceText = `🧾 **${companyName}**\n`;
+            invoiceText += `━━━━━━━━━━━━━━━━━━\n\n`;
+            invoiceText += `📦 **Order Summary:**\n`;
+
+            for (const item of cart) {
+                invoiceText += `• ${item.productName} x${item.quantity} — ₱${(item.productPrice * item.quantity).toLocaleString()}\n`;
+            }
+
+            invoiceText += `\n━━━━━━━━━━━━━━━━━━\n`;
+            invoiceText += `Subtotal: ₱${cartTotal.toLocaleString()}\n`;
+
+            if (showShipping && shippingFee > 0) {
+                invoiceText += `Shipping: ₱${shippingFee.toLocaleString()}\n`;
+            }
+
+            const grandTotal = cartTotal + (showShipping ? shippingFee : 0);
+            invoiceText += `**Total: ₱${grandTotal.toLocaleString()}**\n\n`;
+            invoiceText += thankYouMessage;
+
+            // Show typing and send invoice
+            await sendTypingIndicator(context.commenterId, pageAccessToken, 'typing_on');
+            await new Promise(resolve => setTimeout(resolve, 800));
+            await sendTypingIndicator(context.commenterId, pageAccessToken, 'typing_off');
+
+            const response = await fetch(`https://graph.facebook.com/v21.0/me/messages`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    recipient: { id: context.commenterId },
+                    message: { text: invoiceText },
+                    access_token: pageAccessToken
+                })
+            });
+
+            const result = await response.json();
+            if (result.error) {
+                console.error('    ✗ Facebook API error:', result.error.message);
+            } else {
+                console.log('    ✓ Cart invoice sent successfully!');
+            }
+        } catch (error: any) {
+            console.error('    ✗ Exception sending cart invoice:', error.message);
+        }
+
+        return;
+    }
+
+    // Cart Sheet Node - send cart data to Google Sheets webhook
+    if (nodeType === 'cartSheetNode') {
+        console.log(`    ✓ Detected as Cart Sheet Node`);
+        const webhookUrl = config.webhookUrl || '';
+        const sheetName = config.sheetName || 'Cart Orders';
+        const includeTimestamp = config.includeTimestamp ?? true;
+        const includeCustomerName = config.includeCustomerName ?? true;
+        const includeProductDetails = config.includeProductDetails ?? true;
+
+        if (!webhookUrl) {
+            console.log('    ⊘ No webhook URL configured, skipping');
+            return;
+        }
+
+        try {
+            // Get cart from context or subscriber metadata
+            let cart = (context as any).cart || [];
+            let cartTotal = (context as any).cartTotal || 0;
+
+            // If no cart in context, try to get from subscriber metadata
+            if (cart.length === 0) {
+                const { createClient } = await import('@supabase/supabase-js');
+                const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '';
+                const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';
+                const supabase = createClient(supabaseUrl, supabaseKey);
+
+                const { data: subscriber } = await supabase
+                    .from('subscribers')
+                    .select('metadata, name')
+                    .eq('page_subscriber_id', context.commenterId)
+                    .eq('workspace_id', context.workspaceId)
+                    .single();
+
+                if (subscriber?.metadata?.cart) {
+                    cart = subscriber.metadata.cart;
+                    cartTotal = subscriber.metadata.cartTotal || 0;
+                }
+            }
+
+            console.log(`    🛒 Cart items: ${cart.length}`);
+            console.log(`    💰 Total: ₱${cartTotal}`);
+
+            if (cart.length === 0) {
+                console.log('    ⊘ Empty cart, skipping sheet update');
+                return;
+            }
+
+            // Build webhook payload
+            const productNames = cart.map((item: any) => item.productName).join(', ');
+            const quantities = cart.map((item: any) => item.quantity).join(', ');
+            const prices = cart.map((item: any) => `₱${item.productPrice}`).join(', ');
+
+            const webhookPayload: any = {
+                sheetName: sheetName,
+                customerId: context.commenterId,
+                customerName: context.commenterName || 'Customer',
+                products: productNames,
+                quantities: quantities,
+                prices: prices,
+                total: cartTotal
+            };
+
+            if (includeTimestamp) {
+                webhookPayload.timestamp = new Date().toISOString();
+            }
+
+            console.log(`    📤 Sending to Google Sheets webhook...`);
+            console.log(`    📋 Data:`, JSON.stringify(webhookPayload));
+
+            const response = await fetch(webhookUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(webhookPayload)
+            });
+
+            const result = await response.json();
+            console.log(`    ✓ Webhook response:`, result);
+
+        } catch (error: any) {
+            console.error('    ✗ Exception sending to Cart Sheet webhook:', error.message);
         }
 
         return;

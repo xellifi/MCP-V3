@@ -1,6 +1,7 @@
 import React from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
 import { SquareMousePointer, Settings, Trash2, Copy } from 'lucide-react';
+import NodeInsights from '../NodeInsights';
 
 const CustomButtonsOnlyNode: React.FC<NodeProps> = ({ data, selected }) => {
     const handleConfigure = (e: React.MouseEvent) => {
@@ -54,6 +55,15 @@ const CustomButtonsOnlyNode: React.FC<NodeProps> = ({ data, selected }) => {
                         )}
                     </div>
                 </div>
+                {/* Node Insights */}
+                <NodeInsights
+                    sent={data.analytics?.sent}
+                    delivered={data.analytics?.delivered}
+                    subscribers={data.analytics?.subscribers}
+                    errors={data.analytics?.errors}
+                />
+
+
 
                 {/* Action Buttons */}
                 <div className="absolute -top-3 -right-3 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">

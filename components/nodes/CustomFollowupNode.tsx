@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
 import { Clock, Settings, Trash2, RefreshCw, ChevronDown, ChevronUp, Copy } from 'lucide-react';
+import NodeInsights from '../NodeInsights';
 
 const CustomFollowupNode: React.FC<NodeProps> = ({ data, selected }) => {
     const [isExpanded, setIsExpanded] = useState(false);
@@ -134,6 +135,15 @@ const CustomFollowupNode: React.FC<NodeProps> = ({ data, selected }) => {
                         )}
                     </div>
                 )}
+                {/* Node Insights */}
+                <NodeInsights
+                    sent={data.analytics?.sent}
+                    delivered={data.analytics?.delivered}
+                    subscribers={data.analytics?.subscribers}
+                    errors={data.analytics?.errors}
+                />
+
+
 
                 {/* Action Buttons */}
                 <div className="absolute -top-3 -right-3 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">

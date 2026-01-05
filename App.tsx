@@ -32,10 +32,13 @@ const OrderTracking = lazy(() => import('./pages/OrderTracking'));
 const Forms = lazy(() => import('./pages/Forms'));
 const Store = lazy(() => import('./pages/Store'));
 const StoreView = lazy(() => import('./pages/StoreView'));
+const SubscriptionPlans = lazy(() => import('./pages/SubscriptionPlans'));
 
 // Admin Pages - Lazy load (rarely accessed)
 const SystemSettings = lazy(() => import('./pages/SystemSettings'));
 const UsersPage = lazy(() => import('./pages/Users'));
+const AdminSubscriptions = lazy(() => import('./pages/AdminSubscriptions'));
+const AdminPackageSettings = lazy(() => import('./pages/AdminPackageSettings'));
 
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -185,10 +188,13 @@ const App: React.FC = () => {
                   <Route path="/academy" element={<Academy user={user} />} />
                   <Route path="/forms-manager" element={<Forms workspace={currentWorkspace} />} />
                   <Route path="/store" element={<Store workspace={currentWorkspace} />} />
+                  <Route path="/packages" element={<SubscriptionPlans />} />
 
                   {/* Admin Only Routes */}
                   <Route path="/users" element={<UsersPage user={user} />} />
                   <Route path="/system-settings" element={<SystemSettings user={user} />} />
+                  <Route path="/admin/subscriptions" element={<AdminSubscriptions />} />
+                  <Route path="/admin/packages" element={<AdminPackageSettings />} />
 
                   {/* Redirect root in app context to dashboard */}
                   <Route path="/" element={<Navigate to="/dashboard" replace />} />

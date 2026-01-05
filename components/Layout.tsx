@@ -25,11 +25,13 @@ import {
   ChevronRight,
   GraduationCap,
   FileText,
-  Store
+  Store,
+  Package
 } from 'lucide-react';
 import { User, Workspace, UserRole } from '../types';
 import { api } from '../services/api';
 import { useTheme } from '../context/ThemeContext';
+import UpgradeModal from './UpgradeModal';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -54,12 +56,13 @@ const ALL_NAV_ITEMS: Record<string, { icon: any, label: string }> = {
   '/academy': { icon: GraduationCap, label: 'Academy' },
   '/forms-manager': { icon: FileText, label: 'Forms' },
   '/store': { icon: Store, label: 'Store' },
+  '/packages': { icon: Package, label: 'Packages' },
   '/support': { icon: LifeBuoy, label: 'Support' },
   // Backward compatibility maps
   '/api-keys': { icon: Sliders, label: 'Settings' }
 };
 
-const DEFAULT_ORDER = ['/', '/connections', '/connected-pages', '/subscribers', '/messages', '/flows', '/forms-manager', '/store', '/scheduled', '/academy', '/settings', '/affiliates', '/support'];
+const DEFAULT_ORDER = ['/', '/connections', '/connected-pages', '/subscribers', '/messages', '/flows', '/forms-manager', '/store', '/packages', '/scheduled', '/academy', '/settings', '/affiliates', '/support'];
 
 const Layout: React.FC<LayoutProps> = ({
   children,
@@ -77,6 +80,11 @@ const Layout: React.FC<LayoutProps> = ({
   const [menuOrder, setMenuOrder] = useState<string[]>(DEFAULT_ORDER);
   const [affiliateEnabled, setAffiliateEnabled] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+
+  // Upgrade Modal State
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [restrictedFeature, setRestrictedFeature] = useState('');
+
   const navigate = useNavigate();
   const location = useLocation();
   const { theme, toggleTheme, isDark } = useTheme();
@@ -160,12 +168,29 @@ const Layout: React.FC<LayoutProps> = ({
     return () => document.removeEventListener('click', handleClickOutside);
   }, [profileDropdownOpen]);
 
+  // Handle navigation click with permission check
+  const handleNavClick = (e: React.MouseEvent, path: string, label: string) => {
+    // DEMO: Restrict 'Affiliates' and 'Academy' for demonstration purposes
+    // In a real app, this would check `user.plan` against the permissions matrix
+    const RESTRICTED_FOR_DEMO = ['/affiliates', '/academy'];
+
+    if (RESTRICTED_FOR_DEMO.includes(path) && !isAdminOrOwner) {
+      e.preventDefault();
+      setRestrictedFeature(label);
+      setShowUpgradeModal(true);
+      setSidebarOpen(false);
+    } else {
+      setSidebarOpen(false);
+    }
+  };
+
   const NavItem: React.FC<{ to: string, icon: any, label: string }> = ({ to, icon: Icon, label }) => {
     const isActive = location.pathname === to || (to === '/dashboard' && location.pathname === '/');
 
     return (
       <NavLink
         to={to}
+        onClick={(e) => handleNavClick(e, to, label)}
         className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 mb-1 font-medium group relative ${isActive
           ? 'bg-gradient-to-r from-primary-500 to-primary-600 text-white'
           : 'hover:bg-slate-100 dark:hover:bg-slate-800'
@@ -174,7 +199,6 @@ const Layout: React.FC<LayoutProps> = ({
           color: isActive ? '#ffffff' : (isDark ? '#d1d5db' : '#0f172a'),
           textDecoration: 'none'
         }}
-        onClick={() => setSidebarOpen(false)}
         title={isSidebarCollapsed ? label : ''}
       >
         <Icon className="w-5 h-5 flex-shrink-0" style={{ color: 'inherit' }} />
@@ -282,7 +306,7 @@ const Layout: React.FC<LayoutProps> = ({
             if (path === '/') renderPath = '/dashboard';
 
             // Filter logic
-            if (path === '/affiliates' && !affiliateEnabled && !isAdminOrOwner) return null;
+            // NOTE: We relaxed the check for affiliates here to show the lock icon/modal logic for demo
             if (path === '/settings' && isAdminOrOwner) return null;
 
             const item = ALL_NAV_ITEMS[path] || ALL_NAV_ITEMS[renderPath];
@@ -297,6 +321,8 @@ const Layout: React.FC<LayoutProps> = ({
                 Administration
               </div>
               <NavItem to="/users" icon={Users} label="Users" />
+              <NavItem to="/admin/subscriptions" icon={Banknote} label="Subscriptions" />
+              <NavItem to="/admin/packages" icon={Settings} label="Package Settings" />
               <NavItem to="/system-settings" icon={Shield} label="System Settings" />
             </div>
           )}
@@ -417,6 +443,13 @@ const Layout: React.FC<LayoutProps> = ({
           </div>
         </div>
       </main>
+
+      {/* Upgrade Modal */}
+      <UpgradeModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        featureName={restrictedFeature}
+      />
     </div>
   );
 };

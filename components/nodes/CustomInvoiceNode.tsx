@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
 import { Receipt, Settings, Trash2, ChevronDown, ChevronUp, Package, Truck, CheckCircle, Clock, Download, FileImage, Copy } from 'lucide-react';
+import NodeInsights from '../NodeInsights';
 
 const CustomInvoiceNode: React.FC<NodeProps> = ({ data, selected }) => {
     const [isExpanded, setIsExpanded] = useState(false);
@@ -181,7 +182,7 @@ const CustomInvoiceNode: React.FC<NodeProps> = ({ data, selected }) => {
                 )}
 
                 {/* Action Buttons - Visible on Hover */}
-                <div className="absolute -top-2 -right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                <div className="absolute -top-2 -right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity  duration-300">
                     <button
                         onClick={handleClone}
                         className="p-1.5 bg-slate-600/80 hover:bg-slate-600 text-white rounded-lg shadow-lg hover:scale-110 transition-all"

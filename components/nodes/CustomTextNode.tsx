@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
 import { MessageSquare, Settings, Trash2, ChevronDown, ChevronUp, Copy } from 'lucide-react';
+import NodeInsights from '../NodeInsights';
 
 const CustomTextNode: React.FC<NodeProps> = ({ data, selected }) => {
     const [isExpanded, setIsExpanded] = useState(false);
@@ -115,6 +116,14 @@ const CustomTextNode: React.FC<NodeProps> = ({ data, selected }) => {
                         </button>
                     )}
                 </div>
+
+                {/* Node Insights */}
+                <NodeInsights
+                    sent={data.analytics?.sent}
+                    delivered={data.analytics?.delivered}
+                    subscribers={data.analytics?.subscribers}
+                    errors={data.analytics?.errors}
+                />
 
                 {/* Expanded Content */}
                 {isExpanded && hasDetails && (

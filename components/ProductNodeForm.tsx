@@ -21,6 +21,7 @@ interface ProductNodeFormProps {
         productStock?: number;
         trackInventory?: boolean;
         productStatus?: 'active' | 'draft';
+        buttonAction?: 'store_page' | 'continue_flow';
         isExistingProduct?: boolean;
     };
     onChange: (config: any) => void;
@@ -76,6 +77,7 @@ const ProductNodeForm: React.FC<ProductNodeFormProps> = ({
     const [trackInventory, setTrackInventory] = useState(initialConfig?.trackInventory || false);
     const [productStatus, setProductStatus] = useState<'active' | 'draft'>(initialConfig?.productStatus || 'active');
     const [selectedProductId, setSelectedProductId] = useState(initialConfig?.productId || '');
+    const [buttonAction, setButtonAction] = useState<'store_page' | 'continue_flow'>(initialConfig?.buttonAction || 'store_page');
 
     // Existing products
     const [existingProducts, setExistingProducts] = useState<Product[]>([]);
@@ -230,6 +232,7 @@ const ProductNodeForm: React.FC<ProductNodeFormProps> = ({
             productStock: parseInt(productStock) || 0,
             trackInventory,
             productStatus,
+            buttonAction,
             isExistingProduct: mode === 'select' || !!productId,
             storeId: storeData?.id,
             ...updates
@@ -255,7 +258,7 @@ const ProductNodeForm: React.FC<ProductNodeFormProps> = ({
         return () => {
             if (timeout) clearTimeout(timeout);
         };
-    }, [productName, productDescription, productPrice, productComparePrice, productImage, productCategory, productStock, trackInventory, productStatus, selectedProductId, mode, storeData?.id]);
+    }, [productName, productDescription, productPrice, productComparePrice, productImage, productCategory, productStock, trackInventory, productStatus, buttonAction, selectedProductId, mode, storeData?.id]);
 
     // Upload image
     const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -581,20 +584,49 @@ const ProductNodeForm: React.FC<ProductNodeFormProps> = ({
                                         </button>
                                     </div>
                                 ) : (
-                                    <button
-                                        onClick={() => fileInputRef.current?.click()}
-                                        disabled={uploading}
-                                        className="w-full py-8 border-2 border-dashed border-slate-600 rounded-xl text-slate-400 hover:text-white hover:border-emerald-500/50 transition-all flex flex-col items-center gap-2"
-                                    >
-                                        {uploading ? (
-                                            <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
-                                        ) : (
-                                            <>
-                                                <Upload className="w-6 h-6" />
-                                                <span className="text-sm">Upload Image</span>
-                                            </>
-                                        )}
-                                    </button>
+                                    <div className="space-y-3">
+                                        {/* URL Input */}
+                                        <div className="flex gap-2">
+                                            <input
+                                                type="url"
+                                                placeholder="Enter image URL..."
+                                                className="flex-1 bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 placeholder-slate-500"
+                                                onBlur={(e) => {
+                                                    if (e.target.value && e.target.value.startsWith('http')) {
+                                                        setProductImage(e.target.value);
+                                                    }
+                                                }}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === 'Enter' && (e.target as HTMLInputElement).value.startsWith('http')) {
+                                                        setProductImage((e.target as HTMLInputElement).value);
+                                                    }
+                                                }}
+                                            />
+                                        </div>
+
+                                        {/* Divider */}
+                                        <div className="flex items-center gap-3">
+                                            <div className="flex-1 h-px bg-slate-700"></div>
+                                            <span className="text-xs text-slate-500">or</span>
+                                            <div className="flex-1 h-px bg-slate-700"></div>
+                                        </div>
+
+                                        {/* Upload Button */}
+                                        <button
+                                            onClick={() => fileInputRef.current?.click()}
+                                            disabled={uploading}
+                                            className="w-full py-6 border-2 border-dashed border-slate-600 rounded-xl text-slate-400 hover:text-white hover:border-emerald-500/50 transition-all flex flex-col items-center gap-2"
+                                        >
+                                            {uploading ? (
+                                                <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+                                            ) : (
+                                                <>
+                                                    <Upload className="w-6 h-6" />
+                                                    <span className="text-sm">Upload from device</span>
+                                                </>
+                                            )}
+                                        </button>
+                                    </div>
                                 )}
                             </div>
 
@@ -613,6 +645,55 @@ const ProductNodeForm: React.FC<ProductNodeFormProps> = ({
                                 >
                                     {productStatus === 'active' ? 'Active' : 'Draft'}
                                 </button>
+                            </div>
+
+                            {/* Button Action */}
+                            <div className="md:col-span-2 space-y-3">
+                                <label className="block text-sm font-medium text-slate-300">
+                                    🛒 "Add to Cart" Button Action
+                                </label>
+                                <div className="grid grid-cols-1 gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => setButtonAction('store_page')}
+                                        className={`p-3 rounded-xl border text-left transition-all ${buttonAction === 'store_page'
+                                            ? 'bg-emerald-500/20 border-emerald-500/50 text-white'
+                                            : 'bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-600'
+                                            }`}
+                                    >
+                                        <div className="flex items-center justify-between">
+                                            <div className="font-medium">🏪 Open Store Page (Default)</div>
+                                            {buttonAction === 'store_page' && <Check className="w-5 h-5 text-emerald-400" />}
+                                        </div>
+                                        <div className="text-xs mt-1 opacity-70">
+                                            Opens your public store product page where buyers can checkout
+                                        </div>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setButtonAction('continue_flow')}
+                                        className={`p-3 rounded-xl border text-left transition-all ${buttonAction === 'continue_flow'
+                                            ? 'bg-blue-500/20 border-blue-500/50 text-white'
+                                            : 'bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-600'
+                                            }`}
+                                    >
+                                        <div className="flex items-center justify-between">
+                                            <div className="font-medium">🔗 Continue Flow (Connect Node)</div>
+                                            {buttonAction === 'continue_flow' && <Check className="w-5 h-5 text-blue-400" />}
+                                        </div>
+                                        <div className="text-xs mt-1 opacity-70">
+                                            Connect to the next node in your flow for custom checkout experience
+                                        </div>
+                                    </button>
+                                </div>
+                                {buttonAction === 'continue_flow' && (
+                                    <div className="flex items-start gap-2 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                                        <AlertCircle className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" />
+                                        <div className="text-xs text-blue-300">
+                                            Connect the Product Node's output to another node (e.g., Form, Text) to continue the flow when users tap "Add to Cart"
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     )}

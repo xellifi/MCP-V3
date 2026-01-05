@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
 import { MessageCircle, Settings, Trash2, ChevronDown, ChevronUp, CheckCircle2, Send, Copy } from 'lucide-react';
+import NodeInsights from '../NodeInsights';
 
 const CustomTriggerNode: React.FC<NodeProps> = ({ data, selected }) => {
     const [isExpanded, setIsExpanded] = useState(false);
@@ -114,9 +115,18 @@ const CustomTriggerNode: React.FC<NodeProps> = ({ data, selected }) => {
                         </div>
                     </div>
                 )}
+                {/* Node Insights */}
+                <NodeInsights
+                    sent={data.analytics?.sent}
+                    delivered={data.analytics?.delivered}
+                    subscribers={data.analytics?.subscribers}
+                    errors={data.analytics?.errors}
+                />
+
+
 
                 {/* Controls */}
-                <div className="absolute -top-2 -right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="absolute -top-2 -right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity ">
                     <button
                         onClick={handleClone}
                         className="w-7 h-7 bg-slate-600 rounded-full shadow-lg flex items-center justify-center hover:bg-slate-500 transition-colors"

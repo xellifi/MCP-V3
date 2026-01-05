@@ -36,7 +36,7 @@ const FormView: React.FC = () => {
 
     useEffect(() => { loadForm(); }, [formId]);
 
-    // Log form open for abandoned form tracking
+    // Log form open for abandoned form tracking AND apply open labels
     useEffect(() => {
         if (formId && subscriberId && flowId) {
             console.log('[FormView] Logging form open for follow-up tracking');
@@ -52,6 +52,20 @@ const FormView: React.FC = () => {
                     subscriberName
                 })
             }).catch(err => console.error('[FormView] Error logging open:', err));
+
+            // Apply "on open form" labels
+            console.log('[FormView] Applying open form labels');
+            fetch('/api/forms/apply-open-labels', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    flowId,
+                    nodeId,
+                    subscriberId
+                })
+            }).then(res => res.json())
+                .then(data => console.log('[FormView] Open labels applied:', data))
+                .catch(err => console.error('[FormView] Error applying open labels:', err));
         }
     }, [formId, subscriberId, flowId]);
 

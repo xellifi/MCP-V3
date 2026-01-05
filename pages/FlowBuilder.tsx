@@ -18,7 +18,7 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Workspace, ConnectedPage } from '../types';
-import { Save, ArrowLeft, PlayCircle, Menu, X, Grid3x3, MessageCircle, Play, Bot, Send, Clock, MousePointer2, SquareMousePointer, Sparkles, GitBranch, MessageSquare, RectangleEllipsis, Plus, Minus, Maximize, Wrench, RotateCcw, Image, Video, FileText, Table, RefreshCw, ShoppingBag, Tag, Receipt, Package } from 'lucide-react';
+import { Save, ArrowLeft, PlayCircle, Menu, X, Grid3x3, MessageCircle, Play, Bot, Send, Clock, MousePointer2, SquareMousePointer, Sparkles, GitBranch, MessageSquare, RectangleEllipsis, Plus, Minus, Maximize, Maximize2, Minimize2, Wrench, RotateCcw, Image, Video, FileText, Table, RefreshCw, ShoppingBag, Tag, Receipt, Package, ShoppingCart, Table2 } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import NodeConfigModal from '../components/NodeConfigModal';
 import TriggerNodeForm from '../components/TriggerNodeForm';
@@ -39,6 +39,8 @@ import UpsellNodeForm from '../components/UpsellNodeForm';
 import DownsellNodeForm from '../components/DownsellNodeForm';
 import InvoiceNodeForm from '../components/InvoiceNodeForm';
 import ProductNodeForm from '../components/ProductNodeForm';
+import CartInvoiceNodeForm from '../components/CartInvoiceNodeForm';
+import CartSheetNodeForm from '../components/CartSheetNodeForm';
 import CustomEdge from '../components/edges/CustomEdge';
 import CustomTriggerNode from '../components/nodes/CustomTriggerNode';
 import CustomActionNode from '../components/nodes/CustomActionNode';
@@ -57,6 +59,8 @@ import CustomUpsellNode from '../components/nodes/CustomUpsellNode';
 import CustomDownsellNode from '../components/nodes/CustomDownsellNode';
 import CustomInvoiceNode from '../components/nodes/CustomInvoiceNode';
 import CustomProductNode from '../components/nodes/CustomProductNode';
+import CustomCartInvoiceNode from '../components/nodes/CustomCartInvoiceNode';
+import CustomCartSheetNode from '../components/nodes/CustomCartSheetNode';
 import { api } from '../services/api';
 import { supabase } from '../lib/supabase';
 // Import node configuration registry
@@ -91,6 +95,8 @@ const nodeTypes: NodeTypes = {
   downsellNode: CustomDownsellNode,
   invoiceNode: CustomInvoiceNode,
   productNode: CustomProductNode,
+  cartInvoiceNode: CustomCartInvoiceNode,
+  cartSheetNode: CustomCartSheetNode,
 };
 
 // Define custom edge types
@@ -110,6 +116,7 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
   // Sidebar state
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [showMobileNodeGrid, setShowMobileNodeGrid] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   // Save dialog state
   const [showNameDialog, setShowNameDialog] = useState(false);
@@ -202,6 +209,17 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // ESC key to exit fullscreen
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isFullscreen) {
+        setIsFullscreen(false);
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isFullscreen]);
 
   // Load available pages for this workspace
   const loadAvailablePages = async () => {
@@ -1634,6 +1652,28 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
       );
     }
 
+    // Cart Invoice Node
+    if (nodeType === 'cartInvoiceNode' || label.toLowerCase().includes('cart invoice')) {
+      return (
+        <CartInvoiceNodeForm
+          workspaceId={workspace?.id || ''}
+          initialConfig={initialConfigRef.current}
+          onChange={handleConfigChange}
+        />
+      );
+    }
+
+    // Cart Sheet Node
+    if (nodeType === 'cartSheetNode' || label.toLowerCase().includes('cart sheet')) {
+      return (
+        <CartSheetNodeForm
+          workspaceId={workspace?.id || ''}
+          initialConfig={initialConfigRef.current}
+          onChange={handleConfigChange}
+        />
+      );
+    }
+
     // Start Node
     if (nodeType === 'startNode' || label.toLowerCase().includes('start')) {
       // Check if this is a "New Flow" node (sub-flow start point)
@@ -1822,7 +1862,7 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
   }, [nodes, edges, setNodes, reactFlowInstance, toast]);
 
   return (
-    <div className="h-[calc(100vh-60px)] w-full -m-6 relative bg-slate-950 overflow-hidden">
+    <div className={`${isFullscreen ? 'fixed inset-0 z-50' : 'h-[calc(100vh-60px)] w-full -m-6 relative'} bg-slate-950 overflow-hidden`}>
 
       {/* Header Overlay (Title & Back) - Hidden on Mobile to save space, or kept minimal */}
       <div className="absolute top-6 left-6 z-10 hidden md:block">
@@ -1878,15 +1918,15 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
           {isToolsOpen ? <X className="w-4 h-4" /> : <Wrench className="w-4 h-4" />}
         </button>
 
-        {/* Desktop Tools Toggle */}
+        {/* Fullscreen Toggle */}
         <button
-          onClick={() => setIsToolsOpen(!isToolsOpen)}
+          onClick={() => setIsFullscreen(!isFullscreen)}
           className="group relative hidden md:flex w-10 h-10 items-center justify-center bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-xl text-white transition-all border border-white/10 shadow-lg active:scale-95"
-          title="Toggle node toolbar"
+          title={isFullscreen ? 'Exit Fullscreen (ESC)' : 'Fullscreen'}
         >
-          <Grid3x3 className="w-4 h-4" />
+          {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
           <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-            {isToolsOpen ? 'Hide Nodes' : 'Show Nodes'}
+            {isFullscreen ? 'Exit (ESC)' : 'Fullscreen'}
           </span>
         </button>
 
@@ -1924,12 +1964,9 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
         </button>
       </div>
 
-      {/* Floating Toolbar - Horizontal for Desktop (when open), Vertical for Mobile */}
+      {/* Floating Toolbar - Horizontal for Desktop, Vertical for Mobile - Always Visible */}
       <div className={`absolute z-10 transition-all duration-300 ease-out
-        ${isToolsOpen
-          ? 'opacity-100 pointer-events-auto'
-          : 'opacity-0 pointer-events-none'
-        }
+        opacity-100 pointer-events-auto
         md:left-1/2 md:-translate-x-1/2 md:top-6
         left-6 top-20
       `}>
@@ -2011,6 +2048,16 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
               className="group relative w-10 h-10 bg-emerald-500/20 hover:bg-emerald-500/40 border border-emerald-500/30 rounded-xl flex items-center justify-center text-emerald-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
               <Package className="w-5 h-5" />
               <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">Product</span>
+            </div>
+            <div draggable onDragStart={(e) => onDragStart(e, 'cartInvoiceNode', 'Cart Invoice')} onClick={() => addNode('cartInvoiceNode', 'Cart Invoice')}
+              className="group relative w-10 h-10 bg-emerald-500/20 hover:bg-emerald-500/40 border border-emerald-500/30 rounded-xl flex items-center justify-center text-emerald-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
+              <FileText className="w-5 h-5" />
+              <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">Cart Invoice</span>
+            </div>
+            <div draggable onDragStart={(e) => onDragStart(e, 'cartSheetNode', 'Cart Sheet')} onClick={() => addNode('cartSheetNode', 'Cart Sheet')}
+              className="group relative w-10 h-10 bg-green-500/20 hover:bg-green-500/40 border border-green-500/30 rounded-xl flex items-center justify-center text-green-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
+              <Table2 className="w-5 h-5" />
+              <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">Cart Sheet</span>
             </div>
           </div>
         </div>

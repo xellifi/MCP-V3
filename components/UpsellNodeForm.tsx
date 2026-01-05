@@ -2,7 +2,7 @@ import React, { useState, useRef, useMemo } from 'react';
 import {
     ShoppingBag, Type, Image, DollarSign, MousePointer2, Palette,
     Upload, Link, X, AlertCircle, Eye, Flame, Check, Sparkles,
-    Circle, Square, RectangleHorizontal
+    Circle, Square, RectangleHorizontal, ShoppingCart
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import CollapsibleTips from './CollapsibleTips';
@@ -36,6 +36,10 @@ interface UpsellNodeFormProps {
         showButtonIcon?: boolean;
         // Background
         backgroundColor?: string;
+        // Cart Action
+        cartAction?: 'add' | 'replace';
+        productName?: string;
+        productPrice?: number;
     };
     onChange: (config: any) => void;
 }
@@ -101,6 +105,11 @@ const UpsellNodeForm: React.FC<UpsellNodeFormProps> = ({
     // Background state
     const [backgroundColor, setBackgroundColor] = useState(initialConfig?.backgroundColor || '#dc2626');
 
+    // Cart action state
+    const [cartAction, setCartAction] = useState<'add' | 'replace'>(initialConfig?.cartAction || 'add');
+    const [productName, setProductName] = useState(initialConfig?.productName || '');
+    const [productPrice, setProductPrice] = useState(initialConfig?.productPrice || 0);
+
     // Active section for accordion
     const [activeSection, setActiveSection] = useState<string>('headline');
 
@@ -127,6 +136,9 @@ const UpsellNodeForm: React.FC<UpsellNodeFormProps> = ({
             buttonBorderRadius,
             showButtonIcon,
             backgroundColor,
+            cartAction,
+            productName: productName || headline,
+            productPrice: parseFloat(price.replace(/[^0-9.]/g, '')) || 0,
             ...updates
         });
     };
@@ -673,6 +685,52 @@ const UpsellNodeForm: React.FC<UpsellNodeFormProps> = ({
                             onChange={(c) => { setBackgroundColor(c); notifyChange({ backgroundColor: c }); }}
                             label="Card Background Color"
                         />
+                    </div>
+                )}
+            </div>
+
+            {/* Cart Action Section */}
+            <div className="space-y-3">
+                <SectionHeader id="cart" icon={ShoppingCart} title="Cart Action" color="teal" />
+                {activeSection === 'cart' && (
+                    <div className="space-y-4 p-4 bg-black/20 rounded-xl border border-white/10 animate-fade-in">
+                        <p className="text-xs text-slate-400 mb-3">
+                            Choose what happens when customer accepts this upsell
+                        </p>
+                        <div className="grid grid-cols-1 gap-2">
+                            <button
+                                type="button"
+                                onClick={() => { setCartAction('add'); notifyChange({ cartAction: 'add' }); }}
+                                className={`p-3 rounded-xl border text-left transition-all ${cartAction === 'add'
+                                    ? 'bg-teal-500/20 border-teal-500/50 text-white'
+                                    : 'bg-black/30 border-white/10 text-slate-400 hover:border-white/20'
+                                    }`}
+                            >
+                                <div className="flex items-center justify-between">
+                                    <div className="font-medium">➕ Add to Cart</div>
+                                    {cartAction === 'add' && <Check className="w-5 h-5 text-teal-400" />}
+                                </div>
+                                <div className="text-xs mt-1 opacity-70">
+                                    Adds this item to existing cart (Product + Upsell)
+                                </div>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => { setCartAction('replace'); notifyChange({ cartAction: 'replace' }); }}
+                                className={`p-3 rounded-xl border text-left transition-all ${cartAction === 'replace'
+                                    ? 'bg-orange-500/20 border-orange-500/50 text-white'
+                                    : 'bg-black/30 border-white/10 text-slate-400 hover:border-white/20'
+                                    }`}
+                            >
+                                <div className="flex items-center justify-between">
+                                    <div className="font-medium">🔄 Replace Cart</div>
+                                    {cartAction === 'replace' && <Check className="w-5 h-5 text-orange-400" />}
+                                </div>
+                                <div className="text-xs mt-1 opacity-70">
+                                    Replaces cart with only this item (Upsell only)
+                                </div>
+                            </button>
+                        </div>
                     </div>
                 )}
             </div>

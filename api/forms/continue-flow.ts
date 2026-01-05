@@ -123,6 +123,50 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             form_submitted: context.form_submitted
         });
 
+        // Apply labels from form node configuration (on submit)
+        const formNodeConfig = configurations[nodeId] || {};
+        const formAddLabel = formNodeConfig.submitAddLabel;
+        const formRemoveLabel = formNodeConfig.submitRemoveLabel;
+
+        if ((formAddLabel || formRemoveLabel) && workspaceId && subscriberId) {
+            console.log('[Continue Flow] Applying form submit labels:', { addLabel: formAddLabel, removeLabel: formRemoveLabel });
+            try {
+                // Get current subscriber
+                const { data: subscriber } = await supabase
+                    .from('subscribers')
+                    .select('id, labels')
+                    .eq('workspace_id', workspaceId)
+                    .eq('external_id', subscriberId)
+                    .single();
+
+                if (subscriber) {
+                    let labels: string[] = subscriber.labels || [];
+
+                    // Remove label if specified
+                    if (formRemoveLabel) {
+                        labels = labels.filter((l: string) => l.toLowerCase() !== formRemoveLabel.toLowerCase());
+                    }
+
+                    // Add label if specified and not already present
+                    if (formAddLabel && !labels.some((l: string) => l.toLowerCase() === formAddLabel.toLowerCase())) {
+                        labels.push(formAddLabel);
+                    }
+
+                    // Update subscriber labels
+                    await supabase
+                        .from('subscribers')
+                        .update({ labels })
+                        .eq('id', subscriber.id);
+
+                    console.log('[Continue Flow] ✓ Labels updated:', labels);
+                }
+            } catch (labelError) {
+                console.error('[Continue Flow] Error updating labels:', labelError);
+            }
+        }
+
+
+
         // DEBUG: Log ALL edges in the flow
         console.log('[Continue Flow] ALL edges in flow:', edges.map((e: any) => ({ source: e.source, target: e.target, sourceHandle: e.sourceHandle })));
 
@@ -332,7 +376,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 }
 
                 // Send message with button to view invoice
-                const invoiceMessage = `🧾 Invoice from ${companyName}\n\nThank you for your order! Your invoice has been generated.\n\n✅ Order Confirmed\n📦 We will process your order soon.`;
+                const defaultMessage = `🧾 Invoice from ${companyName}\n\nThank you for your order! Your invoice has been generated.\n\n✅ Order Confirmed\n📦 We will process your order soon.`;
+                const invoiceMessage = formNodeConfig.confirmationMessage || defaultMessage;
 
                 // If we have an invoice URL, send button; otherwise just text
                 if (invoiceUrl) {

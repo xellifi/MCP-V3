@@ -76,6 +76,7 @@
 }
 
 /* Circular nodes - ensure transparent background */
+.react-flow__node-visualTrigger,
 .react-flow__node-visualMemory,
 .react-flow__node-visualTool,
 .react-flow__node-visualModel {

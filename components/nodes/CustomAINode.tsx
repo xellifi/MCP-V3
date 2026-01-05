@@ -1,6 +1,7 @@
 import React from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
 import { Sparkles, Settings, Trash2, Copy } from 'lucide-react';
+import NodeInsights from '../NodeInsights';
 
 const CustomAINode: React.FC<NodeProps> = ({ data, selected }) => {
     const handleConfigure = (e: React.MouseEvent) => {
@@ -48,8 +49,16 @@ const CustomAINode: React.FC<NodeProps> = ({ data, selected }) => {
                     </div>
                 )}
 
+                {/* Node Insights */}
+                <NodeInsights
+                    sent={data.analytics?.sent}
+                    delivered={data.analytics?.delivered}
+                    subscribers={data.analytics?.subscribers}
+                    errors={data.analytics?.errors}
+                />
+
                 {/* Controls */}
-                <div className="absolute -top-2 -right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="absolute -top-2 -right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity ">
                     <button
                         onClick={handleClone}
                         className="w-7 h-7 bg-slate-600 rounded-full shadow-lg flex items-center justify-center hover:bg-slate-500 transition-colors"
