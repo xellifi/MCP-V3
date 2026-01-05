@@ -663,28 +663,39 @@ export const api = {
       }
     },
 
-    // Get all unique labels from subscribers in a workspace
+    // Get all unique labels from flow configurations in a workspace
     getWorkspaceLabels: async (workspaceId: string): Promise<string[]> => {
-      const { data, error } = await supabase
-        .from('subscribers')
-        .select('labels')
+      const { data: flows, error } = await supabase
+        .from('flows')
+        .select('configurations')
         .eq('workspace_id', workspaceId);
 
       if (error) {
-        console.error('Error fetching workspace labels:', error);
+        console.error('Error fetching flows for labels:', error);
         return [];
       }
 
-      // Extract unique labels from all subscribers
+      // Extract unique labels from flow configurations
       const allLabels = new Set<string>();
-      data?.forEach((subscriber: any) => {
-        if (subscriber.labels && Array.isArray(subscriber.labels)) {
-          subscriber.labels.forEach((label: string) => {
-            if (label && label.trim()) {
-              allLabels.add(label.trim());
-            }
-          });
-        }
+
+      flows?.forEach((flow: any) => {
+        const configurations = flow.configurations || {};
+
+        Object.values(configurations).forEach((config: any) => {
+          // Entry labels from Start Nodes
+          if (config.entryLabel && config.entryLabel.trim()) {
+            allLabels.add(config.entryLabel.trim());
+          }
+
+          // Add labels from Text Node buttons
+          if (config.buttons && Array.isArray(config.buttons)) {
+            config.buttons.forEach((btn: any) => {
+              if (btn.addLabel && btn.addLabel.trim()) {
+                allLabels.add(btn.addLabel.trim());
+              }
+            });
+          }
+        });
       });
 
       return Array.from(allLabels).sort();

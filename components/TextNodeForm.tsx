@@ -40,6 +40,7 @@ const TextNodeForm: React.FC<TextNodeFormProps> = ({
     const [startFlows, setStartFlows] = useState<any[]>([]);
     const [pages, setPages] = useState<any[]>([]);
     const [openFlowDropdown, setOpenFlowDropdown] = useState<number | null>(null);
+    const [openLabelDropdown, setOpenLabelDropdown] = useState<number | null>(null);
     const [workspaceLabels, setWorkspaceLabels] = useState<string[]>([]);
 
     // Fetch flows and labels on mount
@@ -483,18 +484,59 @@ const TextNodeForm: React.FC<TextNodeFormProps> = ({
                                             className="w-full bg-black/20 border border-white/10 rounded-lg px-2 py-1.5 text-white text-xs focus:ring-2 focus:ring-purple-500/50 outline-none"
                                         />
                                     </div>
-                                    <div>
+                                    <div className="relative">
                                         <label className="block text-xs text-slate-400 mb-1">Remove Label</label>
-                                        <select
-                                            value={button.removeLabel || ''}
-                                            onChange={(e) => updateButton(index, { removeLabel: e.target.value })}
-                                            className="w-full bg-black/20 border border-white/10 rounded-lg px-2 py-1.5 text-white text-xs focus:ring-2 focus:ring-purple-500/50 outline-none"
+                                        {/* Custom Dropdown Trigger */}
+                                        <button
+                                            type="button"
+                                            onClick={() => setOpenLabelDropdown(openLabelDropdown === index ? null : index)}
+                                            className="w-full bg-black/20 border border-white/10 rounded-lg px-2 py-1.5 text-left text-xs focus:ring-2 focus:ring-purple-500/50 outline-none flex items-center justify-between hover:bg-white/5 transition-colors"
                                         >
-                                            <option value="">None</option>
-                                            {workspaceLabels.map(label => (
-                                                <option key={label} value={label}>{label}</option>
-                                            ))}
-                                        </select>
+                                            <span className={button.removeLabel ? 'text-white' : 'text-slate-400'}>
+                                                {button.removeLabel || 'None'}
+                                            </span>
+                                            <ChevronDown className={`w-3 h-3 text-slate-400 transition-transform ${openLabelDropdown === index ? 'rotate-180' : ''}`} />
+                                        </button>
+
+                                        {/* Custom Dropdown Options */}
+                                        {openLabelDropdown === index && (
+                                            <div className="absolute z-50 w-full mt-1 bg-slate-800 border border-white/10 rounded-lg shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                                                <div className="max-h-32 overflow-y-auto">
+                                                    {/* None option */}
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            updateButton(index, { removeLabel: '' });
+                                                            setOpenLabelDropdown(null);
+                                                        }}
+                                                        className={`w-full px-2 py-1.5 text-left text-xs hover:bg-white/10 transition-colors flex items-center gap-2 ${!button.removeLabel ? 'bg-purple-500/20 text-purple-300' : 'text-slate-300'}`}
+                                                    >
+                                                        <X className="w-3 h-3" />
+                                                        <span>None</span>
+                                                    </button>
+                                                    {/* Label options */}
+                                                    {workspaceLabels.map(label => (
+                                                        <button
+                                                            key={label}
+                                                            type="button"
+                                                            onClick={() => {
+                                                                updateButton(index, { removeLabel: label });
+                                                                setOpenLabelDropdown(null);
+                                                            }}
+                                                            className={`w-full px-2 py-1.5 text-left text-xs hover:bg-white/10 transition-colors flex items-center gap-2 ${button.removeLabel === label ? 'bg-purple-500/20 text-purple-300' : 'text-slate-300'}`}
+                                                        >
+                                                            <Tag className="w-3 h-3 text-purple-400" />
+                                                            <span>{label}</span>
+                                                        </button>
+                                                    ))}
+                                                    {workspaceLabels.length === 0 && (
+                                                        <div className="px-2 py-2 text-xs text-slate-500 text-center">
+                                                            No labels configured in flows yet
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                                 <p className="text-xs text-slate-500 mt-1">
