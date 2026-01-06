@@ -1571,6 +1571,17 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
       );
     }
 
+    // Checkout Form Node (must check BEFORE formNode due to 'form' in label)
+    if (nodeType === 'checkoutFormNode' || label.toLowerCase() === 'checkout form') {
+      return (
+        <CheckoutFormNodeForm
+          workspaceId={workspace?.id || ''}
+          initialConfig={initialConfigRef.current}
+          onChange={handleConfigChange}
+        />
+      );
+    }
+
     // Form Node
     if (nodeType === 'formNode' || label.toLowerCase().includes('form')) {
       return (
@@ -1673,17 +1684,6 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
     if (nodeType === 'cartSheetNode' || label.toLowerCase().includes('cart sheet')) {
       return (
         <CartSheetNodeForm
-          workspaceId={workspace?.id || ''}
-          initialConfig={initialConfigRef.current}
-          onChange={handleConfigChange}
-        />
-      );
-    }
-
-    // Checkout Form Node (must check BEFORE checkout node due to label overlap)
-    if (nodeType === 'checkoutFormNode' || label.toLowerCase().includes('checkout form')) {
-      return (
-        <CheckoutFormNodeForm
           workspaceId={workspace?.id || ''}
           initialConfig={initialConfigRef.current}
           onChange={handleConfigChange}
