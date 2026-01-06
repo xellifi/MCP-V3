@@ -921,7 +921,8 @@ async function processPostback(messagingEvent: any, pageId: string) {
             console.log(`  💰 Cart total: ₱${cartTotal}`);
 
             // Save cart AND upsell_response to metadata (for Condition Node to check)
-            await supabase
+            console.log(`  📝 Saving cart to subscriber metadata...`);
+            const { data: updateData, error: updateError } = await supabase
                 .from('subscribers')
                 .update({
                     metadata: {
@@ -934,7 +935,18 @@ async function processPostback(messagingEvent: any, pageId: string) {
                     }
                 })
                 .eq('external_id', senderId)
-                .eq('workspace_id', workspaceId);
+                .eq('workspace_id', workspaceId)
+                .select();
+
+            if (updateError) {
+                console.error(`  ❌ Cart save error:`, updateError.message);
+                console.error(`  ❌ Error details:`, JSON.stringify(updateError));
+            } else {
+                console.log(`  ✓ Cart saved successfully. Rows updated: ${updateData?.length || 0}`);
+                if (updateData?.length === 0) {
+                    console.log(`  ⚠️ WARNING: No rows updated! Subscriber may not exist for external_id=${senderId}, workspace_id=${workspaceId}`);
+                }
+            }
 
             console.log(`  ✓ Saved upsell_response: 'accepted' to subscriber metadata`);
 
@@ -3036,8 +3048,9 @@ async function executeAction(
         const price = config.price || '₱0';
         const productImage = config.productImage || config.imageUrl || '';
         const description = config.description || '';
-        const acceptButtonText = config.acceptButtonText || '✓ Yes, Add This!';
+        const acceptButtonText = config.acceptButtonText || config.buttonText || '✓ Yes, Add This!';
         const cartAction = config.cartAction || 'add';
+        console.log(`    🔧 Config cartAction: "${config.cartAction}" → using: "${cartAction}"`);
 
         try {
             await sendTypingIndicator(context.commenterId, pageAccessToken, 'typing_on');
@@ -3224,6 +3237,43 @@ async function executeAction(
 
             console.log(`    🛒 Cart items: ${cart.length}`);
             console.log(`    💰 Total: ₱${cartTotal}`);
+
+            // CRITICAL: Save cart to subscriber metadata so checkout_confirm can retrieve it later
+            if (cart.length > 0) {
+                console.log(`    📝 Saving cart to subscriber metadata for checkout_confirm...`);
+                const { createClient } = await import('@supabase/supabase-js');
+                const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '';
+                const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';
+                const supabaseCheckout = createClient(supabaseUrl, supabaseKey);
+
+                // Get existing metadata first
+                const { data: existingSub } = await supabaseCheckout
+                    .from('subscribers')
+                    .select('metadata')
+                    .eq('external_id', context.commenterId)
+                    .eq('workspace_id', context.workspaceId)
+                    .single();
+
+                const { data: updateResult, error: saveError } = await supabaseCheckout
+                    .from('subscribers')
+                    .update({
+                        metadata: {
+                            ...(existingSub?.metadata || {}),
+                            cart: cart,
+                            cartTotal: cartTotal,
+                            cartUpdatedAt: new Date().toISOString()
+                        }
+                    })
+                    .eq('external_id', context.commenterId)
+                    .eq('workspace_id', context.workspaceId)
+                    .select();
+
+                if (saveError) {
+                    console.error(`    ❌ Failed to save cart to metadata:`, saveError.message);
+                } else {
+                    console.log(`    ✓ Cart saved to metadata (${updateResult?.length || 0} rows). checkout_confirm will now find it.`);
+                }
+            }
 
             if (cart.length === 0) {
                 console.log('    ⊘ Empty cart, sending empty cart message');
