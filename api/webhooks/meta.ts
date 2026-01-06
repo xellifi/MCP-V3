@@ -773,16 +773,10 @@ async function processPostback(messagingEvent: any, pageId: string) {
                 console.log(`  ⚠️ No subscriber found`);
             }
 
-            // Apply cart action
-            if (cartAction === 'replace') {
-                // Replace entire cart with just this item
-                cart = [cartItem];
-                console.log(`  🔄 Cart replaced with: ${cartItem.productName}`);
-            } else {
-                // Add item to cart
-                cart.push(cartItem);
-                console.log(`  ➕ Added to cart: ${cartItem.productName} (${cart.length} items total)`);
-            }
+            // Product node ALWAYS starts a fresh cart (it's the beginning of a checkout flow)
+            // Upsells/downsells will ADD to this cart, but the main product replaces any old cart
+            cart = [cartItem];
+            console.log(`  🛒 Started fresh cart with: ${cartItem.productName}`);
 
             // Calculate cart total
             const cartTotal = cart.reduce((sum: number, item: any) => sum + (item.productPrice * item.quantity), 0);
@@ -1048,7 +1042,7 @@ async function processPostback(messagingEvent: any, pageId: string) {
                 .select('metadata')
                 .eq('external_id', senderId)
                 .eq('workspace_id', workspaceId)
-                .single();
+                .maybeSingle();
 
             const cart = subscriber?.metadata?.cart || [];
             const cartTotal = subscriber?.metadata?.cartTotal || 0;
