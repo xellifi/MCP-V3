@@ -3324,22 +3324,24 @@ async function executeAction(
                 return;
             }
 
-            // Build checkout message with cart items
+            // Build checkout message with cart items - cleaner formatting
             let checkoutText = `${headerText}\n`;
             if (companyName) {
                 checkoutText += `🏪 ${companyName}\n`;
             }
-            checkoutText += `━━━━━━━━━━━━━━━━━━\n\n`;
+            checkoutText += `─────────────────\n\n`;
 
             cart.forEach((item: any, index: number) => {
                 const price = typeof item.productPrice === 'number' ? item.productPrice : 0;
                 const qty = item.quantity || 1;
+                const itemTotal = price * qty;
                 checkoutText += `📦 ${item.productName}\n`;
-                checkoutText += `   Qty: ${qty} × ₱${price.toLocaleString()}\n\n`;
+                checkoutText += `    ${qty} × ₱${price.toLocaleString()} = ₱${itemTotal.toLocaleString()}\n\n`;
             });
 
-            checkoutText += `━━━━━━━━━━━━━━━━━━\n`;
-            checkoutText += `💰 TOTAL: ₱${cartTotal.toLocaleString()}\n`;
+            checkoutText += `─────────────────\n`;
+            checkoutText += `💰 TOTAL: ₱${cartTotal.toLocaleString()}\n\n`;
+            checkoutText += `Tap the button below to confirm your order.`;
 
             // Send checkout message with button
             await sendTypingIndicator(context.commenterId, pageAccessToken, 'typing_on');
@@ -3445,47 +3447,118 @@ async function executeAction(
                 return;
             }
 
-            // Build invoice message
-            let invoiceText = `🧾 **${companyName}**\n`;
-            invoiceText += `━━━━━━━━━━━━━━━━━━\n\n`;
-            invoiceText += `📦 **Order Summary:**\n`;
+            // Build receipt items for Facebook Receipt Template
+            const receiptElements = cart.map((item: any) => ({
+                title: item.productName,
+                subtitle: `Qty: ${item.quantity || 1}`,
+                quantity: item.quantity || 1,
+                price: item.productPrice * (item.quantity || 1),
+                currency: 'PHP',
+                image_url: item.productImage || undefined
+            }));
 
-            for (const item of cart) {
-                invoiceText += `• ${item.productName} x${item.quantity} — ₱${(item.productPrice * item.quantity).toLocaleString()}\n`;
-            }
-
-            invoiceText += `\n━━━━━━━━━━━━━━━━━━\n`;
-            invoiceText += `Subtotal: ₱${cartTotal.toLocaleString()}\n`;
-
-            if (showShipping && shippingFee > 0) {
-                invoiceText += `Shipping: ₱${shippingFee.toLocaleString()}\n`;
-            }
+            // Remove undefined image_url
+            receiptElements.forEach((el: any) => {
+                if (!el.image_url) delete el.image_url;
+            });
 
             const grandTotal = cartTotal + (showShipping ? shippingFee : 0);
-            invoiceText += `**Total: ₱${grandTotal.toLocaleString()}**\n\n`;
-            invoiceText += thankYouMessage;
+            const orderNumber = `ORD-${Date.now().toString(36).toUpperCase()}`;
 
-            // Show typing and send invoice
+            // Show typing
             await sendTypingIndicator(context.commenterId, pageAccessToken, 'typing_on');
             await new Promise(resolve => setTimeout(resolve, 800));
             await sendTypingIndicator(context.commenterId, pageAccessToken, 'typing_off');
 
+            // Send Facebook Receipt Template
+            const receiptPayload = {
+                recipient: { id: context.commenterId },
+                message: {
+                    attachment: {
+                        type: 'template',
+                        payload: {
+                            template_type: 'receipt',
+                            recipient_name: context.commenterName || 'Valued Customer',
+                            order_number: orderNumber,
+                            currency: 'PHP',
+                            payment_method: 'Cash on Delivery',
+                            order_url: '',
+                            timestamp: Math.floor(Date.now() / 1000).toString(),
+                            elements: receiptElements,
+                            address: undefined,
+                            summary: {
+                                subtotal: cartTotal,
+                                shipping_cost: showShipping ? shippingFee : 0,
+                                total_tax: 0,
+                                total_cost: grandTotal
+                            },
+                            adjustments: []
+                        }
+                    }
+                },
+                access_token: pageAccessToken
+            };
+
+            // Remove empty fields
+            if (!receiptPayload.message.attachment.payload.order_url) {
+                delete (receiptPayload.message.attachment.payload as any).order_url;
+            }
+            delete (receiptPayload.message.attachment.payload as any).address;
+
+            console.log('    📧 Sending Receipt Template...');
             const response = await fetch(`https://graph.facebook.com/v21.0/me/messages`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    recipient: { id: context.commenterId },
-                    message: { text: invoiceText },
-                    access_token: pageAccessToken
-                })
+                body: JSON.stringify(receiptPayload)
             });
 
             const result = await response.json();
             if (result.error) {
-                console.error('    ✗ Facebook API error:', result.error.message);
+                console.error('    ✗ Receipt Template error:', result.error.message);
+                console.log('    ↩️ Falling back to text message...');
+
+                // Fallback to plain text if Receipt Template fails
+                let invoiceText = `🧾 **${companyName}**\n`;
+                invoiceText += `Order #${orderNumber}\n`;
+                invoiceText += `━━━━━━━━━━━━━━━━━━\n\n`;
+
+                for (const item of cart) {
+                    invoiceText += `📦 ${item.productName} x${item.quantity || 1}\n`;
+                    invoiceText += `   ₱${(item.productPrice * (item.quantity || 1)).toLocaleString()}\n\n`;
+                }
+
+                invoiceText += `━━━━━━━━━━━━━━━━━━\n`;
+                invoiceText += `Subtotal: ₱${cartTotal.toLocaleString()}\n`;
+                if (showShipping && shippingFee > 0) {
+                    invoiceText += `Shipping: ₱${shippingFee.toLocaleString()}\n`;
+                }
+                invoiceText += `**TOTAL: ₱${grandTotal.toLocaleString()}**\n\n`;
+                invoiceText += thankYouMessage;
+
+                await fetch(`https://graph.facebook.com/v21.0/me/messages`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        recipient: { id: context.commenterId },
+                        message: { text: invoiceText },
+                        access_token: pageAccessToken
+                    })
+                });
             } else {
-                console.log('    ✓ Cart invoice sent successfully!');
+                console.log('    ✓ Receipt sent successfully!');
             }
+
+            // Send thank you message separately
+            await new Promise(resolve => setTimeout(resolve, 500));
+            await fetch(`https://graph.facebook.com/v21.0/me/messages`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    recipient: { id: context.commenterId },
+                    message: { text: thankYouMessage },
+                    access_token: pageAccessToken
+                })
+            });
         } catch (error: any) {
             console.error('    ✗ Exception sending cart invoice:', error.message);
         }
