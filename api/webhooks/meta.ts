@@ -27,13 +27,17 @@ async function saveOrUpdateSubscriber(
     console.log(`    👤 Saving/updating subscriber: ${userName} (${userId})`);
 
     try {
-        // Check if subscriber already exists
-        const { data: existingSubscriber } = await supabase
+        // Check if subscriber already exists - use maybeSingle to avoid error when not found
+        const { data: existingSubscriber, error: lookupError } = await supabase
             .from('subscribers')
-            .select('id, name, avatar_url, labels, source')
+            .select('id, name, avatar_url, labels, source, metadata')
             .eq('workspace_id', workspaceId)
             .eq('external_id', userId)
-            .single();
+            .maybeSingle();
+
+        if (lookupError) {
+            console.log(`    ⚠️ Subscriber lookup error (non-fatal):`, lookupError.message);
+        }
 
         const now = new Date().toISOString();
 
@@ -116,7 +120,8 @@ async function saveOrUpdateSubscriber(
             // Create new subscriber
             const sourceLabel = source === 'COMMENT' ? 'Commenter' : source === 'MESSAGE' ? 'Messaged' : 'Button Click';
 
-            const { error: insertError } = await supabase
+            console.log(`    📝 Inserting new subscriber: workspace_id=${workspaceId}, page_id=${pageId}, external_id=${userId}`);
+            const { data: insertData, error: insertError } = await supabase
                 .from('subscribers')
                 .insert({
                     workspace_id: workspaceId,
@@ -130,16 +135,22 @@ async function saveOrUpdateSubscriber(
                     tags: [],
                     labels: [sourceLabel],
                     source: source,
-                    last_active_at: now
-                });
+                    last_active_at: now,
+                    metadata: {}  // Initialize metadata column with empty object
+                })
+                .select();
 
             if (insertError) {
                 // Could be duplicate key from race condition, ignore
                 if (insertError.code !== '23505') {
-                    console.error('    ✗ Error creating subscriber:', insertError);
+                    console.error('    ✗ Error creating subscriber:', insertError.message);
+                    console.error('    ✗ Error code:', insertError.code);
+                    console.error('    ✗ Error details:', insertError.details);
+                } else {
+                    console.log('    ℹ️ Subscriber already exists (race condition), continuing...');
                 }
             } else {
-                console.log(`    ✓ New subscriber created: ${userName}`);
+                console.log(`    ✓ New subscriber created: ${userName} (ID: ${insertData?.[0]?.id || 'unknown'})`);
             }
         }
     } catch (error) {
