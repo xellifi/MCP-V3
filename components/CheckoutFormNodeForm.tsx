@@ -1,23 +1,17 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
-    Phone, Mail, MapPin, CreditCard, Type, Plus, Trash2, Check, GripVertical
+    MapPin, CreditCard, Globe, Shield, Clock, Check, Plus, Trash2, GripVertical
 } from 'lucide-react';
 import CollapsibleTips from './CollapsibleTips';
 
 interface CheckoutFormNodeFormProps {
     workspaceId: string;
     initialConfig?: {
-        // Fields to collect
-        collectPhone?: boolean;
-        collectEmail?: boolean;
-        collectAddress?: boolean;
-        collectPaymentMethod?: boolean;
-        // Field prompts
-        phonePrompt?: string;
-        emailPrompt?: string;
-        addressPrompt?: string;
-        paymentPrompt?: string;
-        // Payment options
+        // Facebook native form settings
+        countries?: string[];
+        privacyUrl?: string;
+        expiresInDays?: number;
+        // Payment options (sent after shipping form)
         paymentMethods?: string[];
         // Thank you message after form completion
         thankYouMessage?: string;
@@ -27,24 +21,32 @@ interface CheckoutFormNodeFormProps {
 
 const DEFAULT_PAYMENT_METHODS = ['Cash on Delivery', 'GCash', 'Bank Transfer'];
 
+const COUNTRY_OPTIONS = [
+    { code: 'PH', name: 'Philippines' },
+    { code: 'US', name: 'United States' },
+    { code: 'CA', name: 'Canada' },
+    { code: 'GB', name: 'United Kingdom' },
+    { code: 'AU', name: 'Australia' },
+    { code: 'SG', name: 'Singapore' },
+    { code: 'MY', name: 'Malaysia' },
+    { code: 'ID', name: 'Indonesia' },
+    { code: 'TH', name: 'Thailand' },
+    { code: 'VN', name: 'Vietnam' },
+    { code: 'JP', name: 'Japan' },
+    { code: 'KR', name: 'South Korea' }
+];
+
 const CheckoutFormNodeForm: React.FC<CheckoutFormNodeFormProps> = ({
     workspaceId,
     initialConfig,
     onChange
 }) => {
-    // Field toggles
-    const [collectPhone, setCollectPhone] = useState(initialConfig?.collectPhone ?? true);
-    const [collectEmail, setCollectEmail] = useState(initialConfig?.collectEmail ?? true);
-    const [collectAddress, setCollectAddress] = useState(initialConfig?.collectAddress ?? true);
-    const [collectPaymentMethod, setCollectPaymentMethod] = useState(initialConfig?.collectPaymentMethod ?? true);
+    // Facebook form settings
+    const [countries, setCountries] = useState<string[]>(initialConfig?.countries || ['PH']);
+    const [privacyUrl, setPrivacyUrl] = useState(initialConfig?.privacyUrl || '');
+    const [expiresInDays, setExpiresInDays] = useState(initialConfig?.expiresInDays || 7);
 
-    // Prompts
-    const [phonePrompt, setPhonePrompt] = useState(initialConfig?.phonePrompt || '📱 Please enter your mobile number:');
-    const [emailPrompt, setEmailPrompt] = useState(initialConfig?.emailPrompt || '📧 Please enter your email address:');
-    const [addressPrompt, setAddressPrompt] = useState(initialConfig?.addressPrompt || '📍 Please enter your complete delivery address:');
-    const [paymentPrompt, setPaymentPrompt] = useState(initialConfig?.paymentPrompt || '💳 How would you like to pay?');
-
-    // Payment methods
+    // Payment methods (shown after form submission)
     const [paymentMethods, setPaymentMethods] = useState<string[]>(
         initialConfig?.paymentMethods || DEFAULT_PAYMENT_METHODS
     );
@@ -52,27 +54,35 @@ const CheckoutFormNodeForm: React.FC<CheckoutFormNodeFormProps> = ({
 
     // Thank you message
     const [thankYouMessage, setThankYouMessage] = useState(
-        initialConfig?.thankYouMessage || '✅ Thank you! Your information has been saved. Processing your order...'
+        initialConfig?.thankYouMessage || '✅ Thank you! Your shipping information has been saved. Processing your order...'
     );
 
     // Active section
-    const [activeSection, setActiveSection] = useState<string>('fields');
+    const [activeSection, setActiveSection] = useState<string>('shipping');
 
     // Notify parent of changes
     const notifyChange = (updates: Partial<typeof initialConfig> = {}) => {
         onChange({
-            collectPhone,
-            collectEmail,
-            collectAddress,
-            collectPaymentMethod,
-            phonePrompt,
-            emailPrompt,
-            addressPrompt,
-            paymentPrompt,
+            countries,
+            privacyUrl,
+            expiresInDays,
             paymentMethods,
             thankYouMessage,
             ...updates
         });
+    };
+
+    // Toggle country
+    const toggleCountry = (code: string) => {
+        let updated: string[];
+        if (countries.includes(code)) {
+            updated = countries.filter(c => c !== code);
+            if (updated.length === 0) updated = ['PH']; // Must have at least one
+        } else {
+            updated = [...countries, code];
+        }
+        setCountries(updated);
+        notifyChange({ countries: updated });
     };
 
     // Add payment method
@@ -128,175 +138,151 @@ const CheckoutFormNodeForm: React.FC<CheckoutFormNodeFormProps> = ({
         </button>
     );
 
-    // Toggle switch component
-    const ToggleSwitch = ({
-        label,
-        checked,
-        onChange: onToggle,
-        icon: Icon
-    }: {
-        label: string;
-        checked: boolean;
-        onChange: (val: boolean) => void;
-        icon: React.ElementType;
-    }) => (
-        <div className="flex items-center justify-between p-3 bg-black/20 rounded-xl border border-white/10">
-            <div className="flex items-center gap-2">
-                <Icon className="w-4 h-4 text-slate-400" />
-                <span className="text-sm text-white">{label}</span>
-            </div>
-            <button
-                onClick={() => onToggle(!checked)}
-                className={`w-12 h-6 rounded-full transition-all ${checked ? 'bg-emerald-500' : 'bg-slate-600'}`}
-            >
-                <div className={`w-5 h-5 bg-white rounded-full shadow transition-transform ${checked ? 'translate-x-6' : 'translate-x-0.5'}`} />
-            </button>
-        </div>
-    );
-
     // Configuration Form JSX
     const configFormJSX = useMemo(() => (
         <div className="space-y-3">
-            {/* Fields Section */}
-            <div className="space-y-3">
-                <SectionHeader id="fields" icon={Check} title="Fields to Collect" color="emerald" />
-                {activeSection === 'fields' && (
-                    <div className="space-y-3 p-4 bg-black/20 rounded-xl border border-white/10 animate-fade-in">
-                        <ToggleSwitch
-                            label="Mobile Number"
-                            checked={collectPhone}
-                            onChange={(val) => { setCollectPhone(val); notifyChange({ collectPhone: val }); }}
-                            icon={Phone}
-                        />
-                        <ToggleSwitch
-                            label="Email Address"
-                            checked={collectEmail}
-                            onChange={(val) => { setCollectEmail(val); notifyChange({ collectEmail: val }); }}
-                            icon={Mail}
-                        />
-                        <ToggleSwitch
-                            label="Delivery Address"
-                            checked={collectAddress}
-                            onChange={(val) => { setCollectAddress(val); notifyChange({ collectAddress: val }); }}
-                            icon={MapPin}
-                        />
-                        <ToggleSwitch
-                            label="Payment Method"
-                            checked={collectPaymentMethod}
-                            onChange={(val) => { setCollectPaymentMethod(val); notifyChange({ collectPaymentMethod: val }); }}
-                            icon={CreditCard}
-                        />
+            {/* Info Banner */}
+            <div className="p-4 bg-indigo-500/10 border border-indigo-500/20 rounded-xl">
+                <div className="flex items-start gap-3">
+                    <div className="p-2 bg-indigo-500/20 rounded-lg">
+                        <MapPin className="w-5 h-5 text-indigo-400" />
                     </div>
-                )}
+                    <div>
+                        <h3 className="font-semibold text-indigo-300">Facebook Native Shipping Form</h3>
+                        <p className="text-xs text-slate-400 mt-1">
+                            This node uses Facebook's built-in shipping address form. Customers fill a professional form within Messenger that collects their name, address, and phone number.
+                        </p>
+                    </div>
+                </div>
             </div>
 
-            {/* Prompts Section */}
+            {/* Shipping Form Settings */}
             <div className="space-y-3">
-                <SectionHeader id="prompts" icon={Type} title="Custom Prompts" color="blue" />
-                {activeSection === 'prompts' && (
+                <SectionHeader id="shipping" icon={Globe} title="Shipping Form Settings" color="emerald" />
+                {activeSection === 'shipping' && (
                     <div className="space-y-4 p-4 bg-black/20 rounded-xl border border-white/10 animate-fade-in">
-                        {collectPhone && (
-                            <div>
-                                <label className="block text-sm font-medium text-slate-300 mb-2">Phone Prompt</label>
-                                <input
-                                    type="text"
-                                    value={phonePrompt}
-                                    onChange={(e) => { setPhonePrompt(e.target.value); notifyChange({ phonePrompt: e.target.value }); }}
-                                    className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-emerald-500/50 outline-none transition-all placeholder-slate-500"
-                                />
+                        {/* Countries */}
+                        <div>
+                            <label className="block text-sm font-medium text-slate-300 mb-2">
+                                Allowed Countries
+                            </label>
+                            <div className="grid grid-cols-2 gap-2">
+                                {COUNTRY_OPTIONS.map(country => (
+                                    <button
+                                        key={country.code}
+                                        onClick={() => toggleCountry(country.code)}
+                                        className={`px-3 py-2 rounded-lg border text-sm transition-all ${countries.includes(country.code)
+                                                ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-300'
+                                                : 'bg-black/30 border-white/10 text-slate-400 hover:bg-white/5'
+                                            }`}
+                                    >
+                                        {countries.includes(country.code) && <Check className="w-3 h-3 inline mr-1" />}
+                                        {country.name}
+                                    </button>
+                                ))}
                             </div>
-                        )}
-                        {collectEmail && (
-                            <div>
-                                <label className="block text-sm font-medium text-slate-300 mb-2">Email Prompt</label>
-                                <input
-                                    type="text"
-                                    value={emailPrompt}
-                                    onChange={(e) => { setEmailPrompt(e.target.value); notifyChange({ emailPrompt: e.target.value }); }}
-                                    className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-emerald-500/50 outline-none transition-all placeholder-slate-500"
-                                />
-                            </div>
-                        )}
-                        {collectAddress && (
-                            <div>
-                                <label className="block text-sm font-medium text-slate-300 mb-2">Address Prompt</label>
-                                <input
-                                    type="text"
-                                    value={addressPrompt}
-                                    onChange={(e) => { setAddressPrompt(e.target.value); notifyChange({ addressPrompt: e.target.value }); }}
-                                    className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-emerald-500/50 outline-none transition-all placeholder-slate-500"
-                                />
-                            </div>
-                        )}
-                        {collectPaymentMethod && (
-                            <div>
-                                <label className="block text-sm font-medium text-slate-300 mb-2">Payment Prompt</label>
-                                <input
-                                    type="text"
-                                    value={paymentPrompt}
-                                    onChange={(e) => { setPaymentPrompt(e.target.value); notifyChange({ paymentPrompt: e.target.value }); }}
-                                    className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-emerald-500/50 outline-none transition-all placeholder-slate-500"
-                                />
-                            </div>
-                        )}
+                            <p className="mt-2 text-xs text-slate-500">
+                                Select countries where you can ship orders
+                            </p>
+                        </div>
+
+                        {/* Expires in Days */}
+                        <div>
+                            <label className="block text-sm font-medium text-slate-300 mb-2">
+                                <Clock className="w-4 h-4 inline mr-1" />
+                                Form Expires In (Days)
+                            </label>
+                            <select
+                                value={expiresInDays}
+                                onChange={(e) => {
+                                    const val = parseInt(e.target.value);
+                                    setExpiresInDays(val);
+                                    notifyChange({ expiresInDays: val });
+                                }}
+                                className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-emerald-500/50 outline-none"
+                            >
+                                {[1, 2, 3, 4, 5, 6, 7].map(d => (
+                                    <option key={d} value={d}>{d} day{d > 1 ? 's' : ''}</option>
+                                ))}
+                            </select>
+                            <p className="mt-1 text-xs text-slate-500">
+                                How long until the form request expires
+                            </p>
+                        </div>
+
+                        {/* Privacy Policy URL */}
+                        <div>
+                            <label className="block text-sm font-medium text-slate-300 mb-2">
+                                <Shield className="w-4 h-4 inline mr-1" />
+                                Privacy Policy URL (Optional)
+                            </label>
+                            <input
+                                type="url"
+                                value={privacyUrl}
+                                onChange={(e) => { setPrivacyUrl(e.target.value); notifyChange({ privacyUrl: e.target.value }); }}
+                                placeholder="https://yoursite.com/privacy"
+                                className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-emerald-500/50 outline-none transition-all placeholder-slate-500"
+                            />
+                            <p className="mt-1 text-xs text-slate-500">
+                                Link to your privacy policy (uses Facebook's if empty)
+                            </p>
+                        </div>
                     </div>
                 )}
             </div>
 
             {/* Payment Methods Section */}
-            {collectPaymentMethod && (
-                <div className="space-y-3">
-                    <SectionHeader id="payment" icon={CreditCard} title="Payment Methods" color="purple" />
-                    {activeSection === 'payment' && (
-                        <div className="space-y-4 p-4 bg-black/20 rounded-xl border border-white/10 animate-fade-in">
-                            <p className="text-xs text-slate-400">
-                                Configure the payment options that will be shown as quick reply buttons.
-                            </p>
+            <div className="space-y-3">
+                <SectionHeader id="payment" icon={CreditCard} title="Payment Methods" color="purple" />
+                {activeSection === 'payment' && (
+                    <div className="space-y-4 p-4 bg-black/20 rounded-xl border border-white/10 animate-fade-in">
+                        <p className="text-xs text-slate-400">
+                            After the shipping form is submitted, these payment options will be shown as quick reply buttons.
+                        </p>
 
-                            {/* Payment methods list */}
-                            <div className="space-y-2">
-                                {paymentMethods.map((method, index) => (
-                                    <div
-                                        key={index}
-                                        className="flex items-center gap-2 p-3 bg-black/30 rounded-xl border border-white/10"
-                                    >
-                                        <GripVertical className="w-4 h-4 text-slate-500" />
-                                        <span className="flex-1 text-white text-sm">{method}</span>
-                                        <button
-                                            onClick={() => removePaymentMethod(index)}
-                                            className="p-1 hover:bg-red-500/20 rounded transition-colors"
-                                        >
-                                            <Trash2 className="w-4 h-4 text-red-400" />
-                                        </button>
-                                    </div>
-                                ))}
-                            </div>
-
-                            {/* Add new payment method */}
-                            <div className="flex gap-2">
-                                <input
-                                    type="text"
-                                    value={newPaymentMethod}
-                                    onChange={(e) => setNewPaymentMethod(e.target.value)}
-                                    onKeyPress={(e) => e.key === 'Enter' && addPaymentMethod()}
-                                    placeholder="Add payment method..."
-                                    className="flex-1 bg-black/30 border border-white/10 rounded-xl px-4 py-2 text-white focus:ring-2 focus:ring-purple-500/50 outline-none transition-all placeholder-slate-500 text-sm"
-                                />
-                                <button
-                                    onClick={addPaymentMethod}
-                                    className="px-4 py-2 bg-purple-500/20 border border-purple-500/30 rounded-xl text-purple-300 hover:bg-purple-500/30 transition-colors"
+                        {/* Payment methods list */}
+                        <div className="space-y-2">
+                            {paymentMethods.map((method, index) => (
+                                <div
+                                    key={index}
+                                    className="flex items-center gap-2 p-3 bg-black/30 rounded-xl border border-white/10"
                                 >
-                                    <Plus className="w-4 h-4" />
-                                </button>
-                            </div>
+                                    <GripVertical className="w-4 h-4 text-slate-500" />
+                                    <span className="flex-1 text-white text-sm">{method}</span>
+                                    <button
+                                        onClick={() => removePaymentMethod(index)}
+                                        className="p-1 hover:bg-red-500/20 rounded transition-colors"
+                                    >
+                                        <Trash2 className="w-4 h-4 text-red-400" />
+                                    </button>
+                                </div>
+                            ))}
                         </div>
-                    )}
-                </div>
-            )}
+
+                        {/* Add new payment method */}
+                        <div className="flex gap-2">
+                            <input
+                                type="text"
+                                value={newPaymentMethod}
+                                onChange={(e) => setNewPaymentMethod(e.target.value)}
+                                onKeyPress={(e) => e.key === 'Enter' && addPaymentMethod()}
+                                placeholder="Add payment method..."
+                                className="flex-1 bg-black/30 border border-white/10 rounded-xl px-4 py-2 text-white focus:ring-2 focus:ring-purple-500/50 outline-none transition-all placeholder-slate-500 text-sm"
+                            />
+                            <button
+                                onClick={addPaymentMethod}
+                                className="px-4 py-2 bg-purple-500/20 border border-purple-500/30 rounded-xl text-purple-300 hover:bg-purple-500/30 transition-colors"
+                            >
+                                <Plus className="w-4 h-4" />
+                            </button>
+                        </div>
+                    </div>
+                )}
+            </div>
 
             {/* Thank You Message Section */}
             <div className="space-y-3">
-                <SectionHeader id="thankyou" icon={Check} title="Completion Message" color="teal" />
+                <SectionHeader id="thankyou" icon={Check} title="Confirmation Message" color="teal" />
                 {activeSection === 'thankyou' && (
                     <div className="space-y-4 p-4 bg-black/20 rounded-xl border border-white/10 animate-fade-in">
                         <div>
@@ -308,7 +294,7 @@ const CheckoutFormNodeForm: React.FC<CheckoutFormNodeFormProps> = ({
                                 className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-teal-500/50 outline-none transition-all placeholder-slate-500 resize-none"
                             />
                             <p className="mt-1 text-xs text-slate-500">
-                                Shown after all information is collected
+                                Shown after customer submits shipping information
                             </p>
                         </div>
                     </div>
@@ -316,16 +302,17 @@ const CheckoutFormNodeForm: React.FC<CheckoutFormNodeFormProps> = ({
             </div>
 
             {/* Tips */}
-            <CollapsibleTips title="Tips & Best Practices" color="green">
-                <ul className="text-sm space-y-1.5">
-                    <li>• Keep prompts short and clear</li>
-                    <li>• Phone numbers help with order follow-up</li>
-                    <li>• Email allows sending order confirmations</li>
-                    <li>• Offer popular payment methods like COD and GCash</li>
-                </ul>
+            <CollapsibleTips title="How It Works" color="green">
+                <ol className="text-sm space-y-2 list-decimal list-inside">
+                    <li>Customer sees Facebook's native shipping form</li>
+                    <li>Form collects: Name, Address, City, Province, Postal Code, Phone</li>
+                    <li>Customer fills and submits (pre-fills from Facebook if saved)</li>
+                    <li>Thank you message is sent</li>
+                    <li>Flow continues to Invoice/Cart Sheet nodes</li>
+                </ol>
             </CollapsibleTips>
         </div>
-    ), [activeSection, collectPhone, collectEmail, collectAddress, collectPaymentMethod, phonePrompt, emailPrompt, addressPrompt, paymentPrompt, paymentMethods, newPaymentMethod, thankYouMessage]);
+    ), [activeSection, countries, privacyUrl, expiresInDays, paymentMethods, newPaymentMethod, thankYouMessage]);
 
     return (
         <div className="space-y-4">

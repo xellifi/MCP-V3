@@ -494,6 +494,11 @@ async function handleWebhookEvent(eventData: any, res: VercelResponse) {
                 if (messaging.message && messaging.message.text) {
                     await processTextMessage(messaging, pageId);
                 }
+
+                // Handle Facebook native customer_information form submissions
+                if (messaging.customer_information) {
+                    await processCustomerInformation(messaging, pageId);
+                }
             }
         }
 
@@ -1367,6 +1372,150 @@ async function processPostback(messagingEvent: any, pageId: string) {
     }
 
     console.log('✗ No matching Start node found for payload:', payload);
+}
+
+// Process Facebook native customer_information form submissions
+async function processCustomerInformation(messagingEvent: any, pageId: string) {
+    console.log('\n--- Processing Customer Information Form Submission ---');
+    console.log('Messaging event:', JSON.stringify(messagingEvent, null, 2));
+
+    const senderId = messagingEvent.sender.id;
+    const customerInfo = messagingEvent.customer_information;
+
+    console.log(`Customer form submitted by: ${senderId}`);
+    console.log(`Customer info:`, JSON.stringify(customerInfo, null, 2));
+
+    // Extract shipping address details from the form
+    const shippingAddress = customerInfo.shipping_address || {};
+    const buyerName = shippingAddress.name || '';
+    const buyerPhone = shippingAddress.phone_number || '';
+    const street1 = shippingAddress.street_1 || '';
+    const street2 = shippingAddress.street_2 || '';
+    const city = shippingAddress.city || '';
+    const state = shippingAddress.state || '';
+    const country = shippingAddress.country || '';
+    const postalCode = shippingAddress.postal_code || '';
+
+    // Combine address into a single string
+    const buyerAddress = [street1, street2, city, state, postalCode, country]
+        .filter(Boolean)
+        .join(', ');
+
+    console.log(`  Name: ${buyerName}`);
+    console.log(`  Phone: ${buyerPhone}`);
+    console.log(`  Address: ${buyerAddress}`);
+
+    // Get page details from connected_pages
+    const { data: page, error: pageError } = await supabase
+        .from('connected_pages')
+        .select('*, workspaces!inner(id)')
+        .eq('page_id', pageId)
+        .single();
+
+    if (pageError || !page) {
+        console.error('✗ Page not found');
+        return;
+    }
+
+    const workspaceId = (page as any).workspaces.id;
+    const pageAccessToken = (page as any).page_access_token;
+    const pageDbId = (page as any).id;
+
+    // Get subscriber and their checkout form state
+    const { data: subscriber } = await supabase
+        .from('subscribers')
+        .select('id, metadata')
+        .eq('external_id', senderId)
+        .eq('workspace_id', workspaceId)
+        .maybeSingle();
+
+    if (!subscriber?.metadata?.checkoutFormState) {
+        console.log('✗ No checkout form state found for subscriber');
+        return;
+    }
+
+    const formState = subscriber.metadata.checkoutFormState;
+    console.log(`  Form node: ${formState.formNodeId}`);
+    console.log(`  Flow ID: ${formState.flowId}`);
+
+    // Update subscriber metadata with collected info and clear form state
+    const updatedMetadata = {
+        ...subscriber.metadata,
+        checkoutFormState: null, // Clear form state
+        buyerName,
+        buyerPhone,
+        buyerAddress,
+        shippingAddress // Store full structured address
+    };
+
+    await supabase
+        .from('subscribers')
+        .update({ metadata: updatedMetadata })
+        .eq('id', subscriber.id);
+
+    console.log('  ✓ Customer information saved to subscriber metadata');
+
+    // Send thank you message
+    await fetch(`https://graph.facebook.com/v21.0/me/messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            recipient: { id: senderId },
+            message: { text: formState.thankYouMessage || '✅ Thank you! Your information has been saved.' },
+            access_token: pageAccessToken
+        })
+    });
+
+    // Continue flow to next node
+    const { data: flow } = await supabase
+        .from('flows')
+        .select('*')
+        .eq('id', formState.flowId)
+        .single();
+
+    if (flow) {
+        const nodes = flow.nodes || [];
+        const edges = flow.edges || [];
+        const configurations = flow.configurations || {};
+
+        // Find outgoing edges from checkout form node
+        const outgoingEdges = edges.filter((e: any) => e.source === formState.formNodeId);
+        const userName = await fetchUserName(senderId, pageAccessToken);
+
+        for (const edge of outgoingEdges) {
+            const targetNode = nodes.find((n: any) => n.id === edge.target);
+            if (targetNode) {
+                console.log(`  → Continuing flow to: ${targetNode.data?.label}`);
+                await executeFlowFromNode(
+                    targetNode,
+                    nodes,
+                    edges,
+                    configurations,
+                    {
+                        commenterId: senderId,
+                        commenterName: userName,
+                        commentText: 'Customer information submitted',
+                        pageId: pageId,
+                        pageName: (page as any).name || 'Page',
+                        postId: '',
+                        commentId: `customer_info_${Date.now()}`,
+                        workspaceId,
+                        pageDbId,
+                        cart: subscriber.metadata?.cart || [],
+                        cartTotal: subscriber.metadata?.cartTotal || 0,
+                        buyerName,
+                        buyerPhone,
+                        buyerAddress
+                    },
+                    pageAccessToken,
+                    flow.id,
+                    `customer_info_complete_${Date.now()}`
+                );
+            }
+        }
+    }
+
+    console.log('  ✓ Customer information form processing complete');
 }
 
 // Process incoming text message (for Start node triggers)
@@ -3593,17 +3742,12 @@ async function executeAction(
         return; // Stop execution - wait for checkout button click
     }
 
-    // Checkout Form Node - collect buyer information (phone, email, address, payment method)
+    // Checkout Form Node - use Facebook's native customer_information template
     if (nodeType === 'checkoutFormNode') {
-        console.log(`    ✓ Detected as Checkout Form Node`);
-        const collectPhone = config.collectPhone ?? true;
-        const collectEmail = config.collectEmail ?? true;
-        const collectAddress = config.collectAddress ?? true;
-        const collectPaymentMethod = config.collectPaymentMethod ?? true;
-        const phonePrompt = config.phonePrompt || '📱 Please enter your mobile number:';
-        const emailPrompt = config.emailPrompt || '📧 Please enter your email address:';
-        const addressPrompt = config.addressPrompt || '📍 Please enter your complete delivery address:';
-        const paymentPrompt = config.paymentPrompt || '💳 How would you like to pay?';
+        console.log(`    ✓ Detected as Checkout Form Node - Using Facebook Native Form`);
+        const privacyUrl = config.privacyUrl || 'https://www.facebook.com/privacy/policy/';
+        const countries = config.countries || ['PH']; // Default to Philippines
+        const expiresInDays = config.expiresInDays || 7;
         const paymentMethods = config.paymentMethods || ['Cash on Delivery', 'GCash', 'Bank Transfer'];
         const thankYouMessage = config.thankYouMessage || '✅ Thank you! Your information has been saved. Processing your order...';
 
@@ -3613,144 +3757,83 @@ async function executeAction(
             const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';
             const supabase = createClient(supabaseUrl, supabaseKey);
 
-            // Determine which field to collect first
-            let firstField: string | null = null;
-            if (collectPhone) firstField = 'phone';
-            else if (collectEmail) firstField = 'email';
-            else if (collectAddress) firstField = 'address';
-            else if (collectPaymentMethod) firstField = 'payment';
-
-            if (!firstField) {
-                console.log('    ⊘ No fields to collect, skipping checkout form');
-                // Send thank you message and continue to next node
-                await fetch(`https://graph.facebook.com/v21.0/me/messages`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        recipient: { id: context.commenterId },
-                        message: { text: thankYouMessage },
-                        access_token: pageAccessToken
-                    })
-                });
-                return; // Continue to next node
-            }
-
-            // Initialize checkout form state in subscriber metadata
-            const checkoutFormState = {
-                formNodeId: node.id,
-                flowId: flowId,
-                currentField: firstField,
-                collectPhone,
-                collectEmail,
-                collectAddress,
-                collectPaymentMethod,
-                phonePrompt,
-                emailPrompt,
-                addressPrompt,
-                paymentPrompt,
-                paymentMethods,
-                thankYouMessage,
-                collectedData: {
-                    phone: '',
-                    email: '',
-                    address: '',
-                    paymentMethod: ''
-                }
-            };
-
-            // Save checkout form state to subscriber metadata
+            // Store checkout form state for webhook callback
             const { data: subscriber } = await supabase
                 .from('subscribers')
                 .select('id, metadata')
                 .eq('external_id', context.commenterId)
                 .eq('workspace_id', context.workspaceId)
-                .single();
+                .maybeSingle();
 
             if (subscriber) {
-                const updatedMetadata = {
-                    ...(subscriber.metadata || {}),
-                    checkoutFormState
+                const checkoutFormState = {
+                    formNodeId: node.id,
+                    flowId: flowId,
+                    paymentMethods,
+                    thankYouMessage,
+                    awaitingNativeForm: true
                 };
 
                 await supabase
                     .from('subscribers')
-                    .update({ metadata: updatedMetadata })
+                    .update({
+                        metadata: {
+                            ...(subscriber.metadata || {}),
+                            checkoutFormState
+                        }
+                    })
                     .eq('id', subscriber.id);
 
-                console.log(`    ✓ Checkout form state saved to subscriber metadata`);
+                console.log(`    ✓ Checkout form state saved for native form callback`);
             }
 
-            await sendTypingIndicator(context.commenterId, pageAccessToken, 'typing_on');
-            await new Promise(resolve => setTimeout(resolve, 500));
-            await sendTypingIndicator(context.commenterId, pageAccessToken, 'typing_off');
+            // Send Facebook's native customer_information template
+            const response = await fetch(`https://graph.facebook.com/v21.0/me/messages`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    recipient: { id: context.commenterId },
+                    message: {
+                        attachment: {
+                            type: 'template',
+                            payload: {
+                                template_type: 'customer_information',
+                                countries: countries,
+                                business_privacy: {
+                                    url: privacyUrl
+                                },
+                                expires_in_days: expiresInDays
+                            }
+                        }
+                    },
+                    access_token: pageAccessToken
+                })
+            });
 
-            // Send the first prompt based on which field we're collecting
-            if (firstField === 'phone') {
+            const result = await response.json();
+            if (result.error) {
+                console.error('    ✗ Facebook API error:', result.error.message);
+                // Fallback to simple text message if template fails
                 await fetch(`https://graph.facebook.com/v21.0/me/messages`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         recipient: { id: context.commenterId },
-                        message: { text: phonePrompt },
+                        message: { text: '📍 Please reply with your complete delivery address including: Full Name, Street Address, City/Municipality, Province, Postal Code, and Mobile Number.' },
                         access_token: pageAccessToken
                     })
                 });
-                console.log('    ✓ Phone prompt sent, waiting for user response...');
-            } else if (firstField === 'email') {
-                await fetch(`https://graph.facebook.com/v21.0/me/messages`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        recipient: { id: context.commenterId },
-                        message: { text: emailPrompt },
-                        access_token: pageAccessToken
-                    })
-                });
-                console.log('    ✓ Email prompt sent, waiting for user response...');
-            } else if (firstField === 'address') {
-                await fetch(`https://graph.facebook.com/v21.0/me/messages`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        recipient: { id: context.commenterId },
-                        message: { text: addressPrompt },
-                        access_token: pageAccessToken
-                    })
-                });
-                console.log('    ✓ Address prompt sent, waiting for user response...');
-            } else if (firstField === 'payment') {
-                // Send payment options as quick replies
-                const quickReplies = paymentMethods.map((method: string) => ({
-                    content_type: 'text',
-                    title: method,
-                    payload: JSON.stringify({
-                        action: 'checkout_form_payment',
-                        method: method,
-                        nodeId: node.id,
-                        flowId: flowId
-                    })
-                }));
-
-                await fetch(`https://graph.facebook.com/v21.0/me/messages`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        recipient: { id: context.commenterId },
-                        message: {
-                            text: paymentPrompt,
-                            quick_replies: quickReplies
-                        },
-                        access_token: pageAccessToken
-                    })
-                });
-                console.log('    ✓ Payment options sent as quick replies, waiting for user selection...');
+                console.log('    ✓ Fallback address prompt sent');
+            } else {
+                console.log('    ✓ Facebook native shipping form sent successfully!');
+                console.log('    ⏸ Waiting for customer to fill and submit the form...');
             }
 
         } catch (error: any) {
             console.error('    ✗ Exception in checkout form:', error.message);
         }
 
-        return; // Stop execution - wait for user to fill the form fields
+        return; // Stop execution - wait for customer to submit the form
     }
 
     // Cart Invoice Node - send cart summary with all items and total
