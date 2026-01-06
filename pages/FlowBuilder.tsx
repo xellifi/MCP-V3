@@ -18,7 +18,7 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Workspace, ConnectedPage } from '../types';
-import { Save, ArrowLeft, PlayCircle, Menu, X, Grid3x3, MessageCircle, Play, Bot, Send, Clock, MousePointer2, SquareMousePointer, Sparkles, GitBranch, MessageSquare, RectangleEllipsis, Plus, Minus, Maximize, Maximize2, Minimize2, Wrench, RotateCcw, Image, Video, FileText, Table, RefreshCw, ShoppingBag, Tag, Receipt, Package, ShoppingCart, Table2 } from 'lucide-react';
+import { Save, ArrowLeft, PlayCircle, Menu, X, Grid3x3, MessageCircle, Play, Bot, Send, Clock, MousePointer2, SquareMousePointer, Sparkles, GitBranch, MessageSquare, RectangleEllipsis, Plus, Minus, Maximize, Maximize2, Minimize2, Wrench, RotateCcw, Image, Video, FileText, Table, RefreshCw, ShoppingBag, Tag, Receipt, Package, ShoppingCart, Table2, ClipboardList } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import NodeConfigModal from '../components/NodeConfigModal';
 import TriggerNodeForm from '../components/TriggerNodeForm';
@@ -42,6 +42,7 @@ import ProductNodeForm from '../components/ProductNodeForm';
 import CartInvoiceNodeForm from '../components/CartInvoiceNodeForm';
 import CartSheetNodeForm from '../components/CartSheetNodeForm';
 import CheckoutNodeForm from '../components/CheckoutNodeForm';
+import CheckoutFormNodeForm from '../components/CheckoutFormNodeForm';
 import CustomEdge from '../components/edges/CustomEdge';
 import CustomTriggerNode from '../components/nodes/CustomTriggerNode';
 import CustomActionNode from '../components/nodes/CustomActionNode';
@@ -63,6 +64,7 @@ import CustomProductNode from '../components/nodes/CustomProductNode';
 import CustomCartInvoiceNode from '../components/nodes/CustomCartInvoiceNode';
 import CustomCartSheetNode from '../components/nodes/CustomCartSheetNode';
 import CustomCheckoutNode from '../components/nodes/CustomCheckoutNode';
+import CustomCheckoutFormNode from '../components/nodes/CustomCheckoutFormNode';
 import { api } from '../services/api';
 import { supabase } from '../lib/supabase';
 // Import node configuration registry
@@ -100,6 +102,7 @@ const nodeTypes: NodeTypes = {
   cartInvoiceNode: CustomCartInvoiceNode,
   cartSheetNode: CustomCartSheetNode,
   checkoutNode: CustomCheckoutNode,
+  checkoutFormNode: CustomCheckoutFormNode,
 };
 
 // Define custom edge types
@@ -1677,6 +1680,17 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
       );
     }
 
+    // Checkout Form Node (must check BEFORE checkout node due to label overlap)
+    if (nodeType === 'checkoutFormNode' || label.toLowerCase().includes('checkout form')) {
+      return (
+        <CheckoutFormNodeForm
+          workspaceId={workspace?.id || ''}
+          initialConfig={initialConfigRef.current}
+          onChange={handleConfigChange}
+        />
+      );
+    }
+
     // Checkout Node
     if (nodeType === 'checkoutNode' || label.toLowerCase().includes('checkout')) {
       return (
@@ -2077,6 +2091,11 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
               className="group relative w-10 h-10 bg-emerald-500/20 hover:bg-emerald-500/40 border border-emerald-500/30 rounded-xl flex items-center justify-center text-emerald-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
               <ShoppingCart className="w-5 h-5" />
               <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">Checkout</span>
+            </div>
+            <div draggable onDragStart={(e) => onDragStart(e, 'checkoutFormNode', 'Checkout Form')} onClick={() => addNode('checkoutFormNode', 'Checkout Form')}
+              className="group relative w-10 h-10 bg-indigo-500/20 hover:bg-indigo-500/40 border border-indigo-500/30 rounded-xl flex items-center justify-center text-indigo-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
+              <ClipboardList className="w-5 h-5" />
+              <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">Checkout Form</span>
             </div>
           </div>
         </div>

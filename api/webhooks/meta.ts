@@ -3402,6 +3402,166 @@ async function executeAction(
         return; // Stop execution - wait for checkout button click
     }
 
+    // Checkout Form Node - collect buyer information (phone, email, address, payment method)
+    if (nodeType === 'checkoutFormNode') {
+        console.log(`    ✓ Detected as Checkout Form Node`);
+        const collectPhone = config.collectPhone ?? true;
+        const collectEmail = config.collectEmail ?? true;
+        const collectAddress = config.collectAddress ?? true;
+        const collectPaymentMethod = config.collectPaymentMethod ?? true;
+        const phonePrompt = config.phonePrompt || '📱 Please enter your mobile number:';
+        const emailPrompt = config.emailPrompt || '📧 Please enter your email address:';
+        const addressPrompt = config.addressPrompt || '📍 Please enter your complete delivery address:';
+        const paymentPrompt = config.paymentPrompt || '💳 How would you like to pay?';
+        const paymentMethods = config.paymentMethods || ['Cash on Delivery', 'GCash', 'Bank Transfer'];
+        const thankYouMessage = config.thankYouMessage || '✅ Thank you! Your information has been saved. Processing your order...';
+
+        try {
+            const { createClient } = await import('@supabase/supabase-js');
+            const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '';
+            const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';
+            const supabase = createClient(supabaseUrl, supabaseKey);
+
+            // Determine which field to collect first
+            let firstField: string | null = null;
+            if (collectPhone) firstField = 'phone';
+            else if (collectEmail) firstField = 'email';
+            else if (collectAddress) firstField = 'address';
+            else if (collectPaymentMethod) firstField = 'payment';
+
+            if (!firstField) {
+                console.log('    ⊘ No fields to collect, skipping checkout form');
+                // Send thank you message and continue to next node
+                await fetch(`https://graph.facebook.com/v21.0/me/messages`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        recipient: { id: context.commenterId },
+                        message: { text: thankYouMessage },
+                        access_token: pageAccessToken
+                    })
+                });
+                return; // Continue to next node
+            }
+
+            // Initialize checkout form state in subscriber metadata
+            const checkoutFormState = {
+                formNodeId: node.id,
+                flowId: flowId,
+                currentField: firstField,
+                collectPhone,
+                collectEmail,
+                collectAddress,
+                collectPaymentMethod,
+                phonePrompt,
+                emailPrompt,
+                addressPrompt,
+                paymentPrompt,
+                paymentMethods,
+                thankYouMessage,
+                collectedData: {
+                    phone: '',
+                    email: '',
+                    address: '',
+                    paymentMethod: ''
+                }
+            };
+
+            // Save checkout form state to subscriber metadata
+            const { data: subscriber } = await supabase
+                .from('subscribers')
+                .select('id, metadata')
+                .eq('external_id', context.commenterId)
+                .eq('workspace_id', context.workspaceId)
+                .single();
+
+            if (subscriber) {
+                const updatedMetadata = {
+                    ...(subscriber.metadata || {}),
+                    checkoutFormState
+                };
+
+                await supabase
+                    .from('subscribers')
+                    .update({ metadata: updatedMetadata })
+                    .eq('id', subscriber.id);
+
+                console.log(`    ✓ Checkout form state saved to subscriber metadata`);
+            }
+
+            await sendTypingIndicator(context.commenterId, pageAccessToken, 'typing_on');
+            await new Promise(resolve => setTimeout(resolve, 500));
+            await sendTypingIndicator(context.commenterId, pageAccessToken, 'typing_off');
+
+            // Send the first prompt based on which field we're collecting
+            if (firstField === 'phone') {
+                await fetch(`https://graph.facebook.com/v21.0/me/messages`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        recipient: { id: context.commenterId },
+                        message: { text: phonePrompt },
+                        access_token: pageAccessToken
+                    })
+                });
+                console.log('    ✓ Phone prompt sent, waiting for user response...');
+            } else if (firstField === 'email') {
+                await fetch(`https://graph.facebook.com/v21.0/me/messages`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        recipient: { id: context.commenterId },
+                        message: { text: emailPrompt },
+                        access_token: pageAccessToken
+                    })
+                });
+                console.log('    ✓ Email prompt sent, waiting for user response...');
+            } else if (firstField === 'address') {
+                await fetch(`https://graph.facebook.com/v21.0/me/messages`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        recipient: { id: context.commenterId },
+                        message: { text: addressPrompt },
+                        access_token: pageAccessToken
+                    })
+                });
+                console.log('    ✓ Address prompt sent, waiting for user response...');
+            } else if (firstField === 'payment') {
+                // Send payment options as quick replies
+                const quickReplies = paymentMethods.map((method: string) => ({
+                    content_type: 'text',
+                    title: method,
+                    payload: JSON.stringify({
+                        action: 'checkout_form_payment',
+                        method: method,
+                        nodeId: node.id,
+                        flowId: flowId
+                    })
+                }));
+
+                await fetch(`https://graph.facebook.com/v21.0/me/messages`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        recipient: { id: context.commenterId },
+                        message: {
+                            text: paymentPrompt,
+                            quick_replies: quickReplies
+                        },
+                        access_token: pageAccessToken
+                    })
+                });
+                console.log('    ✓ Payment options sent as quick replies, waiting for user selection...');
+            }
+
+        } catch (error: any) {
+            console.error('    ✗ Exception in checkout form:', error.message);
+        }
+
+        return; // Stop execution - wait for user to fill the form fields
+    }
+
     // Cart Invoice Node - send cart summary with all items and total
     if (nodeType === 'cartInvoiceNode') {
         console.log(`    ✓ Detected as Cart Invoice Node`);
