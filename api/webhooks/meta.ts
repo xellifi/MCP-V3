@@ -742,6 +742,7 @@ async function processPostback(messagingEvent: any, pageId: string) {
                 productId: parsedPayload.productId || '',
                 productName: parsedPayload.productName || 'Product',
                 productPrice: parsedPayload.productPrice || 0,
+                productImage: parsedPayload.productImage || '',
                 quantity: 1
             };
 
@@ -914,6 +915,7 @@ async function processPostback(messagingEvent: any, pageId: string) {
                 productId: '',
                 productName: parsedPayload.productName || 'Product',
                 productPrice: parsedPayload.productPrice || 0,
+                productImage: parsedPayload.productImage || '',
                 quantity: 1
             };
 
@@ -3003,7 +3005,8 @@ async function executeAction(
                         flowId: flowId,
                         productId: productId,
                         productName: productName,
-                        productPrice: productPrice
+                        productPrice: productPrice,
+                        productImage: productImage || ''
                     })
                 }];
                 console.log(`    🔗 Button action: continue_flow (postback), flowId: ${flowId}`);
@@ -3099,6 +3102,7 @@ async function executeAction(
                         flowId: flowId,
                         productName: headline,
                         productPrice: parseFloat(price.replace(/[^\d.]/g, '')) || 0,
+                        productImage: productImage || '',
                         cartAction: cartAction
                     })
                 },
@@ -3548,14 +3552,15 @@ async function executeAction(
                 console.log('    ✓ Receipt sent successfully!');
             }
 
-            // Send thank you message separately
+            // Send thank you message with invoice viewing instruction
             await new Promise(resolve => setTimeout(resolve, 500));
+            const followUpMessage = `${thankYouMessage}\n\n📋 Tap the receipt above to view your complete order details.`;
             await fetch(`https://graph.facebook.com/v21.0/me/messages`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     recipient: { id: context.commenterId },
-                    message: { text: thankYouMessage },
+                    message: { text: followUpMessage },
                     access_token: pageAccessToken
                 })
             });
