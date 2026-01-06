@@ -889,9 +889,18 @@ async function processPostback(messagingEvent: any, pageId: string) {
                 .single();
 
             let cart: any[] = subscriber?.metadata?.cart || [];
+            console.log(`  📦 Existing cart from metadata: ${cart.length} items`);
+            if (cart.length > 0) {
+                cart.forEach((item: any, i: number) => {
+                    console.log(`    [${i}] ${item.productName} - ₱${item.productPrice}`);
+                });
+            } else {
+                console.log(`  ⚠️ Cart is empty in subscriber metadata!`);
+            }
 
             // Apply cart action
             const cartAction = parsedPayload.cartAction || 'add';
+            console.log(`  🔧 Cart action from payload: "${cartAction}"`);
             const cartItem = {
                 nodeId: parsedPayload.nodeId,
                 productId: '',
@@ -1095,6 +1104,17 @@ async function processPostback(messagingEvent: any, pageId: string) {
             const cart = subscriber?.metadata?.cart || [];
             const cartTotal = subscriber?.metadata?.cartTotal || 0;
             const customerName = subscriber?.name || await fetchUserName(senderId, pageAccessToken);
+
+            // Debug logging for cart contents
+            console.log(`  📦 Cart from subscriber metadata: ${cart.length} items, ₱${cartTotal}`);
+            if (cart.length > 0) {
+                cart.forEach((item: any, i: number) => {
+                    console.log(`    [${i}] ${item.productName} - ₱${item.productPrice}`);
+                });
+            } else {
+                console.log(`  ⚠️ Cart is empty in subscriber metadata!`);
+                console.log(`  📋 Full subscriber metadata:`, JSON.stringify(subscriber?.metadata, null, 2));
+            }
 
             // Find outgoing edges from checkout node
             const outgoingEdges = edges.filter((e: any) => e.source === parsedPayload.nodeId);
