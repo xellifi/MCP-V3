@@ -315,7 +315,7 @@ const FormView: React.FC = () => {
 
             // Mark form as submitted to prevent follow-up messages
             if (subscriberId) {
-                fetch('/api/forms/mark-submitted', {
+                fetch('/api/forms/submit?action=mark-submitted', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ formId, subscriberId })
