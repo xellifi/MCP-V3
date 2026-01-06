@@ -1458,6 +1458,197 @@ async function processTextMessage(messagingEvent: any, pageId: string) {
 
     console.log(`✓ Page found - Workspace: ${workspaceId}`);
 
+    // ========== CHECKOUT FORM RESPONSE HANDLING ==========
+    // Check if user is currently filling out a checkout form
+    // If so, capture their response and continue the form flow
+    const { data: subscriber } = await supabase
+        .from('subscribers')
+        .select('id, metadata')
+        .eq('external_id', senderId)
+        .eq('workspace_id', workspaceId)
+        .maybeSingle();
+
+    if (subscriber?.metadata?.checkoutFormState) {
+        const formState = subscriber.metadata.checkoutFormState;
+        console.log(`✓ User is filling checkout form - current field: ${formState.currentField}`);
+
+        // Update the collected data based on current field
+        const collectedData = { ...formState.collectedData };
+        let nextField: string | null = null;
+        let formComplete = false;
+
+        if (formState.currentField === 'phone') {
+            collectedData.phone = messageText;
+            console.log(`  ✓ Captured phone: ${messageText}`);
+            // Determine next field
+            if (formState.collectEmail) nextField = 'email';
+            else if (formState.collectAddress) nextField = 'address';
+            else if (formState.collectPaymentMethod) nextField = 'payment';
+            else formComplete = true;
+        } else if (formState.currentField === 'email') {
+            collectedData.email = messageText;
+            console.log(`  ✓ Captured email: ${messageText}`);
+            if (formState.collectAddress) nextField = 'address';
+            else if (formState.collectPaymentMethod) nextField = 'payment';
+            else formComplete = true;
+        } else if (formState.currentField === 'address') {
+            collectedData.address = messageText;
+            console.log(`  ✓ Captured address: ${messageText}`);
+            if (formState.collectPaymentMethod) nextField = 'payment';
+            else formComplete = true;
+        }
+
+        // Update subscriber metadata with collected data
+        const updatedMetadata = {
+            ...subscriber.metadata,
+            checkoutFormState: formComplete ? null : {
+                ...formState,
+                currentField: nextField,
+                collectedData
+            },
+            // Store collected data at root level for later use by Cart Sheet / Invoice nodes
+            buyerPhone: collectedData.phone || subscriber.metadata?.buyerPhone,
+            buyerEmail: collectedData.email || subscriber.metadata?.buyerEmail,
+            buyerAddress: collectedData.address || subscriber.metadata?.buyerAddress,
+            buyerPaymentMethod: collectedData.paymentMethod || subscriber.metadata?.buyerPaymentMethod
+        };
+
+        await supabase
+            .from('subscribers')
+            .update({ metadata: updatedMetadata })
+            .eq('id', subscriber.id);
+
+        // If form is not complete, send the next prompt
+        if (!formComplete && nextField) {
+            await sendTypingIndicator(senderId, pageAccessToken, 'typing_on');
+            await new Promise(resolve => setTimeout(resolve, 500));
+            await sendTypingIndicator(senderId, pageAccessToken, 'typing_off');
+
+            if (nextField === 'email') {
+                await fetch(`https://graph.facebook.com/v21.0/me/messages`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        recipient: { id: senderId },
+                        message: { text: formState.emailPrompt },
+                        access_token: pageAccessToken
+                    })
+                });
+                console.log('  ✓ Email prompt sent');
+            } else if (nextField === 'address') {
+                await fetch(`https://graph.facebook.com/v21.0/me/messages`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        recipient: { id: senderId },
+                        message: { text: formState.addressPrompt },
+                        access_token: pageAccessToken
+                    })
+                });
+                console.log('  ✓ Address prompt sent');
+            } else if (nextField === 'payment') {
+                // Send payment options as quick replies
+                const quickReplies = formState.paymentMethods.map((method: string) => ({
+                    content_type: 'text',
+                    title: method,
+                    payload: JSON.stringify({
+                        action: 'checkout_form_payment',
+                        method: method,
+                        nodeId: formState.formNodeId,
+                        flowId: formState.flowId
+                    })
+                }));
+
+                await fetch(`https://graph.facebook.com/v21.0/me/messages`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        recipient: { id: senderId },
+                        message: {
+                            text: formState.paymentPrompt,
+                            quick_replies: quickReplies
+                        },
+                        access_token: pageAccessToken
+                    })
+                });
+                console.log('  ✓ Payment options sent');
+            }
+            return; // Wait for next response
+        }
+
+        // Form is complete - send thank you and continue to next node
+        if (formComplete) {
+            console.log('  ✓ Checkout form complete! Collected data:', collectedData);
+
+            // Send thank you message
+            await fetch(`https://graph.facebook.com/v21.0/me/messages`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    recipient: { id: senderId },
+                    message: { text: formState.thankYouMessage },
+                    access_token: pageAccessToken
+                })
+            });
+
+            // Find the flow and continue to next node after checkout form
+            const { data: flow } = await supabase
+                .from('flows')
+                .select('*')
+                .eq('id', formState.flowId)
+                .single();
+
+            if (flow) {
+                const nodes = flow.nodes || [];
+                const edges = flow.edges || [];
+                const configurations = flow.configurations || {};
+
+                // Find the checkout form node
+                const formNode = nodes.find((n: any) => n.id === formState.formNodeId);
+                if (formNode) {
+                    // Find outgoing edges and continue flow
+                    const outgoingEdges = edges.filter((e: any) => e.source === formState.formNodeId);
+                    const userName = await fetchUserName(senderId, pageAccessToken);
+
+                    for (const edge of outgoingEdges) {
+                        const targetNode = nodes.find((n: any) => n.id === edge.target);
+                        if (targetNode) {
+                            console.log(`  → Continuing flow to: ${targetNode.data?.label}`);
+                            await executeFlowFromNode(
+                                targetNode,
+                                nodes,
+                                edges,
+                                configurations,
+                                {
+                                    commenterId: senderId,
+                                    commenterName: userName,
+                                    commentText: 'Checkout form completed',
+                                    pageId: pageId,
+                                    pageName: (page as any).name || 'Page',
+                                    postId: '',
+                                    commentId: `checkout_form_${mid || Date.now()}`,
+                                    workspaceId,
+                                    pageDbId,
+                                    cart: subscriber.metadata?.cart || [],
+                                    cartTotal: subscriber.metadata?.cartTotal || 0,
+                                    buyerPhone: collectedData.phone,
+                                    buyerEmail: collectedData.email,
+                                    buyerAddress: collectedData.address,
+                                    buyerPaymentMethod: collectedData.paymentMethod
+                                },
+                                pageAccessToken,
+                                flow.id,
+                                `checkout_form_complete_${mid || Date.now()}`
+                            );
+                        }
+                    }
+                }
+            }
+            return; // Form handling complete
+        }
+    }
+    // ========== END CHECKOUT FORM RESPONSE HANDLING ==========
+
     // Find all active flows for this workspace
     const { data: flows, error: flowsError } = await supabase
         .from('flows')
