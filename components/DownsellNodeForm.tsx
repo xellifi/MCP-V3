@@ -571,6 +571,21 @@ const DownsellNodeForm: React.FC<DownsellNodeFormProps> = ({
                 {activeSection === 'price' && (
                     <div className="space-y-4 p-4 bg-black/20 rounded-xl border border-white/10 animate-fade-in">
                         <div>
+                            <label className="block text-sm font-medium text-slate-300 mb-2">Product Name (for Invoice)</label>
+                            <input
+                                type="text"
+                                value={productName}
+                                onChange={(e) => {
+                                    setProductName(e.target.value);
+                                    notifyChange({ productName: e.target.value });
+                                }}
+                                placeholder="e.g. Budget Leather Shoes"
+                                className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-teal-500/50 outline-none transition-all placeholder-slate-500"
+                            />
+                            <p className="mt-1 text-xs text-slate-500">Leave empty to use headline as product name</p>
+                        </div>
+
+                        <div>
                             <label className="block text-sm font-medium text-slate-300 mb-2">Price Text</label>
                             <input
                                 type="text"
@@ -967,7 +982,7 @@ const DownsellNodeForm: React.FC<DownsellNodeFormProps> = ({
                 </ul>
             </CollapsibleTips>
         </div>
-    ), [activeSection, headline, headlineColor, showEmoji, emojiType, imageSource, imageUrl, isUploading, uploadError, imageBorderRadius, imageBorderWidth, imageBorderColor, price, priceBadgeColor, priceTextColor, description, descriptionColor, buttonText, showButtonIcon, buttonBorderRadius, buttonBgColor, buttonTextColor, backgroundColor]);
+    ), [activeSection, headline, headlineColor, showEmoji, emojiType, imageSource, imageUrl, isUploading, uploadError, imageBorderRadius, imageBorderWidth, imageBorderColor, price, priceBadgeColor, priceTextColor, description, descriptionColor, buttonText, showButtonIcon, buttonBorderRadius, buttonBgColor, buttonTextColor, backgroundColor, cartAction, productName, deliveryType, delayMinutes, fixedHour, fixedMinute]);
 
     return (
         <>

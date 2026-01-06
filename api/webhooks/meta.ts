@@ -3181,8 +3181,9 @@ async function executeAction(
                         action: 'downsell_accept',
                         nodeId: node.id,
                         flowId: flowId,
-                        productName: headline,
+                        productName: config.productName || headline,  // Use actual product name, fallback to headline
                         productPrice: parseFloat(price.replace(/[^\d.]/g, '')) || 0,
+                        productImage: productImage || '',
                         cartAction: cartAction
                     })
                 },
