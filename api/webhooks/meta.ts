@@ -777,6 +777,18 @@ async function processPostback(messagingEvent: any, pageId: string) {
             const cartTotal = cart.reduce((sum: number, item: any) => sum + (item.productPrice * item.quantity), 0);
             console.log(`  💰 Cart total: ₱${cartTotal}`);
 
+            // CRITICAL: Ensure subscriber exists BEFORE updating metadata
+            const userName = await fetchUserName(senderId, pageAccessToken);
+            await saveOrUpdateSubscriber(
+                workspaceId,
+                pageDbId,
+                senderId,
+                userName,
+                'POSTBACK',
+                pageAccessToken
+            );
+            console.log(`  ✓ Subscriber ensured exists`);
+
             // Save cart to subscriber metadata
             console.log(`  📝 Saving cart to subscriber metadata...`);
             console.log(`  📝 Cart items:`, JSON.stringify(cart));
@@ -806,8 +818,7 @@ async function processPostback(messagingEvent: any, pageId: string) {
                 ? `continue_flow_mid_${mid}`
                 : `continue_flow_${senderId}_${parsedPayload.nodeId}_${Math.floor(timestamp / 5000)}`;
 
-            // Fetch user's actual name from Facebook API
-            const userName = await fetchUserName(senderId, pageAccessToken);
+            // userName already fetched above before saveOrUpdateSubscriber
 
             // Find nodes connected FROM the source node (don't re-execute source)
             const outgoingEdges = edges.filter((e: any) => e.source === sourceNode.id);
@@ -844,15 +855,7 @@ async function processPostback(messagingEvent: any, pageId: string) {
                 }
             }
 
-            // Update subscriber
-            await saveOrUpdateSubscriber(
-                workspaceId,
-                pageDbId,
-                senderId,
-                userName,
-                'POSTBACK',
-                pageAccessToken
-            );
+            // saveOrUpdateSubscriber already called above before metadata update
 
             return; // Flow executed successfully
         }
@@ -920,6 +923,18 @@ async function processPostback(messagingEvent: any, pageId: string) {
             const cartTotal = cart.reduce((sum: number, item: any) => sum + (item.productPrice * item.quantity), 0);
             console.log(`  💰 Cart total: ₱${cartTotal}`);
 
+            // CRITICAL: Ensure subscriber exists BEFORE updating metadata
+            const upsellUserName = await fetchUserName(senderId, pageAccessToken);
+            await saveOrUpdateSubscriber(
+                workspaceId,
+                pageDbId,
+                senderId,
+                upsellUserName,
+                'POSTBACK',
+                pageAccessToken
+            );
+            console.log(`  ✓ Subscriber ensured exists before metadata update`);
+
             // Save cart AND upsell_response to metadata (for Condition Node to check)
             console.log(`  📝 Saving cart to subscriber metadata...`);
             const { data: updateData, error: updateError } = await supabase
@@ -953,7 +968,7 @@ async function processPostback(messagingEvent: any, pageId: string) {
             // Find ALL outgoing edges from this node (not just accept-specific paths)
             const outgoingEdges = edges.filter((e: any) => e.source === parsedPayload.nodeId);
 
-            const userName = await fetchUserName(senderId, pageAccessToken);
+            // upsellUserName already fetched above before saveOrUpdateSubscriber
             const timestamp = messagingEvent.timestamp || Date.now();
             const stableId = mid ? `upsell_mid_${mid}` : `upsell_${senderId}_${parsedPayload.nodeId}_${Math.floor(timestamp / 5000)}`;
 
@@ -971,7 +986,7 @@ async function processPostback(messagingEvent: any, pageId: string) {
                         configurations,
                         {
                             commenterId: senderId,
-                            commenterName: userName,
+                            commenterName: upsellUserName,
                             commentText: `Accepted ${nodeType}`,
                             pageId: pageId,
                             pageName: pageName,
@@ -1106,12 +1121,24 @@ async function processPostback(messagingEvent: any, pageId: string) {
             const configurations = flow.configurations || {};
 
             // Get cart from subscriber metadata
-            const { data: subscriber } = await supabase
+            console.log(`  🔍 Looking up subscriber: external_id=${senderId}, workspace_id=${workspaceId}`);
+            const { data: subscriber, error: subError } = await supabase
                 .from('subscribers')
-                .select('metadata, name')
+                .select('id, metadata, name')
                 .eq('external_id', senderId)
                 .eq('workspace_id', workspaceId)
                 .single();
+
+            if (subError) {
+                console.error(`  ❌ Subscriber lookup error:`, subError.message);
+                console.error(`  ❌ Error code:`, subError.code);
+            } else if (!subscriber) {
+                console.log(`  ⚠️ No subscriber found!`);
+            } else {
+                console.log(`  ✓ Found subscriber ID: ${subscriber.id}`);
+                console.log(`  📋 Subscriber metadata type:`, typeof subscriber.metadata);
+                console.log(`  📋 Subscriber metadata:`, JSON.stringify(subscriber.metadata));
+            }
 
             const cart = subscriber?.metadata?.cart || [];
             const cartTotal = subscriber?.metadata?.cartTotal || 0;
@@ -1125,7 +1152,6 @@ async function processPostback(messagingEvent: any, pageId: string) {
                 });
             } else {
                 console.log(`  ⚠️ Cart is empty in subscriber metadata!`);
-                console.log(`  📋 Full subscriber metadata:`, JSON.stringify(subscriber?.metadata, null, 2));
             }
 
             // Find outgoing edges from checkout node
