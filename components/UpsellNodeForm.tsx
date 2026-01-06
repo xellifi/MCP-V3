@@ -1,7 +1,7 @@
 import React, { useState, useRef, useMemo, useEffect } from 'react';
 import {
     ShoppingBag, Type, Image, DollarSign, MousePointer2, Palette,
-    Upload, Link, X, AlertCircle, Eye, Flame, Check, Sparkles,
+    Upload, Link, X, AlertCircle, Eye, Flame, Check, Sparkles, Globe,
     Circle, Square, RectangleHorizontal, ShoppingCart, ChevronLeft,
     ChevronRight, Smartphone, Monitor, Tablet
 } from 'lucide-react';
@@ -34,8 +34,10 @@ interface UpsellNodeFormProps {
         productName?: string;
         productPrice?: number;
         useWebview?: boolean;
+        imagePreviewSize?: number;
     };
     onChange: (config: any) => void;
+    onClose?: () => void;
 }
 
 const EMOJI_OPTIONS = [
@@ -61,7 +63,8 @@ const WIZARD_STEPS = [
 const UpsellNodeForm: React.FC<UpsellNodeFormProps> = ({
     workspaceId,
     initialConfig,
-    onChange
+    onChange,
+    onClose
 }) => {
     // ================== STATE ==================
     const [headline, setHeadline] = useState(initialConfig?.headline || 'Want to Add this item?');
@@ -77,7 +80,7 @@ const UpsellNodeForm: React.FC<UpsellNodeFormProps> = ({
     const [uploadError, setUploadError] = useState('');
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [price, setPrice] = useState(initialConfig?.price || '₱588');
-    const [priceBadgeColor, setPriceBadgeColor] = useState(initialConfig?.priceBadgeColor || '#10b981');
+    const [priceBadgeColor, setPriceBadgeColor] = useState(initialConfig?.priceBadgeColor || '#f59e0b');
     const [priceTextColor, setPriceTextColor] = useState(initialConfig?.priceTextColor || '#ffffff');
     const [description, setDescription] = useState(initialConfig?.description || 'High quality shoes from Korea!');
     const [descriptionColor, setDescriptionColor] = useState(initialConfig?.descriptionColor || '#ffffff');
@@ -97,6 +100,7 @@ const UpsellNodeForm: React.FC<UpsellNodeFormProps> = ({
     const [mobileStep, setMobileStep] = useState(0);
     const [showMobilePreview, setShowMobilePreview] = useState(false);
     const [previewDevice, setPreviewDevice] = useState<'desktop' | 'tablet' | 'mobile'>('mobile');
+    const [imagePreviewSize, setImagePreviewSize] = useState(initialConfig?.imagePreviewSize ?? 100); // percentage 50-150
 
     // Handle window resize
     useEffect(() => {
@@ -114,7 +118,7 @@ const UpsellNodeForm: React.FC<UpsellNodeFormProps> = ({
             buttonTextColor, buttonBorderRadius, showButtonIcon, backgroundColor, cartAction,
             productName: productName || headline,
             productPrice: parseFloat(price.replace(/[^0-9.]/g, '')) || 0,
-            useWebview, ...updates
+            useWebview, imagePreviewSize, ...updates
         });
     };
 
@@ -147,18 +151,25 @@ const UpsellNodeForm: React.FC<UpsellNodeFormProps> = ({
     const ColorPicker = ({ value, onChange: onColorChange, label }: { value: string; onChange: (c: string) => void; label: string }) => (
         <div className="space-y-2">
             <label className="block text-xs font-medium text-slate-400">{label}</label>
-            <div className="flex flex-wrap gap-1.5">
+            <div className="flex flex-wrap gap-1.5 items-center">
                 {PRESET_COLORS.map(c => (
-                    <button key={c} onClick={() => onColorChange(c)}
+                    <button key={c} onClick={(e) => { e.preventDefault(); e.stopPropagation(); onColorChange(c); }}
+                        type="button"
                         className={`w-6 h-6 rounded-full border-2 transition-all hover:scale-110 ${value === c ? 'border-white scale-110' : 'border-transparent'}`}
                         style={{ backgroundColor: c }} />
                 ))}
-                <div className="relative">
-                    <input type="color" value={value} onChange={(e) => onColorChange(e.target.value)}
-                        className="w-6 h-6 rounded-full cursor-pointer opacity-0 absolute inset-0" />
-                    <div className="w-6 h-6 rounded-full border-2 border-dashed border-slate-500 flex items-center justify-center bg-gradient-to-br from-red-500 via-green-500 to-blue-500">
-                        <Palette className="w-3 h-3 text-white" />
-                    </div>
+                <div className="relative w-6 h-6">
+                    <div
+                        className={`absolute inset-0 rounded-full border-2 ${!PRESET_COLORS.includes(value) ? 'border-white' : 'border-slate-500'}`}
+                        style={{ backgroundColor: value }}
+                    />
+                    <input
+                        type="color"
+                        value={value}
+                        onChange={(e) => onColorChange(e.target.value)}
+                        onMouseDown={(e) => e.stopPropagation()}
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    />
                 </div>
             </div>
         </div>
@@ -175,9 +186,9 @@ const UpsellNodeForm: React.FC<UpsellNodeFormProps> = ({
 
     // ================== PREVIEW (DEVICE MOCKUP) ==================
     const deviceSizes = {
-        mobile: { width: 280, height: 560, radius: 40, notch: true },
-        tablet: { width: 400, height: 560, radius: 24, notch: false },
-        desktop: { width: 600, height: 400, radius: 12, notch: false }
+        mobile: { width: 280, height: 480, radius: 40, notch: true },
+        tablet: { width: 340, height: 440, radius: 24, notch: false },
+        desktop: { width: 420, height: 300, radius: 12, notch: false }
     };
 
     const DevicePreview = () => {
@@ -217,32 +228,33 @@ const UpsellNodeForm: React.FC<UpsellNodeFormProps> = ({
                                         {showEmoji && emojiType !== 'none' && <span>{getEmoji()}</span>}
                                     </div>
                                     {/* Image */}
-                                    <div className="relative mb-3">
-                                        <div
-                                            className="overflow-hidden aspect-square"
-                                            style={{
-                                                borderRadius: `${imageBorderRadius}px`,
-                                                border: `${imageBorderWidth}px solid ${imageBorderColor}`,
-                                                maxWidth: previewDevice === 'desktop' ? '300px' : '100%',
-                                                margin: previewDevice === 'desktop' ? '0 auto' : undefined
-                                            }}
-                                        >
-                                            {imageUrl ? (
-                                                <img src={imageUrl} alt="Product" className="w-full h-full object-cover" />
-                                            ) : (
-                                                <div className="w-full h-full bg-slate-700/50 flex items-center justify-center">
-                                                    <Image className="w-10 h-10 text-slate-500" />
+                                    <div className="text-center mb-3">
+                                        <div className="inline-block relative">
+                                            <div
+                                                className="overflow-hidden aspect-square"
+                                                style={{
+                                                    borderRadius: `${imageBorderRadius}px`,
+                                                    border: `${imageBorderWidth}px solid ${imageBorderColor}`,
+                                                    width: `${(previewDevice === 'desktop' ? 200 : previewDevice === 'tablet' ? 180 : 150) * (imagePreviewSize / 100)}px`,
+                                                }}
+                                            >
+                                                {imageUrl ? (
+                                                    <img src={imageUrl} alt="Product" className="w-full h-full object-cover" />
+                                                ) : (
+                                                    <div className="w-full h-full bg-slate-700/50 flex items-center justify-center">
+                                                        <Image className="w-10 h-10 text-slate-500" />
+                                                    </div>
+                                                )}
+                                            </div>
+                                            {price && (
+                                                <div
+                                                    className={`absolute -top-2 -right-2 w-12 h-12 rounded-full font-bold shadow-lg flex items-center justify-center ${previewDevice === 'desktop' ? 'text-sm w-14 h-14' : 'text-xs'}`}
+                                                    style={{ backgroundColor: priceBadgeColor, color: priceTextColor }}
+                                                >
+                                                    {price}
                                                 </div>
                                             )}
                                         </div>
-                                        {price && (
-                                            <div
-                                                className={`absolute -top-2 -right-2 px-3 py-1 rounded-full font-bold shadow-lg border border-dashed border-white/30 ${previewDevice === 'desktop' ? 'text-base' : 'text-xs'}`}
-                                                style={{ backgroundColor: priceBadgeColor, color: priceTextColor }}
-                                            >
-                                                {price}
-                                            </div>
-                                        )}
                                     </div>
                                     {/* Description */}
                                     {description && (
@@ -274,15 +286,15 @@ const UpsellNodeForm: React.FC<UpsellNodeFormProps> = ({
     };
 
     // ================== FORM SECTIONS ==================
-    const BasicSection = () => (
+    const basicSection = (
         <div className="space-y-4">
             <h3 className="text-sm font-semibold text-white flex items-center gap-2">
                 <Type className="w-4 h-4 text-amber-400" /> Basic Info
             </h3>
             <div>
                 <label className="block text-xs text-slate-400 mb-1">Headline</label>
-                <input type="text" value={headline}
-                    onChange={(e) => { setHeadline(e.target.value); notifyChange({ headline: e.target.value }); }}
+                <input type="text" defaultValue={headline}
+                    onBlur={(e) => { setHeadline(e.target.value); notifyChange({ headline: e.target.value }); }}
                     className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white" />
             </div>
             <ColorPicker value={headlineColor} onChange={(c) => { setHeadlineColor(c); notifyChange({ headlineColor: c }); }} label="Headline Color" />
@@ -290,7 +302,7 @@ const UpsellNodeForm: React.FC<UpsellNodeFormProps> = ({
             {showEmoji && (
                 <div className="flex gap-2">
                     {EMOJI_OPTIONS.map(e => (
-                        <button key={e.value} onClick={() => { setEmojiType(e.value as any); notifyChange({ emojiType: e.value }); }}
+                        <button key={e.value} type="button" onClick={() => { setEmojiType(e.value as any); notifyChange({ emojiType: e.value }); }}
                             className={`w-8 h-8 rounded-lg flex items-center justify-center ${emojiType === e.value ? 'bg-teal-500/30 border-teal-500' : 'bg-black/30 border-white/10'} border`}>
                             {e.label}
                         </button>
@@ -299,48 +311,54 @@ const UpsellNodeForm: React.FC<UpsellNodeFormProps> = ({
             )}
             <div>
                 <label className="block text-xs text-slate-400 mb-1">Price</label>
-                <input type="text" value={price}
-                    onChange={(e) => { setPrice(e.target.value); notifyChange({ price: e.target.value }); }}
+                <input type="text" defaultValue={price}
+                    onBlur={(e) => { setPrice(e.target.value); notifyChange({ price: e.target.value }); }}
                     className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white" />
             </div>
             <div>
                 <label className="block text-xs text-slate-400 mb-1">Description</label>
-                <textarea value={description}
-                    onChange={(e) => { setDescription(e.target.value); notifyChange({ description: e.target.value }); }}
+                <textarea defaultValue={description}
+                    onBlur={(e) => { setDescription(e.target.value); notifyChange({ description: e.target.value }); }}
                     className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white h-16 resize-none" />
             </div>
         </div>
     );
 
-    const ImageSection = () => (
+    const imageSection = (
         <div className="space-y-4">
             <h3 className="text-sm font-semibold text-white flex items-center gap-2">
                 <Image className="w-4 h-4 text-rose-400" /> Product Image
             </h3>
             <div className="flex rounded-lg overflow-hidden border border-white/10">
-                <button onClick={() => { setImageSource('url'); notifyChange({ imageSource: 'url' }); }}
+                <button type="button" onClick={() => { setImageSource('url'); notifyChange({ imageSource: 'url' }); }}
                     className={`flex-1 py-2 text-xs flex items-center justify-center gap-1 ${imageSource === 'url' ? 'bg-teal-500/20 text-teal-400' : 'bg-black/20 text-slate-400'}`}>
                     <Link className="w-3 h-3" /> URL
                 </button>
-                <button onClick={() => { setImageSource('upload'); notifyChange({ imageSource: 'upload' }); }}
+                <button type="button" onClick={() => { setImageSource('upload'); notifyChange({ imageSource: 'upload' }); }}
                     className={`flex-1 py-2 text-xs flex items-center justify-center gap-1 ${imageSource === 'upload' ? 'bg-teal-500/20 text-teal-400' : 'bg-black/20 text-slate-400'}`}>
                     <Upload className="w-3 h-3" /> Upload
                 </button>
             </div>
             {imageSource === 'url' ? (
-                <input type="url" value={imageUrl} placeholder="https://..."
-                    onChange={(e) => { setImageUrl(e.target.value); notifyChange({ imageUrl: e.target.value }); }}
+                <input type="url" defaultValue={imageUrl} placeholder="https://..."
+                    onBlur={(e) => { setImageUrl(e.target.value); notifyChange({ imageUrl: e.target.value }); }}
                     className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white" />
             ) : (
                 <div>
                     <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileSelect} className="hidden" />
-                    <button onClick={() => fileInputRef.current?.click()} disabled={isUploading}
+                    <button type="button" onClick={() => fileInputRef.current?.click()} disabled={isUploading}
                         className="w-full py-3 border-2 border-dashed border-white/20 rounded-lg text-slate-400 hover:border-teal-500/50 flex items-center justify-center gap-2">
                         {isUploading ? 'Uploading...' : <><Upload className="w-4 h-4" /> Click to upload</>}
                     </button>
                     {uploadError && <p className="text-xs text-red-400 mt-1">{uploadError}</p>}
                 </div>
             )}
+            <div>
+                <label className="block text-xs text-slate-400 mb-1">Image Size: {imagePreviewSize}%</label>
+                <input type="range" min="50" max="150" value={imagePreviewSize}
+                    onChange={(e) => { setImagePreviewSize(Number(e.target.value)); notifyChange({ imagePreviewSize: Number(e.target.value) }); }}
+                    className="w-full" />
+            </div>
             <div>
                 <label className="block text-xs text-slate-400 mb-1">Border Radius: {imageBorderRadius}px</label>
                 <input type="range" min="0" max="50" value={imageBorderRadius}
@@ -351,7 +369,7 @@ const UpsellNodeForm: React.FC<UpsellNodeFormProps> = ({
         </div>
     );
 
-    const StyleSection = () => (
+    const styleSection = (
         <div className="space-y-4">
             <h3 className="text-sm font-semibold text-white flex items-center gap-2">
                 <Palette className="w-4 h-4 text-purple-400" /> Styling
@@ -360,8 +378,8 @@ const UpsellNodeForm: React.FC<UpsellNodeFormProps> = ({
             <ColorPicker value={priceBadgeColor} onChange={(c) => { setPriceBadgeColor(c); notifyChange({ priceBadgeColor: c }); }} label="Price Badge Color" />
             <div>
                 <label className="block text-xs text-slate-400 mb-1">Button Text</label>
-                <input type="text" value={buttonText}
-                    onChange={(e) => { setButtonText(e.target.value); notifyChange({ buttonText: e.target.value }); }}
+                <input type="text" defaultValue={buttonText}
+                    onBlur={(e) => { setButtonText(e.target.value); notifyChange({ buttonText: e.target.value }); }}
                     className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white" />
             </div>
             <ColorPicker value={buttonBgColor} onChange={(c) => { setButtonBgColor(c); notifyChange({ buttonBgColor: c }); }} label="Button Color" />
@@ -375,7 +393,7 @@ const UpsellNodeForm: React.FC<UpsellNodeFormProps> = ({
         </div>
     );
 
-    const ActionSection = () => (
+    const actionSection = (
         <div className="space-y-4">
             <h3 className="text-sm font-semibold text-white flex items-center gap-2">
                 <ShoppingCart className="w-4 h-4 text-teal-400" /> Cart Action
@@ -404,45 +422,137 @@ const UpsellNodeForm: React.FC<UpsellNodeFormProps> = ({
     );
 
     // ================== LAYOUTS ==================
-    // Desktop: 3-column fullscreen
+    // Modal width based on device selection
+    const modalWidths = {
+        mobile: 'max-w-md', // ~448px
+        tablet: 'max-w-3xl', // ~768px
+        desktop: 'max-w-7xl' // ~1280px - fullscreen-like
+    };
+
+    // Desktop: Responsive modal width based on device selector
     if (isDesktop) {
         return (
-            <div className="fixed inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 z-50 flex flex-col">
-                {/* Header */}
-                <div className="flex-shrink-0 h-14 border-b border-white/10 flex items-center justify-between px-6">
-                    <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center">
-                            <ShoppingBag className="w-4 h-4 text-white" />
+            <div className="fixed inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 z-50 p-[15px] flex items-center justify-center">
+                <div className={`w-full ${modalWidths[previewDevice]} h-full max-h-full flex flex-col bg-slate-800/50 rounded-2xl border border-white/10 overflow-hidden transition-all duration-300`}>
+                    {/* Header with Device Switcher */}
+                    <div className="flex-shrink-0 h-14 border-b border-white/10 flex items-center px-4 gap-4">
+                        {/* Left: Title */}
+                        <div className="flex items-center gap-3 min-w-0 flex-shrink-0">
+                            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center">
+                                <ShoppingBag className="w-4 h-4 text-white" />
+                            </div>
+                            <span className="text-base font-bold text-white whitespace-nowrap">Upsell</span>
                         </div>
-                        <span className="text-lg font-bold text-white">Configure Upsell Offer</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-xs text-slate-400">
-                        <Monitor className="w-4 h-4" /> Desktop View
-                    </div>
-                </div>
 
-                {/* 3-Column Content */}
-                <div className="flex-1 grid grid-cols-12 gap-0 overflow-hidden">
-                    {/* Column 1: Basic + Image */}
-                    <div className="col-span-4 border-r border-white/10 p-6 overflow-y-auto custom-scrollbar">
-                        <BasicSection />
-                        <div className="mt-6 pt-6 border-t border-white/10">
-                            <ImageSection />
+                        {/* Center: Device Switcher */}
+                        <div className="flex-1 flex justify-center">
+                            <div className="flex items-center gap-1 bg-slate-700/50 rounded-lg p-1 border border-white/10">
+                                <button
+                                    type="button"
+                                    onClick={() => setPreviewDevice('mobile')}
+                                    className={`p-2 rounded-md transition-all ${previewDevice === 'mobile' ? 'bg-teal-500 text-white' : 'text-slate-400 hover:text-white hover:bg-white/10'}`}
+                                    title="Mobile"
+                                >
+                                    <Smartphone className="w-4 h-4" />
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setPreviewDevice('tablet')}
+                                    className={`p-2 rounded-md transition-all ${previewDevice === 'tablet' ? 'bg-teal-500 text-white' : 'text-slate-400 hover:text-white hover:bg-white/10'}`}
+                                    title="Tablet"
+                                >
+                                    <Tablet className="w-4 h-4" />
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setPreviewDevice('desktop')}
+                                    className={`p-2 rounded-md transition-all ${previewDevice === 'desktop' ? 'bg-teal-500 text-white' : 'text-slate-400 hover:text-white hover:bg-white/10'}`}
+                                    title="Desktop"
+                                >
+                                    <Monitor className="w-4 h-4" />
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Right: Live Preview + Globe + Close */}
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                            <div className="hidden sm:flex items-center gap-2">
+                                <div className="flex items-center gap-1 text-xs text-slate-400">
+                                    <Eye className="w-3 h-3" /> Preview
+                                </div>
+                                <button
+                                    type="button"
+                                    className="p-1.5 hover:bg-white/10 rounded-lg text-slate-400 hover:text-teal-400 transition-colors"
+                                    title="Visit Live Site"
+                                >
+                                    <Globe className="w-4 h-4" />
+                                </button>
+                            </div>
+                            {onClose && (
+                                <button
+                                    type="button"
+                                    onClick={onClose}
+                                    className="p-1.5 hover:bg-white/10 rounded-lg text-slate-400 hover:text-white transition-colors"
+                                    title="Close"
+                                >
+                                    <X className="w-4 h-4" />
+                                </button>
+                            )}
                         </div>
                     </div>
 
-                    {/* Column 2: Style + Action */}
-                    <div className="col-span-4 border-r border-white/10 p-6 overflow-y-auto custom-scrollbar">
-                        <StyleSection />
-                        <div className="mt-6 pt-6 border-t border-white/10">
-                            <ActionSection />
+                    {/* Content - Responsive based on device */}
+                    {previewDevice === 'desktop' ? (
+                        // Desktop: 3-Column Layout
+                        <div className="flex-1 grid grid-cols-12 gap-0 overflow-hidden">
+                            <div className="col-span-4 border-r border-white/10 p-6 overflow-y-auto custom-scrollbar">
+                                {basicSection}
+                                <div className="mt-6 pt-6 border-t border-white/10">
+                                    {imageSection}
+                                </div>
+                            </div>
+                            <div className="col-span-4 border-r border-white/10 p-6 overflow-y-auto custom-scrollbar">
+                                {styleSection}
+                                <div className="mt-6 pt-6 border-t border-white/10">
+                                    {actionSection}
+                                </div>
+                            </div>
+                            <div className="col-span-4 p-6 flex items-center justify-center bg-slate-950/50 overflow-auto">
+                                <DevicePreview />
+                            </div>
                         </div>
-                    </div>
-
-                    {/* Column 3: Phone Preview */}
-                    <div className="col-span-4 p-6 flex items-center justify-center bg-slate-950/50">
-                        <PhonePreview />
-                    </div>
+                    ) : previewDevice === 'tablet' ? (
+                        // Tablet: 2-Column Layout
+                        <div className="flex-1 grid grid-cols-2 gap-0 overflow-hidden">
+                            <div className="border-r border-white/10 p-4 overflow-y-auto custom-scrollbar space-y-4">
+                                {basicSection}
+                                <div className="pt-4 border-t border-white/10">{imageSection}</div>
+                                <div className="pt-4 border-t border-white/10">{styleSection}</div>
+                                <div className="pt-4 border-t border-white/10">{actionSection}</div>
+                            </div>
+                            <div className="p-4 flex items-center justify-center bg-slate-950/50 overflow-auto">
+                                <DevicePreview />
+                            </div>
+                        </div>
+                    ) : (
+                        // Mobile: Single Column with tabs
+                        <div className="flex-1 flex flex-col overflow-hidden">
+                            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                                {basicSection}
+                                <div className="pt-4 border-t border-white/10">{imageSection}</div>
+                                <div className="pt-4 border-t border-white/10">{styleSection}</div>
+                                <div className="pt-4 border-t border-white/10">{actionSection}</div>
+                                <div className="pt-4 border-t border-white/10">
+                                    <h3 className="text-sm font-semibold text-white flex items-center gap-2 mb-4">
+                                        <Eye className="w-4 h-4 text-teal-400" /> Preview
+                                    </h3>
+                                    <div className="flex justify-center">
+                                        <DevicePreview />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
         );
@@ -451,10 +561,10 @@ const UpsellNodeForm: React.FC<UpsellNodeFormProps> = ({
     // ================== MOBILE: Step-by-Step Wizard ==================
     const currentStepContent = () => {
         switch (mobileStep) {
-            case 0: return <BasicSection />;
-            case 1: return <ImageSection />;
-            case 2: return <StyleSection />;
-            case 3: return <ActionSection />;
+            case 0: return basicSection;
+            case 1: return imageSection;
+            case 2: return styleSection;
+            case 3: return actionSection;
             default: return null;
         }
     };
@@ -467,7 +577,7 @@ const UpsellNodeForm: React.FC<UpsellNodeFormProps> = ({
                     <ChevronLeft className="w-4 h-4" /> Back to Editor
                 </button>
                 <div className="flex justify-center">
-                    <PhonePreview />
+                    <DevicePreview />
                 </div>
             </div>
         );

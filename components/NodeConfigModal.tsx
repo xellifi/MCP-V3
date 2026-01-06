@@ -24,20 +24,11 @@ const NodeConfigModal: React.FC<NodeConfigModalProps> = ({
         return null;
     }
 
-    // Fullscreen mode - render children directly without modal wrapper
+    // Fullscreen mode - render children directly, let form handle close/save
     if (fullscreen) {
         return (
             <div className="fixed inset-0 z-50 bg-slate-900">
-                {/* Close button - floating */}
-                <button
-                    onClick={onClose}
-                    className="fixed top-4 right-4 z-[60] p-3 bg-red-500/20 hover:bg-red-500/40 rounded-xl text-red-400 hover:text-white transition-all border border-red-500/30 shadow-lg backdrop-blur-sm"
-                    title="Close"
-                >
-                    <X className="w-5 h-5" />
-                </button>
-
-                {/* Save button - floating */}
+                {/* Save button - floating at bottom right */}
                 <button
                     onClick={onSave}
                     className="fixed bottom-6 right-6 z-[60] px-6 py-3 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white font-bold rounded-xl shadow-2xl transition-all active:scale-95 border border-white/20"
@@ -45,9 +36,9 @@ const NodeConfigModal: React.FC<NodeConfigModalProps> = ({
                     Save Configuration
                 </button>
 
-                {/* Fullscreen content */}
+                {/* Fullscreen content - form handles its own close button */}
                 <div className="w-full h-full overflow-hidden">
-                    {children}
+                    {React.cloneElement(children as React.ReactElement, { onClose })}
                 </div>
             </div>
         );

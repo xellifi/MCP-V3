@@ -2229,8 +2229,10 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
           fullscreen={
             selectedNode.data.nodeType === 'upsellNode' ||
             selectedNode.data.nodeType === 'downsellNode' ||
+            selectedNode.data.nodeType === 'productNode' ||
             (selectedNode.data.label as string || '').toLowerCase().includes('upsell') ||
-            (selectedNode.data.label as string || '').toLowerCase().includes('downsell')
+            (selectedNode.data.label as string || '').toLowerCase().includes('downsell') ||
+            (selectedNode.data.label as string || '').toLowerCase().includes('product')
           }
         >
           {renderConfigForm()}
