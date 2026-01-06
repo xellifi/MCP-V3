@@ -36,7 +36,7 @@ const EMOJI_MAP: Record<string, string> = {
     none: ''
 };
 
-const API_BASE = import.meta.env.VITE_API_URL || '';
+const API_BASE = '';  // Use relative URLs for API calls
 
 const WebviewUpsell: React.FC = () => {
     const { sessionId } = useParams<{ sessionId: string }>();

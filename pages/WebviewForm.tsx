@@ -40,7 +40,7 @@ const DEFAULT_ECOMMERCE_FIELDS: FormField[] = [
 
 const DEFAULT_PAYMENT_METHODS = ['Cash on Delivery', 'GCash', 'Bank Transfer'];
 
-const API_BASE = import.meta.env.VITE_API_URL || '';
+const API_BASE = '';  // Use relative URLs for API calls
 
 const WebviewForm: React.FC = () => {
     const { sessionId } = useParams<{ sessionId: string }>();
@@ -294,8 +294,8 @@ const WebviewForm: React.FC = () => {
                                     placeholder={field.placeholder}
                                     rows={3}
                                     className={`w-full px-4 py-3 border rounded-xl outline-none transition-all resize-none ${errors[field.id]
-                                            ? 'border-red-500 bg-red-50'
-                                            : 'border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20'
+                                        ? 'border-red-500 bg-red-50'
+                                        : 'border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20'
                                         }`}
                                 />
                             ) : field.type === 'select' ? (
@@ -304,8 +304,8 @@ const WebviewForm: React.FC = () => {
                                         value={formData[field.id] || ''}
                                         onChange={(e) => handleInputChange(field.id, e.target.value)}
                                         className={`w-full px-4 py-3 border rounded-xl outline-none appearance-none ${errors[field.id]
-                                                ? 'border-red-500 bg-red-50'
-                                                : 'border-slate-200 focus:border-blue-500'
+                                            ? 'border-red-500 bg-red-50'
+                                            : 'border-slate-200 focus:border-blue-500'
                                             }`}
                                     >
                                         <option value="">Select...</option>
@@ -322,8 +322,8 @@ const WebviewForm: React.FC = () => {
                                     onChange={(e) => handleInputChange(field.id, e.target.value)}
                                     placeholder={field.placeholder}
                                     className={`w-full px-4 py-3 border rounded-xl outline-none transition-all ${errors[field.id]
-                                            ? 'border-red-500 bg-red-50'
-                                            : 'border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20'
+                                        ? 'border-red-500 bg-red-50'
+                                        : 'border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20'
                                         }`}
                                 />
                             )}
@@ -348,8 +348,8 @@ const WebviewForm: React.FC = () => {
                                     key={method}
                                     onClick={() => setSelectedPayment(method)}
                                     className={`w-full px-4 py-3 border rounded-xl text-left flex items-center justify-between transition-all ${selectedPayment === method
-                                            ? 'border-blue-500 bg-blue-50 text-blue-700'
-                                            : 'border-slate-200 hover:border-slate-300'
+                                        ? 'border-blue-500 bg-blue-50 text-blue-700'
+                                        : 'border-slate-200 hover:border-slate-300'
                                         }`}
                                 >
                                     <span className="font-medium">{method}</span>

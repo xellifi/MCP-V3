@@ -25,7 +25,7 @@ interface CartConfig {
     taxRate?: number;
 }
 
-const API_BASE = import.meta.env.VITE_API_URL || '';
+const API_BASE = '';  // Use relative URLs for API calls
 
 const WebviewCart: React.FC = () => {
     const { sessionId } = useParams<{ sessionId: string }>();
@@ -330,8 +330,8 @@ const WebviewCart: React.FC = () => {
                                 onClick={applyCoupon}
                                 disabled={couponApplied || !couponCode.trim()}
                                 className={`font-bold text-sm ${couponApplied
-                                        ? 'text-green-600'
-                                        : 'text-blue-600 hover:text-blue-700'
+                                    ? 'text-green-600'
+                                    : 'text-blue-600 hover:text-blue-700'
                                     }`}
                             >
                                 {couponApplied ? '✓ APPLIED' : 'APPLY'}

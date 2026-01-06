@@ -28,7 +28,7 @@ interface CartItem {
     };
 }
 
-const API_BASE = import.meta.env.VITE_API_URL || '';
+const API_BASE = '';  // Use relative URLs for API calls
 
 const WebviewProduct: React.FC = () => {
     const { sessionId } = useParams<{ sessionId: string }>();
@@ -251,8 +251,8 @@ const WebviewProduct: React.FC = () => {
                                         key={index}
                                         onClick={() => setCurrentImageIndex(index)}
                                         className={`w-2 h-2 rounded-full transition-all ${index === currentImageIndex
-                                                ? 'bg-blue-600 w-6'
-                                                : 'bg-slate-400'
+                                            ? 'bg-blue-600 w-6'
+                                            : 'bg-slate-400'
                                             }`}
                                     />
                                 ))}
@@ -294,8 +294,8 @@ const WebviewProduct: React.FC = () => {
                                     key={color.name}
                                     onClick={() => setSelectedColor(color.name)}
                                     className={`w-8 h-8 rounded-full border-2 transition-all ${selectedColor === color.name
-                                            ? 'border-blue-600 scale-110'
-                                            : 'border-transparent'
+                                        ? 'border-blue-600 scale-110'
+                                        : 'border-transparent'
                                         }`}
                                     style={{ backgroundColor: color.value }}
                                     title={color.name}
@@ -317,8 +317,8 @@ const WebviewProduct: React.FC = () => {
                                     key={size}
                                     onClick={() => setSelectedSize(size)}
                                     className={`px-4 py-2 rounded-lg border-2 font-medium text-sm transition-all ${selectedSize === size
-                                            ? 'border-blue-600 bg-blue-50 text-blue-600'
-                                            : 'border-slate-200 text-slate-600 hover:border-slate-300'
+                                        ? 'border-blue-600 bg-blue-50 text-blue-600'
+                                        : 'border-slate-200 text-slate-600 hover:border-slate-300'
                                         }`}
                                 >
                                     {size}
