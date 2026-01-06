@@ -437,6 +437,11 @@ function evaluateConditions(config: any, context: any): boolean {
             actualValue = context.form_submitted === true || context.formSubmitted === true;
         }
 
+        // Handle upsell_response - check context first
+        if (variable === 'upsell_response') {
+            actualValue = context.upsell_response || '';
+        }
+
         console.log(`[Condition] Checking: ${variable} ${operator} ${expectedValue}, actual: ${actualValue}`);
 
         // Evaluate based on operator

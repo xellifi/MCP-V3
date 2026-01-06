@@ -748,7 +748,7 @@ const UpsellNodeForm: React.FC<UpsellNodeFormProps> = ({
                 </ul>
             </CollapsibleTips>
         </div>
-    ), [activeSection, headline, headlineColor, showEmoji, emojiType, imageSource, imageUrl, isUploading, uploadError, imageBorderRadius, imageBorderWidth, imageBorderColor, price, priceBadgeColor, priceTextColor, description, descriptionColor, buttonText, showButtonIcon, buttonBorderRadius, buttonBgColor, buttonTextColor, backgroundColor]);
+    ), [activeSection, headline, headlineColor, showEmoji, emojiType, imageSource, imageUrl, isUploading, uploadError, imageBorderRadius, imageBorderWidth, imageBorderColor, price, priceBadgeColor, priceTextColor, description, descriptionColor, buttonText, showButtonIcon, buttonBorderRadius, buttonBgColor, buttonTextColor, backgroundColor, cartAction]);
 
     return (
         <>

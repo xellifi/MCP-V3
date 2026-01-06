@@ -84,6 +84,14 @@ const CustomUpsellNode: React.FC<NodeProps> = ({ data, selected }) => {
                     )}
                 </div>
 
+                {/* Node Insights - Below header, above collapsible preview */}
+                <NodeInsights
+                    sent={data.analytics?.sent}
+                    delivered={data.analytics?.delivered}
+                    subscribers={data.analytics?.subscribers}
+                    errors={data.analytics?.errors}
+                />
+
                 {/* Expandable Content - Full Preview */}
                 {isExpanded && isConfigured && (
                     <div className="mt-3 pt-3 border-t border-teal-500/20">
@@ -192,13 +200,6 @@ const CustomUpsellNode: React.FC<NodeProps> = ({ data, selected }) => {
                         </div>
                     </div>
                 )}
-                {/* Node Insights */}
-                <NodeInsights
-                    sent={data.analytics?.sent}
-                    delivered={data.analytics?.delivered}
-                    subscribers={data.analytics?.subscribers}
-                    errors={data.analytics?.errors}
-                />
 
 
 

@@ -857,7 +857,8 @@ async function processPostback(messagingEvent: any, pageId: string) {
             return; // Flow executed successfully
         }
 
-        // Handle upsell_accept - add item to cart and continue to Accept path
+        // Handle upsell_accept - add item to cart, save response, and continue to ALL connected nodes
+        // (User controls branching via Condition Node checking upsell_response)
         if (parsedPayload.action === 'upsell_accept' || parsedPayload.action === 'downsell_accept') {
             const nodeType = parsedPayload.action === 'upsell_accept' ? 'upsell' : 'downsell';
             console.log(`✓ ${nodeType} ACCEPT from node: ${parsedPayload.nodeId}`);
@@ -910,7 +911,7 @@ async function processPostback(messagingEvent: any, pageId: string) {
             const cartTotal = cart.reduce((sum: number, item: any) => sum + (item.productPrice * item.quantity), 0);
             console.log(`  💰 Cart total: ₱${cartTotal}`);
 
-            // Save cart
+            // Save cart AND upsell_response to metadata (for Condition Node to check)
             await supabase
                 .from('subscribers')
                 .update({
@@ -918,30 +919,30 @@ async function processPostback(messagingEvent: any, pageId: string) {
                         ...(subscriber?.metadata || {}),
                         cart: cart,
                         cartTotal: cartTotal,
-                        cartUpdatedAt: new Date().toISOString()
+                        cartUpdatedAt: new Date().toISOString(),
+                        upsell_response: 'accepted',  // Saved for Condition Node
+                        upsell_node_id: parsedPayload.nodeId
                     }
                 })
                 .eq('external_id', senderId)
                 .eq('workspace_id', workspaceId);
 
-            // Find Accept path edges (sourceHandle contains 'accept' or is first output)
-            const sourceNode = nodes.find((n: any) => n.id === parsedPayload.nodeId);
-            const acceptEdges = edges.filter((e: any) =>
-                e.source === parsedPayload.nodeId &&
-                (e.sourceHandle?.toLowerCase().includes('accept') ||
-                    e.sourceHandle?.toLowerCase().includes('yes') ||
-                    !e.sourceHandle) // Default handle = accept
-            );
+            console.log(`  ✓ Saved upsell_response: 'accepted' to subscriber metadata`);
+
+            // Find ALL outgoing edges from this node (not just accept-specific paths)
+            const outgoingEdges = edges.filter((e: any) => e.source === parsedPayload.nodeId);
 
             const userName = await fetchUserName(senderId, pageAccessToken);
             const timestamp = messagingEvent.timestamp || Date.now();
             const stableId = mid ? `upsell_mid_${mid}` : `upsell_${senderId}_${parsedPayload.nodeId}_${Math.floor(timestamp / 5000)}`;
 
-            // Execute from each Accept target node
-            for (const edge of acceptEdges) {
+            console.log(`  → Found ${outgoingEdges.length} outgoing edge(s) from ${nodeType} node`);
+
+            // Execute from each connected node (user controls branching via Condition Node)
+            for (const edge of outgoingEdges) {
                 const targetNode = nodes.find((n: any) => n.id === edge.target);
                 if (targetNode) {
-                    console.log(`  → Continuing to Accept path: ${targetNode.data?.label}`);
+                    console.log(`  → Continuing to: ${targetNode.data?.label}`);
                     await executeFlowFromNode(
                         targetNode,
                         nodes,
@@ -958,7 +959,8 @@ async function processPostback(messagingEvent: any, pageId: string) {
                             workspaceId,
                             pageDbId,
                             cart: cart,
-                            cartTotal: cartTotal
+                            cartTotal: cartTotal,
+                            upsell_response: 'accepted'  // Pass to context for Condition Node
                         },
                         pageAccessToken,
                         flow.id,
@@ -970,7 +972,9 @@ async function processPostback(messagingEvent: any, pageId: string) {
             return;
         }
 
-        // Handle upsell_decline / downsell_decline - continue to Decline path
+
+        // Handle upsell_decline / downsell_decline - save response and continue to ALL connected nodes
+        // (User controls branching via Condition Node checking upsell_response)
         if (parsedPayload.action === 'upsell_decline' || parsedPayload.action === 'downsell_decline') {
             const nodeType = parsedPayload.action === 'upsell_decline' ? 'upsell' : 'downsell';
             console.log(`✓ ${nodeType} DECLINE from node: ${parsedPayload.nodeId}`);
@@ -991,7 +995,7 @@ async function processPostback(messagingEvent: any, pageId: string) {
             const edges = flow.edges || [];
             const configurations = flow.configurations || {};
 
-            // Get existing cart (don't modify)
+            // Get existing cart (don't modify cart on decline)
             const { data: subscriber } = await supabase
                 .from('subscribers')
                 .select('metadata')
@@ -1002,22 +1006,35 @@ async function processPostback(messagingEvent: any, pageId: string) {
             const cart = subscriber?.metadata?.cart || [];
             const cartTotal = subscriber?.metadata?.cartTotal || 0;
 
-            // Find Decline path edges (sourceHandle contains 'decline' or 'no')
-            const declineEdges = edges.filter((e: any) =>
-                e.source === parsedPayload.nodeId &&
-                (e.sourceHandle?.toLowerCase().includes('decline') ||
-                    e.sourceHandle?.toLowerCase().includes('no'))
-            );
+            // Save upsell_response: 'declined' to metadata (for Condition Node to check)
+            await supabase
+                .from('subscribers')
+                .update({
+                    metadata: {
+                        ...(subscriber?.metadata || {}),
+                        upsell_response: 'declined',  // Saved for Condition Node
+                        upsell_node_id: parsedPayload.nodeId
+                    }
+                })
+                .eq('external_id', senderId)
+                .eq('workspace_id', workspaceId);
+
+            console.log(`  ✓ Saved upsell_response: 'declined' to subscriber metadata`);
+
+            // Find ALL outgoing edges from this node (not just decline-specific paths)
+            const outgoingEdges = edges.filter((e: any) => e.source === parsedPayload.nodeId);
 
             const userName = await fetchUserName(senderId, pageAccessToken);
             const timestamp = messagingEvent.timestamp || Date.now();
             const stableId = mid ? `decline_mid_${mid}` : `decline_${senderId}_${parsedPayload.nodeId}_${Math.floor(timestamp / 5000)}`;
 
-            // Execute from each Decline target node
-            for (const edge of declineEdges) {
+            console.log(`  → Found ${outgoingEdges.length} outgoing edge(s) from ${nodeType} node`);
+
+            // Execute from each connected node (user controls branching via Condition Node)
+            for (const edge of outgoingEdges) {
                 const targetNode = nodes.find((n: any) => n.id === edge.target);
                 if (targetNode) {
-                    console.log(`  → Continuing to Decline path: ${targetNode.data?.label}`);
+                    console.log(`  → Continuing to: ${targetNode.data?.label}`);
                     await executeFlowFromNode(
                         targetNode,
                         nodes,
@@ -1034,7 +1051,8 @@ async function processPostback(messagingEvent: any, pageId: string) {
                             workspaceId,
                             pageDbId,
                             cart: cart,
-                            cartTotal: cartTotal
+                            cartTotal: cartTotal,
+                            upsell_response: 'declined'  // Pass to context for Condition Node
                         },
                         pageAccessToken,
                         flow.id,
@@ -1814,6 +1832,95 @@ async function executeFlowFromNode(
         if (node.type === 'upsellNode' || node.type === 'downsellNode') {
             console.log(`  ⏸ Stopping traversal at ${node.type}: "${node.data?.label}" - waiting for user choice`);
             continue; // Don't add successors to queue - button click will resume flow
+        }
+
+        // STOP TRAVERSAL AT CHECKOUT NODE - wait for checkout button click
+        if (node.type === 'checkoutNode') {
+            console.log(`  ⏸ Stopping traversal at Checkout node: "${node.data?.label}" - waiting for checkout confirmation`);
+            continue; // Don't add successors to queue - checkout_confirm postback will resume
+        }
+
+        // CONDITION NODE: Evaluate conditions and follow only the matching path
+        if (node.type === 'conditionNode') {
+            const config = configurations[node.id] || {};
+            const conditions = config.conditions || [];
+            const matchType = config.matchType || 'all';
+
+            console.log(`  🔀 Evaluating Condition Node: "${node.data?.label}"`);
+
+            // Evaluate each condition
+            const results = conditions.map((cond: any) => {
+                const variable = cond.variable;
+                const operator = cond.operator;
+                const expectedValue = cond.value;
+
+                // Get the actual value from context
+                let actualValue = context[variable];
+
+                // Handle special variables
+                if (variable === 'form_submitted') {
+                    actualValue = context.form_submitted === true || context.formSubmitted === true;
+                }
+                if (variable === 'upsell_response') {
+                    actualValue = context.upsell_response || '';
+                }
+
+                console.log(`    Checking: ${variable} ${operator} ${expectedValue}, actual: ${actualValue}`);
+
+                // Evaluate based on operator
+                switch (operator) {
+                    case 'is_true': return actualValue === true;
+                    case 'is_false': return actualValue === false;
+                    case 'equals': return String(actualValue).toLowerCase() === String(expectedValue).toLowerCase();
+                    case 'not_equals': return String(actualValue).toLowerCase() !== String(expectedValue).toLowerCase();
+                    case 'contains': return String(actualValue).toLowerCase().includes(String(expectedValue).toLowerCase());
+                    case 'not_contains': return !String(actualValue).toLowerCase().includes(String(expectedValue).toLowerCase());
+                    case 'is_empty': return !actualValue || actualValue === '';
+                    case 'is_not_empty': return actualValue && actualValue !== '';
+                    case 'greater_than': return Number(actualValue) > Number(expectedValue);
+                    case 'less_than': return Number(actualValue) < Number(expectedValue);
+                    case 'greater_or_equal': return Number(actualValue) >= Number(expectedValue);
+                    case 'less_or_equal': return Number(actualValue) <= Number(expectedValue);
+                    default: return false;
+                }
+            });
+
+            // Determine result based on matchType
+            const conditionResult = conditions.length === 0 ? true :
+                (matchType === 'all' ? results.every((r: boolean) => r) : results.some((r: boolean) => r));
+
+            console.log(`  🔀 Condition result: ${conditionResult ? 'TRUE' : 'FALSE'}`);
+
+            // Find edges with matching sourceHandle (true/false)
+            const allConditionEdges = edges.filter((e: any) => e.source === currentNodeId);
+            let matchingEdges = allConditionEdges.filter((e: any) =>
+                e.sourceHandle === (conditionResult ? 'true' : 'false')
+            );
+
+            // Fallback: If no sourceHandle, use position-based logic
+            if (matchingEdges.length === 0 && allConditionEdges.length > 0) {
+                console.log(`    No sourceHandle found, using position-based fallback`);
+                const edgesWithPositions = allConditionEdges.map((edge: any) => {
+                    const targetNode = nodes.find((n: any) => n.id === edge.target);
+                    return { ...edge, targetY: targetNode?.position?.y ?? 0 };
+                }).sort((a: any, b: any) => a.targetY - b.targetY);
+
+                // TRUE = first edge (top), FALSE = second edge (bottom)
+                if (conditionResult && edgesWithPositions.length >= 1) {
+                    matchingEdges = [edgesWithPositions[0]];
+                } else if (!conditionResult && edgesWithPositions.length >= 2) {
+                    matchingEdges = [edgesWithPositions[1]];
+                }
+            }
+
+            // Add only matching edges to queue
+            for (const edge of matchingEdges) {
+                if (edge.target && !visited.has(edge.target)) {
+                    console.log(`    → Following ${conditionResult ? 'TRUE' : 'FALSE'} path to: ${nodes.find((n: any) => n.id === edge.target)?.data?.label || edge.target}`);
+                    queue.push(edge.target);
+                }
+            }
+            continue; // Skip the normal outgoing edges logic
         }
 
         // Find ALL edges from this node and add targets to queue

@@ -16,6 +16,7 @@ const AVAILABLE_VARIABLES = [
     { value: 'payment_method', label: 'Payment Method', type: 'string' },
     { value: 'order_total', label: 'Order Total', type: 'number' },
     { value: 'quantity', label: 'Quantity', type: 'number' },
+    { value: 'upsell_response', label: 'Upsell Response', type: 'string' },  // 'accepted' or 'declined'
     { value: 'has_coupon', label: 'Has Coupon Applied', type: 'boolean' },
     { value: 'is_returning', label: 'Is Returning Customer', type: 'boolean' },
     { value: 'form_submitted', label: 'Form Submitted', type: 'boolean' },
@@ -154,8 +155,8 @@ const ConditionNodeForm: React.FC<ConditionNodeFormProps> = ({ workspaceId, init
                     <button
                         onClick={() => setMatchType('all')}
                         className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all ${matchType === 'all'
-                                ? 'bg-amber-500 text-white'
-                                : 'bg-slate-700/50 text-slate-400 hover:text-white'
+                            ? 'bg-amber-500 text-white'
+                            : 'bg-slate-700/50 text-slate-400 hover:text-white'
                             }`}
                     >
                         ALL conditions match
@@ -163,8 +164,8 @@ const ConditionNodeForm: React.FC<ConditionNodeFormProps> = ({ workspaceId, init
                     <button
                         onClick={() => setMatchType('any')}
                         className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all ${matchType === 'any'
-                                ? 'bg-amber-500 text-white'
-                                : 'bg-slate-700/50 text-slate-400 hover:text-white'
+                            ? 'bg-amber-500 text-white'
+                            : 'bg-slate-700/50 text-slate-400 hover:text-white'
                             }`}
                     >
                         ANY condition matches
