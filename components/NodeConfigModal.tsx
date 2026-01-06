@@ -8,6 +8,7 @@ interface NodeConfigModalProps {
     nodeLabel: string;
     children: React.ReactNode;
     onSave: () => void;
+    fullscreen?: boolean;
 }
 
 const NodeConfigModal: React.FC<NodeConfigModalProps> = ({
@@ -16,14 +17,43 @@ const NodeConfigModal: React.FC<NodeConfigModalProps> = ({
     nodeType,
     nodeLabel,
     children,
-    onSave
+    onSave,
+    fullscreen = false
 }) => {
-    // Use CSS to control visibility instead of conditional rendering
-    // This prevents React Hooks violations
     if (!isOpen) {
         return null;
     }
 
+    // Fullscreen mode - render children directly without modal wrapper
+    if (fullscreen) {
+        return (
+            <div className="fixed inset-0 z-50 bg-slate-900">
+                {/* Close button - floating */}
+                <button
+                    onClick={onClose}
+                    className="fixed top-4 right-4 z-[60] p-3 bg-red-500/20 hover:bg-red-500/40 rounded-xl text-red-400 hover:text-white transition-all border border-red-500/30 shadow-lg backdrop-blur-sm"
+                    title="Close"
+                >
+                    <X className="w-5 h-5" />
+                </button>
+
+                {/* Save button - floating */}
+                <button
+                    onClick={onSave}
+                    className="fixed bottom-6 right-6 z-[60] px-6 py-3 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white font-bold rounded-xl shadow-2xl transition-all active:scale-95 border border-white/20"
+                >
+                    Save Configuration
+                </button>
+
+                {/* Fullscreen content */}
+                <div className="w-full h-full overflow-hidden">
+                    {children}
+                </div>
+            </div>
+        );
+    }
+
+    // Regular modal mode
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             {/* Backdrop */}

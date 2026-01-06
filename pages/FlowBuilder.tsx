@@ -2226,6 +2226,12 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
           nodeType={selectedNode.data.nodeType as string || 'node'}
           nodeLabel={selectedNode.data.label as string}
           onSave={handleSaveConfig}
+          fullscreen={
+            selectedNode.data.nodeType === 'upsellNode' ||
+            selectedNode.data.nodeType === 'downsellNode' ||
+            (selectedNode.data.label as string || '').toLowerCase().includes('upsell') ||
+            (selectedNode.data.label as string || '').toLowerCase().includes('downsell')
+          }
         >
           {renderConfigForm()}
         </NodeConfigModal>
