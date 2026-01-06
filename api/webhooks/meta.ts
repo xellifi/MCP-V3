@@ -747,6 +747,10 @@ async function processPostback(messagingEvent: any, pageId: string) {
             };
 
             console.log(`  📦 Creating cart item: ${cartItem.productName} (₱${cartItem.productPrice})`);
+            console.log(`  🖼️ Product image URL: ${cartItem.productImage || '(none)'}`);
+            if (!cartItem.productImage) {
+                console.log(`  ⚠️ WARNING: No productImage in payload! Check if Product node config has image set.`);
+            }
 
             // Get existing cart from subscriber context or create new
             let cart: any[] = [];
@@ -2914,6 +2918,7 @@ async function executeAction(
         const productId = config.productId || '';
 
         console.log(`    🛍️ Product: "${productName}"`);
+        console.log(`    🖼️ Product image: ${productImage || '(none configured)'}`);
         console.log(`    💰 Price: ${productPrice}`);
         console.log(`    🏷️ Product ID: ${productId}`);
 

@@ -61,6 +61,13 @@ const CustomDownsellNode: React.FC<NodeProps> = ({ data, selected }) => {
                         <div className="text-slate-200 font-bold text-sm truncate">
                             {data.label || 'Downsell'}
                         </div>
+                        {/* Show productName or headline below the label */}
+                        {(data.productName || headline) && (
+                            <div className="text-amber-300 text-xs truncate flex items-center gap-1">
+                                <span className="opacity-70">📦</span>
+                                {data.productName || headline}
+                            </div>
+                        )}
                         {price && (
                             <div className="text-orange-300 text-xs flex items-center gap-1">
                                 <DollarSign className="w-3 h-3" />
