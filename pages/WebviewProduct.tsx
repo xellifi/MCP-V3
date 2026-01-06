@@ -58,7 +58,7 @@ const WebviewProduct: React.FC = () => {
 
     const loadSession = async () => {
         try {
-            const response = await fetch(`${API_BASE}/api/webview/session?id=${sessionId}`);
+            const response = await fetch(`${API_BASE}/api/webview?route=session&id=${sessionId}`);
             const data = await response.json();
 
             if (data.error) {
@@ -88,7 +88,7 @@ const WebviewProduct: React.FC = () => {
         if (!config) return;
 
         try {
-            const response = await fetch(`${API_BASE}/api/webview/action`, {
+            const response = await fetch(`${API_BASE}/api/webview?route=action`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -120,7 +120,7 @@ const WebviewProduct: React.FC = () => {
 
     const updateCartItem = async (productId: string, newQuantity: number, variant?: any) => {
         try {
-            const response = await fetch(`${API_BASE}/api/webview/action`, {
+            const response = await fetch(`${API_BASE}/api/webview?route=action`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

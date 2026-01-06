@@ -61,7 +61,7 @@ const WebviewForm: React.FC = () => {
 
     const loadSession = async () => {
         try {
-            const response = await fetch(`${API_BASE}/api/webview/session?id=${sessionId}`);
+            const response = await fetch(`${API_BASE}/api/webview?route=session&id=${sessionId}`);
             const data = await response.json();
 
             if (data.error) {
@@ -128,7 +128,7 @@ const WebviewForm: React.FC = () => {
                 submittedAt: new Date().toISOString()
             };
 
-            await fetch(`${API_BASE}/api/webview/action`, {
+            await fetch(`${API_BASE}/api/webview?route=action`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -142,7 +142,7 @@ const WebviewForm: React.FC = () => {
 
             // Wait a moment to show success, then close
             setTimeout(async () => {
-                await fetch(`${API_BASE}/api/webview/continue`, {
+                await fetch(`${API_BASE}/api/webview?route=continue`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ sessionId, closeReason: 'form_submitted' })
@@ -165,7 +165,7 @@ const WebviewForm: React.FC = () => {
 
     const closeForm = async () => {
         try {
-            await fetch(`${API_BASE}/api/webview/continue`, {
+            await fetch(`${API_BASE}/api/webview?route=continue`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ sessionId, closeReason: 'close' })

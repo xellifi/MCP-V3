@@ -44,7 +44,7 @@ const WebviewCart: React.FC = () => {
 
     const loadSession = async () => {
         try {
-            const response = await fetch(`${API_BASE}/api/webview/session?id=${sessionId}`);
+            const response = await fetch(`${API_BASE}/api/webview?route=session&id=${sessionId}`);
             const data = await response.json();
 
             if (data.error) {
@@ -64,7 +64,7 @@ const WebviewCart: React.FC = () => {
 
     const updateQuantity = async (productId: string, quantity: number, variant?: any) => {
         try {
-            const response = await fetch(`${API_BASE}/api/webview/action`, {
+            const response = await fetch(`${API_BASE}/api/webview?route=action`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -85,7 +85,7 @@ const WebviewCart: React.FC = () => {
 
     const removeItem = async (productId: string, variant?: any) => {
         try {
-            const response = await fetch(`${API_BASE}/api/webview/action`, {
+            const response = await fetch(`${API_BASE}/api/webview?route=action`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -108,7 +108,7 @@ const WebviewCart: React.FC = () => {
         if (!couponCode.trim()) return;
 
         try {
-            const response = await fetch(`${API_BASE}/api/webview/action`, {
+            const response = await fetch(`${API_BASE}/api/webview?route=action`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -135,7 +135,7 @@ const WebviewCart: React.FC = () => {
 
         try {
             // Mark session for checkout
-            await fetch(`${API_BASE}/api/webview/action`, {
+            await fetch(`${API_BASE}/api/webview?route=action`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -146,7 +146,7 @@ const WebviewCart: React.FC = () => {
             });
 
             // Continue flow
-            await fetch(`${API_BASE}/api/webview/continue`, {
+            await fetch(`${API_BASE}/api/webview?route=continue`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ sessionId, closeReason: 'checkout' })
@@ -168,7 +168,7 @@ const WebviewCart: React.FC = () => {
 
     const closeCart = async () => {
         try {
-            await fetch(`${API_BASE}/api/webview/continue`, {
+            await fetch(`${API_BASE}/api/webview?route=continue`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ sessionId, closeReason: 'close' })

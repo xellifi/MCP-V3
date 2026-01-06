@@ -51,7 +51,7 @@ const WebviewUpsell: React.FC = () => {
 
     const loadSession = async () => {
         try {
-            const response = await fetch(`${API_BASE}/api/webview/session?id=${sessionId}`);
+            const response = await fetch(`${API_BASE}/api/webview?route=session&id=${sessionId}`);
             const data = await response.json();
 
             if (data.error) {
@@ -72,7 +72,7 @@ const WebviewUpsell: React.FC = () => {
         setProcessing(true);
 
         try {
-            await fetch(`${API_BASE}/api/webview/action`, {
+            await fetch(`${API_BASE}/api/webview?route=action`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -100,7 +100,7 @@ const WebviewUpsell: React.FC = () => {
         setProcessing(true);
 
         try {
-            await fetch(`${API_BASE}/api/webview/action`, {
+            await fetch(`${API_BASE}/api/webview?route=action`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -119,7 +119,7 @@ const WebviewUpsell: React.FC = () => {
 
     const continueAndClose = async () => {
         try {
-            await fetch(`${API_BASE}/api/webview/continue`, {
+            await fetch(`${API_BASE}/api/webview?route=continue`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ sessionId, closeReason: 'user_action' })
