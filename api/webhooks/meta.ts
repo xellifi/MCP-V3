@@ -251,6 +251,59 @@ async function incrementNodeAnalytics(
     }
 }
 
+// Helper function to create webview session and return URL
+async function createWebviewSession(
+    pageType: 'product' | 'upsell' | 'downsell' | 'cart' | 'form',
+    externalId: string,
+    workspaceId: string,
+    flowId: string,
+    nodeId: string,
+    pageConfig: any,
+    pageAccessToken: string,
+    cart?: any[]
+): Promise<string | null> {
+    try {
+        const baseUrl = process.env.VITE_APP_URL || process.env.VERCEL_URL
+            ? `https://${process.env.VERCEL_URL}`
+            : 'http://localhost:5173';
+
+        const sessionId = `wv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        const expiresAt = new Date();
+        expiresAt.setHours(expiresAt.getHours() + 1); // 1 hour expiration
+
+        const { error } = await supabase
+            .from('webview_sessions')
+            .insert({
+                id: sessionId,
+                external_id: externalId,
+                workspace_id: workspaceId,
+                flow_id: flowId,
+                current_node_id: nodeId,
+                page_type: pageType,
+                page_config: pageConfig,
+                cart: cart || [],
+                cart_total: (cart || []).reduce((sum: number, item: any) => sum + (item.productPrice || 0) * (item.quantity || 1), 0),
+                page_access_token: pageAccessToken,
+                expires_at: expiresAt.toISOString(),
+                metadata: {}
+            });
+
+        if (error) {
+            console.error('    ✗ Error creating webview session:', error.message);
+            return null;
+        }
+
+        const webviewUrl = `${baseUrl}/wv/${pageType}/${sessionId}`;
+        console.log(`    🌐 Created webview session: ${sessionId}`);
+        console.log(`    🔗 Webview URL: ${webviewUrl}`);
+
+        return webviewUrl;
+    } catch (error: any) {
+        console.error('    ✗ Exception creating webview session:', error.message);
+        return null;
+    }
+}
+
 // Helper function to fetch user name from Facebook API
 async function fetchUserName(userId: string, pageAccessToken: string): Promise<string> {
     try {
@@ -2271,7 +2324,26 @@ async function executeFlowFromNode(
                     actualValue = context.form_submitted === true || context.formSubmitted === true;
                 }
                 if (variable === 'upsell_response') {
-                    actualValue = context.upsell_response || '';
+                    // Check multiple possible locations for upsell response
+                    actualValue = context.upsell_response || context.upsellResponse ||
+                        context.metadata?.upsell_response || '';
+                }
+                if (variable === 'downsell_response') {
+                    // Check multiple possible locations for downsell response
+                    actualValue = context.downsell_response || context.downsellResponse ||
+                        context.metadata?.downsell_response || '';
+                }
+                if (variable === 'cart_count') {
+                    // Get cart count from context
+                    actualValue = context.cart_count || context.cartCount ||
+                        (Array.isArray(context.cart) ? context.cart.length : 0);
+                }
+                if (variable === 'webview_completed') {
+                    actualValue = context.webview_completed === true || context.webviewCompleted === true;
+                }
+                if (variable === 'payment_method') {
+                    actualValue = context.payment_method || context.paymentMethod ||
+                        context.formData?.paymentMethod || '';
                 }
 
                 console.log(`    Checking: ${variable} ${operator} ${expectedValue}, actual: ${actualValue}`);
@@ -3429,38 +3501,93 @@ async function executeAction(
         const description = config.description || '';
         const acceptButtonText = config.acceptButtonText || config.buttonText || '✓ Yes, Add This!';
         const cartAction = config.cartAction || 'add';
-        console.log(`    🔧 Config cartAction: "${config.cartAction}" → using: "${cartAction}"`);
+        const useWebview = config.useWebview === true;
+        console.log(`    🔧 Config: cartAction="${cartAction}", useWebview=${useWebview}`);
 
         try {
             await sendTypingIndicator(context.commenterId, pageAccessToken, 'typing_on');
             await new Promise(resolve => setTimeout(resolve, 500));
             await sendTypingIndicator(context.commenterId, pageAccessToken, 'typing_off');
 
-            // Create postback buttons for Accept/Decline
-            const buttons = [
-                {
-                    type: 'postback',
-                    title: acceptButtonText,
-                    payload: JSON.stringify({
-                        action: 'upsell_accept',
-                        nodeId: node.id,
-                        flowId: flowId,
-                        productName: config.productName || headline,  // Use actual product name, fallback to headline
-                        productPrice: parseFloat(price.replace(/[^\d.]/g, '')) || 0,
-                        productImage: productImage || '',
-                        cartAction: cartAction
-                    })
-                },
-                {
-                    type: 'postback',
-                    title: '✗ No Thanks',
-                    payload: JSON.stringify({
-                        action: 'upsell_decline',
-                        nodeId: node.id,
-                        flowId: flowId
-                    })
+            let buttons: any[] = [];
+
+            // Check if webview mode is enabled
+            if (useWebview) {
+                console.log(`    🌐 Webview mode enabled - creating webview session`);
+                const webviewUrl = await createWebviewSession(
+                    'upsell',
+                    context.commenterId,
+                    context.workspaceId,
+                    flowId,
+                    node.id,
+                    config,
+                    pageAccessToken,
+                    context.cart || []
+                );
+
+                if (webviewUrl) {
+                    buttons = [{
+                        type: 'web_url',
+                        title: '🎁 View Offer',
+                        url: webviewUrl,
+                        webview_height_ratio: 'full',
+                        messenger_extensions: true
+                    }];
+                } else {
+                    // Fallback to postback if webview creation failed
+                    console.log(`    ⚠️ Webview creation failed, falling back to postback`);
+                    buttons = [
+                        {
+                            type: 'postback',
+                            title: acceptButtonText,
+                            payload: JSON.stringify({
+                                action: 'upsell_accept',
+                                nodeId: node.id,
+                                flowId: flowId,
+                                productName: config.productName || headline,
+                                productPrice: parseFloat(price.replace(/[^\d.]/g, '')) || 0,
+                                productImage: productImage || '',
+                                cartAction: cartAction
+                            })
+                        },
+                        {
+                            type: 'postback',
+                            title: '✗ No Thanks',
+                            payload: JSON.stringify({
+                                action: 'upsell_decline',
+                                nodeId: node.id,
+                                flowId: flowId
+                            })
+                        }
+                    ];
                 }
-            ];
+            } else {
+                // Standard postback buttons
+                buttons = [
+                    {
+                        type: 'postback',
+                        title: acceptButtonText,
+                        payload: JSON.stringify({
+                            action: 'upsell_accept',
+                            nodeId: node.id,
+                            flowId: flowId,
+                            productName: config.productName || headline,
+                            productPrice: parseFloat(price.replace(/[^\d.]/g, '')) || 0,
+                            productImage: productImage || '',
+                            cartAction: cartAction
+                        })
+                    },
+                    {
+                        type: 'postback',
+                        title: '✗ No Thanks',
+                        payload: JSON.stringify({
+                            action: 'upsell_decline',
+                            nodeId: node.id,
+                            flowId: flowId
+                        })
+                    }
+                ];
+            }
 
             const elements = [{
                 title: headline,
@@ -3494,7 +3621,7 @@ async function executeAction(
             if (result.error) {
                 console.error('    ✗ Facebook API error:', result.error.message);
             } else {
-                console.log('    ✓ Upsell card sent successfully!');
+                console.log(`    ✓ Upsell card sent successfully! (webview: ${useWebview})`);
             }
         } catch (error: any) {
             console.error('    ✗ Exception sending upsell:', error.message);
@@ -3512,36 +3639,93 @@ async function executeAction(
         const description = config.description || '';
         const acceptButtonText = config.acceptButtonText || '✓ Yes, I Want This';
         const cartAction = config.cartAction || 'add';
+        const useWebview = config.useWebview === true;
+        console.log(`    🔧 Config: cartAction="${cartAction}", useWebview=${useWebview}`);
 
         try {
             await sendTypingIndicator(context.commenterId, pageAccessToken, 'typing_on');
             await new Promise(resolve => setTimeout(resolve, 500));
             await sendTypingIndicator(context.commenterId, pageAccessToken, 'typing_off');
 
-            const buttons = [
-                {
-                    type: 'postback',
-                    title: acceptButtonText,
-                    payload: JSON.stringify({
-                        action: 'downsell_accept',
-                        nodeId: node.id,
-                        flowId: flowId,
-                        productName: config.productName || headline,  // Use actual product name, fallback to headline
-                        productPrice: parseFloat(price.replace(/[^\d.]/g, '')) || 0,
-                        productImage: productImage || '',
-                        cartAction: cartAction
-                    })
-                },
-                {
-                    type: 'postback',
-                    title: '✗ No Thanks',
-                    payload: JSON.stringify({
-                        action: 'downsell_decline',
-                        nodeId: node.id,
-                        flowId: flowId
-                    })
+            let buttons: any[] = [];
+
+            // Check if webview mode is enabled
+            if (useWebview) {
+                console.log(`    🌐 Webview mode enabled - creating webview session`);
+                const webviewUrl = await createWebviewSession(
+                    'downsell',
+                    context.commenterId,
+                    context.workspaceId,
+                    flowId,
+                    node.id,
+                    config,
+                    pageAccessToken,
+                    context.cart || []
+                );
+
+                if (webviewUrl) {
+                    buttons = [{
+                        type: 'web_url',
+                        title: '🎁 View Offer',
+                        url: webviewUrl,
+                        webview_height_ratio: 'full',
+                        messenger_extensions: true
+                    }];
+                } else {
+                    // Fallback to postback if webview creation failed
+                    console.log(`    ⚠️ Webview creation failed, falling back to postback`);
+                    buttons = [
+                        {
+                            type: 'postback',
+                            title: acceptButtonText,
+                            payload: JSON.stringify({
+                                action: 'downsell_accept',
+                                nodeId: node.id,
+                                flowId: flowId,
+                                productName: config.productName || headline,
+                                productPrice: parseFloat(price.replace(/[^\d.]/g, '')) || 0,
+                                productImage: productImage || '',
+                                cartAction: cartAction
+                            })
+                        },
+                        {
+                            type: 'postback',
+                            title: '✗ No Thanks',
+                            payload: JSON.stringify({
+                                action: 'downsell_decline',
+                                nodeId: node.id,
+                                flowId: flowId
+                            })
+                        }
+                    ];
                 }
-            ];
+            } else {
+                // Standard postback buttons
+                buttons = [
+                    {
+                        type: 'postback',
+                        title: acceptButtonText,
+                        payload: JSON.stringify({
+                            action: 'downsell_accept',
+                            nodeId: node.id,
+                            flowId: flowId,
+                            productName: config.productName || headline,
+                            productPrice: parseFloat(price.replace(/[^\d.]/g, '')) || 0,
+                            productImage: productImage || '',
+                            cartAction: cartAction
+                        })
+                    },
+                    {
+                        type: 'postback',
+                        title: '✗ No Thanks',
+                        payload: JSON.stringify({
+                            action: 'downsell_decline',
+                            nodeId: node.id,
+                            flowId: flowId
+                        })
+                    }
+                ];
+            }
 
             const elements = [{
                 title: headline,
@@ -3575,7 +3759,7 @@ async function executeAction(
             if (result.error) {
                 console.error('    ✗ Facebook API error:', result.error.message);
             } else {
-                console.log('    ✓ Downsell card sent successfully!');
+                console.log(`    ✓ Downsell card sent successfully! (webview: ${useWebview})`);
             }
         } catch (error: any) {
             console.error('    ✗ Exception sending downsell:', error.message);

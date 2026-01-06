@@ -40,6 +40,14 @@ const UsersPage = lazy(() => import('./pages/Users'));
 const AdminSubscriptions = lazy(() => import('./pages/AdminSubscriptions'));
 const AdminPackageSettings = lazy(() => import('./pages/AdminPackageSettings'));
 
+// Webview Pages - Lazy load (for Messenger webview)
+const WebviewProduct = lazy(() => import('./pages/WebviewProduct'));
+const WebviewUpsell = lazy(() => import('./pages/WebviewUpsell'));
+const WebviewDownsell = lazy(() => import('./pages/WebviewDownsell'));
+const WebviewCart = lazy(() => import('./pages/WebviewCart'));
+const WebviewForm = lazy(() => import('./pages/WebviewForm'));
+
+
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -160,6 +168,33 @@ const App: React.FC = () => {
           <Route path="/store/:slug" element={
             <Suspense fallback={<LoadingSpinner />}>
               <StoreView />
+            </Suspense>
+          } />
+
+          {/* Webview Pages - For Messenger webview, no login required */}
+          <Route path="/wv/product/:sessionId" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <WebviewProduct />
+            </Suspense>
+          } />
+          <Route path="/wv/upsell/:sessionId" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <WebviewUpsell />
+            </Suspense>
+          } />
+          <Route path="/wv/downsell/:sessionId" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <WebviewDownsell />
+            </Suspense>
+          } />
+          <Route path="/wv/cart/:sessionId" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <WebviewCart />
+            </Suspense>
+          } />
+          <Route path="/wv/form/:sessionId" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <WebviewForm />
             </Suspense>
           } />
 

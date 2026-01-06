@@ -17,6 +17,9 @@ const AVAILABLE_VARIABLES = [
     { value: 'order_total', label: 'Order Total', type: 'number' },
     { value: 'quantity', label: 'Quantity', type: 'number' },
     { value: 'upsell_response', label: 'Upsell Response', type: 'string' },  // 'accepted' or 'declined'
+    { value: 'downsell_response', label: 'Downsell Response', type: 'string' },  // 'accepted' or 'declined'
+    { value: 'cart_count', label: 'Cart Item Count', type: 'number' },
+    { value: 'webview_completed', label: 'Webview Completed', type: 'boolean' },
     { value: 'has_coupon', label: 'Has Coupon Applied', type: 'boolean' },
     { value: 'is_returning', label: 'Is Returning Customer', type: 'boolean' },
     { value: 'form_submitted', label: 'Form Submitted', type: 'boolean' },

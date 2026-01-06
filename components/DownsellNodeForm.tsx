@@ -45,6 +45,8 @@ interface DownsellNodeFormProps {
         cartAction?: 'add' | 'replace';
         productName?: string;
         productPrice?: number;
+        // Webview Mode
+        useWebview?: boolean;
     };
     onChange: (config: any) => void;
 }
@@ -121,6 +123,9 @@ const DownsellNodeForm: React.FC<DownsellNodeFormProps> = ({
     const [productName, setProductName] = useState(initialConfig?.productName || '');
     const [productPrice, setProductPrice] = useState(initialConfig?.productPrice || 0);
 
+    // Webview mode toggle
+    const [useWebview, setUseWebview] = useState(initialConfig?.useWebview ?? false);
+
     // Active section for accordion
     const [activeSection, setActiveSection] = useState<string>('headline');
 
@@ -154,6 +159,7 @@ const DownsellNodeForm: React.FC<DownsellNodeFormProps> = ({
             cartAction,
             productName: productName || headline,
             productPrice: parseFloat(price.replace(/[^0-9.]/g, '')) || 0,
+            useWebview,
             ...updates
         });
     };
@@ -762,6 +768,34 @@ const DownsellNodeForm: React.FC<DownsellNodeFormProps> = ({
                                     Customer pays only for downsell
                                 </div>
                             </button>
+                        </div>
+
+                        {/* Webview Mode Toggle */}
+                        <div className="mt-4 pt-4 border-t border-white/10">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <label className="text-sm font-medium text-slate-300">Use Webview Display</label>
+                                    <p className="text-xs text-slate-500 mt-0.5">
+                                        Full design control with custom styling
+                                    </p>
+                                </div>
+                                <button
+                                    onClick={() => {
+                                        setUseWebview(!useWebview);
+                                        notifyChange({ useWebview: !useWebview });
+                                    }}
+                                    className={`w-12 h-6 rounded-full transition-all ${useWebview ? 'bg-teal-500' : 'bg-slate-600'}`}
+                                >
+                                    <div className={`w-5 h-5 bg-white rounded-full shadow transition-transform ${useWebview ? 'translate-x-6' : 'translate-x-0.5'}`} />
+                                </button>
+                            </div>
+                            {useWebview && (
+                                <div className="mt-3 p-3 bg-teal-500/10 border border-teal-500/30 rounded-lg">
+                                    <p className="text-xs text-teal-300">
+                                        ✨ Webview mode enabled! The downsell will be shown as a beautiful custom page instead of Facebook's basic template.
+                                    </p>
+                                </div>
+                            )}
                         </div>
                     </div>
                 )}
