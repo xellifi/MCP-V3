@@ -478,19 +478,15 @@ const UpsellNodeForm: React.FC<UpsellNodeFormProps> = ({
             priceTextColor, description, descriptionColor, buttonText, buttonBgColor,
             buttonTextColor, buttonBorderRadius, showButtonIcon, backgroundColor
         };
-        const encodedConfig = btoa(JSON.stringify(previewConfig));
+        // Use encodeURIComponent to handle unicode characters properly
+        const encodedConfig = encodeURIComponent(JSON.stringify(previewConfig));
         return `/upsell-preview?config=${encodedConfig}`;
     };
 
     const openLivePreview = () => {
         const url = getPreviewUrl();
         console.log('Opening live preview:', url);
-        const popup = window.open(url, '_blank', 'width=500,height=700,menubar=no,toolbar=no,location=no');
-        // If popup is blocked, open in new tab
-        if (!popup || popup.closed || typeof popup.closed === 'undefined') {
-            console.log('Popup blocked, opening in new tab');
-            window.open(url, '_blank');
-        }
+        window.open(url, '_blank');
     };
 
     // Modal width based on device selection
@@ -545,7 +541,7 @@ const UpsellNodeForm: React.FC<UpsellNodeFormProps> = ({
                             </div>
                         </div>
 
-                        {/* Right: Preview button + Close */}
+                        {/* Right: Preview + Save + Close */}
                         <div className="flex items-center gap-2 flex-shrink-0">
                             <button
                                 type="button"
@@ -555,6 +551,15 @@ const UpsellNodeForm: React.FC<UpsellNodeFormProps> = ({
                             >
                                 <Eye className="w-3.5 h-3.5" />
                                 <span>Preview</span>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={onClose}
+                                className="flex items-center gap-1.5 px-4 py-1.5 bg-teal-500 hover:bg-teal-600 rounded-lg text-white text-xs font-medium transition-colors"
+                                title="Save Configuration"
+                            >
+                                <Check className="w-3.5 h-3.5" />
+                                <span>Save</span>
                             </button>
                             {onClose && (
                                 <button

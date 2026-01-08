@@ -42,12 +42,14 @@ const DownsellPreview: React.FC = () => {
         try {
             const encodedConfig = searchParams.get('config');
             if (encodedConfig) {
-                const decodedConfig = JSON.parse(atob(encodedConfig));
+                // Use decodeURIComponent to handle unicode characters
+                const decodedConfig = JSON.parse(decodeURIComponent(encodedConfig));
                 setConfig(decodedConfig);
             } else {
                 setError('No configuration provided');
             }
         } catch (err) {
+            console.error('Error decoding config:', err);
             setError('Invalid configuration');
         }
     }, [searchParams]);
