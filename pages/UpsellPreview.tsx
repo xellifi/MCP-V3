@@ -86,103 +86,103 @@ const UpsellPreview: React.FC = () => {
                 </span>
             </div>
 
-            {/* Headline Banner */}
-            <div
-                className="py-4 px-6 text-center"
-                style={{ backgroundColor: '#f59e0b' }}
-            >
-                <h1
-                    className="text-lg md:text-xl font-bold uppercase tracking-wider"
-                    style={{ color: '#1f2937' }}
-                >
-                    {emoji && <span className="mr-2">{emoji}</span>}
-                    ADD THIS TO YOUR CART?
-                    {emoji && <span className="ml-2">{emoji}</span>}
-                </h1>
-            </div>
-
-            {/* Main Content */}
-            <div className="flex-1 p-4 flex flex-col items-center justify-center">
-                {/* Product Image with Price Badge */}
-                <div className="relative w-full max-w-[300px] mx-auto">
-                    <div
-                        className="overflow-hidden aspect-square shadow-2xl"
-                        style={{
-                            borderRadius: `${config.imageBorderRadius || 16}px`,
-                            border: `${config.imageBorderWidth || 4}px solid ${config.imageBorderColor || '#ffffff'}`,
-                        }}
-                    >
-                        {config.imageUrl ? (
-                            <img
-                                src={config.imageUrl}
-                                alt="Product"
-                                className="w-full h-full object-cover"
-                            />
-                        ) : (
-                            <div className="w-full h-full bg-slate-200 flex items-center justify-center">
-                                <Sparkles className="w-16 h-16 text-slate-400" />
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Price Badge */}
-                    <div
-                        className="absolute -top-3 -right-3 px-5 py-2 rounded-full font-bold text-xl shadow-lg transform rotate-12"
-                        style={{
-                            backgroundColor: config.priceBadgeColor || '#f59e0b',
-                            color: config.priceTextColor || '#ffffff',
-                        }}
-                    >
-                        {config.price || '₱0'}
-                    </div>
-                </div>
-
-                {/* Product Name Bar */}
+            {/* Main Content Area */}
+            <div className="flex-1 flex items-center justify-center p-4 md:p-8">
+                {/* Centered Container/Card */}
                 <div
-                    className="w-full max-w-[300px] mt-6 py-3 px-4 text-center"
-                    style={{ backgroundColor: '#16a34a' }}
+                    className="w-full max-w-md bg-white/10 backdrop-blur-sm rounded-3xl shadow-2xl overflow-hidden border border-white/20"
+                    style={{ backgroundColor: bgColor }}
                 >
-                    <h2 className="text-white font-bold text-xl uppercase tracking-wider">
-                        {config.headline || 'PRODUCT'}
-                    </h2>
+                    {/* Headline Banner */}
+                    <div className="py-4 px-6 text-center bg-amber-500">
+                        <h1 className="text-lg md:text-xl font-bold uppercase tracking-wider text-slate-800">
+                            {emoji && <span className="mr-2">{emoji}</span>}
+                            ADD THIS TO YOUR CART?
+                            {emoji && <span className="ml-2">{emoji}</span>}
+                        </h1>
+                    </div>
+
+                    {/* Card Content */}
+                    <div className="p-6">
+                        {/* Product Image with Price Badge */}
+                        <div className="relative w-full max-w-[220px] mx-auto">
+                            <div
+                                className="overflow-hidden aspect-square shadow-xl"
+                                style={{
+                                    borderRadius: `${config.imageBorderRadius || 16}px`,
+                                    border: `${config.imageBorderWidth || 4}px solid ${config.imageBorderColor || '#ffffff'}`,
+                                }}
+                            >
+                                {config.imageUrl ? (
+                                    <img
+                                        src={config.imageUrl}
+                                        alt="Product"
+                                        className="w-full h-full object-cover"
+                                    />
+                                ) : (
+                                    <div className="w-full h-full bg-slate-200 flex items-center justify-center">
+                                        <Sparkles className="w-12 h-12 text-slate-400" />
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Price Badge */}
+                            <div
+                                className="absolute -top-2 -right-2 px-4 py-1.5 rounded-full font-bold text-lg shadow-lg"
+                                style={{
+                                    backgroundColor: config.priceBadgeColor || '#f59e0b',
+                                    color: config.priceTextColor || '#ffffff',
+                                }}
+                            >
+                                {config.price || '₱0'}
+                            </div>
+                        </div>
+
+                        {/* Product Name Bar */}
+                        <div className="mt-4 py-3 px-4 text-center rounded-xl bg-green-600">
+                            <h2 className="text-white font-bold text-lg uppercase tracking-wider">
+                                {config.headline || 'PRODUCT'}
+                            </h2>
+                        </div>
+
+                        {/* Description */}
+                        {config.description && (
+                            <p
+                                className="mt-3 text-center text-sm"
+                                style={{ color: config.descriptionColor || '#ffffff' }}
+                            >
+                                {config.description}
+                            </p>
+                        )}
+
+                        {/* Action Buttons */}
+                        <div className="mt-5 space-y-3">
+                            <button
+                                className="w-full py-3.5 px-6 font-bold text-base flex items-center justify-center gap-2 shadow-lg transition-all active:scale-95"
+                                style={{
+                                    backgroundColor: config.buttonBgColor || '#16a34a',
+                                    color: config.buttonTextColor || '#ffffff',
+                                    borderRadius: `${config.buttonBorderRadius || 24}px`,
+                                }}
+                            >
+                                {config.showButtonIcon && <Check className="w-5 h-5" />}
+                                {config.buttonText || 'Yes Add this'}
+                            </button>
+
+                            <button
+                                className="w-full py-3.5 px-6 font-bold text-base flex items-center justify-center gap-2 shadow-lg transition-all active:scale-95"
+                                style={{
+                                    backgroundColor: '#dc2626',
+                                    color: '#ffffff',
+                                    borderRadius: `${config.buttonBorderRadius || 24}px`,
+                                }}
+                            >
+                                <X className="w-5 h-5" />
+                                No Thanks
+                            </button>
+                        </div>
+                    </div>
                 </div>
-
-                {/* Description */}
-                {config.description && (
-                    <p
-                        className="mt-4 text-center max-w-[280px] text-sm"
-                        style={{ color: config.descriptionColor || '#ffffff' }}
-                    >
-                        {config.description}
-                    </p>
-                )}
-            </div>
-
-            {/* Action Buttons */}
-            <div className="p-4 flex gap-3">
-                <button
-                    className="flex-1 py-4 px-6 rounded-full font-bold text-base flex items-center justify-center gap-2 shadow-lg transition-all active:scale-95"
-                    style={{
-                        backgroundColor: config.buttonBgColor || '#16a34a',
-                        color: config.buttonTextColor || '#ffffff',
-                        borderRadius: `${config.buttonBorderRadius || 24}px`,
-                    }}
-                >
-                    {config.showButtonIcon && <Check className="w-5 h-5" />}
-                    {config.buttonText || 'Yes Add this'}
-                </button>
-
-                <button
-                    className="flex-1 py-4 px-6 rounded-full font-bold text-base flex items-center justify-center gap-2 shadow-lg transition-all active:scale-95"
-                    style={{
-                        backgroundColor: '#dc2626',
-                        color: '#ffffff',
-                        borderRadius: `${config.buttonBorderRadius || 24}px`,
-                    }}
-                >
-                    <X className="w-5 h-5" />
-                    No Thanks
-                </button>
             </div>
         </div>
     );
