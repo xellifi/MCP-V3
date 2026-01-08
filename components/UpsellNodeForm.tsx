@@ -1,4 +1,4 @@
-import React, { useState, useRef, useMemo, useEffect } from 'react';
+import React, { useState, useRef, useMemo, useEffect, memo, useCallback } from 'react';
 import {
     ShoppingBag, Type, Image, DollarSign, MousePointer2, Palette,
     Upload, Link, X, AlertCircle, Eye, Flame, Check, Sparkles,
@@ -59,6 +59,46 @@ const WIZARD_STEPS = [
     { id: 'style', title: 'Styling', icon: Palette },
     { id: 'action', title: 'Cart Action', icon: ShoppingCart }
 ];
+
+// Memoized ColorPicker component - defined outside to prevent re-creation
+const ColorPickerComponent = memo(({ value, onChange, label }: { value: string; onChange: (c: string) => void; label: string }) => {
+    const inputRef = useRef<HTMLInputElement>(null);
+
+    const handleColorChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+        onChange(e.target.value);
+    }, [onChange]);
+
+    return (
+        <div className="space-y-2">
+            <label className="block text-xs font-medium text-slate-400">{label}</label>
+            <div className="flex flex-wrap gap-1.5 items-center">
+                {PRESET_COLORS.map(c => (
+                    <button key={c} onClick={(e) => { e.preventDefault(); e.stopPropagation(); onChange(c); }}
+                        type="button"
+                        className={`w-6 h-6 rounded-full border-2 transition-all hover:scale-110 ${value === c ? 'border-white scale-110' : 'border-transparent'}`}
+                        style={{ backgroundColor: c }} />
+                ))}
+                {/* Custom Color Picker with Rainbow Icon */}
+                <label className="relative w-7 h-7 group cursor-pointer">
+                    <div
+                        className={`absolute inset-0 rounded-full border-2 flex items-center justify-center pointer-events-none ${!PRESET_COLORS.includes(value) ? 'border-white' : 'border-slate-500'}`}
+                        style={{ background: `conic-gradient(from 0deg, red, yellow, lime, cyan, blue, magenta, red)` }}
+                    >
+                        <Palette className="w-3.5 h-3.5 text-white drop-shadow-md" />
+                    </div>
+                    <input
+                        ref={inputRef}
+                        type="color"
+                        value={value}
+                        onChange={handleColorChange}
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    />
+                </label>
+            </div>
+        </div>
+    );
+});
+ColorPickerComponent.displayName = 'ColorPicker';
 
 const UpsellNodeForm: React.FC<UpsellNodeFormProps> = ({
     workspaceId,
@@ -148,32 +188,8 @@ const UpsellNodeForm: React.FC<UpsellNodeFormProps> = ({
     const getEmoji = () => EMOJI_OPTIONS.find(e => e.value === emojiType)?.label || '';
 
     // ================== COMPONENTS ==================
-    const ColorPicker = ({ value, onChange: onColorChange, label }: { value: string; onChange: (c: string) => void; label: string }) => (
-        <div className="space-y-2">
-            <label className="block text-xs font-medium text-slate-400">{label}</label>
-            <div className="flex flex-wrap gap-1.5 items-center">
-                {PRESET_COLORS.map(c => (
-                    <button key={c} onClick={(e) => { e.preventDefault(); e.stopPropagation(); onColorChange(c); }}
-                        type="button"
-                        className={`w-6 h-6 rounded-full border-2 transition-all hover:scale-110 ${value === c ? 'border-white scale-110' : 'border-transparent'}`}
-                        style={{ backgroundColor: c }} />
-                ))}
-                <div className="relative w-6 h-6">
-                    <div
-                        className={`absolute inset-0 rounded-full border-2 ${!PRESET_COLORS.includes(value) ? 'border-white' : 'border-slate-500'}`}
-                        style={{ backgroundColor: value }}
-                    />
-                    <input
-                        type="color"
-                        value={value}
-                        onChange={(e) => onColorChange(e.target.value)}
-                        onMouseDown={(e) => e.stopPropagation()}
-                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                    />
-                </div>
-            </div>
-        </div>
-    );
+    // Use the memoized ColorPicker to prevent re-creation and native picker closing
+    const ColorPicker = ColorPickerComponent;
 
     const Toggle = ({ value, onChange: onToggle, label }: { value: boolean; onChange: (v: boolean) => void; label: string }) => (
         <div className="flex items-center justify-between">
