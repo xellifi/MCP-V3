@@ -341,8 +341,8 @@ const UpsellNodeForm: React.FC<UpsellNodeFormProps> = ({
             </h3>
             <div>
                 <label className="block text-xs text-slate-400 mb-1">Headline</label>
-                <input type="text" defaultValue={headline}
-                    onBlur={(e) => { setHeadline(e.target.value); notifyChange({ headline: e.target.value }); }}
+                <input type="text" value={headline}
+                    onChange={(e) => { setHeadline(e.target.value); notifyChange({ headline: e.target.value }); }}
                     className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white" />
             </div>
             <ColorPicker value={headlineColor} onChange={(c) => { setHeadlineColor(c); notifyChange({ headlineColor: c }); }} label="Headline Color" />
@@ -359,14 +359,14 @@ const UpsellNodeForm: React.FC<UpsellNodeFormProps> = ({
             )}
             <div>
                 <label className="block text-xs text-slate-400 mb-1">Price</label>
-                <input type="text" defaultValue={price}
-                    onBlur={(e) => { setPrice(e.target.value); notifyChange({ price: e.target.value }); }}
+                <input type="text" value={price}
+                    onChange={(e) => { setPrice(e.target.value); notifyChange({ price: e.target.value }); }}
                     className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white" />
             </div>
             <div>
                 <label className="block text-xs text-slate-400 mb-1">Description</label>
-                <textarea defaultValue={description}
-                    onBlur={(e) => { setDescription(e.target.value); notifyChange({ description: e.target.value }); }}
+                <textarea value={description}
+                    onChange={(e) => { setDescription(e.target.value); notifyChange({ description: e.target.value }); }}
                     className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white h-16 resize-none" />
             </div>
         </div>
@@ -388,8 +388,8 @@ const UpsellNodeForm: React.FC<UpsellNodeFormProps> = ({
                 </button>
             </div>
             {imageSource === 'url' ? (
-                <input type="url" defaultValue={imageUrl} placeholder="https://..."
-                    onBlur={(e) => { setImageUrl(e.target.value); notifyChange({ imageUrl: e.target.value }); }}
+                <input type="url" value={imageUrl} placeholder="https://..."
+                    onChange={(e) => { setImageUrl(e.target.value); notifyChange({ imageUrl: e.target.value }); }}
                     className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white" />
             ) : (
                 <div>
@@ -426,8 +426,8 @@ const UpsellNodeForm: React.FC<UpsellNodeFormProps> = ({
             <ColorPicker value={priceBadgeColor} onChange={(c) => { setPriceBadgeColor(c); notifyChange({ priceBadgeColor: c }); }} label="Price Badge Color" />
             <div>
                 <label className="block text-xs text-slate-400 mb-1">Button Text</label>
-                <input type="text" defaultValue={buttonText}
-                    onBlur={(e) => { setButtonText(e.target.value); notifyChange({ buttonText: e.target.value }); }}
+                <input type="text" value={buttonText}
+                    onChange={(e) => { setButtonText(e.target.value); notifyChange({ buttonText: e.target.value }); }}
                     className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white" />
             </div>
             <ColorPicker value={buttonBgColor} onChange={(c) => { setButtonBgColor(c); notifyChange({ buttonBgColor: c }); }} label="Button Color" />
@@ -484,7 +484,13 @@ const UpsellNodeForm: React.FC<UpsellNodeFormProps> = ({
 
     const openLivePreview = () => {
         const url = getPreviewUrl();
-        window.open(url, '_blank', 'width=500,height=700,menubar=no,toolbar=no');
+        console.log('Opening live preview:', url);
+        const popup = window.open(url, '_blank', 'width=500,height=700,menubar=no,toolbar=no,location=no');
+        // If popup is blocked, open in new tab
+        if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+            console.log('Popup blocked, opening in new tab');
+            window.open(url, '_blank');
+        }
     };
 
     // Modal width based on device selection
@@ -544,7 +550,7 @@ const UpsellNodeForm: React.FC<UpsellNodeFormProps> = ({
                             <button
                                 type="button"
                                 onClick={openLivePreview}
-                                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-teal-500/20 hover:bg-teal-500/30 rounded-lg text-teal-400 text-xs transition-colors"
+                                className="flex items-center gap-1.5 px-3 py-1.5 bg-teal-500/20 hover:bg-teal-500/30 rounded-lg text-teal-400 text-xs transition-colors"
                                 title="Open Live Preview"
                             >
                                 <Eye className="w-3.5 h-3.5" />
@@ -611,7 +617,7 @@ const UpsellNodeForm: React.FC<UpsellNodeFormProps> = ({
                         </div>
                     )}
                 </div>
-            </div>
+            </div >
         );
     }
 
