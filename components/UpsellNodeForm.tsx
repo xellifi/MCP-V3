@@ -188,34 +188,33 @@ const UpsellNodeForm: React.FC<UpsellNodeFormProps> = ({
     const deviceSizes = {
         mobile: { width: 280, height: 480, radius: 40, notch: true },
         tablet: { width: 340, height: 440, radius: 24, notch: false },
-        desktop: { width: 400, height: 380, radius: 8, notch: false }
+        desktop: { width: 480, height: 280, radius: 8, notch: false }
     };
 
     const DevicePreview = () => {
         const size = deviceSizes[previewDevice];
-        // Scale factors for different devices
+        // Scale factors for different devices - desktop is much smaller to fit
         const getImageSize = () => {
-            // Desktop shows smaller image to fit everything
-            const base = previewDevice === 'desktop' ? 100 : previewDevice === 'tablet' ? 160 : 140;
+            const base = previewDevice === 'desktop' ? 70 : previewDevice === 'tablet' ? 160 : 140;
             return base * (imagePreviewSize / 100);
         };
         const getFontSize = () => {
-            return previewDevice === 'desktop' ? 'text-[10px]' : previewDevice === 'tablet' ? 'text-base' : 'text-sm';
+            return previewDevice === 'desktop' ? 'text-[8px]' : previewDevice === 'tablet' ? 'text-base' : 'text-sm';
         };
         const getDescFontSize = () => {
-            return previewDevice === 'desktop' ? 'text-[9px]' : 'text-xs';
+            return previewDevice === 'desktop' ? 'text-[7px]' : 'text-xs';
         };
         const getButtonPadding = () => {
-            return previewDevice === 'desktop' ? 'py-1.5 text-[10px]' : 'py-2 text-xs';
+            return previewDevice === 'desktop' ? 'py-1 text-[7px]' : 'py-2 text-xs';
         };
         const getPriceBadgeSize = () => {
-            return previewDevice === 'desktop' ? 'w-8 h-8 text-[8px]' : 'w-12 h-12 text-xs';
+            return previewDevice === 'desktop' ? 'w-6 h-6 text-[6px]' : 'w-12 h-12 text-xs';
         };
         const getContentPadding = () => {
-            return previewDevice === 'desktop' ? 'p-2' : 'p-2';
+            return previewDevice === 'desktop' ? 'p-1' : 'p-2';
         };
         const getCardPadding = () => {
-            return previewDevice === 'desktop' ? 'p-2' : 'p-3';
+            return previewDevice === 'desktop' ? 'p-1.5' : 'p-3';
         };
         // Desktop has white background, others have dark
         const getScreenBg = () => {
@@ -264,15 +263,15 @@ const UpsellNodeForm: React.FC<UpsellNodeFormProps> = ({
                                 )}
                             </div>
                             {/* Content - Matching Live Preview */}
-                            <div className="flex-1 overflow-y-auto" style={{ backgroundColor }}>
-                                {/* Card Container */}
-                                <div className="w-full overflow-hidden" style={{ backgroundColor }}>
+                            <div className="flex-1 overflow-y-auto flex items-center justify-center" style={{ backgroundColor }}>
+                                {/* Card Container - centered like live preview */}
+                                <div className={`${previewDevice === 'desktop' ? 'w-40' : 'w-full'} rounded-xl overflow-hidden shadow-lg`} style={{ backgroundColor }}>
                                     {/* Yellow Headline Banner */}
-                                    <div className={`${previewDevice === 'desktop' ? 'py-1.5 px-2' : 'py-2 px-3'} text-center bg-amber-500`}>
-                                        <div className={`font-bold uppercase tracking-wide text-slate-800 flex items-center justify-center gap-1 ${getFontSize()}`}>
-                                            {showEmoji && emojiType !== 'none' && <span className={previewDevice === 'desktop' ? 'text-[8px]' : 'text-xs'}>{getEmoji()}</span>}
+                                    <div className={`${previewDevice === 'desktop' ? 'py-1 px-1.5' : 'py-2 px-3'} text-center bg-amber-500`}>
+                                        <div className={`font-bold uppercase tracking-wide text-slate-800 flex items-center justify-center gap-0.5 ${getFontSize()}`}>
+                                            {showEmoji && emojiType !== 'none' && <span className={previewDevice === 'desktop' ? 'text-[6px]' : 'text-xs'}>{getEmoji()}</span>}
                                             <span>{headline || 'ADD THIS TO YOUR CART?'}</span>
-                                            {showEmoji && emojiType !== 'none' && <span className={previewDevice === 'desktop' ? 'text-[8px]' : 'text-xs'}>{getEmoji()}</span>}
+                                            {showEmoji && emojiType !== 'none' && <span className={previewDevice === 'desktop' ? 'text-[6px]' : 'text-xs'}>{getEmoji()}</span>}
                                         </div>
                                     </div>
 
