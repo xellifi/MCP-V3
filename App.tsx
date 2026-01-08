@@ -47,6 +47,10 @@ const WebviewDownsell = lazy(() => import('./pages/WebviewDownsell'));
 const WebviewCart = lazy(() => import('./pages/WebviewCart'));
 const WebviewForm = lazy(() => import('./pages/WebviewForm'));
 
+// Preview Pages - For live configuration preview
+const UpsellPreview = lazy(() => import('./pages/UpsellPreview'));
+const DownsellPreview = lazy(() => import('./pages/DownsellPreview'));
+
 
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -195,6 +199,18 @@ const App: React.FC = () => {
           <Route path="/wv/form/:sessionId" element={
             <Suspense fallback={<LoadingSpinner />}>
               <WebviewForm />
+            </Suspense>
+          } />
+
+          {/* Preview Pages - For live configuration preview */}
+          <Route path="/upsell-preview" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <UpsellPreview />
+            </Suspense>
+          } />
+          <Route path="/downsell-preview" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <DownsellPreview />
             </Suspense>
           } />
 

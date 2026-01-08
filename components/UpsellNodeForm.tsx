@@ -3,7 +3,7 @@ import {
     ShoppingBag, Type, Image, DollarSign, MousePointer2, Palette,
     Upload, Link, X, AlertCircle, Eye, Flame, Check, Sparkles, Globe,
     Circle, Square, RectangleHorizontal, ShoppingCart, ChevronLeft,
-    ChevronRight, Smartphone, Monitor, Tablet
+    ChevronRight, Smartphone, Monitor, Tablet, ExternalLink
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
@@ -424,7 +424,7 @@ const UpsellNodeForm: React.FC<UpsellNodeFormProps> = ({
     // ================== LAYOUTS ==================
     // Modal width based on device selection
     const modalWidths = {
-        mobile: 'max-w-md', // ~448px
+        mobile: 'max-w-3xl', // Same as tablet for proper 2-column layout
         tablet: 'max-w-3xl', // ~768px
         desktop: 'max-w-7xl' // ~1280px - fullscreen-like
     };
@@ -535,21 +535,16 @@ const UpsellNodeForm: React.FC<UpsellNodeFormProps> = ({
                             </div>
                         </div>
                     ) : (
-                        // Mobile: Single Column with tabs
-                        <div className="flex-1 flex flex-col overflow-hidden">
-                            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                        // Mobile: 2-Column Layout (same as tablet - side by side)
+                        <div className="flex-1 grid grid-cols-2 gap-0 overflow-hidden">
+                            <div className="border-r border-white/10 p-4 overflow-y-auto custom-scrollbar space-y-4">
                                 {basicSection}
                                 <div className="pt-4 border-t border-white/10">{imageSection}</div>
                                 <div className="pt-4 border-t border-white/10">{styleSection}</div>
                                 <div className="pt-4 border-t border-white/10">{actionSection}</div>
-                                <div className="pt-4 border-t border-white/10">
-                                    <h3 className="text-sm font-semibold text-white flex items-center gap-2 mb-4">
-                                        <Eye className="w-4 h-4 text-teal-400" /> Preview
-                                    </h3>
-                                    <div className="flex justify-center">
-                                        <DevicePreview />
-                                    </div>
-                                </div>
+                            </div>
+                            <div className="p-4 flex items-center justify-center bg-slate-950/50 overflow-auto">
+                                <DevicePreview />
                             </div>
                         </div>
                     )}
@@ -569,13 +564,38 @@ const UpsellNodeForm: React.FC<UpsellNodeFormProps> = ({
         }
     };
 
+    // Generate preview URL for live preview
+    const getPreviewUrl = () => {
+        // Create a temporary preview session URL
+        const previewConfig = {
+            headline, headlineColor, showEmoji, emojiType, imageUrl, imageSource,
+            imageBorderRadius, imageBorderColor, imageBorderWidth, price, priceBadgeColor,
+            priceTextColor, description, descriptionColor, buttonText, buttonBgColor,
+            buttonTextColor, buttonBorderRadius, showButtonIcon, backgroundColor
+        };
+        // Encode config as base64 for preview
+        const encodedConfig = btoa(JSON.stringify(previewConfig));
+        return `/upsell-preview?config=${encodedConfig}`;
+    };
+
+    const openLivePreview = () => {
+        const url = getPreviewUrl();
+        window.open(url, '_blank', 'width=400,height=700,menubar=no,toolbar=no');
+    };
+
     if (showMobilePreview) {
         return (
             <div className="min-h-screen bg-slate-900 p-4">
-                <button onClick={() => setShowMobilePreview(false)}
-                    className="mb-4 flex items-center gap-2 text-slate-400 text-sm">
-                    <ChevronLeft className="w-4 h-4" /> Back to Editor
-                </button>
+                <div className="flex items-center justify-between mb-4">
+                    <button onClick={() => setShowMobilePreview(false)}
+                        className="flex items-center gap-2 text-slate-400 text-sm">
+                        <ChevronLeft className="w-4 h-4" /> Back to Editor
+                    </button>
+                    <button onClick={openLivePreview}
+                        className="flex items-center gap-2 text-teal-400 text-sm bg-teal-500/20 px-3 py-1.5 rounded-lg hover:bg-teal-500/30 transition-colors">
+                        <ExternalLink className="w-4 h-4" /> Open Live Preview
+                    </button>
+                </div>
                 <div className="flex justify-center">
                     <DevicePreview />
                 </div>
@@ -589,10 +609,17 @@ const UpsellNodeForm: React.FC<UpsellNodeFormProps> = ({
             <div className="p-4 border-b border-white/10">
                 <div className="flex items-center justify-between mb-2">
                     <span className="text-sm text-white font-medium">Step {mobileStep + 1} of {WIZARD_STEPS.length}</span>
-                    <button onClick={() => setShowMobilePreview(true)}
-                        className="flex items-center gap-1 text-xs text-teal-400 bg-teal-500/20 px-2 py-1 rounded-lg">
-                        <Eye className="w-3 h-3" /> Preview
-                    </button>
+                    <div className="flex items-center gap-2">
+                        <button onClick={() => setShowMobilePreview(true)}
+                            className="flex items-center gap-1 text-xs text-teal-400 bg-teal-500/20 px-2 py-1 rounded-lg">
+                            <Eye className="w-3 h-3" /> Preview
+                        </button>
+                        <button onClick={openLivePreview}
+                            className="flex items-center gap-1 text-xs text-purple-400 bg-purple-500/20 px-2 py-1 rounded-lg"
+                            title="Open Live Page Preview">
+                            <ExternalLink className="w-3 h-3" />
+                        </button>
+                    </div>
                 </div>
                 <div className="h-1 bg-slate-700 rounded-full overflow-hidden">
                     <div className="h-full bg-teal-500 transition-all" style={{ width: `${((mobileStep + 1) / WIZARD_STEPS.length) * 100}%` }} />
