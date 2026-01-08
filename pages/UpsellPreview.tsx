@@ -126,11 +126,11 @@ const UpsellPreview: React.FC = () => {
                                 )}
                             </div>
 
-                            {/* Price Badge */}
+                            {/* Price Badge - Perfect Circle */}
                             <div
-                                className="absolute -top-2 -right-2 px-4 py-1.5 rounded-full font-bold text-lg shadow-lg"
+                                className="absolute -top-3 -right-3 w-14 h-14 rounded-full font-bold text-base shadow-lg flex items-center justify-center"
                                 style={{
-                                    backgroundColor: config.priceBadgeColor || '#f59e0b',
+                                    backgroundColor: config.priceBadgeColor || '#16a34a',
                                     color: config.priceTextColor || '#ffffff',
                                 }}
                             >
