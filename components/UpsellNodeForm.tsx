@@ -1,7 +1,7 @@
 import React, { useState, useRef, useMemo, useEffect } from 'react';
 import {
     ShoppingBag, Type, Image, DollarSign, MousePointer2, Palette,
-    Upload, Link, X, AlertCircle, Eye, Flame, Check, Sparkles, Globe,
+    Upload, Link, X, AlertCircle, Eye, Flame, Check, Sparkles,
     Circle, Square, RectangleHorizontal, ShoppingCart, ChevronLeft,
     ChevronRight, Smartphone, Monitor, Tablet, ExternalLink
 } from 'lucide-react';
@@ -188,17 +188,51 @@ const UpsellNodeForm: React.FC<UpsellNodeFormProps> = ({
     const deviceSizes = {
         mobile: { width: 280, height: 480, radius: 40, notch: true },
         tablet: { width: 340, height: 440, radius: 24, notch: false },
-        desktop: { width: 420, height: 300, radius: 12, notch: false }
+        desktop: { width: 440, height: 260, radius: 8, notch: false }
     };
 
     const DevicePreview = () => {
         const size = deviceSizes[previewDevice];
+        // Scale factors for different devices
+        const getImageSize = () => {
+            // Desktop shows normal size image, mobile/tablet scale based on imagePreviewSize
+            const base = previewDevice === 'desktop' ? 150 : previewDevice === 'tablet' ? 160 : 140;
+            return base * (imagePreviewSize / 100);
+        };
+        const getFontSize = () => {
+            return previewDevice === 'desktop' ? 'text-sm' : previewDevice === 'tablet' ? 'text-base' : 'text-sm';
+        };
+        const getDescFontSize = () => {
+            return previewDevice === 'desktop' ? 'text-xs' : 'text-xs';
+        };
+        const getButtonPadding = () => {
+            return previewDevice === 'desktop' ? 'py-2 text-xs' : 'py-2 text-xs';
+        };
+        const getPriceBadgeSize = () => {
+            return previewDevice === 'desktop' ? 'w-10 h-10 text-[10px]' : 'w-12 h-12 text-xs';
+        };
+        const getContentPadding = () => {
+            return previewDevice === 'desktop' ? 'p-3' : 'p-2';
+        };
+        const getCardPadding = () => {
+            return previewDevice === 'desktop' ? 'p-4' : 'p-3';
+        };
+        // Desktop has white background, others have dark
+        const getScreenBg = () => {
+            return previewDevice === 'desktop' ? 'bg-white' : 'bg-gradient-to-b from-slate-800 to-slate-900';
+        };
+        const getStatusBarStyle = () => {
+            return previewDevice === 'desktop'
+                ? 'text-slate-500 bg-slate-100 border-b border-slate-200'
+                : 'text-white/60';
+        };
+
         return (
             <div className="flex flex-col items-center">
                 <div className="relative" style={{ width: size.width, height: size.height }}>
                     {/* Device Frame */}
                     <div
-                        className="w-full h-full bg-slate-900 shadow-2xl border-4 border-slate-700 flex flex-col"
+                        className={`w-full h-full shadow-2xl border-4 flex flex-col ${previewDevice === 'desktop' ? 'bg-slate-200 border-slate-400' : 'bg-slate-900 border-slate-700'}`}
                         style={{ borderRadius: size.radius }}
                     >
                         {/* Notch (mobile only) */}
@@ -207,48 +241,62 @@ const UpsellNodeForm: React.FC<UpsellNodeFormProps> = ({
                         )}
                         {/* Screen */}
                         <div
-                            className="w-full h-full bg-gradient-to-b from-slate-800 to-slate-900 overflow-hidden flex flex-col"
+                            className={`w-full h-full overflow-hidden flex flex-col ${getScreenBg()}`}
                             style={{ borderRadius: Math.max(size.radius - 6, 4) }}
                         >
-                            {/* Status bar */}
-                            <div className="h-6 flex items-center justify-between px-4 text-[10px] text-white/60">
-                                <span>9:41</span>
-                                <span>⚡ 100%</span>
+                            {/* Status bar / Browser bar */}
+                            <div className={`h-5 flex-shrink-0 flex items-center justify-between px-3 text-[9px] ${getStatusBarStyle()}`}>
+                                {previewDevice === 'desktop' ? (
+                                    <>
+                                        <div className="flex items-center gap-1">
+                                            <div className="w-2 h-2 rounded-full bg-red-400"></div>
+                                            <div className="w-2 h-2 rounded-full bg-yellow-400"></div>
+                                            <div className="w-2 h-2 rounded-full bg-green-400"></div>
+                                        </div>
+                                        <span className="text-[8px] text-slate-400">mystore.com/upsell</span>
+                                        <div></div>
+                                    </>
+                                ) : (
+                                    <>
+                                        <span>9:41</span>
+                                        <span>⚡ 100%</span>
+                                    </>
+                                )}
                             </div>
                             {/* Content */}
-                            <div className="flex-1 overflow-y-auto p-3">
-                                <div className="rounded-2xl p-4" style={{ backgroundColor }}>
+                            <div className={`flex-1 overflow-y-auto ${getContentPadding()}`}>
+                                <div className={`rounded-xl ${getCardPadding()}`} style={{ backgroundColor }}>
                                     {/* Headline */}
                                     <div
-                                        className={`text-center font-bold mb-3 flex items-center justify-center gap-2 ${previewDevice === 'desktop' ? 'text-xl' : previewDevice === 'tablet' ? 'text-lg' : 'text-sm'}`}
+                                        className={`text-center font-bold ${previewDevice === 'desktop' ? 'mb-1' : 'mb-2'} flex items-center justify-center gap-1 ${getFontSize()}`}
                                         style={{ color: headlineColor }}
                                     >
-                                        {showEmoji && emojiType !== 'none' && <span>{getEmoji()}</span>}
+                                        {showEmoji && emojiType !== 'none' && <span className={previewDevice === 'desktop' ? 'text-[10px]' : 'text-xs'}>{getEmoji()}</span>}
                                         <span>{headline || 'Your Headline'}</span>
-                                        {showEmoji && emojiType !== 'none' && <span>{getEmoji()}</span>}
+                                        {showEmoji && emojiType !== 'none' && <span className={previewDevice === 'desktop' ? 'text-[10px]' : 'text-xs'}>{getEmoji()}</span>}
                                     </div>
                                     {/* Image */}
-                                    <div className="text-center mb-3">
+                                    <div className={`text-center ${previewDevice === 'desktop' ? 'mb-1' : 'mb-2'}`}>
                                         <div className="inline-block relative">
                                             <div
                                                 className="overflow-hidden aspect-square"
                                                 style={{
                                                     borderRadius: `${imageBorderRadius}px`,
-                                                    border: `${imageBorderWidth}px solid ${imageBorderColor}`,
-                                                    width: `${(previewDevice === 'desktop' ? 200 : previewDevice === 'tablet' ? 180 : 150) * (imagePreviewSize / 100)}px`,
+                                                    border: `${previewDevice === 'desktop' ? 2 : Math.max(imageBorderWidth - 1, 2)}px solid ${imageBorderColor}`,
+                                                    width: `${getImageSize()}px`,
                                                 }}
                                             >
                                                 {imageUrl ? (
                                                     <img src={imageUrl} alt="Product" className="w-full h-full object-cover" />
                                                 ) : (
                                                     <div className="w-full h-full bg-slate-700/50 flex items-center justify-center">
-                                                        <Image className="w-10 h-10 text-slate-500" />
+                                                        <Image className={previewDevice === 'desktop' ? 'w-5 h-5' : 'w-8 h-8'} />
                                                     </div>
                                                 )}
                                             </div>
                                             {price && (
                                                 <div
-                                                    className={`absolute -top-2 -right-2 w-12 h-12 rounded-full font-bold shadow-lg flex items-center justify-center ${previewDevice === 'desktop' ? 'text-sm w-14 h-14' : 'text-xs'}`}
+                                                    className={`absolute -top-1 -right-1 rounded-full font-bold shadow-lg flex items-center justify-center ${getPriceBadgeSize()}`}
                                                     style={{ backgroundColor: priceBadgeColor, color: priceTextColor }}
                                                 >
                                                     {price}
@@ -258,24 +306,24 @@ const UpsellNodeForm: React.FC<UpsellNodeFormProps> = ({
                                     </div>
                                     {/* Description */}
                                     {description && (
-                                        <p className={`text-center mb-3 ${previewDevice === 'desktop' ? 'text-base' : 'text-xs'}`} style={{ color: descriptionColor }}>
+                                        <p className={`text-center ${previewDevice === 'desktop' ? 'mb-1' : 'mb-2'} ${getDescFontSize()} ${previewDevice === 'desktop' ? 'line-clamp-1' : ''}`} style={{ color: descriptionColor }}>
                                             {description}
                                         </p>
                                     )}
                                     {/* Button */}
                                     <button
-                                        className={`w-full font-bold flex items-center justify-center gap-2 shadow-lg ${previewDevice === 'desktop' ? 'py-3 text-base' : 'py-2 text-xs'}`}
+                                        className={`w-full font-bold flex items-center justify-center gap-1 shadow-md ${getButtonPadding()}`}
                                         style={{ backgroundColor: buttonBgColor, color: buttonTextColor, borderRadius: `${buttonBorderRadius}px` }}
                                     >
-                                        {showButtonIcon && <Check className="w-4 h-4" />}
+                                        {showButtonIcon && <Check className="w-3 h-3" />}
                                         {buttonText || 'Add to Cart'}
                                     </button>
                                 </div>
                             </div>
                             {/* Home indicator (mobile only) */}
                             {size.notch && (
-                                <div className="h-5 flex items-center justify-center">
-                                    <div className="w-24 h-1 bg-white/30 rounded-full" />
+                                <div className="h-4 flex-shrink-0 flex items-center justify-center">
+                                    <div className="w-20 h-1 bg-white/30 rounded-full" />
                                 </div>
                             )}
                         </div>
@@ -422,11 +470,28 @@ const UpsellNodeForm: React.FC<UpsellNodeFormProps> = ({
     );
 
     // ================== LAYOUTS ==================
+    // Generate preview URL for live preview
+    const getPreviewUrl = () => {
+        const previewConfig = {
+            headline, headlineColor, showEmoji, emojiType, imageUrl, imageSource,
+            imageBorderRadius, imageBorderColor, imageBorderWidth, price, priceBadgeColor,
+            priceTextColor, description, descriptionColor, buttonText, buttonBgColor,
+            buttonTextColor, buttonBorderRadius, showButtonIcon, backgroundColor
+        };
+        const encodedConfig = btoa(JSON.stringify(previewConfig));
+        return `/upsell-preview?config=${encodedConfig}`;
+    };
+
+    const openLivePreview = () => {
+        const url = getPreviewUrl();
+        window.open(url, '_blank', 'width=500,height=700,menubar=no,toolbar=no');
+    };
+
     // Modal width based on device selection
     const modalWidths = {
-        mobile: 'max-w-3xl', // Same as tablet for proper 2-column layout
-        tablet: 'max-w-3xl', // ~768px
-        desktop: 'max-w-7xl' // ~1280px - fullscreen-like
+        mobile: 'max-w-3xl',
+        tablet: 'max-w-3xl',
+        desktop: 'max-w-7xl'
     };
 
     // Desktop: Responsive modal width based on device selector
@@ -474,20 +539,17 @@ const UpsellNodeForm: React.FC<UpsellNodeFormProps> = ({
                             </div>
                         </div>
 
-                        {/* Right: Live Preview + Globe + Close */}
+                        {/* Right: Preview button + Close */}
                         <div className="flex items-center gap-2 flex-shrink-0">
-                            <div className="hidden sm:flex items-center gap-2">
-                                <div className="flex items-center gap-1 text-xs text-slate-400">
-                                    <Eye className="w-3 h-3" /> Preview
-                                </div>
-                                <button
-                                    type="button"
-                                    className="p-1.5 hover:bg-white/10 rounded-lg text-slate-400 hover:text-teal-400 transition-colors"
-                                    title="Visit Live Site"
-                                >
-                                    <Globe className="w-4 h-4" />
-                                </button>
-                            </div>
+                            <button
+                                type="button"
+                                onClick={openLivePreview}
+                                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-teal-500/20 hover:bg-teal-500/30 rounded-lg text-teal-400 text-xs transition-colors"
+                                title="Open Live Preview"
+                            >
+                                <Eye className="w-3.5 h-3.5" />
+                                <span>Preview</span>
+                            </button>
                             {onClose && (
                                 <button
                                     type="button"
@@ -564,24 +626,7 @@ const UpsellNodeForm: React.FC<UpsellNodeFormProps> = ({
         }
     };
 
-    // Generate preview URL for live preview
-    const getPreviewUrl = () => {
-        // Create a temporary preview session URL
-        const previewConfig = {
-            headline, headlineColor, showEmoji, emojiType, imageUrl, imageSource,
-            imageBorderRadius, imageBorderColor, imageBorderWidth, price, priceBadgeColor,
-            priceTextColor, description, descriptionColor, buttonText, buttonBgColor,
-            buttonTextColor, buttonBorderRadius, showButtonIcon, backgroundColor
-        };
-        // Encode config as base64 for preview
-        const encodedConfig = btoa(JSON.stringify(previewConfig));
-        return `/upsell-preview?config=${encodedConfig}`;
-    };
 
-    const openLivePreview = () => {
-        const url = getPreviewUrl();
-        window.open(url, '_blank', 'width=400,height=700,menubar=no,toolbar=no');
-    };
 
     if (showMobilePreview) {
         return (
