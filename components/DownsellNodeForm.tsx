@@ -353,7 +353,17 @@ const DownsellNodeForm: React.FC<DownsellNodeFormProps> = ({
                 <label className="block text-xs text-slate-400 mb-1">Headline</label>
                 <input type="text" value={headline}
                     onChange={(e) => { setHeadline(e.target.value); notifyChange({ headline: e.target.value }); }}
+                    placeholder="e.g. Wait! Special Offer"
                     className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white" />
+                <p className="text-[10px] text-slate-500 mt-0.5">Shown in the header banner</p>
+            </div>
+            <div>
+                <label className="block text-xs text-slate-400 mb-1">Product Name</label>
+                <input type="text" value={productName}
+                    onChange={(e) => { setProductName(e.target.value); notifyChange({ productName: e.target.value }); }}
+                    placeholder="e.g. Budget-Friendly Sneakers"
+                    className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white" />
+                <p className="text-[10px] text-slate-500 mt-0.5">Shown in the product name bar</p>
             </div>
             <ColorPicker value={headlineColor} onChange={(c) => { setHeadlineColor(c); notifyChange({ headlineColor: c }); }} label="Headline Color" />
             <Toggle value={showEmoji} onChange={(v) => { setShowEmoji(v); notifyChange({ showEmoji: v }); }} label="Show Emojis" />
@@ -518,7 +528,7 @@ const DownsellNodeForm: React.FC<DownsellNodeFormProps> = ({
             imageBorderRadius, imageBorderColor, imageBorderWidth, price, priceBadgeColor,
             priceTextColor, description, descriptionColor, buttonText, buttonBgColor,
             buttonTextColor, buttonBorderRadius, showButtonIcon, backgroundColor,
-            deliveryType
+            deliveryType, productName
         };
         // Use encodeURIComponent to handle unicode characters properly
         const encodedConfig = encodeURIComponent(JSON.stringify(previewConfig));

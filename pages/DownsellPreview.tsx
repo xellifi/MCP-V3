@@ -23,6 +23,7 @@ interface DownsellConfig {
     showButtonIcon: boolean;
     backgroundColor: string;
     deliveryType?: 'immediate' | 'delayed' | 'fixed' | 'exit_intent';
+    productName?: string;
 }
 
 const EMOJI_MAP: Record<string, string> = {
@@ -147,7 +148,7 @@ const DownsellPreview: React.FC = () => {
                     {/* Product Info */}
                     <div className="mt-4 text-center">
                         <h2 className="font-bold text-xl text-slate-800">
-                            {config.headline || 'Product'}
+                            {config.productName || 'Product Name'}
                         </h2>
                         {config.description && (
                             <p className="mt-2 text-slate-500 text-sm">

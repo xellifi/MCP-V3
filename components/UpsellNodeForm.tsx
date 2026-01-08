@@ -263,61 +263,84 @@ const UpsellNodeForm: React.FC<UpsellNodeFormProps> = ({
                                     </>
                                 )}
                             </div>
-                            {/* Content */}
-                            <div className={`flex-1 overflow-y-auto ${getContentPadding()}`}>
-                                <div className={`rounded-xl ${getCardPadding()}`} style={{ backgroundColor }}>
-                                    {/* Headline */}
-                                    <div
-                                        className={`text-center font-bold ${previewDevice === 'desktop' ? 'mb-1' : 'mb-2'} flex items-center justify-center gap-1 ${getFontSize()}`}
-                                        style={{ color: headlineColor }}
-                                    >
-                                        {showEmoji && emojiType !== 'none' && <span className={previewDevice === 'desktop' ? 'text-[10px]' : 'text-xs'}>{getEmoji()}</span>}
-                                        <span>{headline || 'Your Headline'}</span>
-                                        {showEmoji && emojiType !== 'none' && <span className={previewDevice === 'desktop' ? 'text-[10px]' : 'text-xs'}>{getEmoji()}</span>}
+                            {/* Content - Matching Live Preview */}
+                            <div className="flex-1 overflow-y-auto flex items-center justify-center p-2" style={{ backgroundColor }}>
+                                {/* Card Container */}
+                                <div className="w-full rounded-2xl overflow-hidden shadow-lg" style={{ backgroundColor }}>
+                                    {/* Yellow Headline Banner */}
+                                    <div className="py-2 px-3 text-center bg-amber-500">
+                                        <div className={`font-bold uppercase tracking-wide text-slate-800 flex items-center justify-center gap-1 ${getFontSize()}`}>
+                                            {showEmoji && emojiType !== 'none' && <span className={previewDevice === 'desktop' ? 'text-[10px]' : 'text-xs'}>{getEmoji()}</span>}
+                                            <span>ADD THIS TO YOUR CART?</span>
+                                            {showEmoji && emojiType !== 'none' && <span className={previewDevice === 'desktop' ? 'text-[10px]' : 'text-xs'}>{getEmoji()}</span>}
+                                        </div>
                                     </div>
-                                    {/* Image */}
-                                    <div className={`text-center ${previewDevice === 'desktop' ? 'mb-1' : 'mb-2'}`}>
-                                        <div className="inline-block relative">
-                                            <div
-                                                className="overflow-hidden aspect-square"
-                                                style={{
-                                                    borderRadius: `${imageBorderRadius}px`,
-                                                    border: `${previewDevice === 'desktop' ? 2 : Math.max(imageBorderWidth - 1, 2)}px solid ${imageBorderColor}`,
-                                                    width: `${getImageSize()}px`,
-                                                }}
-                                            >
-                                                {imageUrl ? (
-                                                    <img src={imageUrl} alt="Product" className="w-full h-full object-cover" />
-                                                ) : (
-                                                    <div className="w-full h-full bg-slate-700/50 flex items-center justify-center">
-                                                        <Image className={previewDevice === 'desktop' ? 'w-5 h-5' : 'w-8 h-8'} />
+
+                                    {/* Card Body */}
+                                    <div className={`${getCardPadding()}`}>
+                                        {/* Image with Price Badge */}
+                                        <div className="text-center mb-2">
+                                            <div className="inline-block relative">
+                                                <div
+                                                    className="overflow-hidden aspect-square bg-white"
+                                                    style={{
+                                                        borderRadius: `${imageBorderRadius}px`,
+                                                        border: `${previewDevice === 'desktop' ? 2 : Math.max(imageBorderWidth - 1, 2)}px solid ${imageBorderColor}`,
+                                                        width: `${getImageSize()}px`,
+                                                    }}
+                                                >
+                                                    {imageUrl ? (
+                                                        <img src={imageUrl} alt="Product" className="w-full h-full object-cover" />
+                                                    ) : (
+                                                        <div className="w-full h-full bg-slate-200 flex items-center justify-center">
+                                                            <Image className={previewDevice === 'desktop' ? 'w-4 h-4 text-slate-400' : 'w-6 h-6 text-slate-400'} />
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                {/* Circular Price Badge */}
+                                                {price && (
+                                                    <div
+                                                        className={`absolute -top-1 -right-1 rounded-full font-bold shadow-lg flex items-center justify-center ${getPriceBadgeSize()}`}
+                                                        style={{ backgroundColor: priceBadgeColor, color: priceTextColor }}
+                                                    >
+                                                        {price}
                                                     </div>
                                                 )}
                                             </div>
-                                            {price && (
-                                                <div
-                                                    className={`absolute -top-1 -right-1 rounded-full font-bold shadow-lg flex items-center justify-center ${getPriceBadgeSize()}`}
-                                                    style={{ backgroundColor: priceBadgeColor, color: priceTextColor }}
-                                                >
-                                                    {price}
-                                                </div>
-                                            )}
+                                        </div>
+
+                                        {/* Green Product Name Bar */}
+                                        <div className="py-1.5 px-2 text-center rounded-lg bg-green-600 mb-2">
+                                            <div className={`text-white font-bold uppercase tracking-wide ${getFontSize()}`}>
+                                                {productName || 'PRODUCT NAME'}
+                                            </div>
+                                        </div>
+
+                                        {/* Description */}
+                                        {description && (
+                                            <p className={`text-center mb-2 ${getDescFontSize()} ${previewDevice === 'desktop' ? 'line-clamp-1' : ''}`} style={{ color: descriptionColor }}>
+                                                {description}
+                                            </p>
+                                        )}
+
+                                        {/* Stacked Buttons */}
+                                        <div className="space-y-1.5">
+                                            <button
+                                                className={`w-full font-bold flex items-center justify-center gap-1 shadow-md ${getButtonPadding()}`}
+                                                style={{ backgroundColor: buttonBgColor, color: buttonTextColor, borderRadius: `${buttonBorderRadius}px` }}
+                                            >
+                                                {showButtonIcon && <Check className="w-3 h-3" />}
+                                                {buttonText || 'Add to Cart'}
+                                            </button>
+                                            <button
+                                                className={`w-full font-bold flex items-center justify-center gap-1 shadow-md ${getButtonPadding()}`}
+                                                style={{ backgroundColor: '#dc2626', color: '#ffffff', borderRadius: `${buttonBorderRadius}px` }}
+                                            >
+                                                <X className="w-3 h-3" />
+                                                No Thanks
+                                            </button>
                                         </div>
                                     </div>
-                                    {/* Description */}
-                                    {description && (
-                                        <p className={`text-center ${previewDevice === 'desktop' ? 'mb-1' : 'mb-2'} ${getDescFontSize()} ${previewDevice === 'desktop' ? 'line-clamp-1' : ''}`} style={{ color: descriptionColor }}>
-                                            {description}
-                                        </p>
-                                    )}
-                                    {/* Button */}
-                                    <button
-                                        className={`w-full font-bold flex items-center justify-center gap-1 shadow-md ${getButtonPadding()}`}
-                                        style={{ backgroundColor: buttonBgColor, color: buttonTextColor, borderRadius: `${buttonBorderRadius}px` }}
-                                    >
-                                        {showButtonIcon && <Check className="w-3 h-3" />}
-                                        {buttonText || 'Add to Cart'}
-                                    </button>
                                 </div>
                             </div>
                             {/* Home indicator (mobile only) */}
@@ -343,7 +366,17 @@ const UpsellNodeForm: React.FC<UpsellNodeFormProps> = ({
                 <label className="block text-xs text-slate-400 mb-1">Headline</label>
                 <input type="text" value={headline}
                     onChange={(e) => { setHeadline(e.target.value); notifyChange({ headline: e.target.value }); }}
+                    placeholder="e.g. Want to Add this item?"
                     className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white" />
+                <p className="text-[10px] text-slate-500 mt-0.5">Shown in yellow banner at top</p>
+            </div>
+            <div>
+                <label className="block text-xs text-slate-400 mb-1">Product Name</label>
+                <input type="text" value={productName}
+                    onChange={(e) => { setProductName(e.target.value); notifyChange({ productName: e.target.value }); }}
+                    placeholder="e.g. Premium Korean Sneakers"
+                    className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white" />
+                <p className="text-[10px] text-slate-500 mt-0.5">Shown in green product bar</p>
             </div>
             <ColorPicker value={headlineColor} onChange={(c) => { setHeadlineColor(c); notifyChange({ headlineColor: c }); }} label="Headline Color" />
             <Toggle value={showEmoji} onChange={(v) => { setShowEmoji(v); notifyChange({ showEmoji: v }); }} label="Show Emojis" />
@@ -476,7 +509,7 @@ const UpsellNodeForm: React.FC<UpsellNodeFormProps> = ({
             headline, headlineColor, showEmoji, emojiType, imageUrl, imageSource,
             imageBorderRadius, imageBorderColor, imageBorderWidth, price, priceBadgeColor,
             priceTextColor, description, descriptionColor, buttonText, buttonBgColor,
-            buttonTextColor, buttonBorderRadius, showButtonIcon, backgroundColor
+            buttonTextColor, buttonBorderRadius, showButtonIcon, backgroundColor, productName
         };
         // Use encodeURIComponent to handle unicode characters properly
         const encodedConfig = encodeURIComponent(JSON.stringify(previewConfig));

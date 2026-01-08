@@ -22,6 +22,7 @@ interface UpsellConfig {
     buttonBorderRadius: number;
     showButtonIcon: boolean;
     backgroundColor: string;
+    productName?: string;
 }
 
 const EMOJI_MAP: Record<string, string> = {
@@ -141,7 +142,7 @@ const UpsellPreview: React.FC = () => {
                         {/* Product Name Bar */}
                         <div className="mt-4 py-3 px-4 text-center rounded-xl bg-green-600">
                             <h2 className="text-white font-bold text-lg uppercase tracking-wider">
-                                {config.headline || 'PRODUCT'}
+                                {config.productName || 'PRODUCT NAME'}
                             </h2>
                         </div>
 
