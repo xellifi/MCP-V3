@@ -188,34 +188,34 @@ const UpsellNodeForm: React.FC<UpsellNodeFormProps> = ({
     const deviceSizes = {
         mobile: { width: 280, height: 480, radius: 40, notch: true },
         tablet: { width: 340, height: 440, radius: 24, notch: false },
-        desktop: { width: 440, height: 260, radius: 8, notch: false }
+        desktop: { width: 400, height: 380, radius: 8, notch: false }
     };
 
     const DevicePreview = () => {
         const size = deviceSizes[previewDevice];
         // Scale factors for different devices
         const getImageSize = () => {
-            // Desktop shows normal size image, mobile/tablet scale based on imagePreviewSize
-            const base = previewDevice === 'desktop' ? 150 : previewDevice === 'tablet' ? 160 : 140;
+            // Desktop shows smaller image to fit everything
+            const base = previewDevice === 'desktop' ? 100 : previewDevice === 'tablet' ? 160 : 140;
             return base * (imagePreviewSize / 100);
         };
         const getFontSize = () => {
-            return previewDevice === 'desktop' ? 'text-sm' : previewDevice === 'tablet' ? 'text-base' : 'text-sm';
+            return previewDevice === 'desktop' ? 'text-[10px]' : previewDevice === 'tablet' ? 'text-base' : 'text-sm';
         };
         const getDescFontSize = () => {
-            return previewDevice === 'desktop' ? 'text-xs' : 'text-xs';
+            return previewDevice === 'desktop' ? 'text-[9px]' : 'text-xs';
         };
         const getButtonPadding = () => {
-            return previewDevice === 'desktop' ? 'py-2 text-xs' : 'py-2 text-xs';
+            return previewDevice === 'desktop' ? 'py-1.5 text-[10px]' : 'py-2 text-xs';
         };
         const getPriceBadgeSize = () => {
-            return previewDevice === 'desktop' ? 'w-10 h-10 text-[10px]' : 'w-12 h-12 text-xs';
+            return previewDevice === 'desktop' ? 'w-8 h-8 text-[8px]' : 'w-12 h-12 text-xs';
         };
         const getContentPadding = () => {
-            return previewDevice === 'desktop' ? 'p-3' : 'p-2';
+            return previewDevice === 'desktop' ? 'p-2' : 'p-2';
         };
         const getCardPadding = () => {
-            return previewDevice === 'desktop' ? 'p-4' : 'p-3';
+            return previewDevice === 'desktop' ? 'p-2' : 'p-3';
         };
         // Desktop has white background, others have dark
         const getScreenBg = () => {
@@ -264,22 +264,22 @@ const UpsellNodeForm: React.FC<UpsellNodeFormProps> = ({
                                 )}
                             </div>
                             {/* Content - Matching Live Preview */}
-                            <div className="flex-1 overflow-y-auto flex items-center justify-center p-2" style={{ backgroundColor }}>
+                            <div className="flex-1 overflow-y-auto" style={{ backgroundColor }}>
                                 {/* Card Container */}
-                                <div className="w-full rounded-2xl overflow-hidden shadow-lg" style={{ backgroundColor }}>
+                                <div className="w-full overflow-hidden" style={{ backgroundColor }}>
                                     {/* Yellow Headline Banner */}
-                                    <div className="py-2 px-3 text-center bg-amber-500">
+                                    <div className={`${previewDevice === 'desktop' ? 'py-1.5 px-2' : 'py-2 px-3'} text-center bg-amber-500`}>
                                         <div className={`font-bold uppercase tracking-wide text-slate-800 flex items-center justify-center gap-1 ${getFontSize()}`}>
-                                            {showEmoji && emojiType !== 'none' && <span className={previewDevice === 'desktop' ? 'text-[10px]' : 'text-xs'}>{getEmoji()}</span>}
-                                            <span>ADD THIS TO YOUR CART?</span>
-                                            {showEmoji && emojiType !== 'none' && <span className={previewDevice === 'desktop' ? 'text-[10px]' : 'text-xs'}>{getEmoji()}</span>}
+                                            {showEmoji && emojiType !== 'none' && <span className={previewDevice === 'desktop' ? 'text-[8px]' : 'text-xs'}>{getEmoji()}</span>}
+                                            <span>{headline || 'ADD THIS TO YOUR CART?'}</span>
+                                            {showEmoji && emojiType !== 'none' && <span className={previewDevice === 'desktop' ? 'text-[8px]' : 'text-xs'}>{getEmoji()}</span>}
                                         </div>
                                     </div>
 
                                     {/* Card Body */}
                                     <div className={`${getCardPadding()}`}>
                                         {/* Image with Price Badge */}
-                                        <div className="text-center mb-2">
+                                        <div className={`text-center ${previewDevice === 'desktop' ? 'mb-1' : 'mb-2'}`}>
                                             <div className="inline-block relative">
                                                 <div
                                                     className="overflow-hidden aspect-square bg-white"
@@ -310,7 +310,7 @@ const UpsellNodeForm: React.FC<UpsellNodeFormProps> = ({
                                         </div>
 
                                         {/* Green Product Name Bar */}
-                                        <div className="py-1.5 px-2 text-center rounded-lg bg-green-600 mb-2">
+                                        <div className={`${previewDevice === 'desktop' ? 'py-1 px-2 mb-1' : 'py-1.5 px-2 mb-2'} text-center rounded-lg bg-green-600`}>
                                             <div className={`text-white font-bold uppercase tracking-wide ${getFontSize()}`}>
                                                 {productName || 'PRODUCT NAME'}
                                             </div>
@@ -318,25 +318,25 @@ const UpsellNodeForm: React.FC<UpsellNodeFormProps> = ({
 
                                         {/* Description */}
                                         {description && (
-                                            <p className={`text-center mb-2 ${getDescFontSize()} ${previewDevice === 'desktop' ? 'line-clamp-1' : ''}`} style={{ color: descriptionColor }}>
+                                            <p className={`text-center ${previewDevice === 'desktop' ? 'mb-1' : 'mb-2'} ${getDescFontSize()} ${previewDevice === 'desktop' ? 'line-clamp-1' : ''}`} style={{ color: descriptionColor }}>
                                                 {description}
                                             </p>
                                         )}
 
                                         {/* Stacked Buttons */}
-                                        <div className="space-y-1.5">
+                                        <div className={`${previewDevice === 'desktop' ? 'space-y-1' : 'space-y-1.5'}`}>
                                             <button
                                                 className={`w-full font-bold flex items-center justify-center gap-1 shadow-md ${getButtonPadding()}`}
                                                 style={{ backgroundColor: buttonBgColor, color: buttonTextColor, borderRadius: `${buttonBorderRadius}px` }}
                                             >
-                                                {showButtonIcon && <Check className="w-3 h-3" />}
+                                                {showButtonIcon && <Check className={previewDevice === 'desktop' ? 'w-2.5 h-2.5' : 'w-3 h-3'} />}
                                                 {buttonText || 'Add to Cart'}
                                             </button>
                                             <button
                                                 className={`w-full font-bold flex items-center justify-center gap-1 shadow-md ${getButtonPadding()}`}
                                                 style={{ backgroundColor: '#dc2626', color: '#ffffff', borderRadius: `${buttonBorderRadius}px` }}
                                             >
-                                                <X className="w-3 h-3" />
+                                                <X className={previewDevice === 'desktop' ? 'w-2.5 h-2.5' : 'w-3 h-3'} />
                                                 No Thanks
                                             </button>
                                         </div>
