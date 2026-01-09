@@ -400,6 +400,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             // Handle Upsell Node - send upsell offer and STOP traversal (wait for user response)
             if (node.type === 'upsellNode') {
                 console.log('[Continue Flow] Processing Upsell node - sending offer');
+                console.log('[Continue Flow] Upsell config:', JSON.stringify({
+                    useWebview: config.useWebview,
+                    headline: config.headline,
+                    productName: config.productName,
+                    hasImage: !!config.imageUrl
+                }));
+                console.log('[Continue Flow] Context:', JSON.stringify({
+                    workspaceId,
+                    subscriberId,
+                    hasPageToken: !!pageAccessToken
+                }));
                 await sendUpsellOffer(
                     subscriberId,
                     config,
@@ -759,8 +770,9 @@ async function sendUpsellOffer(
 
     try {
         // If webview is enabled, create a webview session and send webview button
-        if (useWebview) {
+        if (useWebview && workspaceId) {
             console.log('[Continue Flow] Creating webview session for upsell...');
+            console.log('[Continue Flow] workspaceId:', workspaceId, 'userId:', userId);
 
             // Create webview session
             const baseUrl = process.env.VITE_APP_URL || 'https://mcp-v16.vercel.app';
@@ -789,6 +801,7 @@ async function sendUpsellOffer(
 
             if (sessionError || !session) {
                 console.error('[Continue Flow] Failed to create webview session:', sessionError?.message);
+                console.log('[Continue Flow] Falling back to postback buttons');
                 // Fallback to postback buttons below
             } else {
                 const webviewUrl = `${baseUrl}/wv/upsell/${session.id}`;
@@ -923,8 +936,9 @@ async function sendDownsellOffer(
 
     try {
         // If webview is enabled, create a webview session and send webview button
-        if (useWebview) {
+        if (useWebview && workspaceId) {
             console.log('[Continue Flow] Creating webview session for downsell...');
+            console.log('[Continue Flow] workspaceId:', workspaceId, 'userId:', userId);
 
             const baseUrl = process.env.VITE_APP_URL || 'https://mcp-v16.vercel.app';
 
