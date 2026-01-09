@@ -267,14 +267,13 @@ async function createWebviewSession(
             ? `https://${process.env.VERCEL_URL}`
             : 'http://localhost:5173';
 
-        const sessionId = `wv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
         const expiresAt = new Date();
         expiresAt.setHours(expiresAt.getHours() + 1); // 1 hour expiration
 
-        const { error } = await supabase
+        // Let the database generate the UUID automatically and return it
+        const { data, error } = await supabase
             .from('webview_sessions')
             .insert({
-                id: sessionId,
                 external_id: externalId,
                 workspace_id: workspaceId,
                 flow_id: flowId,
@@ -286,13 +285,16 @@ async function createWebviewSession(
                 page_access_token: pageAccessToken,
                 expires_at: expiresAt.toISOString(),
                 metadata: {}
-            });
+            })
+            .select('id')
+            .single();
 
-        if (error) {
-            console.error('    ✗ Error creating webview session:', error.message);
+        if (error || !data) {
+            console.error('    ✗ Error creating webview session:', error?.message || 'No data returned');
             return null;
         }
 
+        const sessionId = data.id;
         const webviewUrl = `${baseUrl}/wv/${pageType}/${sessionId}`;
         console.log(`    🌐 Created webview session: ${sessionId}`);
         console.log(`    🔗 Webview URL: ${webviewUrl}`);
