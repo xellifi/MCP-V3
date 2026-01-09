@@ -45,6 +45,7 @@ const WebviewProduct = lazy(() => import('./pages/WebviewProduct'));
 const WebviewUpsell = lazy(() => import('./pages/WebviewUpsell'));
 const WebviewDownsell = lazy(() => import('./pages/WebviewDownsell'));
 const WebviewCart = lazy(() => import('./pages/WebviewCart'));
+const WebviewCheckout = lazy(() => import('./pages/WebviewCheckout'));
 const WebviewForm = lazy(() => import('./pages/WebviewForm'));
 
 // Preview Pages - For live configuration preview
@@ -200,6 +201,11 @@ const App: React.FC = () => {
           <Route path="/wv/form/:sessionId" element={
             <Suspense fallback={<LoadingSpinner />}>
               <WebviewForm />
+            </Suspense>
+          } />
+          <Route path="/wv/checkout/:sessionId" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <WebviewCheckout />
             </Suspense>
           } />
 

@@ -253,7 +253,7 @@ async function incrementNodeAnalytics(
 
 // Helper function to create webview session and return URL
 async function createWebviewSession(
-    pageType: 'product' | 'upsell' | 'downsell' | 'cart' | 'form' | 'checkout',
+    pageType: 'product' | 'upsell' | 'downsell' | 'cart' | 'form',
     externalId: string,
     workspaceId: string,
     flowId: string,
@@ -3776,15 +3776,11 @@ async function executeAction(
         const headerText = config.headerText || '🛒 Your Order Summary';
         const buttonText = config.buttonText || '✅ Proceed to Checkout';
         const companyName = config.companyName || '';
-        const useWebview = config.useWebview === true;
-        const showShipping = config.showShipping ?? false;
-        const shippingFee = config.shippingFee || 0;
 
         try {
             // Get cart from context or subscriber metadata
             let cart = (context as any).cart || [];
             let cartTotal = (context as any).cartTotal || 0;
-            let customerName = context.commenterName || 'Valued Customer';
 
             // If no cart in context, try to get from subscriber metadata
             if (cart.length === 0) {
@@ -3795,7 +3791,7 @@ async function executeAction(
 
                 const { data: subscriber } = await supabase
                     .from('subscribers')
-                    .select('metadata, name')
+                    .select('metadata')
                     .eq('external_id', context.commenterId)
                     .eq('workspace_id', context.workspaceId)
                     .single();
@@ -3804,23 +3800,20 @@ async function executeAction(
                     cart = subscriber.metadata.cart;
                     cartTotal = subscriber.metadata.cartTotal || 0;
                 }
-                if (subscriber?.name) {
-                    customerName = subscriber.name;
-                }
             }
 
             console.log(`    🛒 Cart items: ${cart.length}`);
             console.log(`    💰 Total: ₱${cartTotal}`);
-            console.log(`    🌐 Webview mode: ${useWebview}`);
 
-            // Save cart to subscriber metadata
+            // CRITICAL: Save cart to subscriber metadata so checkout_confirm can retrieve it later
             if (cart.length > 0) {
-                console.log(`    📝 Saving cart to subscriber metadata for checkout...`);
+                console.log(`    📝 Saving cart to subscriber metadata for checkout_confirm...`);
                 const { createClient } = await import('@supabase/supabase-js');
                 const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '';
                 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';
                 const supabaseCheckout = createClient(supabaseUrl, supabaseKey);
 
+                // Get existing metadata first
                 const { data: existingSub } = await supabaseCheckout
                     .from('subscribers')
                     .select('metadata')
@@ -3828,7 +3821,7 @@ async function executeAction(
                     .eq('workspace_id', context.workspaceId)
                     .single();
 
-                await supabaseCheckout
+                const { data: updateResult, error: saveError } = await supabaseCheckout
                     .from('subscribers')
                     .update({
                         metadata: {
@@ -3839,9 +3832,14 @@ async function executeAction(
                         }
                     })
                     .eq('external_id', context.commenterId)
-                    .eq('workspace_id', context.workspaceId);
+                    .eq('workspace_id', context.workspaceId)
+                    .select();
 
-                console.log(`    ✓ Cart saved to subscriber metadata`);
+                if (saveError) {
+                    console.error(`    ❌ Failed to save cart to metadata:`, saveError.message);
+                } else {
+                    console.log(`    ✓ Cart saved to metadata (${updateResult?.length || 0} rows). checkout_confirm will now find it.`);
+                }
             }
 
             if (cart.length === 0) {
@@ -3862,130 +3860,66 @@ async function executeAction(
                 return;
             }
 
+            // Build checkout message with cart items - cleaner formatting
+            let checkoutText = `${headerText}\n`;
+            if (companyName) {
+                checkoutText += `🏪 ${companyName}\n`;
+            }
+            checkoutText += `─────────────────\n\n`;
+
+            cart.forEach((item: any, index: number) => {
+                const price = typeof item.productPrice === 'number' ? item.productPrice : 0;
+                const qty = item.quantity || 1;
+                const itemTotal = price * qty;
+                checkoutText += `📦 ${item.productName}\n`;
+                checkoutText += `    ${qty} × ₱${price.toLocaleString()} = ₱${itemTotal.toLocaleString()}\n\n`;
+            });
+
+            checkoutText += `─────────────────\n`;
+            checkoutText += `💰 TOTAL: ₱${cartTotal.toLocaleString()}\n\n`;
+            checkoutText += `Tap the button below to confirm your order.`;
+
+            // Send checkout message with button
             await sendTypingIndicator(context.commenterId, pageAccessToken, 'typing_on');
-            await new Promise(resolve => setTimeout(resolve, 500));
+            await new Promise(resolve => setTimeout(resolve, 1000));
             await sendTypingIndicator(context.commenterId, pageAccessToken, 'typing_off');
 
-            // Use webview if enabled
-            if (useWebview) {
-                console.log(`    🌐 Creating checkout webview session...`);
-                const checkoutConfig = {
-                    ...config,
-                    headerText,
-                    buttonText,
-                    companyName,
-                    showShipping,
-                    shippingFee
-                };
+            const payload = JSON.stringify({
+                action: 'checkout_confirm',
+                nodeId: node.id,
+                flowId: flowId,
+                cartTotal: cartTotal
+            });
 
-                const webviewUrl = await createWebviewSession(
-                    'checkout',
-                    context.commenterId,
-                    context.workspaceId,
-                    flowId,
-                    node.id,
-                    checkoutConfig,
-                    pageAccessToken,
-                    cart
-                );
-
-                if (webviewUrl) {
-                    // Send a card with webview button
-                    const response = await fetch(`https://graph.facebook.com/v21.0/me/messages`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            recipient: { id: context.commenterId },
-                            message: {
-                                attachment: {
-                                    type: 'template',
-                                    payload: {
-                                        template_type: 'button',
-                                        text: `🛒 ${headerText}\n\n${cart.length} item(s) - ₱${cartTotal.toLocaleString()}\n\nTap below to review and confirm your order.`,
-                                        buttons: [{
-                                            type: 'web_url',
-                                            title: buttonText,
-                                            url: webviewUrl,
-                                            webview_height_ratio: 'full',
-                                            messenger_extensions: true
-                                        }]
-                                    }
-                                }
-                            },
-                            access_token: pageAccessToken
-                        })
-                    });
-
-                    const result = await response.json();
-                    if (result.error) {
-                        console.error('    ✗ Facebook API error:', result.error.message);
-                    } else {
-                        console.log('    ✓ Checkout webview button sent!');
-                    }
-                } else {
-                    console.log(`    ⚠️ Webview creation failed, falling back to postback`);
-                    // Fall through to postback logic
-                }
-            }
-
-            // Fallback or non-webview mode: Use postback buttons
-            if (!useWebview) {
-                // Build checkout message with cart items
-                let checkoutText = `${headerText}\n`;
-                if (companyName) {
-                    checkoutText += `🏪 ${companyName}\n`;
-                }
-                checkoutText += `─────────────────\n\n`;
-
-                cart.forEach((item: any, index: number) => {
-                    const price = typeof item.productPrice === 'number' ? item.productPrice : 0;
-                    const qty = item.quantity || 1;
-                    const itemTotal = price * qty;
-                    checkoutText += `📦 ${item.productName}\n`;
-                    checkoutText += `    ${qty} × ₱${price.toLocaleString()} = ₱${itemTotal.toLocaleString()}\n\n`;
-                });
-
-                checkoutText += `─────────────────\n`;
-                checkoutText += `💰 TOTAL: ₱${cartTotal.toLocaleString()}\n\n`;
-                checkoutText += `Tap the button below to confirm your order.`;
-
-                const payload = JSON.stringify({
-                    action: 'checkout_confirm',
-                    nodeId: node.id,
-                    flowId: flowId,
-                    cartTotal: cartTotal
-                });
-
-                const response = await fetch(`https://graph.facebook.com/v21.0/me/messages`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        recipient: { id: context.commenterId },
-                        message: {
-                            attachment: {
-                                type: 'template',
-                                payload: {
-                                    template_type: 'button',
-                                    text: checkoutText,
-                                    buttons: [{
-                                        type: 'postback',
-                                        title: buttonText,
-                                        payload: payload
-                                    }]
-                                }
+            const response = await fetch(`https://graph.facebook.com/v21.0/me/messages`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    recipient: { id: context.commenterId },
+                    message: {
+                        attachment: {
+                            type: 'template',
+                            payload: {
+                                template_type: 'button',
+                                text: checkoutText,
+                                buttons: [{
+                                    type: 'postback',
+                                    title: buttonText,
+                                    payload: payload
+                                }]
                             }
-                        },
-                        access_token: pageAccessToken
-                    })
-                });
+                        }
+                    },
+                    access_token: pageAccessToken
+                })
+            });
 
-                const result = await response.json();
-                if (result.error) {
-                    console.error('    ✗ Facebook API error:', result.error.message);
-                } else {
-                    console.log('    ✓ Checkout card sent successfully!');
-                    console.log('    ⏸ Waiting for user to click checkout button...');
-                }
+            const result = await response.json();
+            if (result.error) {
+                console.error('    ✗ Facebook API error:', result.error.message);
+            } else {
+                console.log('    ✓ Checkout card sent successfully!');
+                console.log('    ⏸ Waiting for user to click checkout button...');
             }
         } catch (error: any) {
             console.error('    ✗ Exception sending checkout:', error.message);
@@ -3993,7 +3927,6 @@ async function executeAction(
 
         return; // Stop execution - wait for checkout button click
     }
-
 
     // Checkout Form Node - use Facebook's native customer_information template
     if (nodeType === 'checkoutFormNode') {

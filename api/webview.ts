@@ -260,6 +260,22 @@ async function handleAction(req: VercelRequest, res: VercelResponse) {
             break;
         }
 
+        case 'checkout_confirm': {
+            const { cart, cartTotal, customerName, confirmedAt } = payload;
+            updates = {
+                cart: cart || session.cart,
+                cart_total: cartTotal || session.cart_total,
+                customer_name: customerName,
+                user_response: 'checkout_confirmed',
+                completed_at: confirmedAt || new Date().toISOString()
+            };
+            // Create order when checkout is confirmed
+            await createOrder({ ...session, ...updates });
+            result.orderCreated = true;
+            result.response = 'confirmed';
+            break;
+        }
+
         case 'checkout_complete':
             updates = { user_response: 'checkout_complete', completed_at: new Date().toISOString() };
             await createOrder(session);
@@ -338,6 +354,11 @@ async function handleContinue(req: VercelRequest, res: VercelResponse) {
             messageText = session.user_response === 'completed'
                 ? '✅ Thank you! Your information has been saved.'
                 : '📝 Form closed. Let me know when you\'re ready.';
+            break;
+        case 'checkout':
+            messageText = session.user_response === 'checkout_confirmed'
+                ? '🎉 Order confirmed! Generating your invoice...'
+                : '🛒 Checkout closed. Let me know if you need help.';
             break;
     }
 
