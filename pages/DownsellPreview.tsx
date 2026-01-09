@@ -199,8 +199,11 @@ const DownsellPreview: React.FC = () => {
             </div>
 
             {/* Main Content with Card */}
-            <div className="flex-1 flex items-center justify-center p-4">
-                <div className="w-full max-w-[360px] rounded-2xl overflow-hidden shadow-2xl" style={{ backgroundColor: bgColor }}>
+            <div className="flex-1 flex items-center justify-center p-4 md:p-8">
+                <div
+                    className="w-full max-w-md bg-white/10 backdrop-blur-sm rounded-3xl shadow-2xl overflow-hidden border border-white/20"
+                    style={{ backgroundColor: bgColor }}
+                >
                     {/* Headline Banner */}
                     <div className="py-4 px-6 text-center" style={{ backgroundColor: headlineBgColor }}>
                         <h1
