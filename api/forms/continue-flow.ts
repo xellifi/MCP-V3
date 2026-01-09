@@ -398,8 +398,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             }
 
             // Handle Upsell Node - send upsell offer and STOP traversal (wait for user response)
-            if (node.type === 'upsellNode') {
-                console.log('[Continue Flow] Processing Upsell node - sending offer');
+            const isUpsellNode = node.type === 'upsellNode' ||
+                node.data?.nodeType === 'upsellNode' ||
+                (node.data?.label || '').toLowerCase().includes('upsell');
+
+            if (isUpsellNode) {
+                console.log('[Continue Flow] *** UPSELL NODE DETECTED ***');
+                console.log('[Continue Flow] Node type:', node.type, 'Data nodeType:', node.data?.nodeType, 'Label:', node.data?.label);
                 console.log('[Continue Flow] Upsell config:', JSON.stringify({
                     useWebview: config.useWebview,
                     headline: config.headline,
@@ -411,32 +416,49 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     subscriberId,
                     hasPageToken: !!pageAccessToken
                 }));
-                await sendUpsellOffer(
-                    subscriberId,
-                    config,
-                    node.id,
-                    flowId,
-                    pageAccessToken,
-                    workspaceId,
-                    context
-                );
+
+                try {
+                    await sendUpsellOffer(
+                        subscriberId,
+                        config,
+                        node.id,
+                        flowId,
+                        pageAccessToken,
+                        workspaceId,
+                        context
+                    );
+                    console.log('[Continue Flow] ✓ Upsell offer function completed');
+                } catch (upsellError: any) {
+                    console.error('[Continue Flow] ✗ Upsell offer FAILED:', upsellError.message);
+                    console.error('[Continue Flow] Stack:', upsellError.stack);
+                }
+
                 // STOP traversal here - user must click Accept or Decline to continue
                 console.log('[Continue Flow] ⏸ Stopping at Upsell node - waiting for user response');
                 continue; // Don't add successors to queue
             }
 
             // Handle Downsell Node - send downsell offer and STOP traversal (wait for user response)
-            if (node.type === 'downsellNode') {
-                console.log('[Continue Flow] Processing Downsell node - sending offer');
-                await sendDownsellOffer(
-                    subscriberId,
-                    config,
-                    node.id,
-                    flowId,
-                    pageAccessToken,
-                    workspaceId,
-                    context
-                );
+            const isDownsellNode = node.type === 'downsellNode' ||
+                node.data?.nodeType === 'downsellNode' ||
+                (node.data?.label || '').toLowerCase().includes('downsell');
+
+            if (isDownsellNode) {
+                console.log('[Continue Flow] *** DOWNSELL NODE DETECTED ***');
+                try {
+                    await sendDownsellOffer(
+                        subscriberId,
+                        config,
+                        node.id,
+                        flowId,
+                        pageAccessToken,
+                        workspaceId,
+                        context
+                    );
+                    console.log('[Continue Flow] ✓ Downsell offer function completed');
+                } catch (downsellError: any) {
+                    console.error('[Continue Flow] ✗ Downsell offer FAILED:', downsellError.message);
+                }
                 // STOP traversal here - user must click Accept or Decline to continue
                 console.log('[Continue Flow] ⏸ Stopping at Downsell node - waiting for user response');
                 continue; // Don't add successors to queue
