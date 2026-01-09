@@ -403,14 +403,56 @@ CREATE POLICY "Users can manage their posts" ON public.scheduled_posts
   );
 
 -- ============================================
--- 12. GRANT PERMISSIONS
+-- 12. NODE ANALYTICS TABLE
+-- ============================================
+CREATE TABLE IF NOT EXISTS public.node_analytics (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    flow_id UUID REFERENCES public.flows(id) ON DELETE CASCADE,
+    node_id TEXT NOT NULL,
+    sent_count INTEGER DEFAULT 0,
+    delivered_count INTEGER DEFAULT 0,
+    subscriber_count INTEGER DEFAULT 0,
+    error_count INTEGER DEFAULT 0,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(flow_id, node_id)
+);
+
+-- Create index for faster lookups
+CREATE INDEX IF NOT EXISTS idx_node_analytics_flow_id ON public.node_analytics(flow_id);
+
+-- Enable RLS
+ALTER TABLE public.node_analytics ENABLE ROW LEVEL SECURITY;
+
+-- RLS Policy: Users can read analytics for flows in their workspaces
+DROP POLICY IF EXISTS "Users can read node analytics for their flows" ON public.node_analytics;
+CREATE POLICY "Users can read node analytics for their flows" ON public.node_analytics
+    FOR SELECT
+    USING (
+        EXISTS (
+            SELECT 1 FROM public.flows f
+            JOIN public.workspaces w ON f.workspace_id = w.id
+            WHERE f.id = node_analytics.flow_id
+            AND w.owner_id = auth.uid()
+        )
+    );
+
+-- Service role can insert/update (for webhook)
+DROP POLICY IF EXISTS "Service role can manage node analytics" ON public.node_analytics;
+CREATE POLICY "Service role can manage node analytics" ON public.node_analytics
+    FOR ALL
+    USING (true);  -- Allow all for service role insertions
+
+
+-- ============================================
+-- 13. GRANT PERMISSIONS
 -- ============================================
 GRANT USAGE ON SCHEMA public TO anon, authenticated;
 GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated;
 GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated;
 
 -- ============================================
--- 13. CREATE ADMIN WORKSPACE (if needed)
+-- 14. CREATE ADMIN WORKSPACE (if needed)
 -- ============================================
 -- This will create a workspace for admin@mychatpilot.com if it doesn't exist
 INSERT INTO public.workspaces (name, owner_id)

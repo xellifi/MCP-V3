@@ -169,6 +169,24 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
   // User API keys
   const [userApiKeys, setUserApiKeys] = useState<any>({});
 
+  // Node analytics data (from database)
+  const [nodeAnalytics, setNodeAnalytics] = useState<Record<string, { sent: number; delivered: number; subscribers: number; errors: number }>>({})
+
+  // Update nodes with analytics data when nodeAnalytics changes
+  useEffect(() => {
+    if (Object.keys(nodeAnalytics).length > 0) {
+      console.log('[FlowBuilder] Updating nodes with analytics data');
+      setNodes((nds) => nds.map((node) => ({
+        ...node,
+        data: {
+          ...node.data,
+          analytics: nodeAnalytics[node.id] || { sent: 0, delivered: 0, subscribers: 0, errors: 0 }
+        }
+      })));
+    }
+  }, [nodeAnalytics, setNodes]);
+
+
   // Available pages for this workspace
   const [availablePages, setAvailablePages] = useState<ConnectedPage[]>([]);
   const [flowPageId, setFlowPageId] = useState<string>('');
@@ -382,6 +400,9 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
         // Extract page info from trigger node config
         extractPageInfo(savedConfigs);
 
+        // Load node analytics from database
+        await loadNodeAnalytics(id);
+
         // Auto-fit view on mobile after nodes load
         const isMobile = window.innerWidth < 768;
         if (isMobile && reactFlowInstance && flow.nodes && flow.nodes.length > 0) {
@@ -428,6 +449,25 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
     } catch (error) {
       console.error('Error loading API keys:', error);
     }
+  };
+
+  // Load node analytics for the current flow
+  const loadNodeAnalytics = async (flowId: string) => {
+    try {
+      console.log('[FlowBuilder] Loading node analytics for flow:', flowId);
+      const response = await fetch(`/api/flows/node-analytics?flowId=${flowId}`);
+      if (response.ok) {
+        const analyticsData = await response.json();
+        console.log('[FlowBuilder] ✓ Loaded analytics:', analyticsData);
+        setNodeAnalytics(analyticsData);
+        return analyticsData;
+      } else {
+        console.warn('[FlowBuilder] ⚠️ Failed to load analytics:', response.status);
+      }
+    } catch (error) {
+      console.error('[FlowBuilder] ✗ Error loading analytics:', error);
+    }
+    return {};
   };
 
   const onConnect = useCallback((params: Connection) => {

@@ -1916,6 +1916,10 @@ async function processTextMessage(messagingEvent: any, pageId: string) {
                     await updateSubscriberLabels(workspaceId, senderId, entryLabel);
                 }
 
+                // Track start node analytics - increment subscriber_count
+                await incrementNodeAnalytics(flow.id, startNode.id, 'subscriber_count');
+                console.log(`    📊 Analytics: Incremented subscriber_count for start node ${startNode.id}`);
+
                 // Execute flow starting from this Start node
                 await executeFlowFromNode(
                     startNode,
@@ -2171,6 +2175,10 @@ async function executeAutomation(
             workspaceId,
             pageDbId
         };
+
+        // Track trigger node analytics - increment subscriber_count
+        await incrementNodeAnalytics(flow.id, triggerNode.id, 'subscriber_count');
+        console.log(`    📊 Analytics: Incremented subscriber_count for trigger node ${triggerNode.id}`);
 
         // Execute flow actions
         await executeFlowActions(flow, configurations, enrichedContext, pageAccessToken, commentId);
@@ -2443,6 +2451,10 @@ async function executeAction(
     console.log(`    actionType: ${actionType}, nodeType: ${nodeType}`);
     console.log(`    Node data:`, JSON.stringify(node.data, null, 2));
     console.log(`    Config:`, JSON.stringify(config, null, 2));
+
+    // Track node execution - increment sent_count
+    await incrementNodeAnalytics(flowId, node.id, 'sent_count');
+    console.log(`    📊 Analytics: Incremented sent_count for node ${node.id}`);
 
     // Replace variables in templates
     const replaceVars = (template: string) => {
