@@ -4,7 +4,7 @@ import {
     Upload, Link, X, AlertCircle, Eye, Flame, Check, Sparkles,
     Circle, Square, RectangleHorizontal, ShoppingCart, ChevronLeft,
     ChevronRight, Smartphone, Monitor, Tablet, ExternalLink, RotateCcw, Save, Trash2,
-    ChevronDown, ChevronUp, Clock, Timer
+    ChevronDown, ChevronUp, Clock, Timer, ArrowUp, PlusCircle
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
@@ -1128,8 +1128,9 @@ const UpsellNodeForm: React.FC<UpsellNodeFormProps> = ({
                     <div className="flex-shrink-0 h-14 border-b border-white/10 flex items-center px-4 gap-4">
                         {/* Left: Title */}
                         <div className="flex items-center gap-3 min-w-0 flex-shrink-0">
-                            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center">
-                                <ShoppingBag className="w-4 h-4 text-white" />
+                            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center relative">
+                                <ShoppingCart className="w-4 h-4 text-white" />
+                                <ArrowUp className="w-2.5 h-2.5 text-white absolute -bottom-0.5 -right-0.5 bg-green-600 rounded-full p-0.5" />
                             </div>
                             <span className="text-base font-bold text-white whitespace-nowrap">Upsell</span>
                         </div>

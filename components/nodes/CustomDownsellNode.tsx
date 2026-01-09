@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
-import { Tag, Settings, Trash2, ChevronDown, ChevronUp, DollarSign, Copy } from 'lucide-react';
+import { Settings, Trash2, ChevronDown, ChevronUp, DollarSign, Copy, ShoppingCart, ArrowDown, Tag } from 'lucide-react';
 import NodeInsights from '../NodeInsights';
 
 const CustomDownsellNode: React.FC<NodeProps> = ({ data, selected }) => {
@@ -46,16 +46,17 @@ const CustomDownsellNode: React.FC<NodeProps> = ({ data, selected }) => {
             <div
                 className={`
                     relative px-4 py-3 rounded-2xl
-                    bg-orange-500/10 hover:bg-orange-500/20 backdrop-blur-md
-                    border ${selected ? 'border-orange-500/50 shadow-2xl shadow-orange-500/20' : 'border-orange-500/30 shadow-xl'}
+                    bg-red-500/10 hover:bg-red-500/20 backdrop-blur-md
+                    border ${selected ? 'border-red-500/50 shadow-2xl shadow-red-500/20' : 'border-red-500/30 shadow-xl'}
                     transition-all duration-300
                     w-[200px]
                 `}
             >
                 {/* Header - Icon, Label, and Expand Toggle */}
                 <div className="flex items-center gap-2">
-                    <div className="p-2 bg-orange-500/20 rounded-lg backdrop-blur-sm flex-shrink-0">
-                        <Tag className="w-5 h-5 text-orange-400" />
+                    <div className="p-2 bg-red-500/20 rounded-lg backdrop-blur-sm flex-shrink-0 relative">
+                        <ShoppingCart className="w-5 h-5 text-red-400" />
+                        <ArrowDown className="w-2.5 h-2.5 text-white absolute -bottom-0.5 -right-0.5 bg-red-600 rounded-full p-0.5" />
                     </div>
                     <div className="flex-1 min-w-0">
                         <div className="text-slate-200 font-bold text-sm truncate">
@@ -93,7 +94,7 @@ const CustomDownsellNode: React.FC<NodeProps> = ({ data, selected }) => {
 
                 {/* Expandable Content - Full Preview */}
                 {isExpanded && isConfigured && (
-                    <div className="mt-3 pt-3 border-t border-orange-500/20">
+                    <div className="mt-3 pt-3 border-t border-red-500/20">
                         {/* Full Preview Card - matches actual output */}
                         <div
                             className="rounded-2xl p-4 shadow-lg transition-all duration-300"
@@ -239,14 +240,14 @@ const CustomDownsellNode: React.FC<NodeProps> = ({ data, selected }) => {
             <Handle
                 type="target"
                 position={Position.Left}
-                className="w-3 h-3 !bg-orange-400 !border-2 !border-white"
+                className="w-3 h-3 !bg-red-400 !border-2 !border-white"
             />
             <Handle
                 type="source"
                 position={Position.Right}
-                className="w-3 h-3 !bg-orange-400 !border-2 !border-white"
+                className="w-3 h-3 !bg-red-400 !border-2 !border-white"
             />
-        </div>
+        </div >
     );
 };
 

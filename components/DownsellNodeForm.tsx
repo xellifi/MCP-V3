@@ -1128,8 +1128,9 @@ const DownsellNodeForm: React.FC<DownsellNodeFormProps> = ({
                     <div className="flex-shrink-0 h-14 border-b border-white/10 flex items-center px-4 gap-4">
                         {/* Left: Title */}
                         <div className="flex items-center gap-3 min-w-0 flex-shrink-0">
-                            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center">
-                                <ShoppingBag className="w-4 h-4 text-white" />
+                            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-red-500 to-rose-600 flex items-center justify-center relative">
+                                <ShoppingCart className="w-4 h-4 text-white" />
+                                <ArrowDown className="w-2.5 h-2.5 text-white absolute -bottom-0.5 -right-0.5 bg-red-600 rounded-full p-0.5" />
                             </div>
                             <span className="text-base font-bold text-white whitespace-nowrap">Downsell</span>
                         </div>
