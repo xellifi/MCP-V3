@@ -18,7 +18,7 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Workspace, ConnectedPage } from '../types';
-import { Save, ArrowLeft, PlayCircle, Menu, X, Grid3x3, MessageCircle, Play, Bot, Send, Clock, MousePointer2, SquareMousePointer, Sparkles, GitBranch, MessageSquare, RectangleEllipsis, Plus, Minus, Maximize, Maximize2, Minimize2, Wrench, RotateCcw, Image, Video, FileText, Table, RefreshCw, ShoppingBag, Tag, Receipt, Package, ShoppingCart, Table2, ClipboardList } from 'lucide-react';
+import { Save, ArrowLeft, PlayCircle, Menu, X, Grid3x3, MessageCircle, Play, Bot, Send, Clock, MousePointer2, SquareMousePointer, Sparkles, GitBranch, MessageSquare, RectangleEllipsis, Plus, Minus, Maximize, Maximize2, Minimize2, Wrench, RotateCcw, Image, Video, FileText, Table, RefreshCw, ShoppingBag, Tag, Receipt, Package, ShoppingCart, Table2, ClipboardList, ArrowUp, ArrowDown } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import NodeConfigModal from '../components/NodeConfigModal';
 import TriggerNodeForm from '../components/TriggerNodeForm';
@@ -2059,12 +2059,14 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
             </div>
             <div draggable onDragStart={(e) => onDragStart(e, 'upsellNode', 'Upsell')} onClick={() => addNode('upsellNode', 'Upsell')}
               className="group relative w-10 h-10 bg-teal-500/20 hover:bg-teal-500/40 border border-teal-500/30 rounded-xl flex items-center justify-center text-teal-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
-              <ShoppingBag className="w-5 h-5" />
+              <ShoppingCart className="w-5 h-5" />
+              <ArrowUp className="w-2.5 h-2.5 text-white absolute -bottom-0.5 -right-0.5 bg-teal-600 rounded-full p-0.5" />
               <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">Upsell</span>
             </div>
             <div draggable onDragStart={(e) => onDragStart(e, 'downsellNode', 'Downsell')} onClick={() => addNode('downsellNode', 'Downsell')}
               className="group relative w-10 h-10 bg-orange-500/20 hover:bg-orange-500/40 border border-orange-500/30 rounded-xl flex items-center justify-center text-orange-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
-              <Tag className="w-5 h-5" />
+              <ShoppingCart className="w-5 h-5" />
+              <ArrowDown className="w-2.5 h-2.5 text-white absolute -bottom-0.5 -right-0.5 bg-orange-600 rounded-full p-0.5" />
               <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">Downsell</span>
             </div>
             <div draggable onDragStart={(e) => onDragStart(e, 'invoiceNode', 'Invoice')} onClick={() => addNode('invoiceNode', 'Invoice')}
@@ -2144,12 +2146,14 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
             <RefreshCw className="w-6 h-6" />
           </div>
           <div draggable onDragStart={(e) => onDragStart(e, 'upsellNode', 'Upsell')} onClick={() => addNode('upsellNode', 'Upsell')}
-            className="w-12 h-12 bg-teal-500/20 hover:bg-teal-500/40 border border-teal-500/30 rounded-xl flex items-center justify-center text-teal-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing" title="Upsell">
-            <ShoppingBag className="w-6 h-6" />
+            className="w-12 h-12 bg-teal-500/20 hover:bg-teal-500/40 border border-teal-500/30 rounded-xl flex items-center justify-center text-teal-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing relative" title="Upsell">
+            <ShoppingCart className="w-6 h-6" />
+            <ArrowUp className="w-3 h-3 text-white absolute -bottom-0.5 -right-0.5 bg-teal-600 rounded-full p-0.5" />
           </div>
           <div draggable onDragStart={(e) => onDragStart(e, 'downsellNode', 'Downsell')} onClick={() => addNode('downsellNode', 'Downsell')}
-            className="w-12 h-12 bg-orange-500/20 hover:bg-orange-500/40 border border-orange-500/30 rounded-xl flex items-center justify-center text-orange-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing" title="Downsell">
-            <Tag className="w-6 h-6" />
+            className="w-12 h-12 bg-orange-500/20 hover:bg-orange-500/40 border border-orange-500/30 rounded-xl flex items-center justify-center text-orange-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing relative" title="Downsell">
+            <ShoppingCart className="w-6 h-6" />
+            <ArrowDown className="w-3 h-3 text-white absolute -bottom-0.5 -right-0.5 bg-orange-600 rounded-full p-0.5" />
           </div>
           <div draggable onDragStart={(e) => onDragStart(e, 'invoiceNode', 'Invoice')} onClick={() => addNode('invoiceNode', 'Invoice')}
             className="w-12 h-12 bg-violet-500/20 hover:bg-violet-500/40 border border-violet-500/30 rounded-xl flex items-center justify-center text-violet-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing" title="Invoice">

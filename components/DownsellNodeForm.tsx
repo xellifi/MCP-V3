@@ -1,10 +1,10 @@
-﻿import React, { useState, useRef, useMemo, useEffect, memo, useCallback } from 'react';
+import React, { useState, useRef, useMemo, useEffect, memo, useCallback } from 'react';
 import {
     ShoppingBag, Type, Image, DollarSign, MousePointer2, Palette,
     Upload, Link, X, AlertCircle, Eye, Flame, Check, Sparkles,
     Circle, Square, RectangleHorizontal, ShoppingCart, ChevronLeft,
     ChevronRight, Smartphone, Monitor, Tablet, ExternalLink, RotateCcw, Save, Trash2,
-    ChevronDown, ChevronUp, Clock, Timer, ArrowDown, MinusCircle, LogOut
+    ChevronDown, ChevronUp, Clock, Timer, ArrowUp, PlusCircle, ArrowDown, MinusCircle, LogOut
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
@@ -62,11 +62,11 @@ interface DownsellNodeFormProps {
 }
 
 const EMOJI_OPTIONS = [
-    { value: 'fire', label: 'ðŸ”¥', name: 'Fire' },
-    { value: 'star', label: 'â­', name: 'Star' },
-    { value: 'sparkle', label: 'âœ¨', name: 'Sparkle' },
-    { value: 'heart', label: 'â¤ï¸', name: 'Heart' },
-    { value: 'none', label: 'â€”', name: 'None' },
+    { value: 'fire', label: '🔥', name: 'Fire' },
+    { value: 'star', label: '⭐', name: 'Star' },
+    { value: 'sparkle', label: '✨', name: 'Sparkle' },
+    { value: 'heart', label: '❤️', name: 'Heart' },
+    { value: 'none', label: '—', name: 'None' },
 ] as const;
 
 const PRESET_COLORS = [
@@ -219,29 +219,29 @@ const DownsellNodeForm: React.FC<DownsellNodeFormProps> = ({
     onClose
 }) => {
     // ================== STATE ==================
-    const [headline, setHeadline] = useState(initialConfig?.headline || 'Wait! Special Offer');
+    const [headline, setHeadline] = useState(initialConfig?.headline || 'Want to Add this item?');
     const [headlineColor, setHeadlineColor] = useState(initialConfig?.headlineColor || '#ffffff');
-    const [headlineBgColor, setHeadlineBgColor] = useState(initialConfig?.headlineBgColor || '#dc2626');
-    const [headlineAnimation, setHeadlineAnimation] = useState<'none' | 'blink' | 'shake'>(initialConfig?.headlineAnimation || 'none');
+    const [headlineBgColor, setHeadlineBgColor] = useState(initialConfig?.headlineBgColor || '#ea580c');
+    const [headlineAnimation, setHeadlineAnimation] = useState<'none' | 'blink' | 'shake'>(initialConfig?.headlineAnimation || 'shake');
     const [headlineAnimationSpeed, setHeadlineAnimationSpeed] = useState(initialConfig?.headlineAnimationSpeed ?? 2); // blinks per second (1-4)
     const [showEmoji, setShowEmoji] = useState(initialConfig?.showEmoji ?? true);
     const [emojiType, setEmojiType] = useState<'fire' | 'star' | 'sparkle' | 'heart' | 'none'>(initialConfig?.emojiType || 'fire');
     const [imageUrl, setImageUrl] = useState(initialConfig?.imageUrl || '');
-    const [imageSource, setImageSource] = useState<'url' | 'upload' | 'gallery'>(initialConfig?.imageSource || 'url');
-    const [imageBorderRadius, setImageBorderRadius] = useState(initialConfig?.imageBorderRadius ?? 16);
-    const [imageBorderColor, setImageBorderColor] = useState(initialConfig?.imageBorderColor || '#ffffff');
-    const [imageBorderWidth, setImageBorderWidth] = useState(initialConfig?.imageBorderWidth ?? 4);
+    const [imageSource, setImageSource] = useState<'url' | 'upload' | 'gallery'>(initialConfig?.imageSource || 'upload');
+    const [imageBorderRadius, setImageBorderRadius] = useState(initialConfig?.imageBorderRadius ?? 15);
+    const [imageBorderColor, setImageBorderColor] = useState(initialConfig?.imageBorderColor || 'transparent');
+    const [imageBorderWidth, setImageBorderWidth] = useState(initialConfig?.imageBorderWidth ?? 0);
     const [isUploading, setIsUploading] = useState(false);
     const [uploadError, setUploadError] = useState('');
     const [galleryImages, setGalleryImages] = useState<string[]>([]);
     const [loadingGallery, setLoadingGallery] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
-    const [price, setPrice] = useState(initialConfig?.price || 'â‚±588');
+    const [price, setPrice] = useState(initialConfig?.price || '₱588');
     const [priceBadgeColor, setPriceBadgeColor] = useState(initialConfig?.priceBadgeColor || '#22c55e');
     const [priceTextColor, setPriceTextColor] = useState(initialConfig?.priceTextColor || '#ffffff');
     const [priceBadgeSize, setPriceBadgeSize] = useState(initialConfig?.priceBadgeSize ?? 80);
     const [description, setDescription] = useState(initialConfig?.description || 'High quality shoes from Korea!');
-    const [descriptionColor, setDescriptionColor] = useState(initialConfig?.descriptionColor || '#374151');
+    const [descriptionColor, setDescriptionColor] = useState(initialConfig?.descriptionColor || '#1f2937');
     const [buttonText, setButtonText] = useState(initialConfig?.buttonText || 'ok add this item!');
     const [buttonBgColor, setButtonBgColor] = useState(initialConfig?.buttonBgColor || '#22c55e');
     const [buttonTextColor, setButtonTextColor] = useState(initialConfig?.buttonTextColor || '#ffffff');
@@ -255,19 +255,19 @@ const DownsellNodeForm: React.FC<DownsellNodeFormProps> = ({
     const [productNameFontSize, setProductNameFontSize] = useState(initialConfig?.productNameFontSize ?? 16);
     const [productNameBorderRadius, setProductNameBorderRadius] = useState(initialConfig?.productNameBorderRadius ?? 0);
     const [productNameFullWidth, setProductNameFullWidth] = useState(initialConfig?.productNameFullWidth ?? true);
-    const [showCountdown, setShowCountdown] = useState(initialConfig?.showCountdown ?? false);
+    const [showCountdown, setShowCountdown] = useState(initialConfig?.showCountdown ?? true);
     const [countdownMinutes, setCountdownMinutes] = useState(initialConfig?.countdownMinutes ?? 10);
-    const [countdownPosition, setCountdownPosition] = useState<'above' | 'middle' | 'below'>(initialConfig?.countdownPosition || 'below');
-    const [countdownBgColor, setCountdownBgColor] = useState(initialConfig?.countdownBgColor || '#dc2626');
-    const [countdownTextColor, setCountdownTextColor] = useState(initialConfig?.countdownTextColor || '#ffffff');
+    const [countdownPosition, setCountdownPosition] = useState<'above' | 'middle' | 'below'>(initialConfig?.countdownPosition || 'middle');
+    const [countdownBgColor, setCountdownBgColor] = useState(initialConfig?.countdownBgColor || 'transparent');
+    const [countdownTextColor, setCountdownTextColor] = useState(initialConfig?.countdownTextColor || '#22c55e');
     const [countdownFontSize, setCountdownFontSize] = useState(initialConfig?.countdownFontSize ?? 18);
-    const [countdownShowBg, setCountdownShowBg] = useState(initialConfig?.countdownShowBg ?? true);
+    const [countdownShowBg, setCountdownShowBg] = useState(initialConfig?.countdownShowBg ?? false);
     const [countdownBorderRadius, setCountdownBorderRadius] = useState(initialConfig?.countdownBorderRadius ?? 12);
-    const [countdownFullWidth, setCountdownFullWidth] = useState(initialConfig?.countdownFullWidth ?? false);
+    const [countdownFullWidth, setCountdownFullWidth] = useState(initialConfig?.countdownFullWidth ?? true);
     const [cartAction, setCartAction] = useState<'add' | 'replace'>(initialConfig?.cartAction || 'add');
     const [productName, setProductName] = useState(initialConfig?.productName || '');
     const [productPrice, setProductPrice] = useState(initialConfig?.productPrice || 0);
-    const [useWebview, setUseWebview] = useState(initialConfig?.useWebview ?? false);
+    const [useWebview, setUseWebview] = useState(initialConfig?.useWebview ?? true);
 
     // UI State
     const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1024);
@@ -460,7 +460,7 @@ const DownsellNodeForm: React.FC<DownsellNodeFormProps> = ({
                                 ) : (
                                     <>
                                         <span>9:41</span>
-                                        <span>âš¡ 100%</span>
+                                        <span>⚡ 100%</span>
                                     </>
                                 )}
                             </div>
@@ -500,7 +500,7 @@ const DownsellNodeForm: React.FC<DownsellNodeFormProps> = ({
                                                     className="font-bold uppercase tracking-wider"
                                                     style={{ color: countdownTextColor, fontSize: `${getCountdownFontSize() / 2}px` }}
                                                 >
-                                                    âš¡ Limited Time
+                                                    ⚡ Limited Time
                                                 </span>
                                             </div>
                                             <div className="flex items-center justify-center gap-1 mt-0.5">
@@ -583,7 +583,7 @@ const DownsellNodeForm: React.FC<DownsellNodeFormProps> = ({
                                                         className="font-bold uppercase tracking-wider"
                                                         style={{ color: countdownTextColor, fontSize: `${getCountdownFontSize() / 2}px` }}
                                                     >
-                                                        âš¡ Limited Time
+                                                        ⚡ Limited Time
                                                     </span>
                                                 </div>
                                                 <div className="flex items-center justify-center gap-1 mt-0.5">
@@ -646,7 +646,7 @@ const DownsellNodeForm: React.FC<DownsellNodeFormProps> = ({
                                                         className="font-bold uppercase tracking-wider"
                                                         style={{ color: countdownTextColor, fontSize: `${getCountdownFontSize() / 2}px` }}
                                                     >
-                                                        âš¡ Limited Time
+                                                        ⚡ Limited Time
                                                     </span>
                                                 </div>
                                                 <div className="flex items-center justify-center gap-1 mt-0.5">
@@ -755,7 +755,7 @@ const DownsellNodeForm: React.FC<DownsellNodeFormProps> = ({
             <div>
                 <div className="flex items-center justify-between mb-1">
                     <label className="text-xs text-slate-400">Price</label>
-                    <ResetButton onClick={() => { setPrice('â‚±588'); notifyChange({ price: 'â‚±588' }); }} />
+                    <ResetButton onClick={() => { setPrice('₱588'); notifyChange({ price: '₱588' }); }} />
                 </div>
                 <input type="text" value={price}
                     onChange={(e) => { setPrice(e.target.value); notifyChange({ price: e.target.value }); }}
@@ -911,7 +911,7 @@ const DownsellNodeForm: React.FC<DownsellNodeFormProps> = ({
                         <button key={anim} type="button"
                             onClick={() => { setHeadlineAnimation(anim); notifyChange({ headlineAnimation: anim }); }}
                             className={`flex-1 py-2 text-xs rounded-lg capitalize ${headlineAnimation === anim ? 'bg-teal-500/30 border-teal-500' : 'bg-black/30 border-white/10'} border`}>
-                            {anim === 'none' ? 'â€” None' : anim === 'blink' ? 'âœ¨ Blink' : 'ðŸ”” Shake'}
+                            {anim === 'none' ? '— None' : anim === 'blink' ? '✨ Blink' : '🔔 Shake'}
                         </button>
                     ))}
                 </div>
@@ -982,7 +982,7 @@ const DownsellNodeForm: React.FC<DownsellNodeFormProps> = ({
 
             {/* Countdown Timer - Elegant Design */}
             <div className="pt-3 border-t border-white/10">
-                <Toggle value={showCountdown} onChange={(v) => { setShowCountdown(v); notifyChange({ showCountdown: v }); }} label="â±ï¸ Countdown Timer" />
+                <Toggle value={showCountdown} onChange={(v) => { setShowCountdown(v); notifyChange({ showCountdown: v }); }} label="⏱️ Countdown Timer" />
                 {showCountdown && (
                     <div className="mt-3 space-y-3">
                         {/* Timer Duration */}
@@ -1004,7 +1004,7 @@ const DownsellNodeForm: React.FC<DownsellNodeFormProps> = ({
                                     <button key={pos} type="button"
                                         onClick={() => { setCountdownPosition(pos); notifyChange({ countdownPosition: pos }); }}
                                         className={`flex-1 py-2 text-xs rounded-lg ${countdownPosition === pos ? 'bg-teal-500/30 border-teal-500' : 'bg-black/30 border-white/10'} border`}>
-                                        {pos === 'above' ? 'â¬†ï¸' : pos === 'middle' ? 'â†”ï¸' : 'â¬‡ï¸'} {pos.charAt(0).toUpperCase() + pos.slice(1)}
+                                        {pos === 'above' ? '⬆️' : pos === 'middle' ? '↔️' : '⬇️'} {pos.charAt(0).toUpperCase() + pos.slice(1)}
                                     </button>
                                 ))}
                             </div>
@@ -1067,12 +1067,12 @@ const DownsellNodeForm: React.FC<DownsellNodeFormProps> = ({
             <div className="grid grid-cols-2 gap-2">
                 <button onClick={() => { setCartAction('add'); notifyChange({ cartAction: 'add' }); }}
                     className={`p-3 rounded-lg border text-left ${cartAction === 'add' ? 'bg-teal-500/20 border-teal-500/50' : 'bg-black/30 border-white/10'}`}>
-                    <div className="text-sm font-medium text-white">âž• Add</div>
+                    <div className="text-sm font-medium text-white">➕ Add</div>
                     <div className="text-xs text-slate-400">Add to cart</div>
                 </button>
                 <button onClick={() => { setCartAction('replace'); notifyChange({ cartAction: 'replace' }); }}
                     className={`p-3 rounded-lg border text-left ${cartAction === 'replace' ? 'bg-orange-500/20 border-orange-500/50' : 'bg-black/30 border-white/10'}`}>
-                    <div className="text-sm font-medium text-white">ðŸ”„ Replace</div>
+                    <div className="text-sm font-medium text-white">🔄 Replace</div>
                     <div className="text-xs text-slate-400">Replace main</div>
                 </button>
             </div>
@@ -1080,7 +1080,7 @@ const DownsellNodeForm: React.FC<DownsellNodeFormProps> = ({
                 <Toggle value={useWebview} onChange={(v) => { setUseWebview(v); notifyChange({ useWebview: v }); }} label="Use Webview Display" />
                 {useWebview && (
                     <div className="mt-2 p-2 bg-teal-500/10 border border-teal-500/30 rounded-lg">
-                        <p className="text-xs text-teal-300">âœ¨ Custom webview page instead of Facebook template</p>
+                        <p className="text-xs text-teal-300">✨ Custom webview page instead of Facebook template</p>
                     </div>
                 )}
             </div>
