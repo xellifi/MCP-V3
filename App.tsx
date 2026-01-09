@@ -50,6 +50,7 @@ const WebviewForm = lazy(() => import('./pages/WebviewForm'));
 // Preview Pages - For live configuration preview
 const UpsellPreview = lazy(() => import('./pages/UpsellPreview'));
 const DownsellPreview = lazy(() => import('./pages/DownsellPreview'));
+const ProductPreview = lazy(() => import('./pages/ProductPreview'));
 
 
 const App: React.FC = () => {
@@ -211,6 +212,11 @@ const App: React.FC = () => {
           <Route path="/downsell-preview" element={
             <Suspense fallback={<LoadingSpinner />}>
               <DownsellPreview />
+            </Suspense>
+          } />
+          <Route path="/product-preview" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <ProductPreview />
             </Suspense>
           } />
 

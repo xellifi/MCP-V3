@@ -2,7 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import {
     ShoppingBag, Package, Tag, Upload, X, Image as ImageIcon,
     DollarSign, Layers, Eye, Edit3, Plus, Check, Search, Globe,
-    ChevronDown, Sparkles, AlertCircle, Smartphone, Tablet, Monitor, ChevronLeft, ChevronRight
+    ChevronDown, Sparkles, AlertCircle, Smartphone, Tablet, Monitor, ChevronLeft, ChevronRight,
+    Save, ExternalLink
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
@@ -67,8 +68,13 @@ const ProductNodeForm: React.FC<ProductNodeFormProps> = ({
     onChange,
     onClose
 }) => {
-    // Form state
-    const [mode, setMode] = useState<'select' | 'create'>(initialConfig?.isExistingProduct ? 'select' : 'create');
+    // Form state - If we have initial config with productId or productName, start in create mode for editing
+    const hasExistingConfig = !!(initialConfig?.productId || initialConfig?.productName);
+    const [mode, setMode] = useState<'select' | 'create'>(hasExistingConfig ? 'create' : 'select');
+
+    // Toast notification
+    const [showToast, setShowToast] = useState(false);
+    const [toastMessage, setToastMessage] = useState('');
     const [productName, setProductName] = useState(initialConfig?.productName || '');
     const [productDescription, setProductDescription] = useState(initialConfig?.productDescription || '');
     const [productPrice, setProductPrice] = useState(initialConfig?.productPrice?.toString() || '');
@@ -153,6 +159,44 @@ const ProductNodeForm: React.FC<ProductNodeFormProps> = ({
         setLoadingProducts(false);
     };
 
+    // Toast helper
+    const displayToast = (message: string) => {
+        setToastMessage(message);
+        setShowToast(true);
+        setTimeout(() => setShowToast(false), 3000);
+    };
+
+    // Generate preview URL
+    const getPreviewUrl = () => {
+        const previewConfig = {
+            productName,
+            productDescription,
+            productPrice: parseFloat(productPrice) || 0,
+            productComparePrice: parseFloat(productComparePrice) || 0,
+            productImage,
+            productCategory,
+            currency: storeData?.currency || 'PHP'
+        };
+        const encodedConfig = encodeURIComponent(JSON.stringify(previewConfig));
+        return `/product-preview?config=${encodedConfig}`;
+    };
+
+    const openLivePreview = () => {
+        const url = getPreviewUrl();
+        window.open(url, '_blank');
+    };
+
+    // Manual save function
+    const handleManualSave = async () => {
+        const savedId = await saveProductToStore();
+        if (savedId) {
+            displayToast('✓ Product saved successfully!');
+            notifyChange();
+        } else {
+            displayToast('Please fill in product name and price');
+        }
+    };
+
     // Save product to store database
     const saveProductToStore = async () => {
         if (!storeData?.id || !productName || !productPrice) {
@@ -160,13 +204,8 @@ const ProductNodeForm: React.FC<ProductNodeFormProps> = ({
             return null;
         }
 
-        // Only save if in create mode and product doesn't exist yet
-        if (mode !== 'create') {
-            return selectedProductId;
-        }
-
         try {
-            // Check if we already created this product (by checking if we have a productId from a previous save)
+            // If we have an existing productId, update it
             if (selectedProductId) {
                 // Update existing product
                 const { error } = await supabase
@@ -318,53 +357,88 @@ const ProductNodeForm: React.FC<ProductNodeFormProps> = ({
 
     const currencySymbol = storeData?.currency === 'USD' ? '$' : storeData?.currency === 'EUR' ? '€' : '₱';
 
-    // Product preview component
-    const ProductPreview = () => (
-        <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
-            {/* Product Image */}
-            <div className="aspect-square bg-gray-100 relative">
-                {productImage ? (
-                    <img src={productImage} alt={productName} className="w-full h-full object-cover" />
-                ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                        <ImageIcon className="w-16 h-16 text-gray-300" />
+    // Product preview component - Mobile Device Mockup
+    const ProductPreview = () => {
+        const deviceSizes = {
+            mobile: { width: 280, height: 520 },
+            tablet: { width: 380, height: 520 },
+            desktop: { width: 500, height: 340 }
+        };
+        const size = deviceSizes[previewDevice];
+
+        return (
+            <div className="flex justify-center">
+                <div className="relative" style={{ width: size.width, height: size.height }}>
+                    {/* Device Frame */}
+                    <div className="w-full h-full shadow-2xl border-4 flex flex-col bg-slate-900 border-slate-700" style={{ borderRadius: previewDevice === 'desktop' ? 12 : 36 }}>
+                        {/* Notch - only for mobile */}
+                        {previewDevice === 'mobile' && (
+                            <div className="absolute top-2 left-1/2 -translate-x-1/2 w-20 h-5 bg-black rounded-full z-10" />
+                        )}
+                        {/* Screen */}
+                        <div className="w-full h-full overflow-hidden flex flex-col bg-white" style={{ borderRadius: previewDevice === 'desktop' ? 8 : 30 }}>
+                            {/* Status bar */}
+                            <div className="h-6 flex-shrink-0 flex items-center justify-between px-4 text-xs text-slate-500 bg-slate-100 border-b border-slate-200">
+                                <span>9:41</span>
+                                <span className="font-semibold truncate max-w-[150px]">{productName || 'Product'}</span>
+                                <span>⚡ 100%</span>
+                            </div>
+                            {/* Content */}
+                            <div className="flex-1 overflow-y-auto">
+                                {/* Product Image */}
+                                <div className="aspect-square bg-slate-100 relative">
+                                    {productImage ? (
+                                        <img src={productImage} alt={productName} className="w-full h-full object-cover" />
+                                    ) : (
+                                        <div className="w-full h-full flex items-center justify-center">
+                                            <ImageIcon className="w-16 h-16 text-slate-300" />
+                                        </div>
+                                    )}
+                                    {productCategory && (
+                                        <span className="absolute top-3 left-3 px-2 py-1 bg-emerald-500 text-white text-[10px] font-medium rounded-full">
+                                            {productCategory}
+                                        </span>
+                                    )}
+                                    {productComparePrice && parseFloat(productComparePrice) > parseFloat(productPrice) && (
+                                        <span className="absolute top-3 right-3 px-2 py-1 bg-red-500 text-white text-[10px] font-bold rounded-full">
+                                            -{Math.round((1 - parseFloat(productPrice) / parseFloat(productComparePrice)) * 100)}%
+                                        </span>
+                                    )}
+                                </div>
+                                {/* Product Info */}
+                                <div className="p-4">
+                                    <h3 className="font-semibold text-slate-900 text-sm mb-1">
+                                        {productName || 'Product Name'}
+                                    </h3>
+                                    {productDescription && (
+                                        <p className="text-xs text-slate-500 mb-3 line-clamp-2">{productDescription}</p>
+                                    )}
+                                    <div className="flex items-baseline gap-2 mb-3">
+                                        <span className="text-lg font-bold text-emerald-600">
+                                            {currencySymbol}{parseFloat(productPrice || '0').toLocaleString()}
+                                        </span>
+                                        {productComparePrice && parseFloat(productComparePrice) > parseFloat(productPrice) && (
+                                            <span className="text-xs text-slate-400 line-through">
+                                                {currencySymbol}{parseFloat(productComparePrice).toLocaleString()}
+                                            </span>
+                                        )}
+                                    </div>
+                                    <button className="w-full py-2.5 bg-blue-600 text-white rounded-xl font-semibold text-sm flex items-center justify-center gap-2">
+                                        <ShoppingBag className="w-4 h-4" />
+                                        Add to Cart
+                                    </button>
+                                </div>
+                            </div>
+                            {/* Home indicator */}
+                            <div className="h-5 flex-shrink-0 flex items-center justify-center bg-white">
+                                <div className="w-24 h-1 bg-slate-300 rounded-full" />
+                            </div>
+                        </div>
                     </div>
-                )}
-                {productCategory && (
-                    <span className="absolute top-3 left-3 px-3 py-1 bg-emerald-500 text-white text-xs font-medium rounded-full">
-                        {productCategory}
-                    </span>
-                )}
-                {productComparePrice && parseFloat(productComparePrice) > parseFloat(productPrice) && (
-                    <span className="absolute top-3 right-3 px-2 py-1 bg-red-500 text-white text-xs font-bold rounded-full">
-                        -{Math.round((1 - parseFloat(productPrice) / parseFloat(productComparePrice)) * 100)}%
-                    </span>
-                )}
-            </div>
-            {/* Product Info */}
-            <div className="p-4">
-                <h3 className="font-semibold text-gray-900 mb-1">
-                    {productName || 'Product Name'}
-                </h3>
-                {productDescription && (
-                    <p className="text-sm text-gray-500 mb-3 line-clamp-2">{productDescription}</p>
-                )}
-                <div className="flex items-baseline gap-2 mb-3">
-                    <span className="text-xl font-bold text-emerald-600">
-                        {currencySymbol}{parseFloat(productPrice || '0').toLocaleString()}
-                    </span>
-                    {productComparePrice && parseFloat(productComparePrice) > parseFloat(productPrice) && (
-                        <span className="text-sm text-gray-400 line-through">
-                            {currencySymbol}{parseFloat(productComparePrice).toLocaleString()}
-                        </span>
-                    )}
                 </div>
-                <button className="w-full py-2.5 bg-emerald-500 text-white rounded-xl font-medium text-sm">
-                    Add to Cart
-                </button>
             </div>
-        </div>
-    );
+        );
+    };
 
     // Form content for reuse
     const formContent = (
@@ -743,28 +817,33 @@ const ProductNodeForm: React.FC<ProductNodeFormProps> = ({
                             </div>
                         </div>
 
-                        {/* Right: Live Preview + Globe + Close */}
+                        {/* Right: Save + Live Preview + Close */}
                         <div className="flex items-center gap-2 flex-shrink-0">
-                            <div className="hidden sm:flex items-center gap-2">
-                                <div className="flex items-center gap-1 text-xs text-slate-400">
-                                    <Eye className="w-3 h-3" /> Preview
-                                </div>
-                                <button
-                                    type="button"
-                                    className="p-1.5 hover:bg-white/10 rounded-lg text-slate-400 hover:text-teal-400 transition-colors"
-                                    title="Visit Live Site"
-                                >
-                                    <Globe className="w-4 h-4" />
-                                </button>
-                            </div>
+                            <button
+                                type="button"
+                                onClick={handleManualSave}
+                                className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 rounded-lg text-white text-sm font-medium transition-colors"
+                                title="Save Product"
+                            >
+                                <Save className="w-4 h-4" />
+                                Save
+                            </button>
+                            <button
+                                type="button"
+                                onClick={openLivePreview}
+                                className="p-1.5 hover:bg-white/10 rounded-lg text-slate-400 hover:text-teal-400 transition-colors"
+                                title="Open Live Preview"
+                            >
+                                <ExternalLink className="w-4 h-4" />
+                            </button>
                             {onClose && (
                                 <button
                                     type="button"
                                     onClick={onClose}
-                                    className="p-1.5 hover:bg-white/10 rounded-lg text-slate-400 hover:text-white transition-colors"
+                                    className="p-1.5 hover:bg-red-500/20 rounded-lg text-slate-400 hover:text-red-400 transition-colors"
                                     title="Close"
                                 >
-                                    <X className="w-4 h-4" />
+                                    <X className="w-5 h-5" />
                                 </button>
                             )}
                         </div>
@@ -782,6 +861,24 @@ const ProductNodeForm: React.FC<ProductNodeFormProps> = ({
                         </div>
                     </div>
                 </div>
+
+                {/* Toast Notification */}
+                {showToast && (
+                    <div className="fixed top-6 right-6 z-[60] animate-slide-in">
+                        <div className="bg-emerald-500 text-white px-5 py-3 rounded-xl shadow-2xl flex items-center gap-2">
+                            <Check className="w-5 h-5" />
+                            <span className="font-medium">{toastMessage}</span>
+                        </div>
+                    </div>
+                )}
+
+                <style>{`
+                    @keyframes slide-in {
+                        from { opacity: 0; transform: translateX(20px); }
+                        to { opacity: 1; transform: translateX(0); }
+                    }
+                    .animate-slide-in { animation: slide-in 0.3s ease-out; }
+                `}</style>
             </div>
         );
     }
