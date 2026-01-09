@@ -397,6 +397,56 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 }
             }
 
+            // Handle Upsell Node - send upsell offer and STOP traversal (wait for user response)
+            if (node.type === 'upsellNode') {
+                console.log('[Continue Flow] Processing Upsell node - sending offer');
+                await sendUpsellOffer(
+                    subscriberId,
+                    config,
+                    node.id,
+                    flowId,
+                    pageAccessToken,
+                    workspaceId,
+                    context
+                );
+                // STOP traversal here - user must click Accept or Decline to continue
+                console.log('[Continue Flow] ⏸ Stopping at Upsell node - waiting for user response');
+                continue; // Don't add successors to queue
+            }
+
+            // Handle Downsell Node - send downsell offer and STOP traversal (wait for user response)
+            if (node.type === 'downsellNode') {
+                console.log('[Continue Flow] Processing Downsell node - sending offer');
+                await sendDownsellOffer(
+                    subscriberId,
+                    config,
+                    node.id,
+                    flowId,
+                    pageAccessToken,
+                    workspaceId,
+                    context
+                );
+                // STOP traversal here - user must click Accept or Decline to continue
+                console.log('[Continue Flow] ⏸ Stopping at Downsell node - waiting for user response');
+                continue; // Don't add successors to queue
+            }
+
+            // Handle Checkout Node - send checkout summary and STOP traversal
+            if (node.type === 'checkoutNode') {
+                console.log('[Continue Flow] Processing Checkout node');
+                await sendCheckoutOffer(
+                    subscriberId,
+                    config,
+                    node.id,
+                    flowId,
+                    pageAccessToken,
+                    workspaceId,
+                    context
+                );
+                console.log('[Continue Flow] ⏸ Stopping at Checkout node - waiting for confirmation');
+                continue; // Don't add successors to queue
+            }
+
             // Find outgoing edges for non-condition nodes
             const outgoingEdges = edges.filter((e: any) => e.source === currentNodeId);
             for (const edge of outgoingEdges) {
@@ -684,4 +734,287 @@ async function sendImageMessage(
     } catch (error: any) {
         console.error('[Continue Flow] Image exception:', error.message);
     }
+}
+
+// Send an upsell offer via Messenger
+async function sendUpsellOffer(
+    userId: string,
+    config: any,
+    nodeId: string,
+    flowId: string,
+    pageAccessToken: string,
+    workspaceId: string,
+    context: any
+): Promise<void> {
+    console.log('[Continue Flow] Sending Upsell offer to:', userId);
+
+    const headline = config.headline || 'Special Offer for You!';
+    const productName = config.productName || 'Premium Product';
+    const price = config.price || '₱999';
+    const description = config.description || 'Limited time offer!';
+    const imageUrl = config.imageUrl || '';
+    const acceptButtonText = config.acceptButtonText || '✅ Yes, Add to Order';
+    const declineButtonText = config.declineButtonText || '❌ No Thanks';
+    const useWebview = config.useWebview ?? false;
+
+    try {
+        // Build the payload for button clicks
+        const acceptPayload = JSON.stringify({
+            action: 'upsell_accept',
+            flowId,
+            nodeId,
+            productName,
+            price,
+            imageUrl
+        });
+
+        const declinePayload = JSON.stringify({
+            action: 'upsell_decline',
+            flowId,
+            nodeId
+        });
+
+        // Use generic template with image if available
+        if (imageUrl) {
+            const messagePayload = {
+                attachment: {
+                    type: 'template',
+                    payload: {
+                        template_type: 'generic',
+                        elements: [{
+                            title: headline,
+                            subtitle: `${productName} - ${price}\n${description}`,
+                            image_url: imageUrl,
+                            buttons: [
+                                {
+                                    type: 'postback',
+                                    title: acceptButtonText.slice(0, 20),
+                                    payload: acceptPayload
+                                },
+                                {
+                                    type: 'postback',
+                                    title: declineButtonText.slice(0, 20),
+                                    payload: declinePayload
+                                }
+                            ]
+                        }]
+                    }
+                }
+            };
+
+            await sendFacebookMessage(userId, messagePayload, pageAccessToken);
+        } else {
+            // No image - use button template
+            const messagePayload = {
+                attachment: {
+                    type: 'template',
+                    payload: {
+                        template_type: 'button',
+                        text: `${headline}\n\n${productName} - ${price}\n${description}`,
+                        buttons: [
+                            {
+                                type: 'postback',
+                                title: acceptButtonText.slice(0, 20),
+                                payload: acceptPayload
+                            },
+                            {
+                                type: 'postback',
+                                title: declineButtonText.slice(0, 20),
+                                payload: declinePayload
+                            }
+                        ]
+                    }
+                }
+            };
+
+            await sendFacebookMessage(userId, messagePayload, pageAccessToken);
+        }
+
+        console.log('[Continue Flow] ✓ Upsell offer sent');
+    } catch (error: any) {
+        console.error('[Continue Flow] Upsell send exception:', error.message);
+    }
+}
+
+// Send a downsell offer via Messenger
+async function sendDownsellOffer(
+    userId: string,
+    config: any,
+    nodeId: string,
+    flowId: string,
+    pageAccessToken: string,
+    workspaceId: string,
+    context: any
+): Promise<void> {
+    console.log('[Continue Flow] Sending Downsell offer to:', userId);
+
+    const headline = config.headline || 'Wait! Special Deal Just for You';
+    const productName = config.productName || 'Value Product';
+    const price = config.price || '₱499';
+    const description = config.description || 'Exclusive discount!';
+    const imageUrl = config.imageUrl || '';
+    const acceptButtonText = config.acceptButtonText || '✅ Yes, I\'ll Take It';
+    const declineButtonText = config.declineButtonText || '❌ No Thanks';
+
+    try {
+        const acceptPayload = JSON.stringify({
+            action: 'downsell_accept',
+            flowId,
+            nodeId,
+            productName,
+            price,
+            imageUrl
+        });
+
+        const declinePayload = JSON.stringify({
+            action: 'downsell_decline',
+            flowId,
+            nodeId
+        });
+
+        if (imageUrl) {
+            const messagePayload = {
+                attachment: {
+                    type: 'template',
+                    payload: {
+                        template_type: 'generic',
+                        elements: [{
+                            title: headline,
+                            subtitle: `${productName} - ${price}\n${description}`,
+                            image_url: imageUrl,
+                            buttons: [
+                                {
+                                    type: 'postback',
+                                    title: acceptButtonText.slice(0, 20),
+                                    payload: acceptPayload
+                                },
+                                {
+                                    type: 'postback',
+                                    title: declineButtonText.slice(0, 20),
+                                    payload: declinePayload
+                                }
+                            ]
+                        }]
+                    }
+                }
+            };
+
+            await sendFacebookMessage(userId, messagePayload, pageAccessToken);
+        } else {
+            const messagePayload = {
+                attachment: {
+                    type: 'template',
+                    payload: {
+                        template_type: 'button',
+                        text: `${headline}\n\n${productName} - ${price}\n${description}`,
+                        buttons: [
+                            {
+                                type: 'postback',
+                                title: acceptButtonText.slice(0, 20),
+                                payload: acceptPayload
+                            },
+                            {
+                                type: 'postback',
+                                title: declineButtonText.slice(0, 20),
+                                payload: declinePayload
+                            }
+                        ]
+                    }
+                }
+            };
+
+            await sendFacebookMessage(userId, messagePayload, pageAccessToken);
+        }
+
+        console.log('[Continue Flow] ✓ Downsell offer sent');
+    } catch (error: any) {
+        console.error('[Continue Flow] Downsell send exception:', error.message);
+    }
+}
+
+// Send checkout confirmation via Messenger
+async function sendCheckoutOffer(
+    userId: string,
+    config: any,
+    nodeId: string,
+    flowId: string,
+    pageAccessToken: string,
+    workspaceId: string,
+    context: any
+): Promise<void> {
+    console.log('[Continue Flow] Sending Checkout confirmation to:', userId);
+
+    const headerText = config.headerText || '🛒 Order Summary';
+    const buttonText = config.buttonText || '✅ Confirm Order';
+    const confirmationMessage = config.confirmationMessage || '';
+
+    try {
+        const confirmPayload = JSON.stringify({
+            action: 'checkout_confirm',
+            flowId,
+            nodeId
+        });
+
+        // Get cart from context/metadata if available
+        const cart = context.cart || context.metadata?.cart || [];
+        const cartTotal = context.cartTotal || context.metadata?.cartTotal || 0;
+
+        let summaryText = headerText;
+        if (cart.length > 0) {
+            summaryText += '\n\n';
+            cart.forEach((item: any) => {
+                summaryText += `• ${item.productName || item.name} - ₱${item.productPrice || item.price}\n`;
+            });
+            summaryText += `\nTotal: ₱${cartTotal}`;
+        }
+
+        const messagePayload = {
+            attachment: {
+                type: 'template',
+                payload: {
+                    template_type: 'button',
+                    text: summaryText,
+                    buttons: [
+                        {
+                            type: 'postback',
+                            title: buttonText.slice(0, 20),
+                            payload: confirmPayload
+                        }
+                    ]
+                }
+            }
+        };
+
+        await sendFacebookMessage(userId, messagePayload, pageAccessToken);
+        console.log('[Continue Flow] ✓ Checkout message sent');
+    } catch (error: any) {
+        console.error('[Continue Flow] Checkout send exception:', error.message);
+    }
+}
+
+// Generic function to send Facebook message
+async function sendFacebookMessage(
+    userId: string,
+    messagePayload: any,
+    pageAccessToken: string
+): Promise<void> {
+    const response = await fetch(
+        `https://graph.facebook.com/v21.0/me/messages`,
+        {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                recipient: { id: userId },
+                message: messagePayload,
+                access_token: pageAccessToken
+            })
+        }
+    );
+
+    const result = await response.json();
+    if (result.error) {
+        console.error('[Continue Flow] Facebook API error:', result.error.message);
+        throw new Error(result.error.message);
+    }
+    console.log('[Continue Flow] ✓ Message sent, ID:', result.message_id);
 }
