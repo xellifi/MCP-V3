@@ -758,7 +758,71 @@ async function sendUpsellOffer(
     const useWebview = config.useWebview ?? false;
 
     try {
-        // Build the payload for button clicks
+        // If webview is enabled, create a webview session and send webview button
+        if (useWebview) {
+            console.log('[Continue Flow] Creating webview session for upsell...');
+
+            // Create webview session
+            const baseUrl = process.env.VITE_APP_URL || 'https://mcp-v16.vercel.app';
+
+            const { data: session, error: sessionError } = await supabase
+                .from('webview_sessions')
+                .insert({
+                    workspace_id: workspaceId,
+                    external_id: userId,
+                    flow_id: flowId,
+                    current_node_id: nodeId,
+                    page_type: 'upsell',
+                    page_config: config,
+                    cart: context.cart || [],
+                    cart_total: context.cartTotal || 0,
+                    page_access_token: pageAccessToken,
+                    metadata: {
+                        commenterName: context.commenterName,
+                        productName,
+                        price,
+                        imageUrl
+                    }
+                })
+                .select('id')
+                .single();
+
+            if (sessionError || !session) {
+                console.error('[Continue Flow] Failed to create webview session:', sessionError?.message);
+                // Fallback to postback buttons below
+            } else {
+                const webviewUrl = `${baseUrl}/wv/upsell/${session.id}`;
+                console.log('[Continue Flow] Webview URL:', webviewUrl);
+
+                // Send message with webview button
+                const messagePayload = {
+                    attachment: {
+                        type: 'template',
+                        payload: {
+                            template_type: 'generic',
+                            elements: [{
+                                title: headline,
+                                subtitle: `${productName} - ${price}\n${description}`,
+                                image_url: imageUrl || undefined,
+                                buttons: [{
+                                    type: 'web_url',
+                                    title: '🛒 View Offer',
+                                    url: webviewUrl,
+                                    webview_height_ratio: 'tall',
+                                    messenger_extensions: true
+                                }]
+                            }]
+                        }
+                    }
+                };
+
+                await sendFacebookMessage(userId, messagePayload, pageAccessToken);
+                console.log('[Continue Flow] ✓ Upsell webview offer sent');
+                return;
+            }
+        }
+
+        // Fallback: Build the payload for postback button clicks
         const acceptPayload = JSON.stringify({
             action: 'upsell_accept',
             flowId,
@@ -855,8 +919,72 @@ async function sendDownsellOffer(
     const imageUrl = config.imageUrl || '';
     const acceptButtonText = config.acceptButtonText || '✅ Yes, I\'ll Take It';
     const declineButtonText = config.declineButtonText || '❌ No Thanks';
+    const useWebview = config.useWebview ?? false;
 
     try {
+        // If webview is enabled, create a webview session and send webview button
+        if (useWebview) {
+            console.log('[Continue Flow] Creating webview session for downsell...');
+
+            const baseUrl = process.env.VITE_APP_URL || 'https://mcp-v16.vercel.app';
+
+            const { data: session, error: sessionError } = await supabase
+                .from('webview_sessions')
+                .insert({
+                    workspace_id: workspaceId,
+                    external_id: userId,
+                    flow_id: flowId,
+                    current_node_id: nodeId,
+                    page_type: 'downsell',
+                    page_config: config,
+                    cart: context.cart || [],
+                    cart_total: context.cartTotal || 0,
+                    page_access_token: pageAccessToken,
+                    metadata: {
+                        commenterName: context.commenterName,
+                        productName,
+                        price,
+                        imageUrl
+                    }
+                })
+                .select('id')
+                .single();
+
+            if (sessionError || !session) {
+                console.error('[Continue Flow] Failed to create webview session:', sessionError?.message);
+                // Fallback to postback buttons below
+            } else {
+                const webviewUrl = `${baseUrl}/wv/downsell/${session.id}`;
+                console.log('[Continue Flow] Webview URL:', webviewUrl);
+
+                const messagePayload = {
+                    attachment: {
+                        type: 'template',
+                        payload: {
+                            template_type: 'generic',
+                            elements: [{
+                                title: headline,
+                                subtitle: `${productName} - ${price}\n${description}`,
+                                image_url: imageUrl || undefined,
+                                buttons: [{
+                                    type: 'web_url',
+                                    title: '🛒 View Offer',
+                                    url: webviewUrl,
+                                    webview_height_ratio: 'tall',
+                                    messenger_extensions: true
+                                }]
+                            }]
+                        }
+                    }
+                };
+
+                await sendFacebookMessage(userId, messagePayload, pageAccessToken);
+                console.log('[Continue Flow] ✓ Downsell webview offer sent');
+                return;
+            }
+        }
+
+        // Fallback: postback buttons
         const acceptPayload = JSON.stringify({
             action: 'downsell_accept',
             flowId,
