@@ -2,10 +2,11 @@ import React, { useState, useRef, useEffect } from 'react';
 import {
     Image, Link, Upload, X, AlertCircle, Clock, MousePointer2, ExternalLink,
     ChevronDown, ChevronUp, Smartphone, Monitor, Tablet, ArrowUp, ArrowDown,
-    Workflow, Plus, ShoppingBag
+    Workflow, Plus, ShoppingBag, Save, Check
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import CollapsibleTips from './CollapsibleTips';
+import toast from 'react-hot-toast';
 
 interface ImageNodeFormProps {
     workspaceId: string;
@@ -93,6 +94,7 @@ const ImageNodeForm: React.FC<ImageNodeFormProps> = ({
     const [loadingFlows, setLoadingFlows] = useState(false);
     const [previewDevice, setPreviewDevice] = useState<'desktop' | 'tablet' | 'mobile'>('mobile');
     const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1024);
+    const [saveNotification, setSaveNotification] = useState(false);
 
     useEffect(() => {
         const handleResize = () => setIsDesktop(window.innerWidth >= 1024);
@@ -211,9 +213,9 @@ const ImageNodeForm: React.FC<ImageNodeFormProps> = ({
     ];
 
     const deviceSizes = {
-        mobile: { width: 280, height: 480, radius: 40, notch: true },
-        tablet: { width: 340, height: 440, radius: 24, notch: false },
-        desktop: { width: 420, height: 280, radius: 8, notch: false }
+        mobile: { width: 220, height: 380, radius: 32, notch: true },
+        tablet: { width: 280, height: 360, radius: 20, notch: false },
+        desktop: { width: 340, height: 220, radius: 8, notch: false }
     };
 
     const DevicePreview = () => {
@@ -265,13 +267,13 @@ const ImageNodeForm: React.FC<ImageNodeFormProps> = ({
                                 <div className="flex flex-col items-start">
                                     <div className="bg-white rounded-2xl rounded-bl-md shadow-sm overflow-hidden max-w-[85%]">
                                         {imageUrl ? (
-                                            <img src={imageUrl} alt="Preview" className="w-full h-auto max-h-40 object-cover" onError={() => setPreviewError(true)} />
+                                            <img src={imageUrl} alt="Preview" className="w-full h-auto max-h-24 object-cover" onError={() => setPreviewError(true)} />
                                         ) : (
-                                            <div className="w-full h-32 bg-slate-200 flex items-center justify-center">
-                                                <Image className="w-8 h-8 text-slate-400" />
+                                            <div className="w-full h-20 bg-slate-200 flex items-center justify-center">
+                                                <Image className="w-6 h-6 text-slate-400" />
                                             </div>
                                         )}
-                                        {caption && <div className="px-3 py-2 text-sm text-slate-800">{caption}</div>}
+                                        {caption && <div className="px-2 py-1.5 text-[10px] text-slate-800">{caption}</div>}
                                         {showButton && (
                                             <div className="border-t border-slate-100">
                                                 <button className="w-full py-2.5 text-blue-600 font-semibold text-sm hover:bg-blue-50 transition-colors flex items-center justify-center gap-1.5">
@@ -481,11 +483,31 @@ const ImageNodeForm: React.FC<ImageNodeFormProps> = ({
                         <p className="text-xs text-slate-400">Send image with optional button</p>
                     </div>
                 </div>
-                {onClose && (
-                    <button onClick={onClose} className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors">
-                        <X className="w-5 h-5 text-white" />
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={() => {
+                            notifyChange();
+                            setSaveNotification(true);
+                            toast.success('Configuration saved!');
+                            setTimeout(() => setSaveNotification(false), 2000);
+                        }}
+                        className={`px-4 py-2 rounded-xl font-semibold text-sm flex items-center gap-2 transition-all ${saveNotification
+                            ? 'bg-emerald-500 text-white'
+                            : 'bg-gradient-to-r from-rose-500 to-pink-600 text-white hover:from-rose-400 hover:to-pink-500'
+                            }`}
+                    >
+                        {saveNotification ? (
+                            <><Check className="w-4 h-4" /> Saved!</>
+                        ) : (
+                            <><Save className="w-4 h-4" /> Save</>
+                        )}
                     </button>
-                )}
+                    {onClose && (
+                        <button onClick={onClose} className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors">
+                            <X className="w-5 h-5 text-white" />
+                        </button>
+                    )}
+                </div>
             </div>
             <div className="flex-1 overflow-hidden">
                 {isDesktop ? (
