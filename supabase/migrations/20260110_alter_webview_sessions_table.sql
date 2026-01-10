@@ -53,6 +53,8 @@ END $$;
 -- Make session_id nullable if it was required (since we're not using it in the new code)
 ALTER TABLE webview_sessions ALTER COLUMN session_id DROP NOT NULL;
 ALTER TABLE webview_sessions ALTER COLUMN subscriber_id DROP NOT NULL;
+ALTER TABLE webview_sessions ALTER COLUMN node_id DROP NOT NULL;
+ALTER TABLE webview_sessions ALTER COLUMN flow_id DROP NOT NULL;
 
 -- Create index on external_id for faster lookups
 CREATE INDEX IF NOT EXISTS idx_webview_sessions_external_id ON webview_sessions(external_id);
