@@ -1021,8 +1021,8 @@ async function sendUpsellOffer(
                                     type: 'web_url',
                                     title: '🛒 View Offer',
                                     url: webviewUrl,
-                                    webview_height_ratio: 'tall',
-                                    messenger_extensions: true
+                                    webview_height_ratio: 'tall'
+                                    // Note: messenger_extensions removed for SaaS compatibility
                                 }]
                             }]
                         }
@@ -1189,8 +1189,8 @@ async function sendDownsellOffer(
                                     type: 'web_url',
                                     title: '🛒 View Offer',
                                     url: webviewUrl,
-                                    webview_height_ratio: 'tall',
-                                    messenger_extensions: true
+                                    webview_height_ratio: 'tall'
+                                    // Note: messenger_extensions removed for SaaS compatibility
                                 }]
                             }]
                         }
@@ -1367,8 +1367,8 @@ async function sendProductWebviewOffer(
                                     type: 'web_url',
                                     title: '🛒 View Product',
                                     url: webviewUrl,
-                                    webview_height_ratio: 'tall',
-                                    messenger_extensions: true
+                                    webview_height_ratio: 'tall'
+                                    // Note: messenger_extensions removed for SaaS compatibility (no domain whitelisting needed)
                                 }]
                             }]
                         }

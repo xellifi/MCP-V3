@@ -2474,6 +2474,24 @@ async function executeFlowActions(
             continue; // Don't add successors to queue
         }
 
+        // STOP TRAVERSAL AT PRODUCT WEBVIEW NODE - wait for user interaction
+        if (node.type === 'productWebviewNode' || node.data?.nodeType === 'productWebviewNode') {
+            console.log(`  ⏸ Stopping traversal at productWebviewNode: "${node.data?.label}" - waiting for webview interaction`);
+            continue; // Don't add successors to queue
+        }
+
+        // STOP TRAVERSAL AT UPSELL/DOWNSELL NODES - wait for Accept/Decline click
+        if (node.type === 'upsellNode' || node.type === 'downsellNode') {
+            console.log(`  ⏸ Stopping traversal at ${node.type}: "${node.data?.label}" - waiting for user choice`);
+            continue; // Don't add successors to queue
+        }
+
+        // STOP TRAVERSAL AT CHECKOUT NODE - wait for checkout button click
+        if (node.type === 'checkoutNode') {
+            console.log(`  ⏸ Stopping traversal at Checkout node: "${node.data?.label}" - waiting for checkout confirmation`);
+            continue; // Don't add successors to queue
+        }
+
         // Find ALL edges from this node and add targets to queue
         const outgoingEdges = edges.filter((e: any) => e.source === currentNodeId);
         console.log(`  Node "${node.data?.label || currentNodeId}" has ${outgoingEdges.length} outgoing edge(s)`);
@@ -2543,6 +2561,12 @@ async function executeFlowFromNode(
         if (node.type === 'upsellNode' || node.type === 'downsellNode') {
             console.log(`  ⏸ Stopping traversal at ${node.type}: "${node.data?.label}" - waiting for user choice`);
             continue; // Don't add successors to queue - button click will resume flow
+        }
+
+        // STOP TRAVERSAL AT PRODUCT WEBVIEW NODE - wait for user interaction
+        if (node.type === 'productWebviewNode' || node.data?.nodeType === 'productWebviewNode') {
+            console.log(`  ⏸ Stopping traversal at productWebviewNode: "${node.data?.label}" - waiting for webview interaction`);
+            continue; // Don't add successors to queue - webview close will resume flow
         }
 
         // STOP TRAVERSAL AT CHECKOUT NODE - wait for checkout button click
@@ -3226,8 +3250,8 @@ async function executeAction(
                                     type: 'web_url',
                                     url: formUrl,
                                     title: 'Open Form',
-                                    webview_height_ratio: 'tall',
-                                    messenger_extensions: true
+                                    webview_height_ratio: 'tall'
+                                    // Note: messenger_extensions removed for SaaS compatibility
                                 }
                             ]
                         }
@@ -4014,8 +4038,8 @@ async function executeAction(
                         type: 'web_url',
                         title: '🛒 View Product',
                         url: webviewUrl,
-                        webview_height_ratio: 'full',
-                        messenger_extensions: true
+                        webview_height_ratio: 'full'
+                        // Note: messenger_extensions removed for SaaS compatibility
                     }];
                 } else {
                     console.log(`    ⚠️ Webview creation failed, falling back to postback`);
@@ -4169,8 +4193,8 @@ async function executeAction(
                         type: 'web_url',
                         title: '🎁 View Offer',
                         url: webviewUrl,
-                        webview_height_ratio: 'full',
-                        messenger_extensions: true
+                        webview_height_ratio: 'full'
+                        // Note: messenger_extensions removed for SaaS compatibility
                     }];
                 } else {
                     // Fallback to postback if webview creation failed
@@ -4313,8 +4337,8 @@ async function executeAction(
                         type: 'web_url',
                         title: '🎁 View Offer',
                         url: webviewUrl,
-                        webview_height_ratio: 'full',
-                        messenger_extensions: true
+                        webview_height_ratio: 'full'
+                        // Note: messenger_extensions removed for SaaS compatibility
                     }];
                 } else {
                     // Fallback to postback if webview creation failed
@@ -4555,8 +4579,8 @@ async function executeAction(
                                             type: 'web_url',
                                             title: buttonText,
                                             url: webviewUrl,
-                                            webview_height_ratio: 'full',
-                                            messenger_extensions: true
+                                            webview_height_ratio: 'full'
+                                            // Note: messenger_extensions removed for SaaS compatibility
                                         }]
                                     }
                                 }
