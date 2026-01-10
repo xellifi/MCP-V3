@@ -3,7 +3,7 @@ import { ChevronDown, ChevronUp, Lightbulb } from 'lucide-react';
 
 interface CollapsibleTipsProps {
     title?: string;
-    color?: 'amber' | 'blue' | 'indigo' | 'purple' | 'green';
+    color?: 'amber' | 'blue' | 'indigo' | 'purple' | 'green' | 'rose';
     children: React.ReactNode;
     defaultExpanded?: boolean;
 }
@@ -43,6 +43,13 @@ const colorClasses = {
         text: 'text-green-300',
         icon: 'text-green-400',
         hover: 'hover:bg-green-500/20'
+    },
+    rose: {
+        bg: 'bg-rose-500/10',
+        border: 'border-rose-500/20',
+        text: 'text-rose-300',
+        icon: 'text-rose-400',
+        hover: 'hover:bg-rose-500/20'
     }
 };
 
