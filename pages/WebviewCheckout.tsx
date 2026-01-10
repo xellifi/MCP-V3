@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { ShoppingCart, Check, Package, Sparkles, Truck, CreditCard, ChevronRight } from 'lucide-react';
+import { ShoppingCart, Check, Package, Truck, X } from 'lucide-react';
 
 interface CartItem {
     productName: string;
@@ -70,7 +70,6 @@ const WebviewCheckout: React.FC = () => {
                 return;
             }
 
-            // Customer name can come from direct field or metadata
             const customerName = data.session.customer_name ||
                 data.session.metadata?.commenterName ||
                 data.session.metadata?.customerName ||
@@ -83,12 +82,6 @@ const WebviewCheckout: React.FC = () => {
                 formData: data.session.form_data || {},
                 config: data.session.page_config || {}
             };
-
-            console.log('[WebviewCheckout] Loaded session:', {
-                cartItems: sessionData.cart.length,
-                cartTotal: sessionData.cartTotal,
-                customerName: sessionData.customerName
-            });
 
             setSession(sessionData);
         } catch (err: any) {
@@ -118,7 +111,6 @@ const WebviewCheckout: React.FC = () => {
                 })
             });
 
-            // Show success screen
             setShowSuccess(true);
         } catch (err) {
             console.error('Error confirming order:', err);
@@ -161,13 +153,10 @@ const WebviewCheckout: React.FC = () => {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-800 flex items-center justify-center">
+            <div className="min-h-screen bg-white flex items-center justify-center">
                 <div className="text-center">
-                    <div className="relative">
-                        <div className="w-20 h-20 border-4 border-white/20 rounded-full"></div>
-                        <div className="absolute inset-0 w-20 h-20 border-4 border-t-emerald-400 border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin"></div>
-                    </div>
-                    <p className="text-white/70 mt-4 text-sm font-medium">Loading your order...</p>
+                    <div className="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+                    <p className="text-gray-500 mt-4 text-sm">Loading your order...</p>
                 </div>
             </div>
         );
@@ -175,11 +164,11 @@ const WebviewCheckout: React.FC = () => {
 
     if (error) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-800 flex items-center justify-center p-4">
-                <div className="text-center bg-white/10 backdrop-blur-xl rounded-3xl p-8 border border-white/20">
+            <div className="min-h-screen bg-white flex items-center justify-center p-4">
+                <div className="text-center">
                     <div className="text-6xl mb-4">😕</div>
-                    <h1 className="text-xl font-bold text-white mb-2">Oops!</h1>
-                    <p className="text-white/70">{error}</p>
+                    <h1 className="text-xl font-bold text-gray-800 mb-2">Oops!</h1>
+                    <p className="text-gray-500">{error}</p>
                 </div>
             </div>
         );
@@ -188,8 +177,8 @@ const WebviewCheckout: React.FC = () => {
     if (!session) return null;
 
     const config = session.config;
-    const accentColor = config.accentColor || config.headerColor || '#10b981';
-    const buttonColor = config.buttonColor || '#10b981';
+    const headerColor = config.headerColor || '#f59e0b';
+    const buttonColor = config.buttonColor || '#16a34a';
     const subtotal = calculateSubtotal();
     const shipping = config.showShipping ? (config.shippingFee || 0) : 0;
     const total = subtotal + shipping;
@@ -197,38 +186,20 @@ const WebviewCheckout: React.FC = () => {
     // Success Screen
     if (showSuccess) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-700 flex flex-col items-center justify-center p-6 overflow-hidden">
-                {/* Animated background circles */}
-                <div className="absolute inset-0 overflow-hidden">
-                    <div className="absolute -top-20 -left-20 w-80 h-80 bg-white/10 rounded-full animate-pulse"></div>
-                    <div className="absolute -bottom-20 -right-20 w-96 h-96 bg-white/10 rounded-full animate-pulse delay-500"></div>
-                </div>
-
-                <div className="relative animate-bounce-in text-center z-10">
-                    {/* Success checkmark with ring animation */}
-                    <div className="relative mb-8">
-                        <div className="w-28 h-28 bg-white rounded-full flex items-center justify-center mx-auto shadow-2xl">
-                            <Check className="w-16 h-16 text-emerald-600" strokeWidth={3} />
-                        </div>
-                        <div className="absolute inset-0 w-28 h-28 mx-auto border-4 border-white/30 rounded-full animate-ping"></div>
+            <div className="min-h-screen bg-white flex flex-col items-center justify-center p-6">
+                <div className="animate-bounce-in text-center">
+                    <div className="w-24 h-24 bg-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
+                        <Check className="w-14 h-14 text-white" strokeWidth={3} />
                     </div>
-
-                    <h1 className="text-3xl font-bold text-white mb-3">
+                    <h1 className="text-2xl font-bold text-gray-800 mb-2">
                         {config.successMessage || 'Order Confirmed! 🎉'}
                     </h1>
-                    <p className="text-emerald-100 text-lg mb-2">
+                    <p className="text-gray-600 mb-6">
                         {config.thankYouMessage || 'Thank you for your purchase!'}
                     </p>
-                    <p className="text-emerald-100/80 text-sm mb-8">
-                        We'll send you updates about your order.
+                    <p className="text-gray-400 text-sm">
+                        Returning in <span className="font-bold text-gray-600">{countdown}</span>s...
                     </p>
-
-                    {/* Countdown */}
-                    <div className="bg-white/20 backdrop-blur-xl rounded-2xl px-6 py-3 inline-block">
-                        <p className="text-white/90 text-sm">
-                            Returning in <span className="font-bold text-white text-lg">{countdown}</span>s...
-                        </p>
-                    </div>
                 </div>
 
                 <style>{`
@@ -239,181 +210,162 @@ const WebviewCheckout: React.FC = () => {
                         100% { transform: scale(1); opacity: 1; }
                     }
                     .animate-bounce-in { animation: bounce-in 0.6s ease-out; }
-                    .delay-500 { animation-delay: 0.5s; }
                 `}</style>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen flex flex-col bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-            {/* Premium Header */}
+        <div className="min-h-screen bg-white flex flex-col">
+            {/* Header Banner */}
             <div
-                className="py-5 px-6 text-center relative overflow-hidden"
-                style={{ background: `linear-gradient(135deg, ${accentColor}, ${accentColor}dd)` }}
+                className="py-4 px-6 text-center"
+                style={{ backgroundColor: headerColor }}
             >
-                <div className="absolute inset-0 bg-gradient-to-r from-white/10 via-transparent to-white/10"></div>
-                <div className="relative">
-                    <div className="flex items-center justify-center gap-2 mb-1">
-                        <ShoppingCart className="w-6 h-6 text-white" />
-                        <h1 className="text-xl font-bold text-white">
-                            {config.headerText || 'Your Order Summary'}
-                        </h1>
-                    </div>
-                    {config.companyName && (
-                        <p className="text-white/80 text-sm">{config.companyName}</p>
-                    )}
+                <div className="flex items-center justify-center gap-2">
+                    <span className="text-xl">🛒</span>
+                    <h1 className="text-lg font-bold text-white uppercase tracking-wide">
+                        {config.headerText || 'Your Order Summary'}
+                    </h1>
+                    <span className="text-xl">🛒</span>
                 </div>
             </div>
 
-            {/* Customer Info */}
-            <div className="px-4 py-3 bg-gradient-to-r from-white/5 to-white/10 border-b border-white/10 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white font-bold text-lg">
-                    {session.customerName.charAt(0).toUpperCase()}
-                </div>
-                <div>
-                    <p className="text-white font-medium">{session.customerName}</p>
-                    <p className="text-slate-400 text-xs">Customer</p>
-                </div>
-            </div>
+            {/* Main Content - Centered Portrait Layout */}
+            <div className="flex-1 flex flex-col items-center px-4 py-6 max-w-md mx-auto w-full">
 
-            {/* Cart Items */}
-            <div className="flex-1 overflow-auto p-4">
-                <div className="mb-3">
-                    <p className="text-slate-400 text-sm flex items-center gap-2">
-                        <Package className="w-4 h-4" />
-                        {session.cart.length} item{session.cart.length !== 1 ? 's' : ''} in your order
-                    </p>
-                </div>
-
-                <div className="space-y-3">
+                {/* Cart Items */}
+                <div className="w-full space-y-4 mb-6">
                     {session.cart.length === 0 ? (
-                        <div className="bg-white/5 rounded-2xl p-8 text-center border border-white/10">
-                            <Package className="w-16 h-16 text-slate-500 mx-auto mb-4" />
-                            <p className="text-slate-400">Your cart is empty</p>
+                        <div className="bg-gray-50 rounded-xl p-8 text-center border border-gray-200">
+                            <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                            <p className="text-gray-500">Your cart is empty</p>
                         </div>
                     ) : (
                         session.cart.map((item, index) => (
-                            <div
-                                key={index}
-                                className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-sm rounded-2xl p-4 flex items-center gap-4 border border-white/10 hover:border-white/20 transition-all"
-                            >
-                                {/* Product Image */}
-                                <div className="w-20 h-20 rounded-xl overflow-hidden bg-gradient-to-br from-slate-700 to-slate-800 flex-shrink-0 relative shadow-lg">
-                                    {item.productImage ? (
-                                        <img
-                                            src={item.productImage}
-                                            alt={item.productName}
-                                            className="w-full h-full object-cover"
-                                        />
-                                    ) : (
-                                        <div className="w-full h-full flex items-center justify-center">
-                                            <Sparkles className="w-8 h-8 text-slate-500" />
-                                        </div>
-                                    )}
-                                    {/* Upsell/Downsell Badge */}
+                            <div key={index} className="relative">
+                                {/* Product Image with Price Badge */}
+                                <div className="relative w-full max-w-[280px] mx-auto">
+                                    <div className="overflow-hidden rounded-2xl border-4 border-gray-100 shadow-lg aspect-square bg-gray-100">
+                                        {item.productImage ? (
+                                            <img
+                                                src={item.productImage}
+                                                alt={item.productName}
+                                                className="w-full h-full object-cover"
+                                            />
+                                        ) : (
+                                            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
+                                                <Package className="w-16 h-16 text-gray-400" />
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Circular Price Badge */}
+                                    <div
+                                        className="absolute -top-2 -right-2 w-16 h-16 rounded-full flex items-center justify-center font-bold text-white shadow-lg"
+                                        style={{ backgroundColor: '#16a34a' }}
+                                    >
+                                        <span className="text-sm">₱{item.productPrice}</span>
+                                    </div>
+
+                                    {/* Upsell/Add-on Badge */}
                                     {(item.isUpsell || item.isDownsell) && (
-                                        <div className="absolute -top-1 -right-1 px-2 py-0.5 bg-amber-500 text-white text-[10px] font-bold rounded-full shadow-lg">
+                                        <div className="absolute -top-2 -left-2 px-3 py-1 bg-amber-500 text-white text-xs font-bold rounded-full shadow-lg">
                                             {item.isUpsell ? '⭐ ADD-ON' : '🎁 BONUS'}
                                         </div>
                                     )}
                                 </div>
 
-                                {/* Product Details */}
-                                <div className="flex-1 min-w-0">
-                                    <h3 className="text-white font-semibold text-base truncate">
+                                {/* Product Name Banner */}
+                                <div
+                                    className="w-full max-w-[280px] mx-auto mt-4 py-3 px-4 text-center rounded-lg"
+                                    style={{ backgroundColor: '#16a34a' }}
+                                >
+                                    <h2 className="text-white font-bold text-base uppercase tracking-wide">
                                         {item.productName}
-                                    </h3>
-                                    <p className="text-slate-400 text-sm mt-1">
-                                        Qty: {item.quantity || 1}
-                                    </p>
+                                    </h2>
                                 </div>
 
-                                {/* Price */}
-                                <div className="text-right flex-shrink-0">
-                                    <p className="text-emerald-400 font-bold text-lg">
-                                        ₱{(item.productPrice * (item.quantity || 1)).toLocaleString()}
+                                {/* Quantity */}
+                                {(item.quantity || 1) > 1 && (
+                                    <p className="text-center text-gray-500 text-sm mt-2">
+                                        Quantity: {item.quantity}
                                     </p>
-                                    {(item.quantity || 1) > 1 && (
-                                        <p className="text-slate-500 text-xs">
-                                            ₱{item.productPrice.toLocaleString()} each
-                                        </p>
-                                    )}
-                                </div>
+                                )}
                             </div>
                         ))
                     )}
                 </div>
 
-                {/* Order Summary Card */}
+                {/* Order Summary */}
                 {session.cart.length > 0 && (
-                    <div className="mt-6 bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-sm rounded-2xl p-5 border border-white/10">
-                        <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
-                            <CreditCard className="w-5 h-5 text-emerald-400" />
-                            Payment Summary
-                        </h3>
-
-                        <div className="space-y-3">
-                            <div className="flex justify-between text-slate-300">
-                                <span>Subtotal</span>
+                    <div className="w-full bg-gray-50 rounded-xl p-4 border border-gray-200 mb-6">
+                        <div className="space-y-2 text-sm">
+                            <div className="flex justify-between text-gray-600">
+                                <span>Subtotal ({session.cart.length} item{session.cart.length > 1 ? 's' : ''})</span>
                                 <span>₱{subtotal.toLocaleString()}</span>
                             </div>
 
                             {config.showShipping && (
-                                <div className="flex justify-between text-slate-300">
-                                    <span className="flex items-center gap-2">
+                                <div className="flex justify-between text-gray-600">
+                                    <span className="flex items-center gap-1">
                                         <Truck className="w-4 h-4" />
                                         Shipping
                                     </span>
-                                    <span className={shipping === 0 ? 'text-emerald-400 font-medium' : ''}>
+                                    <span className={shipping === 0 ? 'text-emerald-600 font-medium' : ''}>
                                         {shipping > 0 ? `₱${shipping.toLocaleString()}` : 'FREE'}
                                     </span>
                                 </div>
                             )}
 
-                            <div className="border-t border-white/10 pt-3 mt-3">
-                                <div className="flex justify-between items-center">
-                                    <span className="text-white font-bold text-lg">Total</span>
-                                    <span
-                                        className="font-bold text-2xl"
-                                        style={{ color: accentColor }}
-                                    >
-                                        ₱{total.toLocaleString()}
-                                    </span>
+                            <div className="border-t border-gray-200 pt-2 mt-2">
+                                <div className="flex justify-between font-bold text-gray-800">
+                                    <span>Total</span>
+                                    <span className="text-emerald-600 text-lg">₱{total.toLocaleString()}</span>
                                 </div>
                             </div>
                         </div>
                     </div>
                 )}
+
+                {/* Customer Info */}
+                <p className="text-gray-500 text-sm mb-6">
+                    Hi <span className="font-medium text-gray-700">{session.customerName}</span>! Ready to confirm?
+                </p>
             </div>
 
-            {/* Confirm Button */}
-            <div className="p-4 bg-slate-900/80 backdrop-blur-xl border-t border-white/10 sticky bottom-0">
-                <button
-                    onClick={handleConfirmOrder}
-                    disabled={processing || session.cart.length === 0}
-                    className="w-full py-4 rounded-2xl font-bold text-lg flex items-center justify-center gap-3 shadow-2xl transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed relative overflow-hidden group"
-                    style={{
-                        background: `linear-gradient(135deg, ${buttonColor}, ${buttonColor}cc)`,
-                        color: config.buttonTextColor || '#ffffff'
-                    }}
-                >
-                    {/* Button glow effect */}
-                    <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
+            {/* Action Buttons - Fixed at bottom */}
+            <div className="p-4 bg-white border-t border-gray-100">
+                <div className="max-w-md mx-auto space-y-3">
+                    <button
+                        onClick={handleConfirmOrder}
+                        disabled={processing || session.cart.length === 0}
+                        className="w-full py-4 rounded-full font-bold text-base flex items-center justify-center gap-2 shadow-lg transition-all active:scale-95 disabled:opacity-50"
+                        style={{
+                            backgroundColor: buttonColor,
+                            color: config.buttonTextColor || '#ffffff'
+                        }}
+                    >
+                        {processing ? (
+                            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                            <>
+                                <Check className="w-5 h-5" />
+                                {config.buttonText || '✓ Confirm Order'}
+                            </>
+                        )}
+                    </button>
 
-                    {processing ? (
-                        <div className="w-6 h-6 border-3 border-white border-t-transparent rounded-full animate-spin" />
-                    ) : (
-                        <>
-                            <Check className="w-6 h-6" />
-                            {config.buttonText || 'Confirm Order'}
-                            <ChevronRight className="w-5 h-5 opacity-70" />
-                        </>
-                    )}
-                </button>
-                <p className="text-center text-slate-500 text-xs mt-3">
-                    By confirming, you agree to proceed with this order
-                </p>
+                    <button
+                        onClick={() => window.close()}
+                        disabled={processing}
+                        className="w-full py-4 rounded-full font-bold text-base flex items-center justify-center gap-2 shadow-lg transition-all active:scale-95 disabled:opacity-50"
+                        style={{ backgroundColor: '#dc2626', color: '#ffffff' }}
+                    >
+                        <X className="w-5 h-5" />
+                        Cancel
+                    </button>
+                </div>
             </div>
         </div>
     );
