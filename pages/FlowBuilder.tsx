@@ -451,18 +451,39 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
     }
   };
 
-  // Load node analytics for the current flow
+  // Load node analytics for the current flow (directly from Supabase)
   const loadNodeAnalytics = async (flowId: string) => {
     try {
       console.log('[FlowBuilder] Loading node analytics for flow:', flowId);
-      const response = await fetch(`/api/flows/node-analytics?flowId=${flowId}`);
-      if (response.ok) {
-        const analyticsData = await response.json();
-        console.log('[FlowBuilder] ✓ Loaded analytics:', analyticsData);
-        setNodeAnalytics(analyticsData);
-        return analyticsData;
+
+      // Fetch directly from Supabase instead of API route (works in dev and prod)
+      const { data, error } = await supabase
+        .from('node_analytics')
+        .select('node_id, sent_count, delivered_count, subscriber_count, error_count')
+        .eq('flow_id', flowId);
+
+      if (error) {
+        // Table might not exist yet - this is okay
+        console.warn('[FlowBuilder] ⚠️ Analytics table error (may need migration):', error.message);
+        return {};
+      }
+
+      if (data && data.length > 0) {
+        // Transform to nodeId -> analytics map
+        const analyticsMap: Record<string, any> = {};
+        data.forEach((item: any) => {
+          analyticsMap[item.node_id] = {
+            sent: item.sent_count || 0,
+            delivered: item.delivered_count || 0,
+            subscribers: item.subscriber_count || 0,
+            errors: item.error_count || 0
+          };
+        });
+        console.log('[FlowBuilder] ✓ Loaded analytics:', analyticsMap);
+        setNodeAnalytics(analyticsMap);
+        return analyticsMap;
       } else {
-        console.warn('[FlowBuilder] ⚠️ Failed to load analytics:', response.status);
+        console.log('[FlowBuilder] ℹ️ No analytics data yet for this flow');
       }
     } catch (error) {
       console.error('[FlowBuilder] ✗ Error loading analytics:', error);

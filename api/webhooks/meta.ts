@@ -2456,6 +2456,22 @@ async function executeAction(
     await incrementNodeAnalytics(flowId, node.id, 'sent_count');
     console.log(`    📊 Analytics: Incremented sent_count for node ${node.id}`);
 
+    // Handle nodes that don't send Facebook messages but still process data
+    // These immediately count as "delivered" when they execute
+    if (nodeType === 'conditionNode') {
+        console.log(`    ✓ Condition Node detected - evaluation happens in flow traversal`);
+        // Track as delivered since condition evaluation completes successfully
+        await incrementNodeAnalytics(flowId, node.id, 'delivered_count');
+        return; // Condition logic is handled in executeFlowFromNode
+    }
+
+    if (nodeType === 'sheetsNode') {
+        console.log(`    ✓ Google Sheets Node detected - sync configured at flow level`);
+        // Track as delivered since the node configuration is complete
+        await incrementNodeAnalytics(flowId, node.id, 'delivered_count');
+        return; // Actual sync happens via form submission webhook
+    }
+
     // Replace variables in templates
     const replaceVars = (template: string) => {
         const commenterName = context.commenterName || 'Friend';
@@ -2543,6 +2559,9 @@ async function executeAction(
                 console.error('    ✗ Error subcode:', imageResult.error.error_subcode);
                 console.error('    ✗ Full error:', JSON.stringify(imageResult.error, null, 2));
 
+                // Track error
+                await incrementNodeAnalytics(flowId, node.id, 'error_count');
+
                 // Common error hints
                 if (imageResult.error.code === 100) {
                     console.error('    💡 Hint: The image URL may not be publicly accessible or is blocked by the host');
@@ -2553,6 +2572,9 @@ async function executeAction(
             } else {
                 console.log('    ✓ Image sent successfully!');
                 console.log('    ✓ Message ID:', imageResult.message_id);
+
+                // Track delivery
+                await incrementNodeAnalytics(flowId, node.id, 'delivered_count');
 
                 // Send caption as a follow-up text message if provided
                 if (caption) {
@@ -2707,12 +2729,18 @@ async function executeAction(
                 console.error('    ✗ Error code:', videoResult.error.code);
                 console.error('    ✗ Full error:', JSON.stringify(videoResult.error, null, 2));
 
+                // Track error
+                await incrementNodeAnalytics(flowId, node.id, 'error_count');
+
                 if (videoResult.error.code === 100) {
                     console.error('    💡 Hint: The video URL may not be publicly accessible or is blocked by the host');
                 }
             } else {
                 console.log('    ✓ Video sent successfully!');
                 console.log('    ✓ Message ID:', videoResult.message_id);
+
+                // Track delivery
+                await incrementNodeAnalytics(flowId, node.id, 'delivered_count');
 
                 // Send caption as a follow-up text message if provided
                 if (caption) {
@@ -2847,13 +2875,22 @@ async function executeAction(
                     const fallbackResult = await fallbackResponse.json();
                     if (fallbackResult.error) {
                         console.error('    ✗ Fallback also failed:', fallbackResult.error.message);
+                        // Track error
+                        await incrementNodeAnalytics(flowId, node.id, 'error_count');
                     } else {
                         console.log('    ✓ Form button sent successfully (fallback)!');
+                        // Track delivery
+                        await incrementNodeAnalytics(flowId, node.id, 'delivered_count');
                     }
+                } else {
+                    // Track error for non-retryable errors
+                    await incrementNodeAnalytics(flowId, node.id, 'error_count');
                 }
             } else {
                 console.log('    ✓ Form button sent successfully!');
                 console.log('    ✓ Message ID:', formResult.message_id);
+                // Track delivery
+                await incrementNodeAnalytics(flowId, node.id, 'delivered_count');
             }
         } catch (error: any) {
             console.error('    ✗ Exception sending form:', error.message);
@@ -3152,12 +3189,18 @@ async function executeAction(
 
                 if (result.error) {
                     console.error('    ✗ Facebook API error:', result.error.message);
+                    // Track error
+                    await incrementNodeAnalytics(flowId, node.id, 'error_count');
                 } else {
                     console.log('    ✓ Message sent successfully!');
                     console.log('    ✓ Message ID:', result.message_id);
+                    // Track delivery
+                    await incrementNodeAnalytics(flowId, node.id, 'delivered_count');
                 }
             } catch (error: any) {
                 console.error('    ✗ Exception sending message:', error.message);
+                // Track error
+                await incrementNodeAnalytics(flowId, node.id, 'error_count');
             }
         }
 
@@ -3250,12 +3293,18 @@ async function executeAction(
 
             if (result.error) {
                 console.error('    ✗ Facebook API error:', result.error.message);
+                // Track error
+                await incrementNodeAnalytics(flowId, node.id, 'error_count');
             } else {
                 console.log('    ✓ Button message sent successfully!');
                 console.log('    ✓ Message ID:', result.message_id);
+                // Track delivery
+                await incrementNodeAnalytics(flowId, node.id, 'delivered_count');
             }
         } catch (error: any) {
             console.error('    ✗ Exception sending button message:', error.message);
+            // Track error
+            await incrementNodeAnalytics(flowId, node.id, 'error_count');
         }
 
         return;
@@ -3495,12 +3544,18 @@ async function executeAction(
 
             if (result.error) {
                 console.error('    ✗ Facebook API error:', result.error.message);
+                // Track error
+                await incrementNodeAnalytics(flowId, node.id, 'error_count');
             } else {
                 console.log('    ✓ Product card sent successfully!');
                 console.log('    ✓ Message ID:', result.message_id);
+                // Track delivery
+                await incrementNodeAnalytics(flowId, node.id, 'delivered_count');
             }
         } catch (error: any) {
             console.error('    ✗ Exception sending product card:', error.message);
+            // Track error
+            await incrementNodeAnalytics(flowId, node.id, 'error_count');
         }
 
         return;
@@ -3634,11 +3689,17 @@ async function executeAction(
             const result = await response.json();
             if (result.error) {
                 console.error('    ✗ Facebook API error:', result.error.message);
+                // Track error
+                await incrementNodeAnalytics(flowId, node.id, 'error_count');
             } else {
                 console.log(`    ✓ Upsell card sent successfully! (webview: ${useWebview})`);
+                // Track delivery
+                await incrementNodeAnalytics(flowId, node.id, 'delivered_count');
             }
         } catch (error: any) {
             console.error('    ✗ Exception sending upsell:', error.message);
+            // Track error
+            await incrementNodeAnalytics(flowId, node.id, 'error_count');
         }
 
         return;
@@ -3772,11 +3833,17 @@ async function executeAction(
             const result = await response.json();
             if (result.error) {
                 console.error('    ✗ Facebook API error:', result.error.message);
+                // Track error
+                await incrementNodeAnalytics(flowId, node.id, 'error_count');
             } else {
                 console.log(`    ✓ Downsell card sent successfully! (webview: ${useWebview})`);
+                // Track delivery
+                await incrementNodeAnalytics(flowId, node.id, 'delivered_count');
             }
         } catch (error: any) {
             console.error('    ✗ Exception sending downsell:', error.message);
+            // Track error
+            await incrementNodeAnalytics(flowId, node.id, 'error_count');
         }
 
         return;
@@ -3931,8 +3998,12 @@ async function executeAction(
                     const result = await response.json();
                     if (result.error) {
                         console.error('    ✗ Facebook API error:', result.error.message);
+                        // Track error
+                        await incrementNodeAnalytics(flowId, node.id, 'error_count');
                     } else {
                         console.log('    ✓ Checkout webview button sent!');
+                        // Track delivery
+                        await incrementNodeAnalytics(flowId, node.id, 'delivered_count');
                     }
                 } else {
                     console.log(`    ⚠️ Webview creation failed, falling back to postback`);
@@ -3994,13 +4065,19 @@ async function executeAction(
                 const result = await response.json();
                 if (result.error) {
                     console.error('    ✗ Facebook API error:', result.error.message);
+                    // Track error
+                    await incrementNodeAnalytics(flowId, node.id, 'error_count');
                 } else {
                     console.log('    ✓ Checkout card sent successfully!');
                     console.log('    ⏸ Waiting for user to click checkout button...');
+                    // Track delivery
+                    await incrementNodeAnalytics(flowId, node.id, 'delivered_count');
                 }
             }
         } catch (error: any) {
             console.error('    ✗ Exception sending checkout:', error.message);
+            // Track error
+            await incrementNodeAnalytics(flowId, node.id, 'error_count');
         }
 
         return; // Stop execution - wait for checkout button click
@@ -4255,6 +4332,8 @@ async function executeAction(
                 });
             } else {
                 console.log('    ✓ Receipt sent successfully!');
+                // Track delivery
+                await incrementNodeAnalytics(flowId, node.id, 'delivered_count');
             }
 
             // Send thank you message with invoice viewing instruction
@@ -4271,6 +4350,8 @@ async function executeAction(
             });
         } catch (error: any) {
             console.error('    ✗ Exception sending cart invoice:', error.message);
+            // Track error
+            await incrementNodeAnalytics(flowId, node.id, 'error_count');
         }
 
         return;
@@ -4353,9 +4434,13 @@ async function executeAction(
 
             const result = await response.json();
             console.log(`    ✓ Webhook response:`, result);
+            // Track delivery for successful webhook
+            await incrementNodeAnalytics(flowId, node.id, 'delivered_count');
 
         } catch (error: any) {
             console.error('    ✗ Exception sending to Cart Sheet webhook:', error.message);
+            // Track error
+            await incrementNodeAnalytics(flowId, node.id, 'error_count');
         }
 
         return;
