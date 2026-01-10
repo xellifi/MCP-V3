@@ -68,11 +68,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         console.log('[Continue Flow] Form node found:', formNode.data?.label);
 
         // Get page access token for sending messages
-        let pageAccessToken = '';
+        // Can be passed directly (from webview) or looked up via pageId
+        let pageAccessToken = req.body.pageAccessToken || '';
         let pageName = '';
-        let workspaceId = '';
+        let workspaceId = req.body.workspaceId || '';
 
-        if (pageId) {
+        // Also accept cart context from webview sessions
+        let passedCart = req.body.cart || [];
+        let passedCartTotal = req.body.cartTotal || 0;
+
+        if (!pageAccessToken && pageId) {
             console.log('[Continue Flow] Looking up page with page_id:', pageId);
 
             // Try to find by Facebook page_id first
@@ -100,10 +105,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             }
         }
 
-        if (!pageAccessToken) {
-            console.error('[Continue Flow] No page access token found for pageId:', pageId);
-            return res.status(400).json({ error: 'No page access token', pageId });
+        // If still no access token but we have workspaceId, try to get it from workspace's connected page
+        if (!pageAccessToken && workspaceId) {
+            console.log('[Continue Flow] Looking up page by workspaceId:', workspaceId);
+            const { data: page } = await supabase
+                .from('connected_pages')
+                .select('page_access_token, name')
+                .eq('workspace_id', workspaceId)
+                .single();
+            if (page) {
+                pageAccessToken = (page as any).page_access_token;
+                pageName = (page as any).name || 'Page';
+                console.log('[Continue Flow] Page found by workspace:', pageName);
+            }
         }
+
+        if (!pageAccessToken) {
+            console.error('[Continue Flow] No page access token found for pageId:', pageId, 'workspaceId:', workspaceId);
+            return res.status(400).json({ error: 'No page access token', pageId, workspaceId });
+        }
+
 
         // Create context for flow execution
         const context = {
@@ -115,10 +136,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             pageId,
             pageName,
             workspaceId,
-            commentId: `form_submission_${Date.now()}`,
-            // Start with fresh cart for every new form submission
-            cart: [],
-            cartTotal: 0
+            commentId: `flow_continuation_${Date.now()}`,
+            // Use passed cart from webview, or start fresh for form submissions
+            cart: passedCart.length > 0 ? passedCart : [],
+            cartTotal: passedCartTotal > 0 ? passedCartTotal : 0
         };
 
         console.log('[Continue Flow] Execution context:', {

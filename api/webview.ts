@@ -316,6 +316,8 @@ async function handleContinue(req: VercelRequest, res: VercelResponse) {
         return res.status(400).json({ error: 'sessionId required' });
     }
 
+    console.log('[Webview Continue] Processing session:', sessionId);
+
     const { data: session, error: fetchError } = await supabase
         .from('webview_sessions')
         .select('*')
@@ -323,69 +325,101 @@ async function handleContinue(req: VercelRequest, res: VercelResponse) {
         .single();
 
     if (fetchError || !session) {
+        console.error('[Webview Continue] Session not found:', sessionId);
         return res.status(404).json({ error: 'Session not found' });
     }
 
+    console.log('[Webview Continue] Session data:', {
+        page_type: session.page_type,
+        flow_id: session.flow_id,
+        current_node_id: session.current_node_id,
+        cart_length: session.cart?.length || 0
+    });
+
+    // Get page access token
     let pageAccessToken = session.page_access_token;
     if (!pageAccessToken) {
         const { data: connection } = await supabase
             .from('connected_pages')
-            .select('access_token')
+            .select('page_access_token, page_id')
             .eq('workspace_id', session.workspace_id)
-            .eq('is_active', true)
             .single();
-        pageAccessToken = connection?.access_token;
+        pageAccessToken = connection?.page_access_token;
     }
 
     if (!pageAccessToken) {
+        console.error('[Webview Continue] No page access token');
         return res.status(500).json({ error: 'No page access token' });
     }
 
-    // Send appropriate message
-    let messageText = '';
-    switch (session.page_type) {
-        case 'product':
-            messageText = (session.cart?.length || 0) > 0
-                ? `✅ Added to cart! You now have ${session.cart.length} item(s).`
-                : '👋 No items added. Let me know if you need help!';
-            break;
-        case 'upsell':
-            messageText = session.user_response === 'accepted'
-                ? '🎉 Great choice! Upsell added to your order.'
-                : '👍 No problem! Let\'s continue with your order.';
-            break;
-        case 'downsell':
-            messageText = session.user_response === 'accepted'
-                ? '✅ Added to your order!'
-                : '👋 No worries! Let\'s proceed.';
-            break;
-        case 'cart':
-            messageText = session.user_response === 'checkout'
-                ? '🛒 Proceeding to checkout...'
-                : '🛒 Your cart has been updated.';
-            break;
-        case 'form':
-            messageText = session.user_response === 'completed'
-                ? '✅ Thank you! Your information has been saved.'
-                : '📝 Form closed. Let me know when you\'re ready.';
-            break;
-        case 'checkout':
-            messageText = session.user_response === 'checkout_confirmed'
-                ? '🎉 Order confirmed! Generating your invoice...'
-                : '🛒 Checkout closed. Let me know if you need help.';
-            break;
-    }
-
-    if (messageText) {
-        await sendMessage(session.external_id, messageText, pageAccessToken);
-    }
-
+    // Update subscriber cart data
     await updateSubscriberFromSession(session);
 
+    // Mark session as completed
     await supabase.from('webview_sessions').update({
         completed_at: new Date().toISOString(),
         metadata: { ...session.metadata, closeReason, processedAt: new Date().toISOString() }
     }).eq('id', sessionId);
+
+    // CRITICAL: Continue the flow to the next nodes if we have flow context
+    if (session.flow_id && session.current_node_id) {
+        console.log('[Webview Continue] Continuing flow from node:', session.current_node_id);
+
+        try {
+            // Call the continue-flow API to execute subsequent nodes
+            const baseUrl = process.env.VITE_APP_URL || 'https://mcp-v16.vercel.app';
+            const continueResponse = await fetch(`${baseUrl}/api/forms/continue-flow`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    flowId: session.flow_id,
+                    nodeId: session.current_node_id,
+                    pageId: session.page_id || null,
+                    subscriberId: session.external_id,
+                    workspaceId: session.workspace_id,
+                    // Pass cart context so downstream nodes can access it
+                    cart: session.cart || [],
+                    cartTotal: session.cart_total || 0,
+                    formData: session.form_data || {},
+                    userResponse: session.user_response || 'completed',
+                    // Pass access token for sending messages
+                    pageAccessToken: pageAccessToken
+                })
+            });
+
+            const continueResult = await continueResponse.json();
+            console.log('[Webview Continue] Flow continuation result:', continueResult);
+        } catch (error: any) {
+            console.error('[Webview Continue] Error continuing flow:', error.message);
+        }
+    } else {
+        console.log('[Webview Continue] No flow context, sending simple message');
+        // Fallback: Send a simple message if we don't have flow context
+        let messageText = '';
+        switch (session.page_type) {
+            case 'product':
+                messageText = (session.cart?.length || 0) > 0
+                    ? `✅ Added to cart! You now have ${session.cart.length} item(s).`
+                    : '👋 No items added. Let me know if you need help!';
+                break;
+            case 'upsell':
+                messageText = session.user_response === 'accepted'
+                    ? '🎉 Great choice! Added to your order.'
+                    : '👍 No problem! Let\'s continue.';
+                break;
+            case 'checkout':
+                messageText = session.user_response === 'checkout_confirmed'
+                    ? '🎉 Order confirmed!'
+                    : '🛒 Checkout closed.';
+                break;
+            default:
+                messageText = '✅ Done!';
+        }
+
+        if (messageText) {
+            await sendMessage(session.external_id, messageText, pageAccessToken);
+        }
+    }
 
     return res.status(200).json({ success: true, userResponse: session.user_response });
 }
