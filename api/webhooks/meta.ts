@@ -1187,6 +1187,211 @@ async function processPostback(messagingEvent: any, pageId: string) {
             return;
         }
 
+        // Handle product_accept - add item to cart, save response, and continue to ALL connected nodes
+        if (parsedPayload.action === 'product_accept') {
+            console.log(`✓ Product ACCEPT from node: ${parsedPayload.nodeId}`);
+            console.log(`  🛒 Product: ${parsedPayload.productName} (₱${parsedPayload.productPrice})`);
+
+            // Find the flow
+            const { data: flow, error: flowError } = await supabase
+                .from('flows')
+                .select('*')
+                .eq('id', parsedPayload.flowId)
+                .single();
+
+            if (flowError || !flow) {
+                console.error('✗ Flow not found:', parsedPayload.flowId);
+                return;
+            }
+
+            const nodes = flow.nodes || [];
+            const edges = flow.edges || [];
+            const configurations = flow.configurations || {};
+
+            // Get or create cart
+            const { data: subscriber } = await supabase
+                .from('subscribers')
+                .select('metadata')
+                .eq('external_id', senderId)
+                .eq('workspace_id', workspaceId)
+                .single();
+
+            let cart: any[] = subscriber?.metadata?.cart || [];
+            console.log(`  📦 Existing cart from metadata: ${cart.length} items`);
+
+            // Add product to cart
+            const cartItem = {
+                nodeId: parsedPayload.nodeId,
+                productId: '',
+                productName: parsedPayload.productName || 'Product',
+                productPrice: parsedPayload.productPrice || 0,
+                productImage: parsedPayload.productImage || '',
+                quantity: 1,
+                isProductWebview: true
+            };
+
+            cart.push(cartItem);
+            console.log(`  ➕ Added to cart: ${cartItem.productName} (${cart.length} items)`);
+
+            const cartTotal = cart.reduce((sum: number, item: any) => sum + (item.productPrice * item.quantity), 0);
+            console.log(`  💰 Cart total: ₱${cartTotal}`);
+
+            // Ensure subscriber exists
+            const productUserName = await fetchUserName(senderId, pageAccessToken);
+            await saveOrUpdateSubscriber(
+                workspaceId,
+                pageDbId,
+                senderId,
+                productUserName,
+                'POSTBACK',
+                pageAccessToken
+            );
+
+            // Save cart to metadata
+            await supabase
+                .from('subscribers')
+                .update({
+                    metadata: {
+                        ...(subscriber?.metadata || {}),
+                        cart: cart,
+                        cartTotal: cartTotal,
+                        cartUpdatedAt: new Date().toISOString(),
+                        product_response: 'accepted',
+                        product_node_id: parsedPayload.nodeId
+                    }
+                })
+                .eq('external_id', senderId)
+                .eq('workspace_id', workspaceId);
+
+            console.log(`  ✓ Saved product_response: 'accepted' to subscriber metadata`);
+
+            // Find ALL outgoing edges from this node
+            const outgoingEdges = edges.filter((e: any) => e.source === parsedPayload.nodeId);
+            const timestamp = messagingEvent.timestamp || Date.now();
+            const stableId = mid ? `product_mid_${mid}` : `product_${senderId}_${parsedPayload.nodeId}_${Math.floor(timestamp / 5000)}`;
+
+            console.log(`  → Found ${outgoingEdges.length} outgoing edge(s) from Product Webview node`);
+
+            for (const edge of outgoingEdges) {
+                const targetNode = nodes.find((n: any) => n.id === edge.target);
+                if (targetNode) {
+                    console.log(`  → Continuing to: ${targetNode.data?.label}`);
+                    await executeFlowFromNode(
+                        targetNode,
+                        nodes,
+                        edges,
+                        configurations,
+                        {
+                            commenterId: senderId,
+                            commenterName: productUserName,
+                            commentText: `Accepted product`,
+                            pageId: pageId,
+                            pageName: pageName,
+                            postId: '',
+                            commentId: stableId,
+                            workspaceId,
+                            pageDbId,
+                            cart: cart,
+                            cartTotal: cartTotal,
+                            product_response: 'accepted'
+                        },
+                        pageAccessToken,
+                        flow.id,
+                        stableId
+                    );
+                }
+            }
+
+            return;
+        }
+
+        // Handle product_decline - save response and continue to ALL connected nodes
+        if (parsedPayload.action === 'product_decline') {
+            console.log(`✓ Product DECLINE from node: ${parsedPayload.nodeId}`);
+
+            // Find the flow
+            const { data: flow, error: flowError } = await supabase
+                .from('flows')
+                .select('*')
+                .eq('id', parsedPayload.flowId)
+                .single();
+
+            if (flowError || !flow) {
+                console.error('✗ Flow not found:', parsedPayload.flowId);
+                return;
+            }
+
+            const nodes = flow.nodes || [];
+            const edges = flow.edges || [];
+            const configurations = flow.configurations || {};
+
+            // Get existing cart (don't modify cart on decline)
+            const { data: subscriber } = await supabase
+                .from('subscribers')
+                .select('metadata')
+                .eq('external_id', senderId)
+                .eq('workspace_id', workspaceId)
+                .maybeSingle();
+
+            const cart = subscriber?.metadata?.cart || [];
+            const cartTotal = subscriber?.metadata?.cartTotal || 0;
+
+            // Save product_response: 'declined' to metadata
+            await supabase
+                .from('subscribers')
+                .update({
+                    metadata: {
+                        ...(subscriber?.metadata || {}),
+                        product_response: 'declined',
+                        product_node_id: parsedPayload.nodeId
+                    }
+                })
+                .eq('external_id', senderId)
+                .eq('workspace_id', workspaceId);
+
+            console.log(`  ✓ Saved product_response: 'declined' to subscriber metadata`);
+
+            // Find ALL outgoing edges from this node
+            const outgoingEdges = edges.filter((e: any) => e.source === parsedPayload.nodeId);
+            const userName = await fetchUserName(senderId, pageAccessToken);
+            const timestamp = messagingEvent.timestamp || Date.now();
+            const stableId = mid ? `product_decline_mid_${mid}` : `product_decline_${senderId}_${parsedPayload.nodeId}_${Math.floor(timestamp / 5000)}`;
+
+            console.log(`  → Found ${outgoingEdges.length} outgoing edge(s) from Product Webview node`);
+
+            for (const edge of outgoingEdges) {
+                const targetNode = nodes.find((n: any) => n.id === edge.target);
+                if (targetNode) {
+                    console.log(`  → Continuing to: ${targetNode.data?.label}`);
+                    await executeFlowFromNode(
+                        targetNode,
+                        nodes,
+                        edges,
+                        configurations,
+                        {
+                            commenterId: senderId,
+                            commenterName: userName,
+                            commentText: `Declined product`,
+                            pageId: pageId,
+                            pageName: pageName,
+                            postId: '',
+                            commentId: stableId,
+                            workspaceId,
+                            pageDbId,
+                            cart: cart,
+                            cartTotal: cartTotal,
+                            product_response: 'declined'
+                        },
+                        pageAccessToken,
+                        flow.id,
+                        stableId
+                    );
+                }
+            }
+
+            return;
+        }
+
         // Handle checkout_confirm - continue flow after checkout button is clicked
         if (parsedPayload.action === 'checkout_confirm') {
             console.log(`✓ Checkout CONFIRM from node: ${parsedPayload.nodeId}`);

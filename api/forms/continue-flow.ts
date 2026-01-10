@@ -539,7 +539,42 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 }
             }
 
-            // Handle Upsell Node - send upsell offer and STOP traversal (wait for user response)
+            // Handle Product Webview Node - send product offer and STOP traversal (wait for user response)
+            const isProductWebviewNode = node.type === 'productWebviewNode' ||
+                node.data?.nodeType === 'productWebviewNode' ||
+                (node.data?.label || '').toLowerCase().includes('product webview');
+
+            if (isProductWebviewNode) {
+                console.log('[Continue Flow] *** PRODUCT WEBVIEW NODE DETECTED ***');
+                console.log('[Continue Flow] Node type:', node.type, 'Data nodeType:', node.data?.nodeType, 'Label:', node.data?.label);
+                console.log('[Continue Flow] Product Webview config:', JSON.stringify({
+                    useWebview: config.useWebview,
+                    headline: config.headline,
+                    productName: config.productName,
+                    hasImage: !!config.imageUrl
+                }));
+
+                try {
+                    await sendProductWebviewOffer(
+                        subscriberId,
+                        config,
+                        node.id,
+                        flowId,
+                        pageAccessToken,
+                        workspaceId,
+                        context
+                    );
+                    console.log('[Continue Flow] ✓ Product Webview offer function completed');
+                } catch (productError: any) {
+                    console.error('[Continue Flow] ✗ Product Webview offer FAILED:', productError.message);
+                    console.error('[Continue Flow] Stack:', productError.stack);
+                }
+
+                // STOP traversal here - user must click Accept or Decline to continue
+                console.log('[Continue Flow] ⏸ Stopping at Product Webview node - waiting for user response');
+                continue; // Don't add successors to queue
+            }
+
             const isUpsellNode = node.type === 'upsellNode' ||
                 node.data?.nodeType === 'upsellNode' ||
                 (node.data?.label || '').toLowerCase().includes('upsell');
@@ -1245,6 +1280,176 @@ async function sendDownsellOffer(
         console.log('[Continue Flow] ✓ Downsell offer sent');
     } catch (error: any) {
         console.error('[Continue Flow] Downsell send exception:', error.message);
+    }
+}
+
+// Send a product webview offer via Messenger
+async function sendProductWebviewOffer(
+    userId: string,
+    config: any,
+    nodeId: string,
+    flowId: string,
+    pageAccessToken: string,
+    workspaceId: string,
+    context: any
+): Promise<void> {
+    console.log('[Continue Flow] Sending Product Webview offer to:', userId);
+
+    const headline = config.headline || 'Check Out This Product!';
+    const productName = config.productName || 'Featured Product';
+    const price = config.price || '₱999';
+    const description = config.description || 'Limited time offer!';
+    const imageUrl = config.imageUrl || '';
+    const acceptButtonText = config.acceptButtonText || '✅ Add to Cart';
+    const declineButtonText = config.declineButtonText || '❌ No Thanks';
+    const useWebview = config.useWebview ?? true; // Default to true for Product Webview node
+
+    try {
+        // If webview is enabled, create a webview session and send webview button
+        if (useWebview && workspaceId) {
+            console.log('[Continue Flow] Creating webview session for product...');
+            console.log('[Continue Flow] workspaceId:', workspaceId, 'userId:', userId);
+
+            // Create webview session
+            const baseUrl = process.env.VITE_APP_URL || 'https://mcp-v16.vercel.app';
+
+            const { data: session, error: sessionError } = await supabase
+                .from('webview_sessions')
+                .insert({
+                    workspace_id: workspaceId,
+                    external_id: userId,
+                    flow_id: flowId,
+                    current_node_id: nodeId,
+                    page_type: 'product', // Different from 'upsell'
+                    page_config: config,
+                    cart: context.cart || [],
+                    cart_total: context.cartTotal || 0,
+                    page_access_token: pageAccessToken,
+                    metadata: {
+                        commenterName: context.commenterName,
+                        productName,
+                        price,
+                        imageUrl
+                    }
+                })
+                .select('id')
+                .single();
+
+            if (sessionError || !session) {
+                console.error('[Continue Flow] Failed to create webview session:', sessionError?.message);
+                console.log('[Continue Flow] Falling back to postback buttons');
+                // Fallback to postback buttons below
+            } else {
+                const webviewUrl = `${baseUrl}/wv/product/${session.id}`;
+                console.log('[Continue Flow] Product Webview URL:', webviewUrl);
+
+                // Send message with webview button
+                const messagePayload = {
+                    attachment: {
+                        type: 'template',
+                        payload: {
+                            template_type: 'generic',
+                            elements: [{
+                                title: headline,
+                                subtitle: `${productName} - ${price}\n${description}`,
+                                image_url: imageUrl || undefined,
+                                buttons: [{
+                                    type: 'web_url',
+                                    title: '🛒 View Product',
+                                    url: webviewUrl,
+                                    webview_height_ratio: 'tall',
+                                    messenger_extensions: true
+                                }]
+                            }]
+                        }
+                    }
+                };
+
+                await sendFacebookMessage(userId, messagePayload, pageAccessToken);
+                console.log('[Continue Flow] ✓ Product Webview offer sent');
+                return;
+            }
+        }
+
+        // Fallback: Build the payload for postback button clicks
+        const numericPrice = parseFloat(price.replace(/[^\\d.]/g, '')) || 0;
+
+        const acceptPayload = JSON.stringify({
+            action: 'product_accept',
+            flowId,
+            nodeId,
+            productName,
+            productPrice: numericPrice,
+            price,
+            productImage: imageUrl,
+            imageUrl
+        });
+
+        const declinePayload = JSON.stringify({
+            action: 'product_decline',
+            flowId,
+            nodeId
+        });
+
+        // Use generic template with image if available
+        if (imageUrl) {
+            const messagePayload = {
+                attachment: {
+                    type: 'template',
+                    payload: {
+                        template_type: 'generic',
+                        elements: [{
+                            title: headline,
+                            subtitle: `${productName} - ${price}\n${description}`,
+                            image_url: imageUrl,
+                            buttons: [
+                                {
+                                    type: 'postback',
+                                    title: acceptButtonText.slice(0, 20),
+                                    payload: acceptPayload
+                                },
+                                {
+                                    type: 'postback',
+                                    title: declineButtonText.slice(0, 20),
+                                    payload: declinePayload
+                                }
+                            ]
+                        }]
+                    }
+                }
+            };
+
+            await sendFacebookMessage(userId, messagePayload, pageAccessToken);
+        } else {
+            // No image - use button template
+            const messagePayload = {
+                attachment: {
+                    type: 'template',
+                    payload: {
+                        template_type: 'button',
+                        text: `${headline}\n\n${productName} - ${price}\n${description}`,
+                        buttons: [
+                            {
+                                type: 'postback',
+                                title: acceptButtonText.slice(0, 20),
+                                payload: acceptPayload
+                            },
+                            {
+                                type: 'postback',
+                                title: declineButtonText.slice(0, 20),
+                                payload: declinePayload
+                            }
+                        ]
+                    }
+                }
+            };
+
+            await sendFacebookMessage(userId, messagePayload, pageAccessToken);
+        }
+
+        console.log('[Continue Flow] ✓ Product offer sent with postback buttons');
+    } catch (error: any) {
+        console.error('[Continue Flow] Product Webview send exception:', error.message);
     }
 }
 
