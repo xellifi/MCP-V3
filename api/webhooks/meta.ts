@@ -859,17 +859,31 @@ async function processPostback(messagingEvent: any, pageId: string) {
             );
             console.log(`  ✓ Subscriber ensured exists`);
 
-            // Save cart to subscriber metadata
-            console.log(`  📝 Saving cart to subscriber metadata...`);
+            // CRITICAL FIX: When starting a new cart from Product node,
+            // completely wipe old cart data and start fresh with a new session ID
+            const cartSessionId = `session_${Date.now()}`;
+            console.log(`  🆕 Starting new cart session: ${cartSessionId}`);
+
+            // Save cart to subscriber metadata - REPLACE old cart completely
+            console.log(`  📝 Saving FRESH cart to subscriber metadata...`);
             console.log(`  📝 Cart items:`, JSON.stringify(cart));
             const { data: updateData, error: updateError } = await supabase
                 .from('subscribers')
                 .update({
                     metadata: {
-                        ...(subscriber?.metadata || {}),
+                        // Keep other metadata but FULLY REPLACE cart-related fields
+                        email: subscriber?.metadata?.email,
+                        phone: subscriber?.metadata?.phone,
+                        address: subscriber?.metadata?.address,
+                        // Fresh cart data
                         cart: cart,
                         cartTotal: cartTotal,
-                        cartUpdatedAt: new Date().toISOString()
+                        cartSessionId: cartSessionId,
+                        cartUpdatedAt: new Date().toISOString(),
+                        // Clear any stale upsell/checkout data from previous transactions
+                        upsell_response: null,
+                        upsell_node_id: null,
+                        lastCheckoutAt: null
                     }
                 })
                 .eq('external_id', senderId)
@@ -879,7 +893,7 @@ async function processPostback(messagingEvent: any, pageId: string) {
             if (updateError) {
                 console.error(`  ❌ Cart save error:`, updateError.message);
             } else {
-                console.log(`  ✓ Cart saved successfully. Updated rows:`, updateData?.length || 0);
+                console.log(`  ✓ Fresh cart saved successfully. Updated rows:`, updateData?.length || 0);
             }
 
             // Create stable ID for deduplication
