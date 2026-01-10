@@ -144,12 +144,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         console.log('[Continue Flow] Execution context:', {
             commenterId: context.commenterId,
-            form_submitted: context.form_submitted
+            form_submitted: context.form_submitted,
+            passedCartItems: passedCart.length,
+            passedCartTotal: passedCartTotal
         });
 
-        // CRITICAL FIX: Initialize cart with the MAIN PRODUCT from form submission
-        // The form has a product configured with name, price, quantity
-        if (workspaceId && subscriberId) {
+        // Log if cart was passed from webview
+        if (passedCart.length > 0) {
+            console.log('[Continue Flow] 🛒 Cart passed from webview:', passedCart.length, 'items, ₱' + passedCartTotal);
+            passedCart.forEach((item: any, i: number) => {
+                console.log(`[Continue Flow]   [${i}] ${item.productName}: ₱${item.productPrice}`);
+            });
+        }
+
+        // CRITICAL FIX: Only initialize cart from form submission if:
+        // 1. No cart was passed from webview (passedCart is empty)
+        // 2. This is a form submission (formSubmitted is true)
+        // If cart was passed from webview (e.g., from upsell), DON'T overwrite it!
+        if (workspaceId && subscriberId && passedCart.length === 0 && formSubmitted) {
             console.log('[Continue Flow] 🛒 Initializing cart with main product from form...');
             try {
                 const cartSessionId = `form_session_${Date.now()}`;
@@ -209,7 +221,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     console.log('[Continue Flow] ⚠️ No product info in form, starting with empty cart');
                 }
 
-                // Update context with cart
+                // Update context with cart from form
                 (context as any).cart = initialCart;
                 (context as any).cartTotal = initialCartTotal;
 
