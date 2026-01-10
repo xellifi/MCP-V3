@@ -227,11 +227,28 @@ const FormView: React.FC = () => {
 
             // Transform form field data from IDs to readable labels
             const fieldData: Record<string, any> = {};
+
+            // Also extract customer info based on field TYPES (not labels)
+            // This ensures we capture phone/email/address regardless of field label names
+            let customerPhone = '';
+            let customerEmail = '';
+            let customerAddress = '';
+
             (form?.fields || []).forEach((field: any) => {
                 const columnName = toSnakeCase(field.label || field.id);
                 const value = formData[field.id];
                 if (value !== undefined && value !== '') {
                     fieldData[columnName] = value;
+
+                    // Extract by field TYPE
+                    if (field.type === 'phone' && !customerPhone) {
+                        customerPhone = value;
+                    } else if (field.type === 'email' && !customerEmail) {
+                        customerEmail = value;
+                    } else if (field.type === 'textarea' && !customerAddress) {
+                        // Textarea is typically used for address (long text)
+                        customerAddress = value;
+                    }
                 }
             });
 
@@ -242,6 +259,12 @@ const FormView: React.FC = () => {
 
                 // Form field values with readable names
                 ...fieldData,
+
+                // IMPORTANT: Typed customer info for order syncing
+                // These use standardized field names based on field types
+                _customer_phone: customerPhone,
+                _customer_email: customerEmail,
+                _customer_address: customerAddress,
 
                 // Product/order info
                 product_name: form?.product_name || '',

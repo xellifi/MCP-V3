@@ -199,14 +199,52 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     .eq('external_id', subscriberId)
                     .single();
 
+                // Extract customer info from form submission data
+                // PRIORITY 1: Use standardized _customer_* fields (extracted by field type in FormView)
+                // PRIORITY 2: Try common field label names as fallback
+                const customerPhone = submissionData?._customer_phone ||
+                    submissionData?.phone ||
+                    submissionData?.phone_number ||
+                    submissionData?.mobile ||
+                    submissionData?.mobile_number ||
+                    submissionData?.contact ||
+                    submissionData?.contact_number ||
+                    submissionData?.cellphone ||
+                    existingSubscriber?.metadata?.phone || '';
+
+                const customerEmail = submissionData?.email ||
+                    submissionData?.email_address ||
+                    submissionData?.e_mail ||
+                    existingSubscriber?.metadata?.email || '';
+
+                const customerAddress = submissionData?.address ||
+                    submissionData?.full_address ||
+                    submissionData?.complete_address ||
+                    submissionData?.shipping_address ||
+                    submissionData?.delivery_address ||
+                    submissionData?.home_address ||
+                    submissionData?.location ||
+                    existingSubscriber?.metadata?.address || '';
+
+                // Also log what we're receiving for debugging
+                console.log('[Continue Flow] 📞 Customer info from form:', {
+                    phone: customerPhone || 'not found',
+                    email: customerEmail || 'not found',
+                    address: customerAddress || 'not found',
+                    // Show available fields for debugging
+                    availableFields: Object.keys(submissionData || {}).filter(k =>
+                        !['subscriber_id', 'subscriber_name', 'product_name', 'product_price', 'quantity', 'total', 'submitted_at', 'order_status', 'currency', 'payment_method'].includes(k)
+                    ).join(', ')
+                });
+
                 await supabase
                     .from('subscribers')
                     .update({
                         metadata: {
-                            // Keep essential subscriber info
-                            email: existingSubscriber?.metadata?.email,
-                            phone: existingSubscriber?.metadata?.phone,
-                            address: existingSubscriber?.metadata?.address,
+                            // Save customer info from form submission
+                            email: customerEmail,
+                            phone: customerPhone,
+                            address: customerAddress,
                             // Initialize cart with main product (not empty!)
                             cart: initialCart,
                             cartTotal: initialCartTotal,
