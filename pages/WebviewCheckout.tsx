@@ -68,10 +68,16 @@ const WebviewCheckout: React.FC = () => {
             }
 
             // Extract cart and config from session
+            // Customer name can come from direct field or metadata
+            const customerName = data.session.customer_name ||
+                data.session.metadata?.commenterName ||
+                data.session.metadata?.customerName ||
+                'Valued Customer';
+
             const sessionData: SessionData = {
                 cart: data.session.cart || [],
                 cartTotal: data.session.cart_total || 0,
-                customerName: data.session.customer_name || 'Valued Customer',
+                customerName: customerName,
                 formData: data.session.form_data || {},
                 config: data.session.page_config || {}
             };

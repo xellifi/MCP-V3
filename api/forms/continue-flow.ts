@@ -1484,7 +1484,7 @@ async function sendProductWebviewOffer(
     }
 }
 
-// Send checkout confirmation via Messenger
+// Send checkout confirmation via Messenger (webview-based)
 async function sendCheckoutOffer(
     userId: string,
     config: any,
@@ -1494,23 +1494,98 @@ async function sendCheckoutOffer(
     workspaceId: string,
     context: any
 ): Promise<void> {
-    console.log('[Continue Flow] Sending Checkout confirmation to:', userId);
+    console.log('[Continue Flow] Sending Checkout webview to:', userId);
+    console.log('[Continue Flow] → Cart items:', context.cart?.length || 0);
+    console.log('[Continue Flow] → Cart total:', context.cartTotal || 0);
+    console.log('[Continue Flow] → workspaceId:', workspaceId);
 
     const headerText = config.headerText || '🛒 Order Summary';
-    const buttonText = config.buttonText || '✅ Confirm Order';
-    const confirmationMessage = config.confirmationMessage || '';
+    const buttonText = config.buttonText || '✅ View Order';
+    const companyName = config.companyName || '';
+
+    // Get cart from context/metadata if available
+    const cart = context.cart || context.metadata?.cart || [];
+    const cartTotal = context.cartTotal || context.metadata?.cartTotal || 0;
 
     try {
-        const confirmPayload = JSON.stringify({
-            action: 'checkout_confirm',
-            flowId,
-            nodeId
-        });
+        // Create a webview session for checkout
+        if (workspaceId) {
+            console.log('[Continue Flow] Creating webview session for checkout...');
 
-        // Get cart from context/metadata if available
-        const cart = context.cart || context.metadata?.cart || [];
-        const cartTotal = context.cartTotal || context.metadata?.cartTotal || 0;
+            const baseUrl = process.env.VITE_APP_URL || 'https://mcp-v16.vercel.app';
 
+            const { data: session, error: sessionError } = await supabase
+                .from('webview_sessions')
+                .insert({
+                    workspace_id: workspaceId,
+                    external_id: userId,
+                    flow_id: flowId,
+                    current_node_id: nodeId,
+                    page_type: 'checkout',
+                    page_config: config,
+                    cart: cart,
+                    cart_total: cartTotal,
+                    page_access_token: pageAccessToken,
+                    customer_name: context.commenterName || context.customerName || 'Valued Customer',
+                    metadata: {
+                        commenterName: context.commenterName,
+                        customerName: context.customerName,
+                        formData: context.formData || {},
+                        shippingFee: config.shippingFee || 0,
+                        showShipping: config.showShipping ?? true
+                    }
+                })
+                .select('id')
+                .single();
+
+            if (sessionError || !session) {
+                console.error('[Continue Flow] Failed to create checkout session:', sessionError?.message);
+                // Fallback to simple message below
+            } else {
+                const webviewUrl = `${baseUrl}/wv/checkout/${session.id}`;
+                console.log('[Continue Flow] Checkout Webview URL:', webviewUrl);
+
+                // Build summary text for the card
+                let summaryText = '';
+                if (cart.length > 0) {
+                    const itemCount = cart.reduce((sum: number, item: any) => sum + (item.quantity || 1), 0);
+                    summaryText = `${itemCount} item${itemCount > 1 ? 's' : ''} • ₱${cartTotal.toLocaleString()}`;
+                    if (config.showShipping && config.shippingFee > 0) {
+                        summaryText += ` + ₱${config.shippingFee} shipping`;
+                    }
+                } else {
+                    summaryText = 'Review your order details';
+                }
+
+                // Send message with webview button (NO messenger_extensions for SaaS compatibility)
+                const messagePayload = {
+                    attachment: {
+                        type: 'template',
+                        payload: {
+                            template_type: 'generic',
+                            elements: [{
+                                title: headerText,
+                                subtitle: summaryText + (companyName ? `\n${companyName}` : ''),
+                                buttons: [{
+                                    type: 'web_url',
+                                    title: buttonText.slice(0, 20),
+                                    url: webviewUrl,
+                                    webview_height_ratio: 'full'
+                                    // Note: NO messenger_extensions - for SaaS compatibility
+                                }]
+                            }]
+                        }
+                    }
+                };
+
+                await sendFacebookMessage(userId, messagePayload, pageAccessToken);
+                console.log('[Continue Flow] ✓ Checkout webview sent');
+                return;
+            }
+        }
+
+        // Fallback: Send a simple text message if webview session creation failed
+        console.log('[Continue Flow] Falling back to simple checkout message');
         let summaryText = headerText;
         if (cart.length > 0) {
             summaryText += '\n\n';
@@ -1519,6 +1594,12 @@ async function sendCheckoutOffer(
             });
             summaryText += `\nTotal: ₱${cartTotal}`;
         }
+
+        const confirmPayload = JSON.stringify({
+            action: 'checkout_confirm',
+            flowId,
+            nodeId
+        });
 
         const messagePayload = {
             attachment: {
@@ -1538,7 +1619,7 @@ async function sendCheckoutOffer(
         };
 
         await sendFacebookMessage(userId, messagePayload, pageAccessToken);
-        console.log('[Continue Flow] ✓ Checkout message sent');
+        console.log('[Continue Flow] ✓ Checkout fallback message sent');
     } catch (error: any) {
         console.error('[Continue Flow] Checkout send exception:', error.message);
     }
