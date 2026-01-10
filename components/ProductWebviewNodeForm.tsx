@@ -342,13 +342,38 @@ const ProductWebviewNodeForm: React.FC<ProductWebviewNodeFormProps> = ({
     // ================== HELPERS ==================
     const notifyChange = (updates: Partial<typeof initialConfig> = {}) => {
         onChange({
-            headline, headlineColor, showEmoji, emojiType, imageUrl, imageSource,
-            imageBorderRadius, imageBorderColor, imageBorderWidth, price, priceBadgeColor,
-            priceTextColor, description, descriptionColor, buttonText, buttonBgColor,
-            buttonTextColor, buttonBorderRadius, showButtonIcon, backgroundColor, cartAction,
+            // Headline settings
+            headline, headlineColor, headlineBgColor, headlineAnimation, headlineAnimationSpeed,
+            showEmoji, emojiType,
+            // Image settings
+            imageUrl, imageSource, imageBorderRadius, imageBorderColor, imageBorderWidth, imagePreviewSize,
+            // Price settings
+            price, priceBadgeColor, priceTextColor, priceBadgeSize,
+            // Description and button settings
+            description, descriptionColor, buttonText, buttonBgColor, buttonTextColor,
+            buttonBorderRadius, showButtonIcon,
+            // Background settings
+            backgroundColor, pageBackgroundColor,
+            // Product name bar settings
+            showProductName, productNameBgColor, productNameTextColor, productNameFontSize,
+            productNameBorderRadius, productNameFullWidth,
+            // Countdown settings
+            showCountdown, countdownMinutes, countdownPosition, countdownBgColor, countdownTextColor,
+            countdownFontSize, countdownShowBg, countdownBorderRadius, countdownFullWidth,
+            // Cart and product settings
+            cartAction,
             productName: productName || headline,
             productPrice: parseFloat(price.replace(/[^0-9.]/g, '')) || 0,
-            useWebview, imagePreviewSize, ...updates
+            useWebview,
+            // Product options
+            enableQuantitySelector, enablePromoCode, enableColorSelector, enableSizeSelector,
+            colorOptions, sizeOptions,
+            // Action triggers
+            onAddToCartAction, onAddToCartFlowId,
+            // Follow-up settings
+            enableFollowup, followupTimeout, followupNodeType,
+            // Apply any specific updates passed in
+            ...updates
         });
     };
 

@@ -363,7 +363,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             if (!node) continue;
 
             const config = configurations[currentNodeId] || {};
-            console.log('[Continue Flow] Processing node:', node.data?.label, 'Type:', node.type);
+            const configKeys = Object.keys(config);
+            console.log('[Continue Flow] Processing node:', node.data?.label, 'Type:', node.type, 'ConfigKeys:', configKeys.length > 0 ? configKeys.slice(0, 5).join(',') + (configKeys.length > 5 ? '...' : '') : 'EMPTY');
 
             // Handle Condition Node
             if (node.type === 'conditionNode') {
@@ -1294,6 +1295,12 @@ async function sendProductWebviewOffer(
     context: any
 ): Promise<void> {
     console.log('[Continue Flow] Sending Product Webview offer to:', userId);
+    console.log('[Continue Flow] → Config received (keys):', Object.keys(config || {}));
+    console.log('[Continue Flow] → useWebview value:', config.useWebview, 'type:', typeof config.useWebview);
+    console.log('[Continue Flow] → workspaceId:', workspaceId);
+    console.log('[Continue Flow] → config.headline:', config.headline);
+    console.log('[Continue Flow] → config.productName:', config.productName);
+    console.log('[Continue Flow] → config.imageUrl:', config.imageUrl ? 'present' : 'missing');
 
     const headline = config.headline || 'Check Out This Product!';
     const productName = config.productName || 'Featured Product';
@@ -1303,6 +1310,9 @@ async function sendProductWebviewOffer(
     const acceptButtonText = config.acceptButtonText || '✅ Add to Cart';
     const declineButtonText = config.declineButtonText || '❌ No Thanks';
     const useWebview = config.useWebview ?? true; // Default to true for Product Webview node
+
+    console.log('[Continue Flow] → Final useWebview (after default):', useWebview);
+    console.log('[Continue Flow] → Webview condition check: useWebview=' + useWebview + ', workspaceId=' + (workspaceId ? 'present' : 'MISSING'));
 
     try {
         // If webview is enabled, create a webview session and send webview button

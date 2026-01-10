@@ -155,7 +155,12 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
   // Stable callback for form onChange - auto-saves to nodeConfigs on every change
   // This ensures data is preserved even if modal is accidentally closed
   const handleConfigChange = useCallback((config: any) => {
-    console.log('[FlowBuilder.handleConfigChange] Received config with promoText:', config.promoText, 'promoIcon:', config.promoIcon);
+    console.log('[FlowBuilder.handleConfigChange] Received config:', {
+      headline: config.headline,
+      productName: config.productName,
+      useWebview: config.useWebview,
+      hasImage: !!config.imageUrl
+    });
     setCurrentConfig(config);
     // Auto-save to nodeConfigs so config is preserved if modal closes
     if (selectedNode) {
@@ -163,8 +168,27 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
         ...prev,
         [selectedNode.id]: config
       }));
+
+      // Also update the node's visual data immediately so it shows as configured
+      // This is important for nodes like Product Webview that check for config in their display
+      setNodes((nds) => nds.map((node) => {
+        if (node.id === selectedNode.id) {
+          return {
+            ...node,
+            data: {
+              ...node.data,
+              ...config,
+              // Keep callbacks intact
+              onDelete: node.data.onDelete,
+              onConfigure: node.data.onConfigure,
+              onClone: node.data.onClone
+            }
+          };
+        }
+        return node;
+      }));
     }
-  }, [selectedNode]);
+  }, [selectedNode, setNodes]);
 
   // Selected edge for deletion
   const [selectedEdge, setSelectedEdge] = useState<Edge | null>(null);
@@ -2332,11 +2356,13 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
             selectedNode.data.nodeType === 'upsellNode' ||
             selectedNode.data.nodeType === 'downsellNode' ||
             selectedNode.data.nodeType === 'productNode' ||
+            selectedNode.data.nodeType === 'productWebviewNode' ||
             selectedNode.data.nodeType === 'checkoutNode' ||
             selectedNode.data.nodeType === 'imageNode' ||
             selectedNode.data.nodeType === 'textNode' ||
             (selectedNode.data.label as string || '').toLowerCase().includes('upsell') ||
             (selectedNode.data.label as string || '').toLowerCase().includes('downsell') ||
+            (selectedNode.data.label as string || '').toLowerCase().includes('product webview') ||
             (selectedNode.data.label as string || '').toLowerCase().includes('product') ||
             (selectedNode.data.label as string || '').toLowerCase() === 'checkout' ||
             (selectedNode.data.label as string || '').toLowerCase() === 'image' ||
