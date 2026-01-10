@@ -275,16 +275,64 @@ async function handleAction(req: VercelRequest, res: VercelResponse) {
         }
 
         case 'checkout_confirm': {
-            const { cart, cartTotal, customerName, confirmedAt } = payload;
+            const {
+                cart, cartTotal,
+                customerName, customerPhone, customerEmail, customerAddress,
+                paymentMethod, paymentMethodName, shippingFee,
+                confirmedAt
+            } = payload;
+
+            // Build complete order metadata
+            const orderMetadata = {
+                ...session.metadata,
+                shipping: {
+                    name: customerName,
+                    phone: customerPhone,
+                    email: customerEmail,
+                    address: customerAddress
+                },
+                payment: {
+                    method: paymentMethod,
+                    methodName: paymentMethodName
+                },
+                shippingFee: shippingFee || 0,
+                confirmedAt: confirmedAt || new Date().toISOString()
+            };
+
             updates = {
                 cart: cart || session.cart,
                 cart_total: cartTotal || session.cart_total,
                 customer_name: customerName,
                 user_response: 'checkout_confirmed',
-                completed_at: confirmedAt || new Date().toISOString()
+                completed_at: confirmedAt || new Date().toISOString(),
+                metadata: orderMetadata
             };
-            // Create order when checkout is confirmed
-            await createOrder({ ...session, ...updates });
+
+            // Create order with all the shipping/payment data
+            await createOrder({
+                ...session,
+                ...updates,
+                customerPhone,
+                customerEmail,
+                customerAddress,
+                paymentMethod,
+                paymentMethodName,
+                shippingFee
+            });
+
+            // Also sync to Google Sheets with complete order data
+            await syncOrderToGoogleSheets({
+                ...session,
+                ...updates,
+                customerName,
+                customerPhone,
+                customerEmail,
+                customerAddress,
+                paymentMethod,
+                paymentMethodName,
+                shippingFee
+            });
+
             result.orderCreated = true;
             result.response = 'confirmed';
             break;
@@ -491,18 +539,101 @@ async function syncToGoogleSheets(session: any, formData: any) {
 
 async function createOrder(session: any) {
     try {
-        await supabase.from('orders').insert({
+        console.log('[Webview] Creating order with data:', {
+            customer: session.customer_name,
+            phone: session.customerPhone,
+            email: session.customerEmail,
+            payment: session.paymentMethod,
+            items: session.cart?.length || 0,
+            total: session.cart_total
+        });
+
+        const orderData = {
             workspace_id: session.workspace_id,
             subscriber_id: session.external_id,
-            items: session.cart,
+            customer_name: session.customer_name,
+            customer_phone: session.customerPhone || null,
+            customer_email: session.customerEmail || null,
+            customer_address: session.customerAddress || null,
+            items: session.cart || [],
+            subtotal: (session.cart || []).reduce((sum: number, item: any) => sum + (item.productPrice * (item.quantity || 1)), 0),
+            shipping_fee: session.shippingFee || 0,
             total: session.cart_total,
-            form_data: session.form_data,
+            payment_method: session.paymentMethod || 'cod',
+            payment_method_name: session.paymentMethodName || 'Cash on Delivery',
             status: 'pending',
-            source: 'webview',
-            metadata: session.metadata
+            source: 'webview_checkout',
+            metadata: session.metadata || {}
+        };
+
+        const { data, error } = await supabase.from('orders').insert(orderData).select('id').single();
+
+        if (error) {
+            console.error('[Webview] Error creating order:', error.message);
+        } else {
+            console.log('[Webview] ✓ Order created:', data?.id);
+        }
+    } catch (error: any) {
+        console.error('[Webview] Error creating order:', error.message);
+    }
+}
+
+async function syncOrderToGoogleSheets(session: any) {
+    try {
+        const { data: workspace } = await supabase
+            .from('workspaces')
+            .select('google_webhook_url')
+            .eq('id', session.workspace_id)
+            .single();
+
+        if (!workspace?.google_webhook_url) {
+            console.log('[Webview] No Google Sheets webhook URL configured');
+            return;
+        }
+
+        // Build order items string for single cell
+        const itemsList = (session.cart || []).map((item: any) =>
+            `${item.productName} x${item.quantity || 1} = ₱${(item.productPrice * (item.quantity || 1)).toLocaleString()}`
+        ).join('; ');
+
+        const orderPayload = {
+            // Timestamp
+            order_date: new Date().toISOString(),
+            // Customer info
+            customer_name: session.customer_name || '',
+            customer_phone: session.customerPhone || '',
+            customer_email: session.customerEmail || '',
+            customer_address: session.customerAddress || '',
+            // Order details
+            items: itemsList,
+            item_count: (session.cart || []).reduce((sum: number, item: any) => sum + (item.quantity || 1), 0),
+            subtotal: (session.cart || []).reduce((sum: number, item: any) => sum + (item.productPrice * (item.quantity || 1)), 0),
+            shipping_fee: session.shippingFee || 0,
+            total: session.cart_total || 0,
+            // Payment
+            payment_method: session.paymentMethodName || session.paymentMethod || 'COD',
+            // Status
+            status: 'Pending',
+            // Source
+            source: 'Messenger Checkout',
+            subscriber_id: session.external_id
+        };
+
+        console.log('[Webview] Syncing order to Google Sheets:', orderPayload);
+
+        const response = await fetch(workspace.google_webhook_url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(orderPayload)
         });
-    } catch (error) {
-        console.error('[Webview] Error creating order:', error);
+
+        if (response.ok) {
+            console.log('[Webview] ✓ Order synced to Google Sheets');
+        } else {
+            console.error('[Webview] Google Sheets sync failed:', response.status);
+        }
+    } catch (error: any) {
+        console.error('[Webview] Error syncing to Google Sheets:', error.message);
     }
 }
 
