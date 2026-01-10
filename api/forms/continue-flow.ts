@@ -1495,22 +1495,52 @@ async function sendCheckoutOffer(
     context: any
 ): Promise<void> {
     console.log('[Continue Flow] Sending Checkout webview to:', userId);
-    console.log('[Continue Flow] → Cart items:', context.cart?.length || 0);
-    console.log('[Continue Flow] → Cart total:', context.cartTotal || 0);
+    console.log('[Continue Flow] → Context cart items:', context.cart?.length || 0);
+    console.log('[Continue Flow] → Context cart total:', context.cartTotal || 0);
     console.log('[Continue Flow] → workspaceId:', workspaceId);
 
-    const headerText = config.headerText || '🛒 Order Summary';
+    const headerText = config.headerText || '🛒 Your Order Summary';
     const buttonText = config.buttonText || '✅ View Order';
     const companyName = config.companyName || '';
 
-    // Get cart from context/metadata if available
-    const cart = context.cart || context.metadata?.cart || [];
-    const cartTotal = context.cartTotal || context.metadata?.cartTotal || 0;
+    // Get cart from context first, then fallback to subscriber metadata
+    let cart = context.cart || context.metadata?.cart || [];
+    let cartTotal = context.cartTotal || context.metadata?.cartTotal || 0;
+    let customerName = context.commenterName || context.customerName || 'Valued Customer';
+
+    // CRITICAL: If cart is empty in context, fetch from subscriber metadata
+    if (cart.length === 0 && workspaceId && userId) {
+        console.log('[Continue Flow] Cart empty in context, fetching from subscriber metadata...');
+        try {
+            const { data: subscriber } = await supabase
+                .from('subscribers')
+                .select('metadata, name')
+                .eq('external_id', userId)
+                .eq('workspace_id', workspaceId)
+                .single();
+
+            if (subscriber?.metadata) {
+                cart = subscriber.metadata.cart || [];
+                cartTotal = subscriber.metadata.cartTotal || 0;
+                customerName = subscriber.name || subscriber.metadata.name || customerName;
+                console.log('[Continue Flow] ✓ Loaded cart from subscriber:', cart.length, 'items, ₱' + cartTotal);
+                cart.forEach((item: any, i: number) => {
+                    console.log(`[Continue Flow]   [${i}] ${item.productName}: ₱${item.productPrice}`);
+                });
+            } else {
+                console.log('[Continue Flow] ⚠️ No cart in subscriber metadata');
+            }
+        } catch (subError: any) {
+            console.error('[Continue Flow] Error fetching subscriber cart:', subError.message);
+        }
+    }
 
     try {
         // Create a webview session for checkout
         if (workspaceId) {
             console.log('[Continue Flow] Creating webview session for checkout...');
+            console.log('[Continue Flow] → Final cart:', cart.length, 'items');
+            console.log('[Continue Flow] → Final total:', cartTotal);
 
             const baseUrl = process.env.VITE_APP_URL || 'https://mcp-v16.vercel.app';
 
@@ -1526,10 +1556,10 @@ async function sendCheckoutOffer(
                     cart: cart,
                     cart_total: cartTotal,
                     page_access_token: pageAccessToken,
-                    customer_name: context.commenterName || context.customerName || 'Valued Customer',
+                    customer_name: customerName,
                     metadata: {
                         commenterName: context.commenterName,
-                        customerName: context.customerName,
+                        customerName: customerName,
                         formData: context.formData || {},
                         shippingFee: config.shippingFee || 0,
                         showShipping: config.showShipping ?? true
