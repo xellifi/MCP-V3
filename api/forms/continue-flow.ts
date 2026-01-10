@@ -115,13 +115,58 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             pageId,
             pageName,
             workspaceId,
-            commentId: `form_submission_${Date.now()}`
+            commentId: `form_submission_${Date.now()}`,
+            // Start with fresh cart for every new form submission
+            cart: [],
+            cartTotal: 0
         };
 
         console.log('[Continue Flow] Execution context:', {
             commenterId: context.commenterId,
             form_submitted: context.form_submitted
         });
+
+        // CRITICAL FIX: Clear cart when a new form is submitted
+        // This ensures each transaction starts completely fresh
+        if (workspaceId && subscriberId) {
+            console.log('[Continue Flow] 🧹 Clearing cart for new form transaction...');
+            try {
+                const cartSessionId = `form_session_${Date.now()}`;
+
+                const { data: existingSubscriber } = await supabase
+                    .from('subscribers')
+                    .select('metadata')
+                    .eq('workspace_id', workspaceId)
+                    .eq('external_id', subscriberId)
+                    .single();
+
+                await supabase
+                    .from('subscribers')
+                    .update({
+                        metadata: {
+                            // Keep essential subscriber info
+                            email: existingSubscriber?.metadata?.email,
+                            phone: existingSubscriber?.metadata?.phone,
+                            address: existingSubscriber?.metadata?.address,
+                            // Start with completely fresh cart
+                            cart: [],
+                            cartTotal: 0,
+                            cartSessionId: cartSessionId,
+                            cartUpdatedAt: new Date().toISOString(),
+                            // Clear stale data from previous transactions
+                            upsell_response: null,
+                            upsell_node_id: null,
+                            lastCheckoutAt: null
+                        }
+                    })
+                    .eq('workspace_id', workspaceId)
+                    .eq('external_id', subscriberId);
+
+                console.log('[Continue Flow] ✓ Cart cleared - new session:', cartSessionId);
+            } catch (clearError) {
+                console.error('[Continue Flow] Error clearing cart:', clearError);
+            }
+        }
 
         // Apply labels from form node configuration (on submit)
         const formNodeConfig = configurations[nodeId] || {};
