@@ -1309,7 +1309,7 @@ const ProductWebviewNodeForm: React.FC<ProductWebviewNodeFormProps> = ({
         };
         // Use encodeURIComponent to handle unicode characters properly
         const encodedConfig = encodeURIComponent(JSON.stringify(previewConfig));
-        return `/upsell-preview?config=${encodedConfig}`;
+        return `/product-webview-preview?config=${encodedConfig}`;
     };
 
     const openLivePreview = () => {
