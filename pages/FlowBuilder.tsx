@@ -18,7 +18,7 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Workspace, ConnectedPage } from '../types';
-import { Save, ArrowLeft, PlayCircle, Menu, X, Grid3x3, MessageCircle, Play, Bot, Send, Clock, MousePointer2, SquareMousePointer, Sparkles, GitBranch, MessageSquare, RectangleEllipsis, Plus, Minus, Maximize, Maximize2, Minimize2, Wrench, RotateCcw, Image, Video, FileText, Table, RefreshCw, ShoppingBag, Tag, Receipt, Package, ShoppingCart, Table2, ClipboardList, ArrowUp, ArrowDown } from 'lucide-react';
+import { Save, ArrowLeft, PlayCircle, Menu, X, Grid3x3, MessageCircle, Play, Bot, Send, Clock, MousePointer2, SquareMousePointer, Sparkles, GitBranch, MessageSquare, RectangleEllipsis, Plus, Minus, Maximize, Maximize2, Minimize2, Wrench, RotateCcw, Image, Video, FileText, Table, RefreshCw, ShoppingBag, Tag, Receipt, Package, ShoppingCart, Table2, ClipboardList, ArrowUp, ArrowDown, Globe } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import NodeConfigModal from '../components/NodeConfigModal';
 import TriggerNodeForm from '../components/TriggerNodeForm';
@@ -43,6 +43,7 @@ import CartInvoiceNodeForm from '../components/CartInvoiceNodeForm';
 import CartSheetNodeForm from '../components/CartSheetNodeForm';
 import CheckoutNodeForm from '../components/CheckoutNodeForm';
 import CheckoutFormNodeForm from '../components/CheckoutFormNodeForm';
+import ProductWebviewNodeForm from '../components/ProductWebviewNodeForm';
 import CustomEdge from '../components/edges/CustomEdge';
 import CustomTriggerNode from '../components/nodes/CustomTriggerNode';
 import CustomActionNode from '../components/nodes/CustomActionNode';
@@ -65,6 +66,7 @@ import CustomCartInvoiceNode from '../components/nodes/CustomCartInvoiceNode';
 import CustomCartSheetNode from '../components/nodes/CustomCartSheetNode';
 import CustomCheckoutNode from '../components/nodes/CustomCheckoutNode';
 import CustomCheckoutFormNode from '../components/nodes/CustomCheckoutFormNode';
+import CustomProductWebviewNode from '../components/nodes/CustomProductWebviewNode';
 import { api } from '../services/api';
 import { supabase } from '../lib/supabase';
 // Import node configuration registry
@@ -103,6 +105,7 @@ const nodeTypes: NodeTypes = {
   cartSheetNode: CustomCartSheetNode,
   checkoutNode: CustomCheckoutNode,
   checkoutFormNode: CustomCheckoutFormNode,
+  productWebviewNode: CustomProductWebviewNode,
 };
 
 // Define custom edge types
@@ -1698,6 +1701,17 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
       );
     }
 
+    // Product Webview Node (must check BEFORE upsell since it may include similar patterns)
+    if (nodeType === 'productWebviewNode' || label.toLowerCase().includes('product webview')) {
+      return (
+        <ProductWebviewNodeForm
+          workspaceId={workspace?.id || ''}
+          initialConfig={initialConfigRef.current}
+          onChange={handleConfigChange}
+        />
+      );
+    }
+
     // Upsell Node
     if (nodeType === 'upsellNode' || label.toLowerCase().includes('upsell')) {
       return (
@@ -2130,6 +2144,12 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
               <RefreshCw className="w-5 h-5" />
               <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">Follow-up</span>
             </div>
+            <div draggable onDragStart={(e) => onDragStart(e, 'productWebviewNode', 'Product Webview')} onClick={() => addNode('productWebviewNode', 'Product Webview')}
+              className="group relative w-10 h-10 bg-indigo-500/20 hover:bg-indigo-500/40 border border-indigo-500/30 rounded-xl flex items-center justify-center text-indigo-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
+              <ShoppingBag className="w-5 h-5" />
+              <Globe className="w-2.5 h-2.5 text-white absolute -bottom-0.5 -right-0.5 bg-indigo-600 rounded-full p-0.5" />
+              <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">Product Webview</span>
+            </div>
             <div draggable onDragStart={(e) => onDragStart(e, 'upsellNode', 'Upsell')} onClick={() => addNode('upsellNode', 'Upsell')}
               className="group relative w-10 h-10 bg-teal-500/20 hover:bg-teal-500/40 border border-teal-500/30 rounded-xl flex items-center justify-center text-teal-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
               <ShoppingCart className="w-5 h-5" />
@@ -2217,6 +2237,11 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
           <div draggable onDragStart={(e) => onDragStart(e, 'followupNode', 'Follow-up')} onClick={() => addNode('followupNode', 'Follow-up')}
             className="w-12 h-12 bg-rose-500/20 hover:bg-rose-500/40 border border-rose-500/30 rounded-xl flex items-center justify-center text-rose-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing" title="Follow-up">
             <RefreshCw className="w-6 h-6" />
+          </div>
+          <div draggable onDragStart={(e) => onDragStart(e, 'productWebviewNode', 'Product Webview')} onClick={() => addNode('productWebviewNode', 'Product Webview')}
+            className="w-12 h-12 bg-indigo-500/20 hover:bg-indigo-500/40 border border-indigo-500/30 rounded-xl flex items-center justify-center text-indigo-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing relative" title="Product Webview">
+            <ShoppingBag className="w-6 h-6" />
+            <Globe className="w-3 h-3 text-white absolute -bottom-0.5 -right-0.5 bg-indigo-600 rounded-full p-0.5" />
           </div>
           <div draggable onDragStart={(e) => onDragStart(e, 'upsellNode', 'Upsell')} onClick={() => addNode('upsellNode', 'Upsell')}
             className="w-12 h-12 bg-teal-500/20 hover:bg-teal-500/40 border border-teal-500/30 rounded-xl flex items-center justify-center text-teal-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing relative" title="Upsell">

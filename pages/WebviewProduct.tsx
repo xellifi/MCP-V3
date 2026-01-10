@@ -113,6 +113,21 @@ const WebviewProduct: React.FC = () => {
                 setCart(result.cart);
                 showToast(`✓ ${config.productName} added to cart!`);
             }
+
+            // Mark webview session as completed and proceed to upsell
+            // The backend will handle transitioning to the connected upsell node
+            if (result.proceedToUpsell) {
+                // If there's an upsell URL, redirect to it
+                if (result.upsellUrl) {
+                    window.location.href = result.upsellUrl;
+                    return;
+                }
+            }
+
+            // If configured to proceed immediately after add to cart
+            if (result.continueFlow) {
+                await continueFlow();
+            }
         } catch (err) {
             showToast('Failed to add to cart');
         }
