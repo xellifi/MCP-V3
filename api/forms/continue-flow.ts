@@ -139,11 +139,33 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 const mainProductQuantity = parseInt(submissionData?.quantity) || 1;
                 const mainProductTotal = parseFloat(submissionData?.total) || mainProductPrice * mainProductQuantity;
 
+                // Try to get product image from submission data first
+                let mainProductImage = submissionData?.product_image || submissionData?.header_image_url || '';
+
+                // If no image in submission, fetch from form configuration in database
+                if (!mainProductImage && configurations[nodeId]?.formId) {
+                    try {
+                        const { data: formData } = await supabase
+                            .from('forms')
+                            .select('header_image_url')
+                            .eq('id', configurations[nodeId].formId)
+                            .single();
+
+                        if (formData?.header_image_url) {
+                            mainProductImage = formData.header_image_url;
+                            console.log('[Continue Flow] 📸 Fetched product image from form:', mainProductImage);
+                        }
+                    } catch (imgError) {
+                        console.log('[Continue Flow] ⚠️ Could not fetch form image:', imgError);
+                    }
+                }
+
                 console.log('[Continue Flow] 📦 Main product from form:', {
                     name: mainProductName,
                     price: mainProductPrice,
                     quantity: mainProductQuantity,
-                    total: mainProductTotal
+                    total: mainProductTotal,
+                    image: mainProductImage ? 'yes' : 'no'
                 });
 
                 // Create cart with main product if product info exists
@@ -156,12 +178,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                         productId: `form_${nodeId}`,
                         productName: mainProductName,
                         productPrice: mainProductPrice,
-                        productImage: '', // Forms don't typically have images
+                        productImage: mainProductImage, // Use fetched product image
                         quantity: mainProductQuantity,
                         isMainProduct: true // Mark as main product from form
                     }];
                     initialCartTotal = mainProductTotal;
-                    console.log('[Continue Flow] ✓ Cart initialized with main product:', mainProductName);
+                    console.log('[Continue Flow] ✓ Cart initialized with main product:', mainProductName, mainProductImage ? '(with image)' : '(no image)');
                 } else {
                     console.log('[Continue Flow] ⚠️ No product info in form, starting with empty cart');
                 }

@@ -4456,14 +4456,18 @@ async function executeAction(
             const orderNumber = `ORD-${Date.now().toString(36).toUpperCase()}`;
 
             // Build receipt elements for Facebook Receipt Template
-            const receiptElements = cart.map((item: any) => ({
-                title: item.productName,
-                subtitle: `Qty: ${item.quantity || 1}`,
-                quantity: item.quantity || 1,
-                price: item.productPrice * (item.quantity || 1),
-                currency: 'PHP',
-                image_url: item.productImage || undefined
-            }));
+            const receiptElements = cart.map((item: any) => {
+                const qty = item.quantity || 1;
+                const itemTotal = item.productPrice * qty;
+                return {
+                    title: qty > 1 ? `${item.productName} x${qty}` : item.productName,
+                    subtitle: `₱${item.productPrice.toLocaleString()} ${qty > 1 ? `each (₱${itemTotal.toLocaleString()} total)` : ''}`.trim(),
+                    quantity: qty,
+                    price: itemTotal,
+                    currency: 'PHP',
+                    image_url: item.productImage || undefined
+                };
+            });
 
             // Remove undefined image_url
             receiptElements.forEach((el: any) => {
@@ -4622,14 +4626,18 @@ async function executeAction(
             }
 
             // Build receipt items for Facebook Receipt Template
-            const receiptElements = cart.map((item: any) => ({
-                title: item.productName,
-                subtitle: `Qty: ${item.quantity || 1}`,
-                quantity: item.quantity || 1,
-                price: item.productPrice * (item.quantity || 1),
-                currency: 'PHP',
-                image_url: item.productImage || undefined
-            }));
+            const receiptElements = cart.map((item: any) => {
+                const qty = item.quantity || 1;
+                const itemTotal = item.productPrice * qty;
+                return {
+                    title: qty > 1 ? `${item.productName} x${qty}` : item.productName,
+                    subtitle: `₱${item.productPrice.toLocaleString()} ${qty > 1 ? `each (₱${itemTotal.toLocaleString()} total)` : ''}`.trim(),
+                    quantity: qty,
+                    price: itemTotal,
+                    currency: 'PHP',
+                    image_url: item.productImage || undefined
+                };
+            });
 
             // Remove undefined image_url
             receiptElements.forEach((el: any) => {
