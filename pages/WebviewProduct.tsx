@@ -1,23 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
-import { ShoppingCart, ChevronLeft, ChevronRight, Check, X, Minus, Plus } from 'lucide-react';
-
-interface ProductConfig {
-    productId: string;
-    productName: string;
-    productDescription: string;
-    productPrice: number;
-    compareAtPrice?: number;
-    productImages: string[];
-    variants?: {
-        colors?: Array<{ name: string; value: string }>;
-        sizes?: string[];
-    };
-    currency?: string;
-}
+import { Check, Sparkles, Minus, Plus, ShoppingCart, X } from 'lucide-react';
 
 interface CartItem {
-    productId: string;
+    productId?: string;
     productName: string;
     productPrice: number;
     productImage?: string;
@@ -28,20 +14,23 @@ interface CartItem {
     };
 }
 
-const API_BASE = '';  // Use relative URLs for API calls
+const EMOJI_MAP: Record<string, string> = {
+    fire: '🔥',
+    star: '⭐',
+    sparkle: '✨',
+    heart: '❤️',
+    none: ''
+};
+
+const API_BASE = '';
 
 const WebviewProduct: React.FC = () => {
     const { sessionId } = useParams<{ sessionId: string }>();
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
-    const [config, setConfig] = useState<ProductConfig | null>(null);
+    const [config, setConfig] = useState<any>(null);
     const [cart, setCart] = useState<CartItem[]>([]);
-    const [cartOpen, setCartOpen] = useState(false);
-
-    // Product state
-    const [currentImageIndex, setCurrentImageIndex] = useState(0);
-    const [selectedColor, setSelectedColor] = useState<string>('');
-    const [selectedSize, setSelectedSize] = useState<string>('');
+    const [countdown, setCountdown] = useState<number>(0);
     const [quantity, setQuantity] = useState(1);
 
     // Toast notification
@@ -56,6 +45,22 @@ const WebviewProduct: React.FC = () => {
         loadSession();
     }, [sessionId]);
 
+    // Countdown timer effect
+    useEffect(() => {
+        if (config?.showCountdown && config?.countdownMinutes) {
+            setCountdown(config.countdownMinutes * 60);
+
+            const interval = setInterval(() => {
+                setCountdown(prev => {
+                    if (prev <= 0) return 0;
+                    return prev - 1;
+                });
+            }, 1000);
+
+            return () => clearInterval(interval);
+        }
+    }, [config?.showCountdown, config?.countdownMinutes]);
+
     const loadSession = async () => {
         try {
             const response = await fetch(`${API_BASE}/api/webview?route=session&id=${sessionId}`);
@@ -67,16 +72,10 @@ const WebviewProduct: React.FC = () => {
             }
 
             const session = data.session;
-            setConfig(session.page_config);
+            console.log('[WebviewProduct] Session loaded:', session);
+            console.log('[WebviewProduct] page_config:', session.page_config);
+            setConfig(session.page_config || {});
             setCart(session.cart || []);
-
-            // Set default selections
-            if (session.page_config?.variants?.colors?.length > 0) {
-                setSelectedColor(session.page_config.variants.colors[0].name);
-            }
-            if (session.page_config?.variants?.sizes?.length > 0) {
-                setSelectedSize(session.page_config.variants.sizes[0]);
-            }
         } catch (err: any) {
             setError(err.message || 'Failed to load product');
         } finally {
@@ -88,69 +87,38 @@ const WebviewProduct: React.FC = () => {
         if (!config) return;
 
         try {
+            const cartItem = {
+                productId: sessionId,
+                productName: config.productName || config.headline || 'Product',
+                productPrice: config.productPrice || parseFloat((config.price || '0').replace(/[^\d.]/g, '')) || 0,
+                productImage: config.imageUrl,
+                quantity,
+                variant: {}
+            };
+
             const response = await fetch(`${API_BASE}/api/webview?route=action`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     sessionId,
                     action: 'add_to_cart',
-                    payload: {
-                        productId: config.productId,
-                        productName: config.productName,
-                        productPrice: config.productPrice,
-                        productImage: config.productImages?.[0],
-                        quantity,
-                        variant: {
-                            color: selectedColor,
-                            size: selectedSize
-                        }
-                    }
+                    payload: cartItem
                 })
             });
 
             const result = await response.json();
             if (result.cart) {
                 setCart(result.cart);
-                showToast(`✓ ${config.productName} added to cart!`);
+                showToast(`✓ Added to cart!`);
             }
 
-            // Mark webview session as completed and proceed to upsell
-            // The backend will handle transitioning to the connected upsell node
-            if (result.proceedToUpsell) {
-                // If there's an upsell URL, redirect to it
-                if (result.upsellUrl) {
-                    window.location.href = result.upsellUrl;
-                    return;
-                }
-            }
-
-            // If configured to proceed immediately after add to cart
-            if (result.continueFlow) {
-                await continueFlow();
-            }
-        } catch (err) {
+            // Continue flow after adding to cart
+            setTimeout(() => {
+                continueFlow();
+            }, 1000);
+        } catch (err: any) {
+            console.error('Failed to add to cart:', err);
             showToast('Failed to add to cart');
-        }
-    };
-
-    const updateCartItem = async (productId: string, newQuantity: number, variant?: any) => {
-        try {
-            const response = await fetch(`${API_BASE}/api/webview?route=action`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    sessionId,
-                    action: 'update_cart',
-                    payload: { productId, quantity: newQuantity, variant }
-                })
-            });
-
-            const result = await response.json();
-            if (result.cart) {
-                setCart(result.cart);
-            }
-        } catch (err) {
-            console.error('Failed to update cart');
         }
     };
 
@@ -159,26 +127,25 @@ const WebviewProduct: React.FC = () => {
             await fetch(`${API_BASE}/api/webview/continue`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ sessionId, closeReason: 'user_action' })
+                body: JSON.stringify({ sessionId })
             });
-
-            // Close webview using Messenger Extensions
-            if ((window as any).MessengerExtensions) {
-                (window as any).MessengerExtensions.requestCloseBrowser(
-                    () => console.log('Webview closed'),
-                    (err: any) => console.error('Error closing webview:', err)
-                );
-            } else {
-                window.close();
-            }
+            // Try to close the webview
+            window.close();
         } catch (err) {
             console.error('Failed to continue flow');
+            window.close();
         }
     };
 
-    const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
-    const cartTotal = cart.reduce((sum, item) => sum + (item.productPrice * item.quantity), 0);
-    const currencySymbol = config?.currency === 'USD' ? '$' : config?.currency === 'EUR' ? '€' : '₱';
+    // Helper to darken/lighten color for gradient
+    const adjustColor = (hex: string, percent: number) => {
+        const num = parseInt(hex.replace('#', ''), 16);
+        const amt = Math.round(2.55 * percent);
+        const R = Math.max(0, Math.min(255, (num >> 16) + amt));
+        const G = Math.max(0, Math.min(255, ((num >> 8) & 0x00ff) + amt));
+        const B = Math.max(0, Math.min(255, (num & 0x0000ff) + amt));
+        return `#${(0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1)}`;
+    };
 
     if (loading) {
         return (
@@ -202,297 +169,256 @@ const WebviewProduct: React.FC = () => {
 
     if (!config) return null;
 
+    // Extract config with defaults
+    const emoji = config.showEmoji && config.emojiType !== 'none' ? EMOJI_MAP[config.emojiType] || '🔥' : '';
+    const bgColor = config.backgroundColor || '#ffffff';
+    const pageBgColor = config.pageBackgroundColor || bgColor;
+    const headlineBgColor = config.headlineBgColor || '#6366f1';
+    const priceBadgeSize = config.priceBadgeSize || 80;
+
+    // Headline animation style
+    const getHeadlineAnimationStyle = () => {
+        if (!config.headlineAnimation || config.headlineAnimation === 'none') return {};
+        const speed = typeof config.headlineAnimationSpeed === 'number' ? config.headlineAnimationSpeed : 2;
+        const duration = `${1 / speed}s`;
+        return {
+            animation: config.headlineAnimation === 'blink'
+                ? `pulse ${duration} ease-in-out infinite`
+                : `bounce ${duration} ease-in-out infinite`
+        };
+    };
+
+    // Countdown Timer Component
+    const CountdownTimer = () => {
+        if (!config.showCountdown) return null;
+        const showBg = config.countdownShowBg ?? true;
+        const bgColor = config.countdownBgColor || '#6366f1';
+        const textColor = config.countdownTextColor || '#ffffff';
+        const fontSize = config.countdownFontSize || 24;
+        const borderRadius = config.countdownBorderRadius ?? 16;
+        const fullWidth = config.countdownFullWidth ?? false;
+
+        const hours = Math.floor(countdown / 3600);
+        const minutes = Math.floor((countdown % 3600) / 60);
+        const seconds = countdown % 60;
+
+        const TimeBlock = ({ value, label }: { value: number; label: string }) => (
+            <div className="flex flex-col items-center">
+                <div
+                    className="font-mono font-bold rounded-lg min-w-[55px] py-2 text-center shadow-lg"
+                    style={{
+                        fontSize: `${fontSize}px`,
+                        color: textColor,
+                        backgroundColor: 'rgba(255,255,255,0.15)',
+                        backdropFilter: 'blur(4px)'
+                    }}
+                >
+                    {String(value).padStart(2, '0')}
+                </div>
+                <span
+                    className="uppercase tracking-wider mt-1.5 font-medium opacity-90"
+                    style={{ color: textColor, fontSize: `${Math.max(10, fontSize / 2.4)}px` }}
+                >
+                    {label}
+                </span>
+            </div>
+        );
+
+        const Separator = () => (
+            <span
+                className="font-bold mx-1 self-start"
+                style={{ color: textColor, fontSize: `${fontSize}px`, marginTop: `${fontSize / 3}px` }}
+            >
+                :
+            </span>
+        );
+
+        const getBackground = () => {
+            if (!showBg) return 'transparent';
+            return `linear-gradient(135deg, ${bgColor} 0%, ${adjustColor(bgColor, -30)} 100%)`;
+        };
+
+        return (
+            <div
+                className={`py-4 px-6 my-3 ${fullWidth ? '-mx-6 px-6' : 'mx-4'}`}
+                style={{
+                    background: getBackground(),
+                    borderRadius: fullWidth ? '0px' : `${borderRadius}px`,
+                }}
+            >
+                <div className="flex items-center justify-center gap-2 mb-3">
+                    <span style={{ color: textColor, fontSize: `${fontSize * 0.75}px` }}>⚡</span>
+                    <span
+                        className="font-bold uppercase tracking-widest"
+                        style={{ color: textColor, fontSize: `${Math.max(12, fontSize / 2)}px` }}
+                    >
+                        Limited Time Offer
+                    </span>
+                </div>
+                <div className="flex items-start justify-center gap-2">
+                    <TimeBlock value={hours} label="Hours" />
+                    <Separator />
+                    <TimeBlock value={minutes} label="Mins" />
+                    <Separator />
+                    <TimeBlock value={seconds} label="Secs" />
+                </div>
+            </div>
+        );
+    };
+
     return (
-        <div className="min-h-screen bg-white relative">
-            {/* Header with Cart Icon */}
-            <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-lg border-b border-slate-200 px-4 py-3 flex items-center justify-between">
-                <button
-                    onClick={continueFlow}
-                    className="p-2 rounded-full hover:bg-slate-100 transition-colors"
+        <div className="min-h-screen flex flex-col" style={{ backgroundColor: pageBgColor }}>
+            {/* Main Content Area */}
+            <div className="flex-1 flex items-center justify-center p-4 md:p-8">
+                {/* Centered Container/Card */}
+                <div
+                    className="w-full max-w-md bg-white/10 backdrop-blur-sm rounded-3xl shadow-2xl overflow-hidden border border-white/20"
+                    style={{ backgroundColor: bgColor }}
                 >
-                    <X className="w-5 h-5 text-slate-600" />
-                </button>
+                    {/* Headline Banner */}
+                    <div className="py-4 px-6 text-center" style={{ backgroundColor: headlineBgColor }}>
+                        <h1
+                            className="text-lg md:text-xl font-bold uppercase tracking-wider"
+                            style={{
+                                color: config.headlineColor || '#ffffff',
+                                ...getHeadlineAnimationStyle()
+                            }}
+                        >
+                            {emoji && <span className="mr-2">{emoji}</span>}
+                            {config.headline || 'CHECK OUT THIS PRODUCT!'}
+                            {emoji && <span className="ml-2">{emoji}</span>}
+                        </h1>
+                    </div>
 
-                <h1 className="font-semibold text-slate-800 truncate max-w-[200px]">
-                    {config.productName}
-                </h1>
+                    {/* Countdown Timer - Above Position */}
+                    {config.countdownPosition === 'above' && <CountdownTimer />}
 
-                <button
-                    onClick={() => setCartOpen(true)}
-                    className="relative p-2 rounded-full hover:bg-slate-100 transition-colors"
-                >
-                    <ShoppingCart className="w-5 h-5 text-slate-600" />
-                    {cartCount > 0 && (
-                        <span className="absolute -top-1 -right-1 w-5 h-5 bg-blue-600 text-white text-xs rounded-full flex items-center justify-center font-bold animate-bounce">
-                            {cartCount}
-                        </span>
-                    )}
-                </button>
-            </header>
-
-            {/* Image Carousel */}
-            <div className="relative bg-slate-100 aspect-square overflow-hidden">
-                {config.productImages && config.productImages.length > 0 ? (
-                    <>
-                        <img
-                            src={config.productImages[currentImageIndex]}
-                            alt={config.productName}
-                            className="w-full h-full object-contain"
-                        />
-
-                        {/* Navigation Arrows */}
-                        {config.productImages.length > 1 && (
-                            <>
-                                <button
-                                    onClick={() => setCurrentImageIndex(i => i > 0 ? i - 1 : config.productImages!.length - 1)}
-                                    className="absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/80 rounded-full flex items-center justify-center shadow-lg hover:bg-white transition-colors"
-                                >
-                                    <ChevronLeft className="w-5 h-5" />
-                                </button>
-                                <button
-                                    onClick={() => setCurrentImageIndex(i => i < config.productImages!.length - 1 ? i + 1 : 0)}
-                                    className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/80 rounded-full flex items-center justify-center shadow-lg hover:bg-white transition-colors"
-                                >
-                                    <ChevronRight className="w-5 h-5" />
-                                </button>
-                            </>
-                        )}
-
-                        {/* Dots Indicator */}
-                        {config.productImages.length > 1 && (
-                            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
-                                {config.productImages.map((_, index) => (
-                                    <button
-                                        key={index}
-                                        onClick={() => setCurrentImageIndex(index)}
-                                        className={`w-2 h-2 rounded-full transition-all ${index === currentImageIndex
-                                            ? 'bg-blue-600 w-6'
-                                            : 'bg-slate-400'
-                                            }`}
+                    {/* Card Content */}
+                    <div className="p-6 pt-8">
+                        {/* Product Image with Price Badge */}
+                        <div className="relative w-full max-w-[220px] mx-auto" style={{ overflow: 'visible' }}>
+                            <div
+                                className="overflow-hidden aspect-square shadow-xl"
+                                style={{
+                                    borderRadius: `${config.imageBorderRadius || 16}px`,
+                                    border: `${config.imageBorderWidth || 4}px solid ${config.imageBorderColor || '#ffffff'}`,
+                                }}
+                            >
+                                {config.imageUrl ? (
+                                    <img
+                                        src={config.imageUrl}
+                                        alt="Product"
+                                        className="w-full h-full object-cover"
                                     />
-                                ))}
+                                ) : (
+                                    <div className="w-full h-full bg-slate-200 flex items-center justify-center">
+                                        <Sparkles className="w-12 h-12 text-slate-400" />
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Price Badge */}
+                            <div
+                                className="absolute rounded-full font-bold shadow-xl flex items-center justify-center z-20"
+                                style={{
+                                    width: `${priceBadgeSize}px`,
+                                    height: `${priceBadgeSize}px`,
+                                    fontSize: `${Math.max(14, priceBadgeSize / 4)}px`,
+                                    backgroundColor: config.priceBadgeColor || '#22c55e',
+                                    color: config.priceTextColor || '#ffffff',
+                                    top: `-${priceBadgeSize / 2 - 10}px`,
+                                    right: `-${priceBadgeSize / 2}px`,
+                                    boxShadow: '0 4px 15px rgba(0,0,0,0.3)',
+                                }}
+                            >
+                                {config.price || '₱0'}
+                            </div>
+                        </div>
+
+                        {/* Countdown Timer - Middle Position */}
+                        {config.countdownPosition === 'middle' && <CountdownTimer />}
+
+                        {/* Quantity Selector */}
+                        {(config.enableQuantitySelector ?? true) && (
+                            <div className="flex items-center justify-center gap-4 mt-4">
+                                <button
+                                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                                    className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center hover:bg-slate-300 transition-colors"
+                                >
+                                    <Minus className="w-5 h-5 text-slate-600" />
+                                </button>
+                                <span className="text-2xl font-bold text-slate-700 min-w-[40px] text-center">
+                                    {quantity}
+                                </span>
+                                <button
+                                    onClick={() => setQuantity(quantity + 1)}
+                                    className="w-10 h-10 rounded-full bg-indigo-500 flex items-center justify-center hover:bg-indigo-600 transition-colors"
+                                >
+                                    <Plus className="w-5 h-5 text-white" />
+                                </button>
                             </div>
                         )}
-                    </>
-                ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                        <span className="text-slate-400">No image</span>
-                    </div>
-                )}
-            </div>
 
-            {/* Product Info */}
-            <div className="p-4 space-y-4">
-                <div>
-                    <h2 className="text-xl font-bold text-slate-900">{config.productName}</h2>
-                    <p className="text-sm text-slate-500 mt-1">More info</p>
-                </div>
-
-                {config.productDescription && (
-                    <div>
-                        <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">
-                            Product Description
-                        </h3>
-                        <p className="text-slate-600 text-sm">{config.productDescription}</p>
-                    </div>
-                )}
-
-                {/* Color Selector */}
-                {config.variants?.colors && config.variants.colors.length > 0 && (
-                    <div>
-                        <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
-                            Colour
-                        </h3>
-                        <div className="flex gap-2">
-                            {config.variants.colors.map((color) => (
-                                <button
-                                    key={color.name}
-                                    onClick={() => setSelectedColor(color.name)}
-                                    className={`w-8 h-8 rounded-full border-2 transition-all ${selectedColor === color.name
-                                        ? 'border-blue-600 scale-110'
-                                        : 'border-transparent'
-                                        }`}
-                                    style={{ backgroundColor: color.value }}
-                                    title={color.name}
-                                />
-                            ))}
-                        </div>
-                    </div>
-                )}
-
-                {/* Size Selector */}
-                {config.variants?.sizes && config.variants.sizes.length > 0 && (
-                    <div>
-                        <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
-                            Size
-                        </h3>
-                        <div className="flex flex-wrap gap-2">
-                            {config.variants.sizes.map((size) => (
-                                <button
-                                    key={size}
-                                    onClick={() => setSelectedSize(size)}
-                                    className={`px-4 py-2 rounded-lg border-2 font-medium text-sm transition-all ${selectedSize === size
-                                        ? 'border-blue-600 bg-blue-50 text-blue-600'
-                                        : 'border-slate-200 text-slate-600 hover:border-slate-300'
-                                        }`}
+                        {/* Product Name Bar */}
+                        {(config.showProductName ?? true) && (
+                            <div
+                                className={`mt-4 py-3 px-4 text-center ${config.productNameFullWidth ? '-mx-6 px-6' : 'mx-4'}`}
+                                style={{
+                                    backgroundColor: config.productNameBgColor || '#6366f1',
+                                    borderRadius: config.productNameFullWidth ? '0px' : `${config.productNameBorderRadius || 0}px`
+                                }}
+                            >
+                                <h2
+                                    className="font-bold uppercase tracking-wider"
+                                    style={{
+                                        color: config.productNameTextColor || '#ffffff',
+                                        fontSize: `${config.productNameFontSize || 16}px`
+                                    }}
                                 >
-                                    {size}
-                                </button>
-                            ))}
+                                    {config.productName || 'PRODUCT NAME'}
+                                </h2>
+                            </div>
+                        )}
+
+                        {/* Countdown Timer - Below Position */}
+                        {config.countdownPosition === 'below' && <CountdownTimer />}
+
+                        {/* Description */}
+                        {config.description && (
+                            <p
+                                className="mt-3 text-center text-sm"
+                                style={{ color: config.descriptionColor || '#374151' }}
+                            >
+                                {config.description}
+                            </p>
+                        )}
+
+                        {/* ADD TO CART Button */}
+                        <div className="mt-5">
+                            <button
+                                onClick={addToCart}
+                                className="w-full py-3.5 px-6 font-bold text-base flex items-center justify-center gap-2 shadow-lg transition-all active:scale-95"
+                                style={{
+                                    backgroundColor: config.buttonBgColor || '#22c55e',
+                                    color: config.buttonTextColor || '#ffffff',
+                                    borderRadius: `${config.buttonBorderRadius || 12}px`,
+                                }}
+                            >
+                                {config.showButtonIcon && <Check className="w-5 h-5" />}
+                                {config.buttonText || 'ADD TO CART'}
+                            </button>
                         </div>
                     </div>
-                )}
-
-                {/* Quantity Selector */}
-                <div className="flex items-center gap-4">
-                    <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                        Quantity
-                    </h3>
-                    <div className="flex items-center gap-2">
-                        <button
-                            onClick={() => setQuantity(q => Math.max(1, q - 1))}
-                            className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center hover:bg-slate-200 transition-colors"
-                        >
-                            <Minus className="w-4 h-4" />
-                        </button>
-                        <span className="w-8 text-center font-semibold">{quantity}</span>
-                        <button
-                            onClick={() => setQuantity(q => q + 1)}
-                            className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center hover:bg-slate-200 transition-colors"
-                        >
-                            <Plus className="w-4 h-4" />
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            {/* Bottom Bar - Buy Button */}
-            <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 p-4 flex items-center justify-between gap-4">
-                <button
-                    onClick={addToCart}
-                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-xl transition-all active:scale-95 flex items-center justify-center gap-2"
-                >
-                    <ShoppingCart className="w-5 h-5" />
-                    Add to Cart
-                </button>
-
-                <div className="text-right">
-                    {config.compareAtPrice && config.compareAtPrice > config.productPrice && (
-                        <p className="text-sm text-slate-400 line-through">
-                            {currencySymbol}{config.compareAtPrice.toLocaleString()}
-                        </p>
-                    )}
-                    <p className="text-xl font-bold text-slate-900">
-                        {currencySymbol}{(config.productPrice * quantity).toLocaleString()}
-                    </p>
                 </div>
             </div>
 
             {/* Toast Notification */}
             {toast.visible && (
-                <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 animate-slide-down">
-                    <div className="bg-green-600 text-white px-6 py-3 rounded-full shadow-lg flex items-center gap-2">
-                        <Check className="w-5 h-5" />
-                        <span className="font-medium">{toast.message}</span>
-                    </div>
+                <div className="fixed top-10 left-1/2 -translate-x-1/2 bg-green-500 text-white px-6 py-3 rounded-full shadow-lg flex items-center gap-2 z-50 animate-bounce">
+                    <Check className="w-5 h-5" />
+                    {toast.message}
                 </div>
             )}
-
-            {/* Cart Sidebar */}
-            {cartOpen && (
-                <div className="fixed inset-0 z-50">
-                    <div className="absolute inset-0 bg-black/50" onClick={() => setCartOpen(false)} />
-                    <div className="absolute right-0 top-0 bottom-0 w-full max-w-sm bg-white shadow-xl animate-slide-left">
-                        <div className="flex flex-col h-full">
-                            <div className="flex items-center justify-between p-4 border-b">
-                                <h2 className="text-lg font-bold">Your Cart ({cartCount})</h2>
-                                <button onClick={() => setCartOpen(false)} className="p-2 hover:bg-slate-100 rounded-full">
-                                    <X className="w-5 h-5" />
-                                </button>
-                            </div>
-
-                            <div className="flex-1 overflow-auto p-4 space-y-4">
-                                {cart.length === 0 ? (
-                                    <div className="text-center py-8 text-slate-400">
-                                        Your cart is empty
-                                    </div>
-                                ) : (
-                                    cart.map((item, index) => (
-                                        <div key={index} className="flex gap-3 bg-slate-50 rounded-xl p-3">
-                                            {item.productImage && (
-                                                <img
-                                                    src={item.productImage}
-                                                    alt={item.productName}
-                                                    className="w-16 h-16 object-cover rounded-lg"
-                                                />
-                                            )}
-                                            <div className="flex-1">
-                                                <h3 className="font-medium text-sm">{item.productName}</h3>
-                                                {item.variant && (
-                                                    <p className="text-xs text-slate-500">
-                                                        {item.variant.color} {item.variant.size && `/ ${item.variant.size}`}
-                                                    </p>
-                                                )}
-                                                <div className="flex items-center justify-between mt-2">
-                                                    <div className="flex items-center gap-2">
-                                                        <button
-                                                            onClick={() => updateCartItem(item.productId, item.quantity - 1, item.variant)}
-                                                            className="w-6 h-6 bg-slate-200 rounded flex items-center justify-center"
-                                                        >
-                                                            <Minus className="w-3 h-3" />
-                                                        </button>
-                                                        <span className="text-sm font-medium">{item.quantity}</span>
-                                                        <button
-                                                            onClick={() => updateCartItem(item.productId, item.quantity + 1, item.variant)}
-                                                            className="w-6 h-6 bg-slate-200 rounded flex items-center justify-center"
-                                                        >
-                                                            <Plus className="w-3 h-3" />
-                                                        </button>
-                                                    </div>
-                                                    <span className="font-bold">
-                                                        {currencySymbol}{(item.productPrice * item.quantity).toLocaleString()}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))
-                                )}
-                            </div>
-
-                            {cart.length > 0 && (
-                                <div className="p-4 border-t space-y-3">
-                                    <div className="flex justify-between text-lg font-bold">
-                                        <span>Total</span>
-                                        <span>{currencySymbol}{cartTotal.toLocaleString()}</span>
-                                    </div>
-                                    <button
-                                        onClick={continueFlow}
-                                        className="w-full bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 transition-colors"
-                                    >
-                                        Continue →
-                                    </button>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            <style>{`
-                @keyframes slide-down {
-                    from { opacity: 0; transform: translate(-50%, -20px); }
-                    to { opacity: 1; transform: translate(-50%, 0); }
-                }
-                @keyframes slide-left {
-                    from { transform: translateX(100%); }
-                    to { transform: translateX(0); }
-                }
-                .animate-slide-down { animation: slide-down 0.3s ease-out; }
-                .animate-slide-left { animation: slide-left 0.3s ease-out; }
-            `}</style>
-
-            {/* Spacer for bottom bar */}
-            <div className="h-24"></div>
         </div>
     );
 };
