@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { HelpCircle, ExternalLink, Check, AlertCircle, Link } from 'lucide-react';
+import { HelpCircle, ExternalLink, Check, AlertCircle, Link, ShoppingCart, FileText, Package } from 'lucide-react';
 
 interface GoogleSheetNodeFormProps {
     workspaceId: string;
@@ -7,19 +7,35 @@ interface GoogleSheetNodeFormProps {
     onChange: (config: any) => void;
 }
 
+type SourceType = 'form' | 'checkout' | 'auto';
+
 const GoogleSheetNodeForm: React.FC<GoogleSheetNodeFormProps> = ({ workspaceId, initialConfig, onChange }) => {
     const [spreadsheetId, setSpreadsheetId] = useState(initialConfig?.spreadsheetId || '');
     const [sheetName, setSheetName] = useState(initialConfig?.sheetName || 'Sheet1');
     const [webhookUrl, setWebhookUrl] = useState(initialConfig?.webhookUrl || '');
+    const [sourceType, setSourceType] = useState<SourceType>(initialConfig?.sourceType || 'auto');
     const [showGuide, setShowGuide] = useState(false);
+
+    // Order-specific options
+    const [includeMainProduct, setIncludeMainProduct] = useState(initialConfig?.includeMainProduct ?? true);
+    const [includeUpsells, setIncludeUpsells] = useState(initialConfig?.includeUpsells ?? true);
+    const [includeDownsells, setIncludeDownsells] = useState(initialConfig?.includeDownsells ?? true);
+    const [includeCustomerInfo, setIncludeCustomerInfo] = useState(initialConfig?.includeCustomerInfo ?? true);
+    const [includeTimestamp, setIncludeTimestamp] = useState(initialConfig?.includeTimestamp ?? true);
 
     useEffect(() => {
         onChange({
             spreadsheetId,
             sheetName,
             webhookUrl,
+            sourceType,
+            includeMainProduct,
+            includeUpsells,
+            includeDownsells,
+            includeCustomerInfo,
+            includeTimestamp,
         });
-    }, [spreadsheetId, sheetName, webhookUrl]);
+    }, [spreadsheetId, sheetName, webhookUrl, sourceType, includeMainProduct, includeUpsells, includeDownsells, includeCustomerInfo, includeTimestamp]);
 
     // Extract spreadsheet ID from full URL if pasted
     const handleSpreadsheetInput = (value: string) => {
@@ -37,6 +53,27 @@ const GoogleSheetNodeForm: React.FC<GoogleSheetNodeFormProps> = ({ workspaceId, 
     const isFullyConfigured = isValidId && isValidWebhook;
 
     const inputClass = "w-full px-3 py-2 bg-slate-800/60 border border-slate-600/50 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-green-500/50";
+
+    const sourceOptions = [
+        {
+            value: 'auto' as SourceType,
+            label: 'Auto-detect',
+            desc: 'Automatically detect based on connected node',
+            icon: <Link className="w-4 h-4" />
+        },
+        {
+            value: 'form' as SourceType,
+            label: 'Form Submission',
+            desc: 'Sync when form is submitted',
+            icon: <FileText className="w-4 h-4" />
+        },
+        {
+            value: 'checkout' as SourceType,
+            label: 'Order Completion',
+            desc: 'Sync complete order with all products',
+            icon: <ShoppingCart className="w-4 h-4" />
+        },
+    ];
 
     return (
         <div className="space-y-4">
@@ -56,6 +93,41 @@ const GoogleSheetNodeForm: React.FC<GoogleSheetNodeFormProps> = ({ workspaceId, 
                 </div>
             </div>
 
+            {/* Source Type Selection */}
+            <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">
+                    Data Source
+                </label>
+                <div className="space-y-2">
+                    {sourceOptions.map((option) => (
+                        <button
+                            key={option.value}
+                            type="button"
+                            onClick={() => setSourceType(option.value)}
+                            className={`w-full p-3 rounded-xl border transition-all text-left flex items-start gap-3 ${sourceType === option.value
+                                    ? 'bg-green-500/20 border-green-500/50'
+                                    : 'bg-slate-800/40 border-slate-600/30 hover:border-slate-500/50'
+                                }`}
+                        >
+                            <div className={`p-1.5 rounded-lg ${sourceType === option.value ? 'bg-green-500/30 text-green-400' : 'bg-slate-700/50 text-slate-400'
+                                }`}>
+                                {option.icon}
+                            </div>
+                            <div className="flex-1">
+                                <div className={`text-sm font-medium ${sourceType === option.value ? 'text-white' : 'text-slate-300'
+                                    }`}>
+                                    {option.label}
+                                </div>
+                                <div className="text-xs text-slate-500">{option.desc}</div>
+                            </div>
+                            {sourceType === option.value && (
+                                <Check className="w-5 h-5 text-green-500 mt-0.5" />
+                            )}
+                        </button>
+                    ))}
+                </div>
+            </div>
+
             {/* Connection Info Box */}
             <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-xl">
                 <div className="flex items-center gap-2">
@@ -63,9 +135,75 @@ const GoogleSheetNodeForm: React.FC<GoogleSheetNodeFormProps> = ({ workspaceId, 
                     <span className="text-blue-400 font-medium text-xs">How it works</span>
                 </div>
                 <p className="text-slate-400 text-[10px] mt-1 leading-relaxed">
-                    Connect this node to a <span className="text-purple-400 font-medium">Form</span> node. When the form is submitted, data will automatically sync to your Google Sheet.
+                    {sourceType === 'form' ? (
+                        <>Connect this node to a <span className="text-purple-400 font-medium">Form</span> node. When the form is submitted, data will automatically sync to your Google Sheet.</>
+                    ) : sourceType === 'checkout' ? (
+                        <>Connect this node after <span className="text-orange-400 font-medium">Checkout</span> or <span className="text-indigo-400 font-medium">Invoice</span> node. Complete order data (main product + upsells + downsells) will sync to your Google Sheet.</>
+                    ) : (
+                        <>Connect to a <span className="text-purple-400 font-medium">Form</span> node for form data, or <span className="text-orange-400 font-medium">Checkout/Invoice</span> node for complete order data including upsells and downsells.</>
+                    )}
                 </p>
             </div>
+
+            {/* Order-specific options - only show for checkout/auto */}
+            {(sourceType === 'checkout' || sourceType === 'auto') && (
+                <div className="p-3 bg-slate-800/40 border border-slate-600/30 rounded-xl space-y-2">
+                    <div className="flex items-center gap-2 mb-2">
+                        <Package className="w-4 h-4 text-orange-400" />
+                        <span className="text-slate-300 font-medium text-xs">Order Data Options</span>
+                    </div>
+
+                    <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                            type="checkbox"
+                            checked={includeMainProduct}
+                            onChange={(e) => setIncludeMainProduct(e.target.checked)}
+                            className="w-4 h-4 rounded border-slate-600 bg-slate-700 text-green-500 focus:ring-green-500/50"
+                        />
+                        <span className="text-slate-300 text-xs">Include main product</span>
+                    </label>
+
+                    <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                            type="checkbox"
+                            checked={includeUpsells}
+                            onChange={(e) => setIncludeUpsells(e.target.checked)}
+                            className="w-4 h-4 rounded border-slate-600 bg-slate-700 text-green-500 focus:ring-green-500/50"
+                        />
+                        <span className="text-slate-300 text-xs">Include upsell products</span>
+                    </label>
+
+                    <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                            type="checkbox"
+                            checked={includeDownsells}
+                            onChange={(e) => setIncludeDownsells(e.target.checked)}
+                            className="w-4 h-4 rounded border-slate-600 bg-slate-700 text-green-500 focus:ring-green-500/50"
+                        />
+                        <span className="text-slate-300 text-xs">Include downsell products</span>
+                    </label>
+
+                    <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                            type="checkbox"
+                            checked={includeCustomerInfo}
+                            onChange={(e) => setIncludeCustomerInfo(e.target.checked)}
+                            className="w-4 h-4 rounded border-slate-600 bg-slate-700 text-green-500 focus:ring-green-500/50"
+                        />
+                        <span className="text-slate-300 text-xs">Include customer info (name, address, phone)</span>
+                    </label>
+
+                    <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                            type="checkbox"
+                            checked={includeTimestamp}
+                            onChange={(e) => setIncludeTimestamp(e.target.checked)}
+                            className="w-4 h-4 rounded border-slate-600 bg-slate-700 text-green-500 focus:ring-green-500/50"
+                        />
+                        <span className="text-slate-300 text-xs">Include order timestamp</span>
+                    </label>
+                </div>
+            )}
 
             {/* Spreadsheet ID */}
             <div>
@@ -226,7 +364,7 @@ const GoogleSheetNodeForm: React.FC<GoogleSheetNodeFormProps> = ({ workspaceId, 
 
                     <div className="mt-3 p-2 bg-slate-900/50 rounded-lg">
                         <p className="text-slate-500 text-xs">
-                            💡 <strong>Tip:</strong> Add headers in your sheet's first row: "Full Name", "Phone", "Address", "order_status" (for tracking), etc.
+                            💡 <strong>Tip for Order Sync:</strong> Add these headers: "Order ID", "Customer Name", "Products", "Quantities", "Prices", "Total", "Timestamp", "Customer Phone", "Customer Address"
                         </p>
                     </div>
                 </div>
@@ -240,7 +378,12 @@ const GoogleSheetNodeForm: React.FC<GoogleSheetNodeFormProps> = ({ workspaceId, 
                         <span className="text-green-400 text-sm font-medium">Ready to sync!</span>
                     </div>
                     <p className="text-slate-400 text-xs mt-1">
-                        Form submissions will be added as new rows to "{sheetName}"
+                        {sourceType === 'checkout'
+                            ? `Complete order data will be added as new rows to "${sheetName}"`
+                            : sourceType === 'form'
+                                ? `Form submissions will be added as new rows to "${sheetName}"`
+                                : `Data will be added as new rows to "${sheetName}" (auto-detected source)`
+                        }
                     </p>
                 </div>
             ) : isValidId && !isValidWebhook ? (

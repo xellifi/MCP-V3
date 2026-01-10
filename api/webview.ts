@@ -214,7 +214,14 @@ async function handleAction(req: VercelRequest, res: VercelResponse) {
         case 'upsell_accept': {
             const { productName, productPrice, productImage } = payload;
             const cart: CartItem[] = session.cart || [];
-            cart.push({ productId: `upsell_${Date.now()}`, productName, productPrice, productImage, quantity: 1 });
+            cart.push({
+                productId: `upsell_${Date.now()}`,
+                productName,
+                productPrice,
+                productImage,
+                quantity: 1,
+                isUpsell: true  // Flag for order tracking
+            } as any);
             const cartTotal = cart.reduce((sum, item) => sum + (item.productPrice * item.quantity), 0);
             updates = { cart, cart_total: cartTotal, user_response: 'accepted', completed_at: new Date().toISOString() };
             result.response = 'accepted';
@@ -229,7 +236,14 @@ async function handleAction(req: VercelRequest, res: VercelResponse) {
         case 'downsell_accept': {
             const { productName, productPrice, productImage, cartAction } = payload;
             let cart: CartItem[] = cartAction === 'replace' ? [] : (session.cart || []);
-            cart.push({ productId: `downsell_${Date.now()}`, productName, productPrice, productImage, quantity: 1 });
+            cart.push({
+                productId: `downsell_${Date.now()}`,
+                productName,
+                productPrice,
+                productImage,
+                quantity: 1,
+                isDownsell: true  // Flag for order tracking
+            } as any);
             const cartTotal = cart.reduce((sum, item) => sum + (item.productPrice * item.quantity), 0);
             updates = { cart, cart_total: cartTotal, user_response: 'accepted', completed_at: new Date().toISOString() };
             result.response = 'accepted';

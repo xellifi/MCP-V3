@@ -994,7 +994,9 @@ async function processPostback(messagingEvent: any, pageId: string) {
                 productName: parsedPayload.productName || 'Product',
                 productPrice: parsedPayload.productPrice || 0,
                 productImage: parsedPayload.productImage || '',
-                quantity: 1
+                quantity: 1,
+                isUpsell: nodeType === 'upsell',
+                isDownsell: nodeType === 'downsell'
             };
 
             if (cartAction === 'replace') {
@@ -2498,10 +2500,186 @@ async function executeAction(
     }
 
     if (nodeType === 'sheetsNode') {
-        console.log(`    ✓ Google Sheets Node detected - sync configured at flow level`);
-        // Track as delivered since the node configuration is complete
-        await incrementNodeAnalytics(flowId, node.id, 'delivered_count');
-        return; // Actual sync happens via form submission webhook
+        console.log(`    ✓ Google Sheets Node detected - checking for order sync`);
+
+        const webhookUrl = config.webhookUrl || '';
+        const sheetName = config.sheetName || 'Orders';
+        const sourceType = config.sourceType || 'auto';
+        const includeMainProduct = config.includeMainProduct ?? true;
+        const includeUpsells = config.includeUpsells ?? true;
+        const includeDownsells = config.includeDownsells ?? true;
+        const includeCustomerInfo = config.includeCustomerInfo ?? true;
+        const includeTimestamp = config.includeTimestamp ?? true;
+
+        // Check if we have order/cart data in context (from checkout flow)
+        const cart = (context as any).cart || [];
+        const cartTotal = (context as any).cartTotal || 0;
+
+        console.log(`    📋 Source type: ${sourceType}`);
+        console.log(`    🛒 Cart items: ${cart.length}, Total: ₱${cartTotal}`);
+
+        // If we have cart data, this is an order sync (after checkout/invoice)
+        if (cart.length > 0 && webhookUrl) {
+            console.log(`    📊 Processing ORDER sync to Google Sheets...`);
+
+            try {
+                const { createClient } = await import('@supabase/supabase-js');
+                const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '';
+                const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';
+                const supabaseSheets = createClient(supabaseUrl, supabaseKey);
+
+                // Get subscriber info for customer details
+                const { data: subscriber } = await supabaseSheets
+                    .from('subscribers')
+                    .select('name, metadata')
+                    .eq('external_id', context.commenterId)
+                    .eq('workspace_id', context.workspaceId)
+                    .single();
+
+                // Build product lists based on config options
+                const mainProducts: string[] = [];
+                const upsellProducts: string[] = [];
+                const downsellProducts: string[] = [];
+                const allProducts: string[] = [];
+                const allQuantities: string[] = [];
+                const allPrices: string[] = [];
+
+                cart.forEach((item: any) => {
+                    const productName = item.productName || 'Unknown Product';
+                    const quantity = item.quantity || 1;
+                    const price = item.productPrice || 0;
+
+                    if (item.isMainProduct && includeMainProduct) {
+                        mainProducts.push(productName);
+                        allProducts.push(`[Main] ${productName}`);
+                        allQuantities.push(String(quantity));
+                        allPrices.push(`₱${price}`);
+                    } else if (item.isUpsell && includeUpsells) {
+                        upsellProducts.push(productName);
+                        allProducts.push(`[Upsell] ${productName}`);
+                        allQuantities.push(String(quantity));
+                        allPrices.push(`₱${price}`);
+                    } else if (item.isDownsell && includeDownsells) {
+                        downsellProducts.push(productName);
+                        allProducts.push(`[Downsell] ${productName}`);
+                        allQuantities.push(String(quantity));
+                        allPrices.push(`₱${price}`);
+                    } else if (!item.isMainProduct && !item.isUpsell && !item.isDownsell) {
+                        // Include all products if no specific flag
+                        allProducts.push(productName);
+                        allQuantities.push(String(quantity));
+                        allPrices.push(`₱${price}`);
+                    }
+                });
+
+                // Generate order ID
+                const orderId = `ORD-${Date.now().toString(36).toUpperCase()}`;
+
+                // Build webhook payload for Google Sheets
+                const webhookPayload: any = {
+                    row_id: orderId,
+                    'Order ID': orderId,
+                    'Customer Name': subscriber?.name || context.commenterName || 'Customer',
+                    'Customer ID': context.commenterId,
+                    'Products': allProducts.join(', '),
+                    'Quantities': allQuantities.join(', '),
+                    'Prices': allPrices.join(', '),
+                    'Total': `₱${cartTotal.toLocaleString()}`,
+                    'Total Amount': cartTotal,
+                    'Main Products': mainProducts.join(', '),
+                    'Upsell Products': upsellProducts.join(', '),
+                    'Downsell Products': downsellProducts.join(', '),
+                    'Item Count': cart.length,
+                };
+
+                // Add customer info if enabled
+                if (includeCustomerInfo && subscriber?.metadata) {
+                    webhookPayload['Customer Phone'] = subscriber.metadata.phone || '';
+                    webhookPayload['Customer Email'] = subscriber.metadata.email || '';
+                    webhookPayload['Customer Address'] = subscriber.metadata.address || '';
+                }
+
+                // Add timestamp if enabled
+                if (includeTimestamp) {
+                    const now = new Date();
+                    webhookPayload['Timestamp'] = now.toISOString();
+                    webhookPayload['Date'] = now.toLocaleDateString('en-PH');
+                    webhookPayload['Time'] = now.toLocaleTimeString('en-PH');
+                }
+
+                // Add flow info for tracking
+                webhookPayload['Flow ID'] = flowId;
+                webhookPayload['Page Name'] = context.pageName || '';
+
+                console.log(`    📤 Sending order to Google Sheets webhook...`);
+                console.log(`    📋 Payload:`, JSON.stringify(webhookPayload, null, 2));
+
+                // Send to Google Sheets webhook
+                const response = await fetch(webhookUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ rowData: webhookPayload })
+                });
+
+                let webhookResult;
+                try {
+                    webhookResult = await response.json();
+                } catch (e) {
+                    webhookResult = { status: response.status };
+                }
+
+                console.log(`    ✓ Google Sheets webhook response:`, webhookResult);
+
+                // Also save order to database for internal tracking
+                try {
+                    const { error: orderError } = await supabaseSheets
+                        .from('orders')
+                        .insert({
+                            id: orderId,
+                            workspace_id: context.workspaceId,
+                            subscriber_external_id: context.commenterId,
+                            customer_name: subscriber?.name || context.commenterName,
+                            items: cart,
+                            total: cartTotal,
+                            status: 'completed',
+                            flow_id: flowId,
+                            metadata: {
+                                main_products: mainProducts,
+                                upsell_products: upsellProducts,
+                                downsell_products: downsellProducts,
+                                synced_to_sheets: true,
+                                sheet_name: sheetName
+                            }
+                        });
+
+                    if (orderError) {
+                        // Table might not exist, that's okay
+                        console.log(`    ⚠️ Could not save to orders table:`, orderError.message);
+                    } else {
+                        console.log(`    ✓ Order saved to database: ${orderId}`);
+                    }
+                } catch (dbError: any) {
+                    console.log(`    ⚠️ Database save skipped:`, dbError.message);
+                }
+
+                // Track as delivered
+                await incrementNodeAnalytics(flowId, node.id, 'delivered_count');
+                console.log(`    ✓ Order sync complete!`);
+
+            } catch (error: any) {
+                console.error(`    ✗ Error syncing order to sheets:`, error.message);
+                await incrementNodeAnalytics(flowId, node.id, 'error_count');
+            }
+        } else if (!webhookUrl) {
+            console.log(`    ⚠️ No webhook URL configured, skipping sync`);
+            await incrementNodeAnalytics(flowId, node.id, 'delivered_count');
+        } else {
+            console.log(`    ℹ️ No cart data - form sync handled separately via form submission`);
+            // Track as delivered since the node configuration is complete
+            await incrementNodeAnalytics(flowId, node.id, 'delivered_count');
+        }
+
+        return;
     }
 
     // Replace variables in templates

@@ -38,9 +38,18 @@ const CustomGoogleSheetNode: React.FC<NodeProps> = ({ data, selected }) => {
     const sheetName = data.sheetName || 'Sheet1';
     const spreadsheetId = data.spreadsheetId || '';
     const webhookUrl = data.webhookUrl || '';
+    const sourceType = data.sourceType || 'auto';
     const hasSpreadsheet = !!spreadsheetId && spreadsheetId.length > 10;
     const hasWebhook = !!webhookUrl && webhookUrl.includes('script.google.com');
     const isFullyConfigured = hasSpreadsheet && hasWebhook;
+
+    const getSourceLabel = () => {
+        switch (sourceType) {
+            case 'form': return '📝 Form Data';
+            case 'checkout': return '🛒 Order Data';
+            default: return '🔗 Auto-detect';
+        }
+    };
 
     return (
         <div className="relative group">
@@ -72,10 +81,15 @@ const CustomGoogleSheetNode: React.FC<NodeProps> = ({ data, selected }) => {
                 {/* Status Indicator */}
                 <div className="mt-2 pt-2 border-t border-green-500/20">
                     {isFullyConfigured ? (
-                        <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                            <span className="text-xs text-green-400">Ready to sync</span>
-                        </div>
+                        <>
+                            <div className="flex items-center gap-2">
+                                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                                <span className="text-xs text-green-400">Ready to sync</span>
+                            </div>
+                            <div className="text-[10px] text-slate-400 mt-1">
+                                {getSourceLabel()}
+                            </div>
+                        </>
                     ) : hasSpreadsheet ? (
                         <div className="flex items-center gap-2">
                             <AlertCircle className="w-3 h-3 text-orange-400" />
@@ -94,6 +108,7 @@ const CustomGoogleSheetNode: React.FC<NodeProps> = ({ data, selected }) => {
                         </div>
                     )}
                 </div>
+
                 {/* Node Insights */}
                 <NodeInsights
                     sent={data.analytics?.sent}
@@ -101,8 +116,6 @@ const CustomGoogleSheetNode: React.FC<NodeProps> = ({ data, selected }) => {
                     subscribers={data.analytics?.subscribers}
                     errors={data.analytics?.errors}
                 />
-
-
 
                 {/* Action Buttons */}
                 <div className="absolute -top-3 -right-3 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
@@ -130,12 +143,12 @@ const CustomGoogleSheetNode: React.FC<NodeProps> = ({ data, selected }) => {
                 </div>
             </div>
 
-            {/* Handle - Input (receives data from Form node) */}
+            {/* Handle - Input (receives data from Form/Checkout/Invoice node) */}
             <Handle
                 type="target"
                 position={Position.Left}
                 className="w-3 h-3 !bg-green-500 !border-2 !border-white"
-                title="Connect from Form node"
+                title="Connect from Form, Checkout, or Invoice node"
             />
             {/* Handle - Output (connect to next flow) */}
             <Handle
