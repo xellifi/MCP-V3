@@ -940,12 +940,17 @@ async function sendUpsellOffer(
         }
 
         // Fallback: Build the payload for postback button clicks
+        // Parse the price string to get numeric value (e.g., "₱588" -> 588)
+        const numericPrice = parseFloat(price.replace(/[^\d.]/g, '')) || 0;
+
         const acceptPayload = JSON.stringify({
             action: 'upsell_accept',
             flowId,
             nodeId,
             productName,
-            price,
+            productPrice: numericPrice, // Numeric price for cart calculation
+            price, // Original formatted price for display
+            productImage: imageUrl,
             imageUrl
         });
 
@@ -1103,12 +1108,17 @@ async function sendDownsellOffer(
         }
 
         // Fallback: postback buttons
+        // Parse the price string to get numeric value (e.g., "₱499" -> 499)
+        const numericPrice = parseFloat(price.replace(/[^\d.]/g, '')) || 0;
+
         const acceptPayload = JSON.stringify({
             action: 'downsell_accept',
             flowId,
             nodeId,
             productName,
-            price,
+            productPrice: numericPrice, // Numeric price for cart calculation
+            price, // Original formatted price for display
+            productImage: imageUrl,
             imageUrl
         });
 
