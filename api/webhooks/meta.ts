@@ -4460,8 +4460,8 @@ async function executeAction(
                 const qty = item.quantity || 1;
                 const itemTotal = item.productPrice * qty;
                 return {
-                    title: qty > 1 ? `${item.productName} x${qty}` : item.productName,
-                    subtitle: `₱${item.productPrice.toLocaleString()} ${qty > 1 ? `each (₱${itemTotal.toLocaleString()} total)` : ''}`.trim(),
+                    title: item.productName,
+                    subtitle: qty > 1 ? `Qty: ${qty} @ PHP ${item.productPrice}` : `PHP ${item.productPrice}`,
                     quantity: qty,
                     price: itemTotal,
                     currency: 'PHP',
@@ -4630,8 +4630,8 @@ async function executeAction(
                 const qty = item.quantity || 1;
                 const itemTotal = item.productPrice * qty;
                 return {
-                    title: qty > 1 ? `${item.productName} x${qty}` : item.productName,
-                    subtitle: `₱${item.productPrice.toLocaleString()} ${qty > 1 ? `each (₱${itemTotal.toLocaleString()} total)` : ''}`.trim(),
+                    title: item.productName,
+                    subtitle: qty > 1 ? `Qty: ${qty} @ PHP ${item.productPrice}` : `PHP ${item.productPrice}`,
                     quantity: qty,
                     price: itemTotal,
                     currency: 'PHP',
