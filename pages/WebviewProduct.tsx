@@ -124,15 +124,18 @@ const WebviewProduct: React.FC = () => {
 
     const continueFlow = async () => {
         try {
-            await fetch(`${API_BASE}/api/webview/continue`, {
+            console.log('[WebviewProduct] Continuing flow from session:', sessionId);
+            const response = await fetch(`${API_BASE}/api/webview?route=continue`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ sessionId })
             });
+            const result = await response.json();
+            console.log('[WebviewProduct] Continue flow response:', result);
             // Try to close the webview
             window.close();
         } catch (err) {
-            console.error('Failed to continue flow');
+            console.error('[WebviewProduct] Failed to continue flow:', err);
             window.close();
         }
     };
