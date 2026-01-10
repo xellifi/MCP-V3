@@ -1263,6 +1263,24 @@ async function processPostback(messagingEvent: any, pageId: string) {
                 }
             }
 
+            // CRITICAL FIX: Clear cart after checkout is confirmed
+            // This ensures the next transaction starts with a fresh cart
+            console.log(`  🧹 Clearing cart from subscriber metadata after checkout...`);
+            await supabase
+                .from('subscribers')
+                .update({
+                    metadata: {
+                        ...(subscriber?.metadata || {}),
+                        cart: [],
+                        cartTotal: 0,
+                        cartUpdatedAt: new Date().toISOString(),
+                        lastCheckoutAt: new Date().toISOString()
+                    }
+                })
+                .eq('external_id', senderId)
+                .eq('workspace_id', workspaceId);
+            console.log(`  ✓ Cart cleared - next transaction will start fresh`);
+
             return;
         }
     } catch (e) {
@@ -4176,6 +4194,184 @@ async function executeAction(
         }
 
         return; // Stop execution - wait for customer to submit the form
+    }
+
+    // Invoice Node - send invoice/receipt after checkout completion
+    if (nodeType === 'invoiceNode') {
+        console.log(`    ✓ Detected as Invoice Node`);
+        const companyName = config.companyName || 'Store';
+        const companyLogo = config.companyLogo || '';
+        const companyAddress = config.companyAddress || '';
+        const primaryColor = config.primaryColor || '#6366f1';
+        const confirmationMessage = config.confirmationMessage || 'Thank you for your order! 🎉';
+
+        try {
+            // Get cart from context or subscriber metadata
+            let cart = (context as any).cart || [];
+            let cartTotal = (context as any).cartTotal || 0;
+            let customerName = context.commenterName || 'Valued Customer';
+
+            // Create supabase client for DB operations
+            const { createClient } = await import('@supabase/supabase-js');
+            const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '';
+            const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';
+            const supabaseInvoice = createClient(supabaseUrl, supabaseKey);
+
+            // If no cart in context, try to get from subscriber metadata
+            if (cart.length === 0) {
+                const { data: subscriber } = await supabaseInvoice
+                    .from('subscribers')
+                    .select('metadata, name')
+                    .eq('external_id', context.commenterId)
+                    .eq('workspace_id', context.workspaceId)
+                    .single();
+
+                if (subscriber?.metadata?.cart) {
+                    cart = subscriber.metadata.cart;
+                    cartTotal = subscriber.metadata.cartTotal || 0;
+                }
+                if (subscriber?.name) {
+                    customerName = subscriber.name;
+                }
+            }
+
+            console.log(`    🛒 Cart items for invoice: ${cart.length}`);
+            console.log(`    💰 Total: ₱${cartTotal}`);
+            console.log(`    👤 Customer: ${customerName}`);
+
+            if (cart.length === 0) {
+                console.log('    ⊘ Empty cart, sending confirmation only');
+                await sendTypingIndicator(context.commenterId, pageAccessToken, 'typing_on');
+                await new Promise(resolve => setTimeout(resolve, 500));
+                await sendTypingIndicator(context.commenterId, pageAccessToken, 'typing_off');
+
+                await fetch(`https://graph.facebook.com/v21.0/me/messages`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        recipient: { id: context.commenterId },
+                        message: { text: `✅ ${confirmationMessage}` },
+                        access_token: pageAccessToken
+                    })
+                });
+
+                // Track delivery
+                await incrementNodeAnalytics(flowId, node.id, 'delivered_count');
+                return;
+            }
+
+            // Generate order number
+            const orderNumber = `ORD-${Date.now().toString(36).toUpperCase()}`;
+
+            // Build receipt elements for Facebook Receipt Template
+            const receiptElements = cart.map((item: any) => ({
+                title: item.productName,
+                subtitle: `Qty: ${item.quantity || 1}`,
+                quantity: item.quantity || 1,
+                price: item.productPrice * (item.quantity || 1),
+                currency: 'PHP',
+                image_url: item.productImage || undefined
+            }));
+
+            // Remove undefined image_url
+            receiptElements.forEach((el: any) => {
+                if (!el.image_url) delete el.image_url;
+            });
+
+            // Show typing
+            await sendTypingIndicator(context.commenterId, pageAccessToken, 'typing_on');
+            await new Promise(resolve => setTimeout(resolve, 800));
+            await sendTypingIndicator(context.commenterId, pageAccessToken, 'typing_off');
+
+            // Try to send Facebook Receipt Template first
+            console.log('    📧 Sending Receipt Template...');
+            const receiptPayload = {
+                recipient: { id: context.commenterId },
+                message: {
+                    attachment: {
+                        type: 'template',
+                        payload: {
+                            template_type: 'receipt',
+                            recipient_name: customerName,
+                            order_number: orderNumber,
+                            currency: 'PHP',
+                            payment_method: 'Cash on Delivery',
+                            timestamp: Math.floor(Date.now() / 1000).toString(),
+                            elements: receiptElements,
+                            summary: {
+                                subtotal: cartTotal,
+                                shipping_cost: 0,
+                                total_tax: 0,
+                                total_cost: cartTotal
+                            }
+                        }
+                    }
+                },
+                access_token: pageAccessToken
+            };
+
+            const response = await fetch(`https://graph.facebook.com/v21.0/me/messages`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(receiptPayload)
+            });
+
+            const result = await response.json();
+            if (result.error) {
+                console.error('    ✗ Receipt Template error:', result.error.message);
+                console.log('    ↩️ Falling back to text invoice...');
+
+                // Fallback to plain text invoice if Receipt Template fails
+                let invoiceText = `🧾 **${companyName}**\n`;
+                invoiceText += `Order #${orderNumber}\n`;
+                invoiceText += `━━━━━━━━━━━━━━━━━━\n\n`;
+
+                for (const item of cart) {
+                    invoiceText += `📦 ${item.productName} x${item.quantity || 1}\n`;
+                    invoiceText += `   ₱${(item.productPrice * (item.quantity || 1)).toLocaleString()}\n\n`;
+                }
+
+                invoiceText += `━━━━━━━━━━━━━━━━━━\n`;
+                invoiceText += `**TOTAL: ₱${cartTotal.toLocaleString()}**\n\n`;
+                invoiceText += `✅ ${confirmationMessage}`;
+
+                await fetch(`https://graph.facebook.com/v21.0/me/messages`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        recipient: { id: context.commenterId },
+                        message: { text: invoiceText },
+                        access_token: pageAccessToken
+                    })
+                });
+
+                // Track delivery
+                await incrementNodeAnalytics(flowId, node.id, 'delivered_count');
+            } else {
+                console.log('    ✓ Receipt sent successfully!');
+                // Track delivery
+                await incrementNodeAnalytics(flowId, node.id, 'delivered_count');
+
+                // Send thank you follow-up message
+                await new Promise(resolve => setTimeout(resolve, 500));
+                await fetch(`https://graph.facebook.com/v21.0/me/messages`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        recipient: { id: context.commenterId },
+                        message: { text: `✅ ${confirmationMessage}\n\n📋 Tap the receipt above to view your complete order details.` },
+                        access_token: pageAccessToken
+                    })
+                });
+            }
+
+        } catch (error: any) {
+            console.error('    ✗ Exception sending invoice:', error.message);
+            // Track error
+            await incrementNodeAnalytics(flowId, node.id, 'error_count');
+        }
+
+        return;
     }
 
     // Cart Invoice Node - send cart summary with all items and total
