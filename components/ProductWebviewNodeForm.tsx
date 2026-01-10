@@ -316,6 +316,29 @@ const ProductWebviewNodeForm: React.FC<ProductWebviewNodeFormProps> = ({
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
+    // Send initial config on mount to ensure node is marked as configured
+    useEffect(() => {
+        onChange({
+            headline, headlineColor, headlineBgColor, headlineAnimation, headlineAnimationSpeed,
+            showEmoji, emojiType, imageUrl, imageSource, imageBorderRadius, imageBorderColor,
+            imageBorderWidth, price, priceBadgeColor, priceTextColor, priceBadgeSize,
+            description, descriptionColor, buttonText, buttonBgColor, buttonTextColor,
+            buttonBorderRadius, showButtonIcon, backgroundColor, pageBackgroundColor,
+            showProductName, productNameBgColor, productNameTextColor, productNameFontSize,
+            productNameBorderRadius, productNameFullWidth, showCountdown, countdownMinutes,
+            countdownPosition, countdownBgColor, countdownTextColor, countdownFontSize,
+            countdownShowBg, countdownBorderRadius, countdownFullWidth, cartAction,
+            productName: productName || headline,
+            productPrice: parseFloat(price.replace(/[^0-9.]/g, '')) || 0,
+            useWebview, imagePreviewSize, enableQuantitySelector, enablePromoCode,
+            enableColorSelector, enableSizeSelector, colorOptions, sizeOptions,
+            onAddToCartAction, onAddToCartFlowId, enableFollowup, followupTimeout, followupNodeType
+        });
+        // Only run on mount
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+
     // ================== HELPERS ==================
     const notifyChange = (updates: Partial<typeof initialConfig> = {}) => {
         onChange({
