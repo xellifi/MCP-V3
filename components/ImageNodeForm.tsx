@@ -219,92 +219,121 @@ const ImageNodeForm: React.FC<ImageNodeFormProps> = ({
 
     // ================== DEVICE PREVIEW ==================
     const DevicePreview = () => {
-        // Size based on device type - compact for form
+        // Larger sizes for better visibility
         const sizes = {
-            mobile: { width: 180, height: 320, radius: 24, notch: true },
-            tablet: { width: 220, height: 300, radius: 16, notch: false },
-            desktop: { width: 280, height: 180, radius: 8, notch: false }
+            mobile: { width: 320, height: 580, radius: 44, notch: true },
+            tablet: { width: 400, height: 520, radius: 28, notch: false },
+            desktop: { width: 520, height: 340, radius: 12, notch: false }
         };
         const size = sizes[previewDevice];
 
         return (
-            <div className="flex flex-col items-center">
+            <div className="flex flex-col items-center justify-center h-full">
                 <div className="relative" style={{ width: size.width, height: size.height }}>
+                    {/* Device Frame */}
                     <div
-                        className={`w-full h-full shadow-2xl border-4 flex flex-col ${previewDevice === 'desktop' ? 'bg-slate-200 border-slate-400' : 'bg-slate-900 border-slate-700'}`}
+                        className={`w-full h-full shadow-2xl flex flex-col ${previewDevice === 'desktop' ? 'bg-slate-200 border-[6px] border-slate-400' : 'bg-black border-[8px] border-slate-800'}`}
                         style={{ borderRadius: size.radius }}
                     >
+                        {/* Notch for mobile */}
                         {size.notch && (
-                            <div className="absolute top-1.5 left-1/2 -translate-x-1/2 w-14 h-4 bg-black rounded-full z-10" />
+                            <div className="absolute top-3 left-1/2 -translate-x-1/2 w-28 h-7 bg-black rounded-full z-20 flex items-center justify-center">
+                                <div className="w-3 h-3 rounded-full bg-slate-800 mr-8"></div>
+                            </div>
                         )}
+
+                        {/* Screen Content */}
                         <div
                             className={`w-full h-full overflow-hidden flex flex-col ${previewDevice === 'desktop' ? 'bg-white' : 'bg-gradient-to-b from-slate-800 to-slate-900'}`}
-                            style={{ borderRadius: Math.max(size.radius - 4, 4) }}
+                            style={{ borderRadius: Math.max(size.radius - 8, 4) }}
                         >
                             {/* Status bar */}
-                            <div className={`h-4 flex-shrink-0 flex items-center justify-between px-2 text-[8px] ${previewDevice === 'desktop' ? 'text-slate-500 bg-slate-100 border-b border-slate-200' : 'text-white/60'}`}>
+                            <div className={`flex-shrink-0 flex items-center justify-between px-6 ${previewDevice === 'desktop' ? 'h-8 text-slate-500 bg-slate-100 border-b border-slate-200 text-xs' : 'h-10 text-white/80 text-sm pt-2'}`}>
                                 {previewDevice === 'desktop' ? (
                                     <>
-                                        <div className="flex items-center gap-0.5">
-                                            <div className="w-1.5 h-1.5 rounded-full bg-red-400"></div>
-                                            <div className="w-1.5 h-1.5 rounded-full bg-yellow-400"></div>
-                                            <div className="w-1.5 h-1.5 rounded-full bg-green-400"></div>
+                                        <div className="flex items-center gap-1.5">
+                                            <div className="w-3 h-3 rounded-full bg-red-400"></div>
+                                            <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
+                                            <div className="w-3 h-3 rounded-full bg-green-400"></div>
                                         </div>
-                                        <span className="text-[6px] text-slate-400">m.me/page</span>
+                                        <span className="text-xs text-slate-400">m.me/yourpage</span>
                                         <div></div>
                                     </>
                                 ) : (
                                     <>
-                                        <span>9:41</span>
-                                        <span>100%</span>
+                                        <span className="font-medium">9:41</span>
+                                        <span className="font-medium">100%</span>
                                     </>
                                 )}
                             </div>
 
-                            {/* Content */}
-                            <div className="flex-1 overflow-y-auto p-2 bg-slate-100">
-                                <div className="flex items-center gap-1.5 mb-2">
-                                    <div className="w-5 h-5 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-                                        <span className="text-white text-[8px] font-bold">P</span>
+                            {/* Messenger Content Area */}
+                            <div className="flex-1 overflow-y-auto bg-white p-4">
+                                {/* Page Header */}
+                                <div className="flex items-center gap-3 mb-4 pb-3 border-b border-slate-100">
+                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-md">
+                                        <span className="text-white text-sm font-bold">P</span>
                                     </div>
-                                    <div className="text-[8px] text-slate-600 font-medium">Your Page</div>
+                                    <div>
+                                        <div className="text-sm text-slate-800 font-semibold">Your Page</div>
+                                        <div className="text-xs text-slate-400">Active now</div>
+                                    </div>
                                 </div>
+
+                                {/* Message Bubble */}
                                 <div className="flex flex-col items-start">
-                                    <div className="bg-white rounded-xl rounded-bl-sm shadow-sm overflow-hidden max-w-[90%]">
+                                    <div className="bg-slate-100 rounded-2xl rounded-bl-md shadow-sm overflow-hidden max-w-[85%]">
+                                        {/* Image */}
                                         {imageUrl ? (
-                                            <img src={imageUrl} alt="Preview" className="w-full h-auto max-h-16 object-cover" onError={() => setPreviewError(true)} />
+                                            <img
+                                                src={imageUrl}
+                                                alt="Preview"
+                                                className="w-full h-auto max-h-48 object-cover"
+                                                onError={() => setPreviewError(true)}
+                                            />
                                         ) : (
-                                            <div className="w-full h-12 bg-slate-200 flex items-center justify-center">
-                                                <Image className="w-4 h-4 text-slate-400" />
+                                            <div className="w-full h-36 bg-slate-200 flex items-center justify-center">
+                                                <Image className="w-12 h-12 text-slate-400" />
                                             </div>
                                         )}
-                                        {caption && <div className="px-1.5 py-1 text-[7px] text-slate-800">{caption}</div>}
+
+                                        {/* Caption */}
+                                        {caption && (
+                                            <div className="px-4 py-3 text-sm text-slate-800 border-t border-slate-200">
+                                                {caption}
+                                            </div>
+                                        )}
+
+                                        {/* Button */}
                                         {showButton && (
-                                            <div className="border-t border-slate-100">
-                                                <button className="w-full py-1.5 text-blue-600 font-semibold text-[8px] flex items-center justify-center gap-1">
-                                                    {buttonAction === 'url' && <ExternalLink className="w-2.5 h-2.5" />}
-                                                    {buttonAction === 'upsell' && <ShoppingBag className="w-2.5 h-2.5" />}
-                                                    {buttonAction === 'downsell' && <ShoppingBag className="w-2.5 h-2.5" />}
-                                                    {buttonAction === 'existing_flow' && <Workflow className="w-2.5 h-2.5" />}
-                                                    {buttonAction === 'create_flow' && <Plus className="w-2.5 h-2.5" />}
+                                            <div className="border-t border-slate-200">
+                                                <button className="w-full py-3 text-blue-600 font-semibold text-sm hover:bg-blue-50 transition-colors flex items-center justify-center gap-2">
+                                                    {buttonAction === 'url' && <ExternalLink className="w-4 h-4" />}
+                                                    {buttonAction === 'upsell' && <ShoppingBag className="w-4 h-4" />}
+                                                    {buttonAction === 'downsell' && <ShoppingBag className="w-4 h-4" />}
+                                                    {buttonAction === 'existing_flow' && <Workflow className="w-4 h-4" />}
+                                                    {buttonAction === 'create_flow' && <Plus className="w-4 h-4" />}
                                                     {buttonText || 'Button'}
                                                 </button>
                                             </div>
                                         )}
                                     </div>
-                                    <span className="text-[7px] text-slate-400 mt-0.5 ml-0.5">Just now</span>
+                                    <span className="text-xs text-slate-400 mt-2 ml-2">Just now</span>
                                 </div>
+
+                                {/* Delay indicator */}
                                 {delaySeconds > 0 && (
-                                    <div className="mt-2 flex items-center gap-0.5 text-[7px] text-slate-400">
-                                        <Clock className="w-2 h-2" />
-                                        <span>{delaySeconds}s delay</span>
+                                    <div className="mt-4 flex items-center gap-2 text-xs text-slate-400">
+                                        <Clock className="w-4 h-4" />
+                                        <span>Sends after {delaySeconds}s delay</span>
                                     </div>
                                 )}
                             </div>
 
+                            {/* Home indicator for mobile */}
                             {size.notch && (
-                                <div className="h-3 flex-shrink-0 flex items-center justify-center bg-slate-100">
-                                    <div className="w-12 h-0.5 bg-slate-300 rounded-full" />
+                                <div className="h-8 flex-shrink-0 flex items-center justify-center bg-white">
+                                    <div className="w-32 h-1 bg-slate-300 rounded-full" />
                                 </div>
                             )}
                         </div>
