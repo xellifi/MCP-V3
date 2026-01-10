@@ -365,224 +365,228 @@ const WebviewCheckout: React.FC = () => {
         );
     }
 
-    // Main Checkout
+    // Main Checkout - White background with centered container
     return (
-        <div className="min-h-screen bg-slate-900 flex flex-col">
-            {/* Scrollable Content */}
-            <div className="flex-1 overflow-auto p-4 pb-28">
-                {/* Order Items Section */}
-                <div className="bg-slate-800/50 rounded-2xl p-4 mb-4 border border-slate-700/50">
-                    <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center gap-2">
-                            <ShoppingCart className="w-5 h-5 text-emerald-400" />
-                            <h2 className="text-white font-bold text-lg">Order Items</h2>
+        <div className="min-h-screen bg-white flex items-center justify-center p-4">
+            {/* Dark Container */}
+            <div className="w-full max-w-md mx-auto bg-slate-900 rounded-2xl shadow-2xl overflow-hidden flex flex-col" style={{ maxHeight: '90vh' }}>
+                {/* Scrollable Content */}
+                <div className="flex-1 overflow-auto p-4 pb-24">
+                    {/* Order Items Section */}
+                    <div className="bg-slate-800/50 rounded-2xl p-4 mb-4 border border-slate-700/50">
+                        <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center gap-2">
+                                <ShoppingCart className="w-5 h-5 text-emerald-400" />
+                                <h2 className="text-white font-bold text-lg">Order Items</h2>
+                            </div>
+                            <span className="px-3 py-1 bg-emerald-500/20 text-emerald-400 text-sm font-medium rounded-full border border-emerald-500/30">
+                                {session.cart.length} item{session.cart.length !== 1 ? 's' : ''}
+                            </span>
                         </div>
-                        <span className="px-3 py-1 bg-emerald-500/20 text-emerald-400 text-sm font-medium rounded-full border border-emerald-500/30">
-                            {session.cart.length} item{session.cart.length !== 1 ? 's' : ''}
-                        </span>
+
+                        {session.cart.length === 0 ? (
+                            <div className="py-8 text-center">
+                                <Package className="w-12 h-12 text-slate-500 mx-auto mb-3" />
+                                <p className="text-slate-400">Your cart is empty</p>
+                            </div>
+                        ) : (
+                            <div className="space-y-3">
+                                {session.cart.map((item, index) => (
+                                    <div
+                                        key={index}
+                                        className="flex items-center gap-3 p-3 bg-slate-700/30 rounded-xl border border-slate-600/30"
+                                    >
+                                        <div className="w-12 h-12 rounded-lg bg-slate-600/50 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                                            {item.productImage ? (
+                                                <img src={item.productImage} alt={item.productName} className="w-full h-full object-cover" />
+                                            ) : (
+                                                <Package className="w-6 h-6 text-emerald-400" />
+                                            )}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <h3 className="text-white font-medium text-sm truncate">{item.productName}</h3>
+                                            <p className="text-slate-400 text-xs">Qty: {item.quantity || 1}</p>
+                                        </div>
+                                        <div className="flex-shrink-0">
+                                            <p className="text-emerald-400 font-bold">₱{(item.productPrice * (item.quantity || 1)).toLocaleString()}</p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
 
-                    {session.cart.length === 0 ? (
-                        <div className="py-8 text-center">
-                            <Package className="w-12 h-12 text-slate-500 mx-auto mb-3" />
-                            <p className="text-slate-400">Your cart is empty</p>
-                        </div>
-                    ) : (
-                        <div className="space-y-3">
-                            {session.cart.map((item, index) => (
-                                <div
-                                    key={index}
-                                    className="flex items-center gap-3 p-3 bg-slate-700/30 rounded-xl border border-slate-600/30"
-                                >
-                                    <div className="w-12 h-12 rounded-lg bg-slate-600/50 flex items-center justify-center flex-shrink-0 overflow-hidden">
-                                        {item.productImage ? (
-                                            <img src={item.productImage} alt={item.productName} className="w-full h-full object-cover" />
-                                        ) : (
-                                            <Package className="w-6 h-6 text-emerald-400" />
-                                        )}
+                    {/* Subtotal & Total */}
+                    {session.cart.length > 0 && (
+                        <div className="bg-slate-800/50 rounded-2xl p-4 mb-4 border border-slate-700/50">
+                            <div className="space-y-3">
+                                <div className="flex justify-between text-slate-300">
+                                    <span>Subtotal</span>
+                                    <span>₱{subtotal.toLocaleString()}</span>
+                                </div>
+                                {config.showShipping && (
+                                    <div className="flex justify-between text-slate-300">
+                                        <span className="flex items-center gap-1"><Truck className="w-4 h-4" /> Shipping</span>
+                                        <span className={shipping === 0 ? 'text-emerald-400' : ''}>
+                                            {shipping > 0 ? `₱${shipping.toLocaleString()}` : 'FREE'}
+                                        </span>
                                     </div>
-                                    <div className="flex-1 min-w-0">
-                                        <h3 className="text-white font-medium text-sm truncate">{item.productName}</h3>
-                                        <p className="text-slate-400 text-xs">Qty: {item.quantity || 1}</p>
-                                    </div>
-                                    <div className="flex-shrink-0">
-                                        <p className="text-emerald-400 font-bold">₱{(item.productPrice * (item.quantity || 1)).toLocaleString()}</p>
+                                )}
+                                <div className="border-t border-slate-600/50 pt-3">
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-white font-bold text-lg">Total</span>
+                                        <span className="text-emerald-400 font-bold text-xl">₱{total.toLocaleString()}</span>
                                     </div>
                                 </div>
-                            ))}
+                            </div>
                         </div>
                     )}
-                </div>
 
-                {/* Subtotal & Total */}
-                {session.cart.length > 0 && (
+                    {/* Shipping Information */}
                     <div className="bg-slate-800/50 rounded-2xl p-4 mb-4 border border-slate-700/50">
+                        <div className="flex items-center gap-2 mb-4">
+                            <User className="w-5 h-5 text-emerald-400" />
+                            <h2 className="text-white font-bold">Shipping Information</h2>
+                        </div>
+
                         <div className="space-y-3">
-                            <div className="flex justify-between text-slate-300">
-                                <span>Subtotal</span>
-                                <span>₱{subtotal.toLocaleString()}</span>
-                            </div>
-                            {config.showShipping && (
-                                <div className="flex justify-between text-slate-300">
-                                    <span className="flex items-center gap-1"><Truck className="w-4 h-4" /> Shipping</span>
-                                    <span className={shipping === 0 ? 'text-emerald-400' : ''}>
-                                        {shipping > 0 ? `₱${shipping.toLocaleString()}` : 'FREE'}
-                                    </span>
+                            {showName && (
+                                <div>
+                                    <label className="text-slate-400 text-xs mb-1 block">Full Name</label>
+                                    <div className="relative">
+                                        <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                                        <input
+                                            type="text"
+                                            value={shippingForm.name}
+                                            onChange={(e) => handleInputChange('name', e.target.value)}
+                                            placeholder="Juan Dela Cruz"
+                                            className={`w-full bg-slate-700/50 border rounded-xl py-3 pl-10 pr-4 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 ${formErrors.name ? 'border-red-500' : 'border-slate-600/50'}`}
+                                        />
+                                    </div>
+                                    {formErrors.name && <p className="text-red-400 text-xs mt-1">{formErrors.name}</p>}
                                 </div>
                             )}
-                            <div className="border-t border-slate-600/50 pt-3">
-                                <div className="flex justify-between items-center">
-                                    <span className="text-white font-bold text-lg">Total</span>
-                                    <span className="text-emerald-400 font-bold text-xl">₱{total.toLocaleString()}</span>
+
+                            {showPhone && (
+                                <div>
+                                    <label className="text-slate-400 text-xs mb-1 block">Phone Number</label>
+                                    <div className="relative">
+                                        <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                                        <input
+                                            type="tel"
+                                            value={shippingForm.phone}
+                                            onChange={(e) => handleInputChange('phone', e.target.value)}
+                                            placeholder="09XX XXX XXXX"
+                                            className={`w-full bg-slate-700/50 border rounded-xl py-3 pl-10 pr-4 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 ${formErrors.phone ? 'border-red-500' : 'border-slate-600/50'}`}
+                                        />
+                                    </div>
+                                    {formErrors.phone && <p className="text-red-400 text-xs mt-1">{formErrors.phone}</p>}
                                 </div>
-                            </div>
+                            )}
+
+                            {showEmail && (
+                                <div>
+                                    <label className="text-slate-400 text-xs mb-1 block">Email Address</label>
+                                    <div className="relative">
+                                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                                        <input
+                                            type="email"
+                                            value={shippingForm.email}
+                                            onChange={(e) => handleInputChange('email', e.target.value)}
+                                            placeholder="you@example.com"
+                                            className={`w-full bg-slate-700/50 border rounded-xl py-3 pl-10 pr-4 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 ${formErrors.email ? 'border-red-500' : 'border-slate-600/50'}`}
+                                        />
+                                    </div>
+                                    {formErrors.email && <p className="text-red-400 text-xs mt-1">{formErrors.email}</p>}
+                                </div>
+                            )}
+
+                            {showAddress && (
+                                <div>
+                                    <label className="text-slate-400 text-xs mb-1 block">Complete Address</label>
+                                    <div className="relative">
+                                        <MapPin className="absolute left-3 top-3 w-4 h-4 text-slate-500" />
+                                        <textarea
+                                            value={shippingForm.address}
+                                            onChange={(e) => handleInputChange('address', e.target.value)}
+                                            placeholder="House/Unit No., Street, Barangay, City, Province"
+                                            rows={3}
+                                            className={`w-full bg-slate-700/50 border rounded-xl py-3 pl-10 pr-4 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 resize-none ${formErrors.address ? 'border-red-500' : 'border-slate-600/50'}`}
+                                        />
+                                    </div>
+                                    {formErrors.address && <p className="text-red-400 text-xs mt-1">{formErrors.address}</p>}
+                                </div>
+                            )}
                         </div>
                     </div>
-                )}
 
-                {/* Shipping Information */}
-                <div className="bg-slate-800/50 rounded-2xl p-4 mb-4 border border-slate-700/50">
-                    <div className="flex items-center gap-2 mb-4">
-                        <User className="w-5 h-5 text-emerald-400" />
-                        <h2 className="text-white font-bold">Shipping Information</h2>
-                    </div>
+                    {/* Payment Method */}
+                    <div className="bg-slate-800/50 rounded-2xl p-4 border border-slate-700/50">
+                        <div className="flex items-center gap-2 mb-4">
+                            <Wallet className="w-5 h-5 text-emerald-400" />
+                            <h2 className="text-white font-bold">Payment Method</h2>
+                        </div>
 
-                    <div className="space-y-3">
-                        {showName && (
-                            <div>
-                                <label className="text-slate-400 text-xs mb-1 block">Full Name</label>
-                                <div className="relative">
-                                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                                    <input
-                                        type="text"
-                                        value={shippingForm.name}
-                                        onChange={(e) => handleInputChange('name', e.target.value)}
-                                        placeholder="Juan Dela Cruz"
-                                        className={`w-full bg-slate-700/50 border rounded-xl py-3 pl-10 pr-4 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 ${formErrors.name ? 'border-red-500' : 'border-slate-600/50'}`}
-                                    />
-                                </div>
-                                {formErrors.name && <p className="text-red-400 text-xs mt-1">{formErrors.name}</p>}
-                            </div>
-                        )}
-
-                        {showPhone && (
-                            <div>
-                                <label className="text-slate-400 text-xs mb-1 block">Phone Number</label>
-                                <div className="relative">
-                                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                                    <input
-                                        type="tel"
-                                        value={shippingForm.phone}
-                                        onChange={(e) => handleInputChange('phone', e.target.value)}
-                                        placeholder="09XX XXX XXXX"
-                                        className={`w-full bg-slate-700/50 border rounded-xl py-3 pl-10 pr-4 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 ${formErrors.phone ? 'border-red-500' : 'border-slate-600/50'}`}
-                                    />
-                                </div>
-                                {formErrors.phone && <p className="text-red-400 text-xs mt-1">{formErrors.phone}</p>}
-                            </div>
-                        )}
-
-                        {showEmail && (
-                            <div>
-                                <label className="text-slate-400 text-xs mb-1 block">Email Address</label>
-                                <div className="relative">
-                                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                                    <input
-                                        type="email"
-                                        value={shippingForm.email}
-                                        onChange={(e) => handleInputChange('email', e.target.value)}
-                                        placeholder="you@example.com"
-                                        className={`w-full bg-slate-700/50 border rounded-xl py-3 pl-10 pr-4 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 ${formErrors.email ? 'border-red-500' : 'border-slate-600/50'}`}
-                                    />
-                                </div>
-                                {formErrors.email && <p className="text-red-400 text-xs mt-1">{formErrors.email}</p>}
-                            </div>
-                        )}
-
-                        {showAddress && (
-                            <div>
-                                <label className="text-slate-400 text-xs mb-1 block">Complete Address</label>
-                                <div className="relative">
-                                    <MapPin className="absolute left-3 top-3 w-4 h-4 text-slate-500" />
-                                    <textarea
-                                        value={shippingForm.address}
-                                        onChange={(e) => handleInputChange('address', e.target.value)}
-                                        placeholder="House/Unit No., Street, Barangay, City, Province"
-                                        rows={3}
-                                        className={`w-full bg-slate-700/50 border rounded-xl py-3 pl-10 pr-4 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 resize-none ${formErrors.address ? 'border-red-500' : 'border-slate-600/50'}`}
-                                    />
-                                </div>
-                                {formErrors.address && <p className="text-red-400 text-xs mt-1">{formErrors.address}</p>}
-                            </div>
-                        )}
-                    </div>
-                </div>
-
-                {/* Payment Method */}
-                <div className="bg-slate-800/50 rounded-2xl p-4 border border-slate-700/50">
-                    <div className="flex items-center gap-2 mb-4">
-                        <Wallet className="w-5 h-5 text-emerald-400" />
-                        <h2 className="text-white font-bold">Payment Method</h2>
-                    </div>
-
-                    <div className="space-y-2">
-                        {paymentMethods.map((method) => (
-                            <label
-                                key={method.id}
-                                className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${selectedPayment === method.id
+                        <div className="space-y-2">
+                            {paymentMethods.map((method) => (
+                                <label
+                                    key={method.id}
+                                    className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${selectedPayment === method.id
                                         ? 'bg-emerald-500/20 border-emerald-500/50'
                                         : 'bg-slate-700/30 border-slate-600/30 hover:border-slate-500/50'
-                                    }`}
-                            >
-                                <input
-                                    type="radio"
-                                    name="payment"
-                                    value={method.id}
-                                    checked={selectedPayment === method.id}
-                                    onChange={(e) => setSelectedPayment(e.target.value)}
-                                    className="sr-only"
-                                />
-                                <span className="text-2xl">{method.icon}</span>
-                                <div className="flex-1">
-                                    <p className={`font-medium ${selectedPayment === method.id ? 'text-emerald-400' : 'text-white'}`}>
-                                        {method.name}
-                                    </p>
-                                    {method.description && (
-                                        <p className="text-slate-400 text-xs">{method.description}</p>
-                                    )}
-                                </div>
-                                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${selectedPayment === method.id ? 'border-emerald-400 bg-emerald-400' : 'border-slate-500'
-                                    }`}>
-                                    {selectedPayment === method.id && (
-                                        <Check className="w-3 h-3 text-slate-900" />
-                                    )}
-                                </div>
-                            </label>
-                        ))}
+                                        }`}
+                                >
+                                    <input
+                                        type="radio"
+                                        name="payment"
+                                        value={method.id}
+                                        checked={selectedPayment === method.id}
+                                        onChange={(e) => setSelectedPayment(e.target.value)}
+                                        className="sr-only"
+                                    />
+                                    <span className="text-2xl">{method.icon}</span>
+                                    <div className="flex-1">
+                                        <p className={`font-medium ${selectedPayment === method.id ? 'text-emerald-400' : 'text-white'}`}>
+                                            {method.name}
+                                        </p>
+                                        {method.description && (
+                                            <p className="text-slate-400 text-xs">{method.description}</p>
+                                        )}
+                                    </div>
+                                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${selectedPayment === method.id ? 'border-emerald-400 bg-emerald-400' : 'border-slate-500'
+                                        }`}>
+                                        {selectedPayment === method.id && (
+                                            <Check className="w-3 h-3 text-slate-900" />
+                                        )}
+                                    </div>
+                                </label>
+                            ))}
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            {/* Fixed Bottom Button */}
-            <div className="fixed bottom-0 left-0 right-0 p-4 bg-slate-900/95 backdrop-blur-xl border-t border-slate-700/50">
-                <button
-                    onClick={handleConfirmOrder}
-                    disabled={processing || session.cart.length === 0}
-                    className="w-full py-4 rounded-xl font-bold text-base flex items-center justify-center gap-2 shadow-lg transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
-                    style={{ backgroundColor: buttonColor, color: config.buttonTextColor || '#ffffff' }}
-                >
-                    {processing ? (
-                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    ) : (
-                        <>
-                            <CreditCard className="w-5 h-5" />
-                            {config.buttonText || `Pay ₱${total.toLocaleString()}`}
-                        </>
-                    )}
-                </button>
+                {/* Fixed Bottom Button */}
+                <div className="p-4 bg-slate-900 border-t border-slate-700/50 flex-shrink-0">
+                    <button
+                        onClick={handleConfirmOrder}
+                        disabled={processing || session.cart.length === 0}
+                        className="w-full py-4 rounded-xl font-bold text-base flex items-center justify-center gap-2 shadow-lg transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                        style={{ backgroundColor: buttonColor, color: config.buttonTextColor || '#ffffff' }}
+                    >
+                        {processing ? (
+                            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                            <>
+                                <CreditCard className="w-5 h-5" />
+                                {config.buttonText || `Pay ₱${total.toLocaleString()}`}
+                            </>
+                        )}
+                    </button>
+                </div>
             </div>
         </div>
     );
 };
 
 export default WebviewCheckout;
+

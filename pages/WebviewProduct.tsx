@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
-import { Check, Sparkles, Minus, Plus, ShoppingCart, X } from 'lucide-react';
+import { Check, Sparkles, Minus, Plus, ShoppingCart, X, Tag } from 'lucide-react';
 
 interface CartItem {
     productId?: string;
@@ -32,6 +32,11 @@ const WebviewProduct: React.FC = () => {
     const [cart, setCart] = useState<CartItem[]>([]);
     const [countdown, setCountdown] = useState<number>(0);
     const [quantity, setQuantity] = useState(1);
+
+    // Product options state
+    const [selectedColor, setSelectedColor] = useState<string>('');
+    const [selectedSize, setSelectedSize] = useState<string>('');
+    const [promoCode, setPromoCode] = useState('');
 
     // Toast notification
     const [toast, setToast] = useState<{ message: string; visible: boolean }>({ message: '', visible: false });
@@ -72,10 +77,19 @@ const WebviewProduct: React.FC = () => {
             }
 
             const session = data.session;
+            const pageConfig = session.page_config || {};
             console.log('[WebviewProduct] Session loaded:', session);
-            console.log('[WebviewProduct] page_config:', session.page_config);
-            setConfig(session.page_config || {});
+            console.log('[WebviewProduct] page_config:', pageConfig);
+            setConfig(pageConfig);
             setCart(session.cart || []);
+
+            // Set default selections for color and size
+            if (pageConfig.colorOptions?.length > 0) {
+                setSelectedColor(pageConfig.colorOptions[0]);
+            }
+            if (pageConfig.sizeOptions?.length > 0) {
+                setSelectedSize(pageConfig.sizeOptions[0]);
+            }
         } catch (err: any) {
             setError(err.message || 'Failed to load product');
         } finally {
@@ -87,13 +101,32 @@ const WebviewProduct: React.FC = () => {
         if (!config) return;
 
         try {
+            // Build variant info
+            const variant: { color?: string; size?: string } = {};
+            if (config.enableColorSelector && selectedColor) {
+                variant.color = selectedColor;
+            }
+            if (config.enableSizeSelector && selectedSize) {
+                variant.size = selectedSize;
+            }
+
+            // Build product name with variants
+            let productName = config.productName || config.headline || 'Product';
+            if (variant.color || variant.size) {
+                const variantParts = [];
+                if (variant.color) variantParts.push(variant.color);
+                if (variant.size) variantParts.push(variant.size);
+                productName = `${productName} (${variantParts.join(' / ')})`;
+            }
+
             const cartItem = {
                 productId: sessionId,
-                productName: config.productName || config.headline || 'Product',
+                productName: productName,
                 productPrice: config.productPrice || parseFloat((config.price || '0').replace(/[^\d.]/g, '')) || 0,
                 productImage: config.imageUrl,
                 quantity,
-                variant: {}
+                variant,
+                promoCode: config.enablePromoCode ? promoCode : undefined
             };
 
             const response = await fetch(`${API_BASE}/api/webview?route=action`, {
@@ -121,6 +154,7 @@ const WebviewProduct: React.FC = () => {
             showToast('Failed to add to cart');
         }
     };
+
 
     const continueFlow = async () => {
         try {
@@ -359,6 +393,64 @@ const WebviewProduct: React.FC = () => {
                                 >
                                     <Plus className="w-5 h-5 text-white" />
                                 </button>
+                            </div>
+                        )}
+
+                        {/* Color Options */}
+                        {config.enableColorSelector && config.colorOptions?.length > 0 && (
+                            <div className="mt-4">
+                                <p className="text-sm text-slate-600 text-center mb-2 font-medium">Color</p>
+                                <div className="flex flex-wrap justify-center gap-2">
+                                    {config.colorOptions.map((color: string) => (
+                                        <button
+                                            key={color}
+                                            onClick={() => setSelectedColor(color)}
+                                            className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${selectedColor === color
+                                                    ? 'bg-indigo-500 text-white shadow-lg scale-105'
+                                                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                                                }`}
+                                        >
+                                            {color}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Size Options */}
+                        {config.enableSizeSelector && config.sizeOptions?.length > 0 && (
+                            <div className="mt-4">
+                                <p className="text-sm text-slate-600 text-center mb-2 font-medium">Size</p>
+                                <div className="flex flex-wrap justify-center gap-2">
+                                    {config.sizeOptions.map((size: string) => (
+                                        <button
+                                            key={size}
+                                            onClick={() => setSelectedSize(size)}
+                                            className={`w-12 h-12 rounded-lg text-sm font-bold transition-all ${selectedSize === size
+                                                    ? 'bg-indigo-500 text-white shadow-lg scale-105'
+                                                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                                                }`}
+                                        >
+                                            {size}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Promo Code Field */}
+                        {config.enablePromoCode && (
+                            <div className="mt-4">
+                                <div className="relative">
+                                    <Tag className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                    <input
+                                        type="text"
+                                        value={promoCode}
+                                        onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+                                        placeholder="Enter promo code"
+                                        className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 text-sm"
+                                    />
+                                </div>
                             </div>
                         )}
 
