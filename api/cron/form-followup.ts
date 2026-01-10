@@ -231,10 +231,99 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         console.log(`[Form Followup Cron] Complete. Processed: ${processedCount}, Sent: ${sentCount}`);
 
+        // ========================================
+        // WEBVIEW SESSION FOLLOW-UPS
+        // ========================================
+        console.log('[Webview Followup] Starting...');
+
+        let webviewProcessed = 0;
+        let webviewSent = 0;
+
+        try {
+            // Find pending webview sessions that need follow-up
+            const { data: pendingSessions, error: webviewError } = await supabase
+                .from('webview_sessions')
+                .select('*')
+                .eq('status', 'pending')
+                .eq('followup_enabled', true)
+                .order('shown_at', { ascending: true })
+                .limit(50);
+
+            if (webviewError) {
+                console.error('[Webview Followup] Error fetching:', webviewError);
+            } else {
+                console.log('[Webview Followup] Found', pendingSessions?.length || 0, 'potential follow-ups');
+
+                for (const session of pendingSessions || []) {
+                    webviewProcessed++;
+
+                    const shownAt = new Date(session.shown_at);
+                    const minutesSinceShown = (now.getTime() - shownAt.getTime()) / (60 * 1000);
+                    const timeoutMinutes = session.followup_timeout_minutes || 5;
+
+                    // Check if timeout has passed
+                    if (minutesSinceShown < timeoutMinutes) {
+                        continue;
+                    }
+
+                    console.log(`[Webview Followup] Processing ${session.session_id}, ${minutesSinceShown.toFixed(1)}m since shown`);
+
+                    // Get page access token
+                    const { data: page } = await supabase
+                        .from('connected_pages')
+                        .select('page_access_token')
+                        .eq('page_id', session.page_id)
+                        .single();
+
+                    if (!page?.page_access_token) {
+                        console.log(`[Webview Followup] No page token for ${session.page_id}`);
+                        await supabase
+                            .from('webview_sessions')
+                            .update({ status: 'expired', updated_at: now.toISOString() })
+                            .eq('id', session.id);
+                        continue;
+                    }
+
+                    // Default follow-up message
+                    let followupMessage = "Hey! 👋 We noticed you were interested in our product. Still thinking about it?";
+
+                    // Send follow-up message
+                    const success = await sendMessage(
+                        session.psid,
+                        followupMessage,
+                        page.page_access_token
+                    );
+
+                    if (success) {
+                        await supabase
+                            .from('webview_sessions')
+                            .update({
+                                status: 'followup_sent',
+                                followup_sent_at: now.toISOString(),
+                                updated_at: now.toISOString()
+                            })
+                            .eq('id', session.id);
+
+                        webviewSent++;
+                        console.log(`[Webview Followup] ✓ Sent followup to ${session.psid}`);
+                    } else {
+                        await supabase
+                            .from('webview_sessions')
+                            .update({ status: 'expired', updated_at: now.toISOString() })
+                            .eq('id', session.id);
+                    }
+                }
+            }
+        } catch (webviewErr: any) {
+            console.error('[Webview Followup] Exception:', webviewErr.message);
+        }
+
+        console.log(`[Webview Followup] Complete. Processed: ${webviewProcessed}, Sent: ${webviewSent}`);
+
         return res.status(200).json({
             success: true,
-            processed: processedCount,
-            sent: sentCount
+            form: { processed: processedCount, sent: sentCount },
+            webview: { processed: webviewProcessed, sent: webviewSent }
         });
 
     } catch (error: any) {
