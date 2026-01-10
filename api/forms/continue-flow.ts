@@ -126,12 +126,49 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             form_submitted: context.form_submitted
         });
 
-        // CRITICAL FIX: Clear cart when a new form is submitted
-        // This ensures each transaction starts completely fresh
+        // CRITICAL FIX: Initialize cart with the MAIN PRODUCT from form submission
+        // The form has a product configured with name, price, quantity
         if (workspaceId && subscriberId) {
-            console.log('[Continue Flow] 🧹 Clearing cart for new form transaction...');
+            console.log('[Continue Flow] 🛒 Initializing cart with main product from form...');
             try {
                 const cartSessionId = `form_session_${Date.now()}`;
+
+                // Extract main product from form submission data
+                const mainProductName = submissionData?.product_name || '';
+                const mainProductPrice = parseFloat(submissionData?.product_price) || 0;
+                const mainProductQuantity = parseInt(submissionData?.quantity) || 1;
+                const mainProductTotal = parseFloat(submissionData?.total) || mainProductPrice * mainProductQuantity;
+
+                console.log('[Continue Flow] 📦 Main product from form:', {
+                    name: mainProductName,
+                    price: mainProductPrice,
+                    quantity: mainProductQuantity,
+                    total: mainProductTotal
+                });
+
+                // Create cart with main product if product info exists
+                let initialCart: any[] = [];
+                let initialCartTotal = 0;
+
+                if (mainProductName && mainProductPrice > 0) {
+                    initialCart = [{
+                        nodeId: nodeId, // Form node ID
+                        productId: `form_${nodeId}`,
+                        productName: mainProductName,
+                        productPrice: mainProductPrice,
+                        productImage: '', // Forms don't typically have images
+                        quantity: mainProductQuantity,
+                        isMainProduct: true // Mark as main product from form
+                    }];
+                    initialCartTotal = mainProductTotal;
+                    console.log('[Continue Flow] ✓ Cart initialized with main product:', mainProductName);
+                } else {
+                    console.log('[Continue Flow] ⚠️ No product info in form, starting with empty cart');
+                }
+
+                // Update context with cart
+                (context as any).cart = initialCart;
+                (context as any).cartTotal = initialCartTotal;
 
                 const { data: existingSubscriber } = await supabase
                     .from('subscribers')
@@ -148,9 +185,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                             email: existingSubscriber?.metadata?.email,
                             phone: existingSubscriber?.metadata?.phone,
                             address: existingSubscriber?.metadata?.address,
-                            // Start with completely fresh cart
-                            cart: [],
-                            cartTotal: 0,
+                            // Initialize cart with main product (not empty!)
+                            cart: initialCart,
+                            cartTotal: initialCartTotal,
                             cartSessionId: cartSessionId,
                             cartUpdatedAt: new Date().toISOString(),
                             // Clear stale data from previous transactions
@@ -162,9 +199,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     .eq('workspace_id', workspaceId)
                     .eq('external_id', subscriberId);
 
-                console.log('[Continue Flow] ✓ Cart cleared - new session:', cartSessionId);
+                console.log('[Continue Flow] ✓ Cart saved - session:', cartSessionId, 'items:', initialCart.length);
             } catch (clearError) {
-                console.error('[Continue Flow] Error clearing cart:', clearError);
+                console.error('[Continue Flow] Error initializing cart:', clearError);
             }
         }
 
