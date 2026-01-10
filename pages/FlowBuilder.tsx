@@ -2334,11 +2334,13 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
             selectedNode.data.nodeType === 'productNode' ||
             selectedNode.data.nodeType === 'checkoutNode' ||
             selectedNode.data.nodeType === 'imageNode' ||
+            selectedNode.data.nodeType === 'textNode' ||
             (selectedNode.data.label as string || '').toLowerCase().includes('upsell') ||
             (selectedNode.data.label as string || '').toLowerCase().includes('downsell') ||
             (selectedNode.data.label as string || '').toLowerCase().includes('product') ||
             (selectedNode.data.label as string || '').toLowerCase() === 'checkout' ||
-            (selectedNode.data.label as string || '').toLowerCase() === 'image'
+            (selectedNode.data.label as string || '').toLowerCase() === 'image' ||
+            (selectedNode.data.label as string || '').toLowerCase() === 'text'
           }
         >
           {renderConfigForm()}
