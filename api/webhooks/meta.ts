@@ -4456,22 +4456,43 @@ async function executeAction(
             const orderNumber = `ORD-${Date.now().toString(36).toUpperCase()}`;
 
             // Build receipt elements for Facebook Receipt Template
+            // Get app URL for converting relative URLs to absolute
+            const appUrl = process.env.VITE_APP_URL || 'https://mcp-v16.vercel.app';
+
             const receiptElements = cart.map((item: any) => {
-                const qty = item.quantity || 1;
-                const itemTotal = item.productPrice * qty;
-                return {
-                    title: item.productName,
-                    subtitle: qty > 1 ? `Qty: ${qty} @ PHP ${item.productPrice}` : `PHP ${item.productPrice}`,
+                const qty = parseInt(item.quantity) || 1;
+                const unitPrice = parseFloat(item.productPrice) || 0;
+                const itemTotal = unitPrice * qty;
+
+                // Handle image URL - convert relative to absolute
+                let imageUrl = item.productImage || '';
+                if (imageUrl) {
+                    // If relative URL (starts with /), prepend app URL
+                    if (imageUrl.startsWith('/')) {
+                        imageUrl = `${appUrl}${imageUrl}`;
+                    }
+                    // If not starting with http, it's not a valid URL
+                    if (!imageUrl.startsWith('http')) {
+                        imageUrl = '';
+                    }
+                }
+
+                console.log(`    📸 Item: ${item.productName}, Image: ${imageUrl || 'none'}`);
+
+                const element: any = {
+                    title: String(item.productName || 'Product'),
+                    subtitle: qty > 1 ? `Qty: ${qty}` : '',
                     quantity: qty,
                     price: itemTotal,
-                    currency: 'PHP',
-                    image_url: item.productImage || undefined
+                    currency: 'PHP'
                 };
-            });
 
-            // Remove undefined image_url
-            receiptElements.forEach((el: any) => {
-                if (!el.image_url) delete el.image_url;
+                // Only add image_url if it's a valid absolute URL
+                if (imageUrl && imageUrl.startsWith('http')) {
+                    element.image_url = imageUrl;
+                }
+
+                return element;
             });
 
             // Show typing
@@ -4515,6 +4536,10 @@ async function executeAction(
             const result = await response.json();
             if (result.error) {
                 console.error('    ✗ Receipt Template error:', result.error.message);
+                console.error('    ✗ Error code:', result.error.code);
+                console.error('    ✗ Error type:', result.error.type);
+                console.error('    ✗ Full error:', JSON.stringify(result.error));
+                console.error('    ✗ Receipt elements:', JSON.stringify(receiptElements));
                 console.log('    ↩️ Falling back to text invoice...');
 
                 // Fallback to plain text invoice if Receipt Template fails
@@ -4626,22 +4651,41 @@ async function executeAction(
             }
 
             // Build receipt items for Facebook Receipt Template
+            // Get app URL for converting relative URLs to absolute
+            const appUrl2 = process.env.VITE_APP_URL || 'https://mcp-v16.vercel.app';
+
             const receiptElements = cart.map((item: any) => {
-                const qty = item.quantity || 1;
-                const itemTotal = item.productPrice * qty;
-                return {
-                    title: item.productName,
-                    subtitle: qty > 1 ? `Qty: ${qty} @ PHP ${item.productPrice}` : `PHP ${item.productPrice}`,
+                const qty = parseInt(item.quantity) || 1;
+                const unitPrice = parseFloat(item.productPrice) || 0;
+                const itemTotal = unitPrice * qty;
+
+                // Handle image URL - convert relative to absolute
+                let imageUrl = item.productImage || '';
+                if (imageUrl) {
+                    // If relative URL (starts with /), prepend app URL
+                    if (imageUrl.startsWith('/')) {
+                        imageUrl = `${appUrl2}${imageUrl}`;
+                    }
+                    // If not starting with http, it's not a valid URL
+                    if (!imageUrl.startsWith('http')) {
+                        imageUrl = '';
+                    }
+                }
+
+                const element: any = {
+                    title: String(item.productName || 'Product'),
+                    subtitle: qty > 1 ? `Qty: ${qty}` : '',
                     quantity: qty,
                     price: itemTotal,
-                    currency: 'PHP',
-                    image_url: item.productImage || undefined
+                    currency: 'PHP'
                 };
-            });
 
-            // Remove undefined image_url
-            receiptElements.forEach((el: any) => {
-                if (!el.image_url) delete el.image_url;
+                // Only add image_url if it's a valid absolute URL
+                if (imageUrl && imageUrl.startsWith('http')) {
+                    element.image_url = imageUrl;
+                }
+
+                return element;
             });
 
             const grandTotal = cartTotal + (showShipping ? shippingFee : 0);
