@@ -173,17 +173,23 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
   const [nodeAnalytics, setNodeAnalytics] = useState<Record<string, { sent: number; delivered: number; subscribers: number; errors: number }>>({})
 
   // Update nodes with analytics data when nodeAnalytics changes
+  // This runs for both populated AND empty analytics (to clear cached values)
+  const isAnalyticsLoaded = useRef(false);
   useEffect(() => {
-    if (Object.keys(nodeAnalytics).length > 0) {
-      console.log('[FlowBuilder] Updating nodes with analytics data');
-      setNodes((nds) => nds.map((node) => ({
-        ...node,
-        data: {
-          ...node.data,
-          analytics: nodeAnalytics[node.id] || { sent: 0, delivered: 0, subscribers: 0, errors: 0 }
-        }
-      })));
+    // Skip initial render - only run after analytics has been explicitly loaded
+    if (!isAnalyticsLoaded.current && Object.keys(nodeAnalytics).length === 0) {
+      return;
     }
+    isAnalyticsLoaded.current = true;
+
+    console.log('[FlowBuilder] Updating nodes with analytics data:', nodeAnalytics);
+    setNodes((nds) => nds.map((node) => ({
+      ...node,
+      data: {
+        ...node.data,
+        analytics: nodeAnalytics[node.id] || { sent: 0, delivered: 0, subscribers: 0, errors: 0 }
+      }
+    })));
   }, [nodeAnalytics, setNodes]);
 
 
@@ -356,6 +362,8 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
                 ...node.data,
                 // Merge saved configuration into node data
                 ...nodeConfig,
+                // IMPORTANT: Clear any saved analytics - we'll load fresh from database
+                analytics: { sent: 0, delivered: 0, subscribers: 0, errors: 0 },
                 // Add callbacks for node buttons
                 onDelete: () => handleDeleteNode(node.id),
                 onConfigure: () => handleConfigureNode(node),
@@ -483,10 +491,14 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
         setNodeAnalytics(analyticsMap);
         return analyticsMap;
       } else {
-        console.log('[FlowBuilder] ℹ️ No analytics data yet for this flow');
+        console.log('[FlowBuilder] ℹ️ No analytics data yet for this flow - clearing any cached values');
+        // IMPORTANT: Set empty analytics to clear any cached values
+        setNodeAnalytics({});
       }
     } catch (error) {
       console.error('[FlowBuilder] ✗ Error loading analytics:', error);
+      // Also clear on error to avoid showing stale data
+      setNodeAnalytics({});
     }
     return {};
   };
