@@ -3976,6 +3976,161 @@ async function executeAction(
         return;
     }
 
+    // Product Webview Node - send product offer with webview button
+    if (nodeType === 'productWebviewNode') {
+        console.log(`    ✓ Detected as Product Webview Node`);
+        const headline = config.headline || 'Check Out This Product!';
+        const productName = config.productName || 'Featured Product';
+        const price = config.price || '₱999';
+        const description = config.description || 'Limited time offer!';
+        const productImage = config.productImage || config.imageUrl || '';
+        const acceptButtonText = config.acceptButtonText || config.buttonText || '✅ Add to Cart';
+        const useWebview = config.useWebview === true;
+        console.log(`    🔧 Config: useWebview=${useWebview}`);
+
+        try {
+            await sendTypingIndicator(context.commenterId, pageAccessToken, 'typing_on');
+            await new Promise(resolve => setTimeout(resolve, 500));
+            await sendTypingIndicator(context.commenterId, pageAccessToken, 'typing_off');
+
+            let buttons: any[] = [];
+
+            // Check if webview mode is enabled
+            if (useWebview) {
+                console.log(`    🌐 Webview mode enabled - creating webview session`);
+                const webviewUrl = await createWebviewSession(
+                    'product',
+                    context.commenterId,
+                    context.workspaceId,
+                    flowId,
+                    node.id,
+                    config,
+                    pageAccessToken,
+                    context.cart || []
+                );
+
+                if (webviewUrl) {
+                    buttons = [{
+                        type: 'web_url',
+                        title: '🛒 View Product',
+                        url: webviewUrl,
+                        webview_height_ratio: 'full',
+                        messenger_extensions: true
+                    }];
+                } else {
+                    console.log(`    ⚠️ Webview creation failed, falling back to postback`);
+                    // Fallback to postback
+                    buttons = [
+                        {
+                            type: 'postback',
+                            title: acceptButtonText.slice(0, 20),
+                            payload: JSON.stringify({
+                                action: 'product_accept',
+                                flowId,
+                                nodeId: node.id,
+                                productName,
+                                productPrice: parseFloat(price.replace(/[^\d.]/g, '')) || 0,
+                                productImage
+                            })
+                        },
+                        {
+                            type: 'postback',
+                            title: '❌ No Thanks',
+                            payload: JSON.stringify({
+                                action: 'product_decline',
+                                flowId,
+                                nodeId: node.id
+                            })
+                        }
+                    ];
+                }
+            } else {
+                // Non-webview mode - use postback buttons
+                buttons = [
+                    {
+                        type: 'postback',
+                        title: acceptButtonText.slice(0, 20),
+                        payload: JSON.stringify({
+                            action: 'product_accept',
+                            flowId,
+                            nodeId: node.id,
+                            productName,
+                            productPrice: parseFloat(price.replace(/[^\d.]/g, '')) || 0,
+                            productImage
+                        })
+                    },
+                    {
+                        type: 'postback',
+                        title: '❌ No Thanks',
+                        payload: JSON.stringify({
+                            action: 'product_decline',
+                            flowId,
+                            nodeId: node.id
+                        })
+                    }
+                ];
+            }
+
+            // Build and send generic template message
+            const messagePayload = {
+                attachment: {
+                    type: 'template',
+                    payload: {
+                        template_type: 'generic',
+                        image_aspect_ratio: 'square',
+                        elements: [{
+                            title: headline.slice(0, 80),
+                            subtitle: `${productName} - ${price}\n${description}`.slice(0, 80),
+                            image_url: productImage || undefined,
+                            buttons: buttons
+                        }]
+                    }
+                }
+            };
+
+            // Remove undefined image_url
+            if (!productImage) {
+                delete (messagePayload.attachment.payload.elements[0] as any).image_url;
+            }
+
+            const requestBody = {
+                recipient: { id: context.commenterId },
+                message: messagePayload,
+                access_token: pageAccessToken
+            };
+
+            console.log(`    📤 Sending product webview card...`);
+
+            const response = await fetch(
+                `https://graph.facebook.com/v21.0/me/messages`,
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestBody)
+                }
+            );
+
+            const result = await response.json();
+
+            if (result.error) {
+                console.error('    ✗ Facebook API error:', result.error.message);
+                await incrementNodeAnalytics(flowId, node.id, 'error_count');
+            } else {
+                console.log(`    ✓ Product webview card sent successfully! (webview: ${useWebview})`);
+                console.log('    ✓ Message ID:', result.message_id);
+                await incrementNodeAnalytics(flowId, node.id, 'delivered_count');
+            }
+
+            // STOP here - wait for user to click button
+            console.log(`    ⏸ Stopping traversal at productWebviewNode: "${node.data?.label}" - waiting for user choice`);
+        } catch (error: any) {
+            console.error('    ✗ Exception sending product webview card:', error.message);
+            await incrementNodeAnalytics(flowId, node.id, 'error_count');
+        }
+
+        return; // Stop traversal - wait for user response
+    }
+
     // Upsell Node - send upsell offer with Accept/Decline buttons
     if (nodeType === 'upsellNode') {
         console.log(`    ✓ Detected as Upsell Node`);

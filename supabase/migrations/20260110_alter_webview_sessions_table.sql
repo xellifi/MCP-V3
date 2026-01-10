@@ -43,6 +43,11 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'webview_sessions' AND column_name = 'metadata') THEN
         ALTER TABLE webview_sessions ADD COLUMN metadata JSONB DEFAULT '{}';
     END IF;
+
+    -- Add expires_at if not exists
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'webview_sessions' AND column_name = 'expires_at') THEN
+        ALTER TABLE webview_sessions ADD COLUMN expires_at TIMESTAMP WITH TIME ZONE DEFAULT (NOW() + INTERVAL '24 hours');
+    END IF;
 END $$;
 
 -- Make session_id nullable if it was required (since we're not using it in the new code)
