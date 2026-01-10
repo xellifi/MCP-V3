@@ -1562,21 +1562,43 @@ export const api = {
     },
 
     getIntegrations: async (workspaceId: string): Promise<IntegrationSettings> => {
-      await delay(300);
-      return MOCK_INTEGRATIONS_DB[workspaceId] || {
+      // Try to fetch from workspaces table
+      const { data: workspace } = await supabase
+        .from('workspaces')
+        .select('google_webhook_url')
+        .eq('id', workspaceId)
+        .single();
+
+      // Return settings (combine with mock data for now)
+      const mockSettings = (MOCK_INTEGRATIONS_DB[workspaceId] || {}) as any;
+
+      return {
         workspaceId,
-        openaiApiKey: '',
-        geminiApiKey: '',
-        smtpHost: '',
-        smtpPort: '',
-        smtpUser: '',
-        smtpPassword: '',
-        smtpFromEmail: ''
+        openaiApiKey: mockSettings.openaiApiKey || '',
+        geminiApiKey: mockSettings.geminiApiKey || '',
+        smtpHost: mockSettings.smtpHost || '',
+        smtpPort: mockSettings.smtpPort || '',
+        smtpUser: mockSettings.smtpUser || '',
+        smtpPassword: mockSettings.smtpPassword || '',
+        smtpFromEmail: mockSettings.smtpFromEmail || '',
+        googleWebhookUrl: workspace?.google_webhook_url || ''
       };
     },
 
     saveIntegrations: async (workspaceId: string, settings: IntegrationSettings): Promise<void> => {
-      await delay(500);
+      // Save Google Sheets webhook URL to workspaces table
+      if (settings.googleWebhookUrl !== undefined) {
+        const { error } = await supabase
+          .from('workspaces')
+          .update({ google_webhook_url: settings.googleWebhookUrl })
+          .eq('id', workspaceId);
+
+        if (error) {
+          console.error('Error saving googleWebhookUrl:', error);
+        }
+      }
+
+      // Save other settings to mock database (existing behavior)
       MOCK_INTEGRATIONS_DB[workspaceId] = settings;
     },
 

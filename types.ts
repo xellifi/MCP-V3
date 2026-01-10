@@ -163,6 +163,8 @@ export interface IntegrationSettings {
   smtpUser?: string;
   smtpPassword?: string;
   smtpFromEmail?: string;
+  // Google Sheets Integration
+  googleWebhookUrl?: string;
 }
 
 export interface PayoutSettings {
