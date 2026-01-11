@@ -812,7 +812,7 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
             const textNodeId = `text-${timestamp + 1}`;
 
             // Calculate offset position (to the right of current node, stacked if multiple)
-            const offsetX = 300;
+            const offsetX = 200;
             const offsetY = index * 200;
 
             // Use flowName if provided, otherwise fall back to title
