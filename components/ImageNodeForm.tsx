@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import {
     Image, Link, Upload, X, AlertCircle, Clock, MousePointer2, ExternalLink,
     ChevronDown, ChevronUp, Smartphone, Monitor, Tablet, ArrowUp, ArrowDown,
-    Workflow, Plus, ShoppingBag, Save, Check
+    Workflow, Plus, ShoppingBag, Save, Check, GalleryHorizontal
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import CollapsibleTips from './CollapsibleTips';
@@ -11,7 +11,7 @@ interface ImageNodeFormProps {
     workspaceId: string;
     initialConfig?: {
         imageUrl?: string;
-        imageSource?: 'url' | 'upload';
+        imageSource?: 'url' | 'upload' | 'gallery';
         caption?: string;
         delaySeconds?: number;
         showButton?: boolean;
@@ -22,6 +22,7 @@ interface ImageNodeFormProps {
         buttonFlowName?: string;
     };
     onChange: (config: any) => void;
+    onSave?: () => void; // Callback to trigger FlowBuilder's handleSaveConfig
     onClose?: () => void;
 }
 
@@ -69,9 +70,10 @@ const ImageNodeForm: React.FC<ImageNodeFormProps> = ({
     workspaceId,
     initialConfig,
     onChange,
+    onSave,
     onClose
 }) => {
-    const [imageSource, setImageSource] = useState<'url' | 'upload'>(initialConfig?.imageSource || 'url');
+    const [imageSource, setImageSource] = useState<'url' | 'upload' | 'gallery'>(initialConfig?.imageSource || 'url');
     const [imageUrl, setImageUrl] = useState(initialConfig?.imageUrl || '');
     const [caption, setCaption] = useState(initialConfig?.caption || '');
     const [delaySeconds, setDelaySeconds] = useState(initialConfig?.delaySeconds || 0);
@@ -132,6 +134,10 @@ const ImageNodeForm: React.FC<ImageNodeFormProps> = ({
 
     const handleSave = () => {
         notifyChange();
+        // Call FlowBuilder's save handler if provided
+        if (onSave) {
+            onSave();
+        }
         setSaveNotification(true);
         setTimeout(() => setSaveNotification(false), 3000);
     };
@@ -152,7 +158,7 @@ const ImageNodeForm: React.FC<ImageNodeFormProps> = ({
         notifyChange({ delaySeconds: value });
     };
 
-    const handleSourceChange = (source: 'url' | 'upload') => {
+    const handleSourceChange = (source: 'url' | 'upload' | 'gallery') => {
         setImageSource(source);
         if (source !== imageSource) {
             setImageUrl('');
@@ -291,7 +297,7 @@ const ImageNodeForm: React.FC<ImageNodeFormProps> = ({
                                                 <img
                                                     src={imageUrl}
                                                     alt="Preview"
-                                                    className={`w-full h-auto ${previewDevice === 'desktop' ? 'max-h-24' : 'max-h-40'} object-cover`}
+                                                    className={`w-full h-auto ${previewDevice === 'desktop' ? 'max-h-28' : 'max-h-44'} object-contain bg-slate-100`}
                                                     onError={() => setPreviewError(true)}
                                                 />
                                             ) : (
@@ -359,6 +365,10 @@ const ImageNodeForm: React.FC<ImageNodeFormProps> = ({
                     className={`flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-all flex items-center justify-center gap-1.5 ${imageSource === 'upload' ? 'bg-rose-500 text-white' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}>
                     <Upload className="w-3.5 h-3.5" /> Upload
                 </button>
+                <button type="button" onClick={() => handleSourceChange('gallery')}
+                    className={`flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-all flex items-center justify-center gap-1.5 ${imageSource === 'gallery' ? 'bg-rose-500 text-white' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}>
+                    <GalleryHorizontal className="w-3.5 h-3.5" /> Gallery
+                </button>
             </div>
             {imageSource === 'url' && (
                 <div>
@@ -387,6 +397,15 @@ const ImageNodeForm: React.FC<ImageNodeFormProps> = ({
                         )}
                     </label>
                     {uploadError && <p className="mt-1 text-xs text-red-400 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{uploadError}</p>}
+                </div>
+            )}
+            {imageSource === 'gallery' && (
+                <div className="p-4 bg-black/20 border border-white/10 rounded-lg">
+                    <div className="text-center py-4">
+                        <GalleryHorizontal className="w-8 h-8 text-slate-400 mx-auto mb-2" />
+                        <p className="text-xs text-slate-400 mb-2">Select from your uploaded images</p>
+                        <p className="text-[10px] text-slate-500">Use the Upload tab to add images first, then select them here.</p>
+                    </div>
                 </div>
             )}
             {imageUrl && (

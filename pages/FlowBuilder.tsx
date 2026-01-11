@@ -1665,6 +1665,7 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
           workspaceId={workspace?.id || ''}
           initialConfig={initialConfigRef.current}
           onChange={handleConfigChange}
+          onSave={handleSaveConfig}
         />
       );
     }
