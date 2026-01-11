@@ -26,6 +26,7 @@ interface CustomerFieldConfig {
 
 interface CheckoutConfig {
     companyName?: string;
+    companyLogo?: string;
     headerText?: string;
     buttonText?: string;
     backgroundColor?: string;
@@ -464,6 +465,25 @@ const WebviewCheckout: React.FC = () => {
             <div className="w-full max-w-md mx-auto bg-slate-900 rounded-2xl shadow-2xl overflow-hidden flex flex-col" style={{ maxHeight: '90vh' }}>
                 {/* Scrollable Content */}
                 <div className="flex-1 overflow-auto p-4 pb-24">
+                    {/* Company Logo & Name Header */}
+                    {(config.companyLogo || config.companyName || config.headerText) && (
+                        <div className="text-center mb-4">
+                            {config.companyLogo && (
+                                <img
+                                    src={config.companyLogo}
+                                    alt="Company Logo"
+                                    className="w-16 h-16 mx-auto mb-3 rounded-full object-cover border-2 border-emerald-400"
+                                />
+                            )}
+                            {config.headerText && (
+                                <h1 className="text-white font-bold text-xl mb-1">{config.headerText}</h1>
+                            )}
+                            {config.companyName && (
+                                <p className="text-slate-400 text-sm">{config.companyName}</p>
+                            )}
+                        </div>
+                    )}
+
                     {/* Order Items Section */}
                     <div className="bg-slate-800/50 rounded-2xl p-4 mb-4 border border-slate-700/50">
                         <div className="flex items-center justify-between mb-4">
