@@ -5,10 +5,11 @@ import { api } from '../services/api';
 
 interface Button {
     title: string;
-    type: 'startFlow' | 'url';
+    type: 'startFlow' | 'url' | 'newFlow';
     flowId?: string;
     url?: string;
     webviewHeight?: 'compact' | 'tall' | 'full';
+    flowName?: string; // For newFlow type - name of the flow to create
     addLabel?: string; // Label to add when button clicked
     removeLabel?: string; // Label to remove when button clicked
 }
@@ -224,6 +225,7 @@ const TextNodeForm: React.FC<TextNodeFormProps> = ({
             if (!b.title.trim()) return false;
             if (b.type === 'startFlow') return !!b.flowId;
             if (b.type === 'url') return !!b.url?.trim();
+            if (b.type === 'newFlow') return true; // New Flow just needs a title
             return false;
         });
         onChange({ textContent: newTextContent, delaySeconds: newDelaySeconds, buttons: validButtons });
@@ -347,6 +349,7 @@ const TextNodeForm: React.FC<TextNodeFormProps> = ({
                                             >
                                                 {btn.type === 'url' && <Link className="w-3 h-3" />}
                                                 {btn.type === 'startFlow' && <Zap className="w-3 h-3" />}
+                                                {btn.type === 'newFlow' && <PlusCircle className="w-3 h-3 text-green-500" />}
                                                 {btn.title}
                                             </button>
                                         ))}
@@ -454,17 +457,20 @@ const TextNodeForm: React.FC<TextNodeFormProps> = ({
                                             type: newType,
                                             flowId: newType === 'startFlow' ? '' : undefined,
                                             url: newType === 'url' ? '' : undefined,
-                                            webviewHeight: newType === 'url' ? 'full' : undefined
+                                            webviewHeight: newType === 'url' ? 'full' : undefined,
+                                            flowName: newType === 'newFlow' ? '' : undefined
                                         });
                                     }}
                                     className="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:ring-2 focus:ring-amber-500/50 outline-none"
                                 >
                                     <option value="startFlow">⚡ Trigger Saved Flow</option>
                                     <option value="url">🔗 Open URL (Webview)</option>
+                                    <option value="newFlow">➕ Start New Flow</option>
                                 </select>
                                 <p className="text-xs text-slate-500 mt-1">
-                                    {button.type === 'startFlow' && '⚡ Triggers an existing saved flow'}
+                                    {button.type === 'startFlow' && '⚡ Triggers an existing saved flow from this page'}
                                     {button.type === 'url' && '🔗 Opens a URL in a webview'}
+                                    {button.type === 'newFlow' && '➕ Creates a new flow with Start Node and Text Node'}
                                 </p>
                             </div>
 
@@ -595,6 +601,31 @@ const TextNodeForm: React.FC<TextNodeFormProps> = ({
                                             {button.webviewHeight === 'compact' && 'Opens a small webview (50% screen height)'}
                                             {button.webviewHeight === 'tall' && 'Opens a tall webview (75% screen height)'}
                                             {button.webviewHeight === 'full' && 'Opens a full-screen webview'}
+                                        </p>
+                                    </div>
+                                </>
+                            )}
+
+                            {/* New Flow Configuration */}
+                            {button.type === 'newFlow' && (
+                                <>
+                                    <div>
+                                        <label className="block text-xs text-slate-400 mb-1">Flow Name</label>
+                                        <input
+                                            type="text"
+                                            value={button.flowName || ''}
+                                            onChange={(e) => updateButton(index, { flowName: e.target.value })}
+                                            placeholder="e.g., Pricing Flow, FAQ Response"
+                                            className="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:ring-2 focus:ring-green-500/50 outline-none"
+                                        />
+                                    </div>
+                                    <div className="p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
+                                        <div className="flex items-center gap-2 text-green-400 text-xs">
+                                            <PlusCircle className="w-4 h-4" />
+                                            <span className="font-medium">Start New Flow</span>
+                                        </div>
+                                        <p className="text-xs text-green-300/70 mt-1">
+                                            Creates a new flow with Start Node and Text Node connected. The flow will be saved and available in Flows list.
                                         </p>
                                     </div>
                                 </>
