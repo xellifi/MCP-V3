@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { ShoppingCart, Check, Package, User, MapPin, Phone, Mail, CreditCard, Truck, Wallet, Home, Building, Map, Hash, ClipboardList } from 'lucide-react';
+import { ShoppingCart, Check, Package, User, MapPin, Phone, Mail, CreditCard, Truck, Wallet, Home, Building, Map, Hash, ClipboardList, Tag, X } from 'lucide-react';
 
 interface CartItem {
     productName: string;
@@ -63,6 +63,10 @@ interface CheckoutConfig {
     useFullAddress?: boolean;
     // Payment methods
     paymentMethods?: PaymentMethod[];
+    // Promo code configuration
+    promoCodes?: string[];
+    promoDiscountPercent?: number;
+    showPromoCodeField?: boolean;
 }
 
 interface SessionData {
@@ -122,6 +126,12 @@ const WebviewCheckout: React.FC = () => {
     const [paymentProof, setPaymentProof] = useState<File | null>(null);
     const [paymentProofPreview, setPaymentProofPreview] = useState<string>('');
     const [formErrors, setFormErrors] = useState<Partial<ShippingForm & { paymentProof?: string }>>({});
+
+    // Promo code state
+    const [promoCodeInput, setPromoCodeInput] = useState<string>('');
+    const [appliedPromoCode, setAppliedPromoCode] = useState<string>('');
+    const [appliedDiscount, setAppliedDiscount] = useState<number>(0);
+    const [promoError, setPromoError] = useState<string>('');
 
     useEffect(() => {
         loadSession();
@@ -316,9 +326,9 @@ const WebviewCheckout: React.FC = () => {
                         paymentMethodName: selectedPaymentMethod?.name || selectedPayment,
                         paymentProof: paymentProofUrl,
                         paymentProofFileName: paymentProof?.name,
-                        // Promo code
-                        promoCode: session.metadata?.promoCode || '',
-                        discount: session.metadata?.discount || 0,
+                        // Promo code - use locally applied code, fallback to metadata
+                        promoCode: appliedPromoCode || session.metadata?.promoCode || '',
+                        discount: appliedDiscount || session.metadata?.discount || 0,
                         // Meta
                         shippingFee: session.config.showShipping ? (session.config.shippingFee || 0) : 0,
                         confirmedAt: new Date().toISOString()
@@ -363,7 +373,8 @@ const WebviewCheckout: React.FC = () => {
         if (!session) return 0;
         const subtotal = calculateSubtotal();
         const shipping = session.config.showShipping ? (session.config.shippingFee || 0) : 0;
-        const discount = session.metadata?.discount || 0;
+        // Use locally applied discount if available, otherwise fallback to metadata
+        const discount = appliedDiscount || session.metadata?.discount || 0;
         return subtotal - discount + shipping;
     };
 
@@ -406,6 +417,53 @@ const WebviewCheckout: React.FC = () => {
         }
     };
 
+    // Apply promo code
+    const applyPromoCode = () => {
+        if (!promoCodeInput.trim()) {
+            setPromoError('Please enter a promo code');
+            return;
+        }
+
+        if (!session) return;
+
+        // Get valid promo codes from config
+        const validCodes = session.config.promoCodes || [];
+        const discountPercent = session.config.promoDiscountPercent || 10;
+
+        // If no codes configured, accept any code
+        if (validCodes.length === 0) {
+            const discountAmount = Math.round(calculateSubtotal() * (discountPercent / 100));
+            setAppliedPromoCode(promoCodeInput.toUpperCase());
+            setAppliedDiscount(discountAmount);
+            setPromoError('');
+            return;
+        }
+
+        // Check if entered code matches any valid code (case-insensitive)
+        const isValid = validCodes.some((code: string) =>
+            code.toUpperCase().trim() === promoCodeInput.toUpperCase().trim()
+        );
+
+        if (isValid) {
+            const discountAmount = Math.round(calculateSubtotal() * (discountPercent / 100));
+            setAppliedPromoCode(promoCodeInput.toUpperCase());
+            setAppliedDiscount(discountAmount);
+            setPromoError('');
+        } else {
+            setAppliedPromoCode('');
+            setAppliedDiscount(0);
+            setPromoError('Invalid promo code');
+        }
+    };
+
+    // Remove promo code
+    const removePromoCode = () => {
+        setPromoCodeInput('');
+        setAppliedPromoCode('');
+        setAppliedDiscount(0);
+        setPromoError('');
+    };
+
     // Loading Screen
     if (loading) {
         return (
@@ -440,11 +498,13 @@ const WebviewCheckout: React.FC = () => {
     const buttonColor = config.buttonColor || '#10b981';
     const subtotal = calculateSubtotal();
     const shipping = config.showShipping ? (config.shippingFee || 0) : 0;
-    // Get discount from metadata (applied via promo code in Product page)
-    const discount = session.metadata?.discount || 0;
-    const promoCode = session.metadata?.promoCode || '';
+    // Use locally applied discount, with fallback to metadata from product page
+    const discount = appliedDiscount || session.metadata?.discount || 0;
+    const promoCode = appliedPromoCode || session.metadata?.promoCode || '';
     const total = subtotal - discount + shipping;
     const paymentMethods = config.paymentMethods || DEFAULT_PAYMENT_METHODS;
+    // Show promo code field if enabled in config (default: true)
+    const showPromoCodeField = config.showPromoCodeField !== false;
 
     // Field visibility (default to showing name, phone, address)
     const fields = config.customerFields;
@@ -620,6 +680,68 @@ const WebviewCheckout: React.FC = () => {
                                     </div>
                                 </div>
                             </div>
+                        </div>
+                    )}
+
+                    {/* Promo Code Section */}
+                    {showPromoCodeField && session.cart.length > 0 && (
+                        <div className="bg-slate-800/50 rounded-2xl p-4 mb-4 border border-slate-700/50">
+                            <div className="flex items-center gap-2 mb-3">
+                                <Tag className="w-5 h-5 text-emerald-400" />
+                                <h2 className="text-white font-bold">Promo Code</h2>
+                            </div>
+
+                            {appliedPromoCode ? (
+                                // Applied promo code display
+                                <div className="flex items-center justify-between p-3 bg-emerald-500/20 border border-emerald-500/30 rounded-xl">
+                                    <div className="flex items-center gap-2">
+                                        <Check className="w-5 h-5 text-emerald-400" />
+                                        <div>
+                                            <p className="text-emerald-400 font-medium">{appliedPromoCode}</p>
+                                            <p className="text-emerald-400/70 text-xs">-₱{appliedDiscount.toLocaleString()} discount applied</p>
+                                        </div>
+                                    </div>
+                                    <button
+                                        onClick={removePromoCode}
+                                        className="p-2 text-slate-400 hover:text-red-400 transition-colors"
+                                        type="button"
+                                    >
+                                        <X className="w-4 h-4" />
+                                    </button>
+                                </div>
+                            ) : (
+                                // Promo code input
+                                <div>
+                                    <div className="flex gap-2">
+                                        <div className="relative flex-1">
+                                            <Tag className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${promoError ? 'text-red-400' : 'text-slate-500'}`} />
+                                            <input
+                                                type="text"
+                                                value={promoCodeInput}
+                                                onChange={(e) => {
+                                                    setPromoCodeInput(e.target.value.toUpperCase());
+                                                    setPromoError('');
+                                                }}
+                                                onKeyDown={(e) => e.key === 'Enter' && applyPromoCode()}
+                                                placeholder="Enter promo code"
+                                                className={`w-full bg-slate-700/50 border rounded-xl py-3 pl-10 pr-4 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 ${promoError ? 'border-red-500' : 'border-slate-600/50'}`}
+                                            />
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={applyPromoCode}
+                                            className="px-5 py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-semibold rounded-xl transition-colors"
+                                        >
+                                            Apply
+                                        </button>
+                                    </div>
+                                    {promoError && (
+                                        <p className="mt-2 text-sm text-red-400 flex items-center gap-1">
+                                            <X className="w-4 h-4" /> {promoError}
+                                        </p>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     )}
 

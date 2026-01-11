@@ -479,62 +479,8 @@ const WebviewProduct: React.FC = () => {
                             </div>
                         )}
 
-                        {/* Promo Code Field */}
-                        {config.enablePromoCode && (
-                            <div className="mt-4">
-                                <div className="flex gap-2">
-                                    <div className="relative flex-1">
-                                        <Tag className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${promoApplied ? 'text-green-500' : promoError ? 'text-red-400' : 'text-slate-400'}`} />
-                                        <input
-                                            type="text"
-                                            value={promoCode}
-                                            onChange={(e) => {
-                                                setPromoCode(e.target.value.toUpperCase());
-                                                setPromoError('');
-                                                setPromoApplied(false);
-                                            }}
-                                            onKeyDown={(e) => e.key === 'Enter' && applyPromoCode()}
-                                            placeholder="Enter promo code"
-                                            disabled={promoApplied}
-                                            className={`w-full pl-10 pr-4 py-3 border rounded-xl text-sm focus:outline-none focus:ring-2 ${promoApplied
-                                                ? 'border-green-500 bg-green-50 text-green-700'
-                                                : promoError
-                                                    ? 'border-red-400 bg-red-50 text-red-700 focus:ring-red-500/50'
-                                                    : 'border-slate-200 text-slate-700 placeholder-slate-400 focus:ring-indigo-500/50 focus:border-indigo-500'
-                                                }`}
-                                        />
-                                        {promoApplied && (
-                                            <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-green-500" />
-                                        )}
-                                    </div>
-                                    <button
-                                        type="button"
-                                        onClick={promoApplied ? () => {
-                                            setPromoCode('');
-                                            setPromoApplied(false);
-                                            setPromoError('');
-                                        } : applyPromoCode}
-                                        className={`px-4 py-3 rounded-xl font-semibold text-sm transition-all ${promoApplied
-                                            ? 'bg-red-100 text-red-600 hover:bg-red-200'
-                                            : 'bg-indigo-600 text-white hover:bg-indigo-700'
-                                            }`}
-                                    >
-                                        {promoApplied ? 'Remove' : 'Apply'}
-                                    </button>
-                                </div>
-                                {/* Validation Message */}
-                                {promoError && (
-                                    <p className="mt-2 text-sm text-red-500 flex items-center gap-1">
-                                        <span className="text-lg">❌</span> {promoError}
-                                    </p>
-                                )}
-                                {promoApplied && (
-                                    <p className="mt-2 text-sm text-green-600 flex items-center gap-1">
-                                        <span className="text-lg">✅</span> Promo code applied!
-                                    </p>
-                                )}
-                            </div>
-                        )}
+                        {/* Promo Code Section - Moved to Checkout */}
+                        {/* Note: Promo codes are now applied at checkout for proper discount calculation */}
 
                         {/* Product Name Bar */}
                         {(config.showProductName ?? true) && (

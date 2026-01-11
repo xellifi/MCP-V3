@@ -3,7 +3,7 @@ import {
     ShoppingCart, Type, Palette, Check, Image, Settings, Globe, Truck,
     Smartphone, Monitor, Tablet, X, Package, ChevronDown, ChevronUp,
     CreditCard, User, Receipt, Save, Eye, ChevronLeft, ChevronRight,
-    Phone, Mail, MapPin, Home, Building, Map, Hash, ClipboardList, ExternalLink
+    Phone, Mail, MapPin, Home, Building, Map, Hash, ClipboardList, ExternalLink, Tag, Plus, Trash2
 } from 'lucide-react';
 
 interface CustomerFieldConfig {
@@ -45,6 +45,10 @@ interface CheckoutNodeFormProps {
             notes?: CustomerFieldConfig;
         };
         useFullAddress?: boolean; // true = single address field, false = split fields
+        // Promo Code Configuration
+        showPromoCodeField?: boolean;
+        promoCodes?: string[];
+        promoDiscountPercent?: number;
     };
     onChange: (config: any) => void;
     onClose?: () => void;
@@ -158,6 +162,12 @@ const CheckoutNodeForm: React.FC<CheckoutNodeFormProps> = ({
     const [customerFields, setCustomerFields] = useState(initialConfig?.customerFields || defaultFields);
     const [useFullAddress, setUseFullAddress] = useState(initialConfig?.useFullAddress ?? true);
 
+    // Promo Code Configuration
+    const [showPromoCodeField, setShowPromoCodeField] = useState(initialConfig?.showPromoCodeField ?? true);
+    const [promoCodes, setPromoCodes] = useState<string[]>(initialConfig?.promoCodes || []);
+    const [promoDiscountPercent, setPromoDiscountPercent] = useState<number>(initialConfig?.promoDiscountPercent || 10);
+    const [newPromoCode, setNewPromoCode] = useState('');
+
     // UI State
     const [previewDevice, setPreviewDevice] = useState<'desktop' | 'tablet' | 'mobile'>('mobile');
     const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1024);
@@ -186,6 +196,8 @@ const CheckoutNodeForm: React.FC<CheckoutNodeFormProps> = ({
             companyLogo, companyName, useWebview, showShipping, shippingFee,
             successMessage, thankYouMessage, backgroundColor, cardBackgroundColor,
             textColor, accentColor, customerFields, useFullAddress,
+            // Promo code configuration
+            showPromoCodeField, promoCodes, promoDiscountPercent,
             // Flat field configs for WebviewCheckout compatibility
             showNameField: currentFields.name?.enabled ?? true,
             showPhoneField: currentFields.phone?.enabled ?? true,
@@ -198,7 +210,7 @@ const CheckoutNodeForm: React.FC<CheckoutNodeFormProps> = ({
             showNotesField: currentFields.notes?.enabled ?? false,
             ...updates
         });
-    }, [headerText, buttonText, primaryColor, showItemDetails, showTotal, companyLogo, companyName, useWebview, showShipping, shippingFee, successMessage, thankYouMessage, backgroundColor, cardBackgroundColor, textColor, accentColor, customerFields, useFullAddress, onChange]);
+    }, [headerText, buttonText, primaryColor, showItemDetails, showTotal, companyLogo, companyName, useWebview, showShipping, shippingFee, successMessage, thankYouMessage, backgroundColor, cardBackgroundColor, textColor, accentColor, customerFields, useFullAddress, showPromoCodeField, promoCodes, promoDiscountPercent, onChange]);
 
     // Initial notification
     useEffect(() => {
@@ -622,6 +634,111 @@ const CheckoutNodeForm: React.FC<CheckoutNodeFormProps> = ({
         </CollapsibleSection>
     );
 
+    // Promo Code Configuration Section
+    const addPromoCode = () => {
+        if (newPromoCode.trim() && !promoCodes.includes(newPromoCode.toUpperCase().trim())) {
+            const updatedCodes = [...promoCodes, newPromoCode.toUpperCase().trim()];
+            setPromoCodes(updatedCodes);
+            setNewPromoCode('');
+            notifyChange({ promoCodes: updatedCodes });
+        }
+    };
+
+    const removePromoCode = (code: string) => {
+        const updatedCodes = promoCodes.filter(c => c !== code);
+        setPromoCodes(updatedCodes);
+        notifyChange({ promoCodes: updatedCodes });
+    };
+
+    const promoCodeSection = (
+        <CollapsibleSection title="Promo Codes" icon={Tag} defaultOpen={false} color="pink">
+            <div className="space-y-4">
+                {/* Enable Promo Code Toggle */}
+                <div className="p-4 rounded-xl bg-gradient-to-br from-pink-500/20 to-rose-500/10 border border-pink-500/30">
+                    <Toggle
+                        value={showPromoCodeField}
+                        onChange={(v) => { setShowPromoCodeField(v); notifyChange({ showPromoCodeField: v }); }}
+                        label="Enable Promo Codes"
+                        description="Show promo code field at checkout"
+                    />
+                </div>
+
+                {showPromoCodeField && (
+                    <>
+                        {/* Discount Percentage */}
+                        <div>
+                            <label className="block text-xs font-medium text-slate-400 mb-1.5">Discount Percentage</label>
+                            <div className="flex items-center gap-2">
+                                <input
+                                    type="number"
+                                    value={promoDiscountPercent}
+                                    onChange={(e) => {
+                                        const val = Math.min(100, Math.max(1, parseInt(e.target.value) || 10));
+                                        setPromoDiscountPercent(val);
+                                        notifyChange({ promoDiscountPercent: val });
+                                    }}
+                                    min="1"
+                                    max="100"
+                                    className="w-24 px-3 py-2.5 bg-black/30 border border-white/10 rounded-lg text-white text-sm"
+                                />
+                                <span className="text-slate-400 text-sm">% off</span>
+                            </div>
+                            <p className="text-xs text-slate-500 mt-1">Applied when a valid promo code is used</p>
+                        </div>
+
+                        {/* Add Promo Code */}
+                        <div>
+                            <label className="block text-xs font-medium text-slate-400 mb-1.5">Valid Promo Codes</label>
+                            <div className="flex gap-2">
+                                <input
+                                    type="text"
+                                    value={newPromoCode}
+                                    onChange={(e) => setNewPromoCode(e.target.value.toUpperCase())}
+                                    onKeyDown={(e) => e.key === 'Enter' && addPromoCode()}
+                                    placeholder="Enter code (e.g., 10OFF)"
+                                    className="flex-1 px-3 py-2.5 bg-black/30 border border-white/10 rounded-lg text-white text-sm placeholder-white/40"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={addPromoCode}
+                                    className="px-4 py-2.5 bg-pink-500 hover:bg-pink-600 text-white rounded-lg transition-colors flex items-center gap-1"
+                                >
+                                    <Plus className="w-4 h-4" />
+                                    Add
+                                </button>
+                            </div>
+                            <p className="text-xs text-slate-500 mt-1">
+                                {promoCodes.length === 0 ? 'No codes configured - any code will be accepted' : `${promoCodes.length} code(s) configured`}
+                            </p>
+                        </div>
+
+                        {/* List of Promo Codes */}
+                        {promoCodes.length > 0 && (
+                            <div className="space-y-2">
+                                {promoCodes.map((code) => (
+                                    <div key={code} className="flex items-center justify-between p-3 bg-black/20 rounded-lg border border-white/5">
+                                        <div className="flex items-center gap-2">
+                                            <Tag className="w-4 h-4 text-pink-400" />
+                                            <span className="text-sm font-medium text-white">{code}</span>
+                                            <span className="text-xs text-slate-500">({promoDiscountPercent}% off)</span>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => removePromoCode(code)}
+                                            className="p-1.5 text-slate-400 hover:text-red-400 transition-colors"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </>
+                )}
+            </div>
+        </CollapsibleSection>
+    );
+
     // Customer Fields Configuration Section
     const updateField = (fieldName: string, updates: Partial<CustomerFieldConfig>) => {
         const newFields = {
@@ -858,6 +975,7 @@ const CheckoutNodeForm: React.FC<CheckoutNodeFormProps> = ({
                             {brandingSection}
                             {styleSection}
                             {optionsSection}
+                            {promoCodeSection}
                         </div>
 
                         {/* Right: Live Preview */}
@@ -904,6 +1022,7 @@ const CheckoutNodeForm: React.FC<CheckoutNodeFormProps> = ({
                 {brandingSection}
                 {styleSection}
                 {optionsSection}
+                {promoCodeSection}
             </div>
 
             {/* Save toast */}
