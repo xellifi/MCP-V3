@@ -205,6 +205,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     image: mainProductImage ? 'yes' : 'no'
                 });
 
+                // Status - IMPORTANT: This is required for status updates in Google Sheets
+                // Using 'Order Placed' to match Invoice/Tracking display labels
+                submissionData.order_status = 'Order Placed';
+
                 // Create cart with main product if product info exists
                 let initialCart: any[] = [];
                 let initialCartTotal = 0;
@@ -1916,6 +1920,10 @@ async function syncToGoogleSheets(
 
         // Notes
         'Notes': checkoutData.notes || '',
+
+        // Status - IMPORTANT: This is required for status updates in Google Sheets
+        // Using 'Order Placed' to match Invoice/Tracking display labels
+        'Status': 'Order Placed',
 
         // Timestamp
         'Timestamp': new Date().toISOString(),

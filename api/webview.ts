@@ -418,10 +418,12 @@ async function handleAction(req: VercelRequest, res: VercelResponse) {
                 paymentMethodName,
                 shippingFee
             };
-            await createOrder(orderSession);
+            const createdOrderId = await createOrder(orderSession);
 
             // Sync to Google Sheets with Order ID and Status
-            await syncOrderToGoogleSheets(orderSession);
+            if (createdOrderId) {
+                await syncOrderToGoogleSheets(orderSession, createdOrderId);
+            }
 
             result.orderCreated = true;
             result.response = 'confirmed';
@@ -429,12 +431,15 @@ async function handleAction(req: VercelRequest, res: VercelResponse) {
             break;
         }
 
-        case 'checkout_complete':
+        case 'checkout_complete': {
             updates = { user_response: 'checkout_complete', completed_at: new Date().toISOString() };
-            await createOrder(session);
-            await syncOrderToGoogleSheets(session);
+            const orderId = await createOrder(session);
+            if (orderId) {
+                await syncOrderToGoogleSheets(session, orderId);
+            }
             result.orderCreated = true;
             break;
+        }
 
         default:
             return res.status(400).json({ error: `Unknown action: ${action}` });
@@ -643,7 +648,7 @@ async function syncToGoogleSheets(session: any, formData: any) {
     }
 }
 
-async function createOrder(session: any) {
+async function createOrder(session: any): Promise<string | null> {
     try {
         console.log('[Webview] Creating order with data:', {
             customer: session.customer_name,
@@ -680,26 +685,39 @@ async function createOrder(session: any) {
 
         if (error) {
             console.error('[Webview] Error creating order:', error.message);
+            return null;
         } else {
             console.log('[Webview] ✓ Order created:', data?.id);
+            return orderId; // Return the order ID
         }
     } catch (error: any) {
         console.error('[Webview] Error creating order:', error.message);
+        return null;
     }
 }
 
-async function syncOrderToGoogleSheets(session: any) {
+async function syncOrderToGoogleSheets(session: any, orderId?: string) {
     try {
-        const { data: workspace } = await supabase
+        console.log('[Webview] Starting Google Sheets sync for order:', orderId || 'unknown');
+        console.log('[Webview] Session workspace_id:', session.workspace_id);
+
+        const { data: workspace, error: wsError } = await supabase
             .from('workspaces')
             .select('google_webhook_url')
             .eq('id', session.workspace_id)
             .single();
 
-        if (!workspace?.google_webhook_url) {
-            console.log('[Webview] No Google Sheets webhook URL configured');
+        if (wsError) {
+            console.error('[Webview] Error fetching workspace:', wsError.message);
             return;
         }
+
+        if (!workspace?.google_webhook_url) {
+            console.log('[Webview] No Google Sheets webhook URL configured for workspace');
+            return;
+        }
+
+        console.log('[Webview] Found webhook URL:', workspace.google_webhook_url.substring(0, 50) + '...');
 
         // Build order items string for single cell
         const itemsList = (session.cart || []).map((item: any) =>
@@ -712,12 +730,12 @@ async function syncOrderToGoogleSheets(session: any) {
         const shippingFee = session.shippingFee || 0;
         const totalAfterDiscount = subtotal - discount + shippingFee;
 
-        // Generate Order ID for tracking (same format as createOrder)
-        const orderId = session.orderId || `ORD-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+        // Use the orderId passed from createOrder, or fallback to session.orderId
+        const finalOrderId = orderId || session.orderId || `ORD-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
 
         const orderPayload = {
             // Order ID - IMPORTANT: This is used for status updates
-            'Order ID': orderId,
+            'Order ID': finalOrderId,
             // Timestamp
             order_date: new Date().toISOString(),
             // Customer info
@@ -740,13 +758,14 @@ async function syncOrderToGoogleSheets(session: any) {
             // Notes
             notes: session.metadata?.notes || session.form_data?.notes || '',
             // Status - IMPORTANT: This is what status updates modify
-            Status: 'Pending',
+            // Using 'Order Placed' to match Invoice/Tracking display labels
+            Status: 'Order Placed',
             // Source
             source: 'Messenger Checkout',
             subscriber_id: session.external_id
         };
 
-        console.log('[Webview] Syncing order to Google Sheets:', orderPayload);
+        console.log('[Webview] Syncing order to Google Sheets with payload:', JSON.stringify(orderPayload, null, 2));
 
         const response = await fetch(workspace.google_webhook_url, {
             method: 'POST',
@@ -754,10 +773,13 @@ async function syncOrderToGoogleSheets(session: any) {
             body: JSON.stringify({ rowData: orderPayload })
         });
 
+        const responseText = await response.text();
+        console.log('[Webview] Google Sheets response:', responseText);
+
         if (response.ok) {
-            console.log('[Webview] ✓ Order synced to Google Sheets');
+            console.log('[Webview] ✓ Order synced to Google Sheets successfully');
         } else {
-            console.error('[Webview] Google Sheets sync failed:', response.status);
+            console.error('[Webview] Google Sheets sync failed:', response.status, responseText);
         }
     } catch (error: any) {
         console.error('[Webview] Error syncing to Google Sheets:', error.message);
