@@ -2266,10 +2266,36 @@ async function processTextMessage(messagingEvent: any, pageId: string) {
     // ========== AI NODE FALLBACK HANDLING ==========
     // Check if any flow has an AI node configured for 'no_match' trigger
     console.log('🤖 Checking for AI Node fallback...');
+    console.log(`🤖 Current page: ${pageDbId}`);
 
     for (const flow of flows) {
         const nodes = flow.nodes || [];
         const configurations = flow.configurations || {};
+
+        // First, check if this flow is associated with the current page
+        // by looking at the Start node's page configuration
+        const startNodes = nodes.filter((n: any) =>
+            n.type === 'startNode' ||
+            n.data?.nodeType === 'startNode' ||
+            (n.data?.label?.toLowerCase() || '').includes('start')
+        );
+
+        let flowMatchesPage = false;
+        for (const startNode of startNodes) {
+            const startConfig = configurations[startNode.id] || startNode.data || {};
+            // Check if the Start node is configured for this page
+            if (startConfig.pageId === pageDbId) {
+                flowMatchesPage = true;
+                break;
+            }
+        }
+
+        if (!flowMatchesPage) {
+            console.log(`🤖 Skipping flow "${flow.name}" - not configured for current page`);
+            continue;
+        }
+
+        console.log(`🤖 Flow "${flow.name}" matches current page`);
 
         // Find AI nodes
         const aiNodes = nodes.filter((n: any) =>
@@ -2338,14 +2364,26 @@ async function processTextMessage(messagingEvent: any, pageId: string) {
 
                 // Get API key
                 let apiKey = null;
-                const { data: workspaceSettings } = await supabase
+                let keySource = 'none';
+
+                console.log(`🤖 Looking up ${provider} API key for workspace: ${workspaceId}`);
+
+                const { data: workspaceSettings, error: wsError } = await supabase
                     .from('workspace_settings')
                     .select('openai_api_key, gemini_api_key')
                     .eq('workspace_id', workspaceId)
-                    .single();
+                    .maybeSingle();
+
+                if (wsError) {
+                    console.log(`🤖 Workspace settings lookup error: ${wsError.message}`);
+                }
 
                 if (workspaceSettings) {
                     apiKey = provider === 'openai' ? workspaceSettings.openai_api_key : workspaceSettings.gemini_api_key;
+                    if (apiKey) {
+                        keySource = 'workspace_settings';
+                        console.log(`🤖 Found ${provider} key in workspace_settings`);
+                    }
                 }
 
                 if (!apiKey) {
@@ -2356,11 +2394,16 @@ async function processTextMessage(messagingEvent: any, pageId: string) {
                         .single();
                     if (adminSettings) {
                         apiKey = provider === 'openai' ? adminSettings.openai_api_key : adminSettings.gemini_api_key;
+                        if (apiKey) {
+                            keySource = 'admin_settings';
+                            console.log(`🤖 Found ${provider} key in admin_settings`);
+                        }
                     }
                 }
 
                 if (!apiKey) {
-                    console.error(`🤖 No ${provider} API key found, sending fallback message`);
+                    console.error(`🤖 No ${provider} API key found in workspace_settings or admin_settings`);
+                    console.error(`🤖 Sending fallback message instead`);
                     await fetch(`https://graph.facebook.com/v21.0/me/messages`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -2372,6 +2415,9 @@ async function processTextMessage(messagingEvent: any, pageId: string) {
                     });
                     return;
                 }
+
+                const maskedKey = apiKey.substring(0, 8) + '...' + apiKey.substring(apiKey.length - 4);
+                console.log(`🤖 Using ${provider} API key from: ${keySource} (${maskedKey})`);
 
                 // Generate AI response
                 let aiResponse = null;
