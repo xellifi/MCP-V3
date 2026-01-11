@@ -526,6 +526,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 }
             }
 
+
             // Handle Invoice Node - send invoice with clickable button to view in webview
             if (node.type === 'invoiceNode') {
                 console.log('[Continue Flow] Processing Invoice node');
@@ -538,6 +539,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 // This is more reliable than looking it up by subscriber
                 let invoiceUrl = '';
                 let finalSubmissionId = submissionId; // Use the ID passed from FormView
+                let submissionData: any = {}; // To store existing submission data
 
                 // Fallback: If submissionId not passed, try to look it up
                 if (!finalSubmissionId) {
@@ -545,7 +547,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     try {
                         const { data: submission } = await supabase
                             .from('form_submissions')
-                            .select('id')
+                            .select('id, data')
                             .eq('subscriber_external_id', subscriberId)
                             .order('created_at', { ascending: false })
                             .limit(1)
@@ -553,9 +555,35 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
                         if (submission) {
                             finalSubmissionId = submission.id;
+                            submissionData = submission.data || {};
                         }
                     } catch (err) {
                         console.error('[Continue Flow] Error looking up submission:', err);
+                    }
+                }
+
+                // IMPORTANT: Update the form submission with the current cart (includes upsells/downsells)
+                if (finalSubmissionId && context.cart && context.cart.length > 0) {
+                    console.log('[Continue Flow] Updating submission with cart:', context.cart.length, 'items');
+                    try {
+                        const { error: updateError } = await supabase
+                            .from('form_submissions')
+                            .update({
+                                data: {
+                                    ...submissionData,
+                                    cart: context.cart,
+                                    cartTotal: context.cartTotal
+                                }
+                            })
+                            .eq('id', finalSubmissionId);
+
+                        if (updateError) {
+                            console.error('[Continue Flow] Error updating submission with cart:', updateError);
+                        } else {
+                            console.log('[Continue Flow] ✓ Submission updated with current cart');
+                        }
+                    } catch (err) {
+                        console.error('[Continue Flow] Exception updating submission:', err);
                     }
                 }
 
