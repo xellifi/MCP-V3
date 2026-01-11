@@ -9,6 +9,10 @@ const supabase = createClient(supabaseUrl, supabaseKey);
  * Invoice View API - Server-side rendered invoice page
  * This works in mobile browsers including Messenger's in-app browser
  * because it returns complete HTML without relying on React Router
+ * 
+ * UNIVERSAL: Supports both:
+ * 1. Form submissions (legacy form-based orders)
+ * 2. Orders table (webview checkout orders)
  */
 export default async function handler(req: VercelRequest, res: VercelResponse) {
     const { id } = req.query;
@@ -24,50 +28,50 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     try {
-        const { data: submission, error } = await supabase
-            .from('form_submissions')
-            .select('*, forms(*)')
-            .eq('id', id)
-            .single();
+        let invoiceData: any = null;
+        let source: 'order' | 'form_submission' = 'form_submission';
 
-        if (error || !submission) {
-            console.error('[Invoice View] Error:', error);
+        // STEP 1: Try to find in orders table first (webview checkout orders)
+        // Orders table IDs start with "ORD-" prefix
+        if (id.startsWith('ORD-')) {
+            console.log('[Invoice View] Checking orders table for:', id);
+            const { data: order, error: orderError } = await supabase
+                .from('orders')
+                .select('*')
+                .eq('id', id)
+                .single();
+
+            if (!orderError && order) {
+                console.log('[Invoice View] Found order:', order.id);
+                source = 'order';
+                invoiceData = transformOrderToInvoice(order);
+            }
+        }
+
+        // STEP 2: If not found in orders, try form_submissions table (legacy form-based orders)
+        if (!invoiceData) {
+            console.log('[Invoice View] Checking form_submissions table for:', id);
+            const { data: submission, error: submissionError } = await supabase
+                .from('form_submissions')
+                .select('*, forms(*)')
+                .eq('id', id)
+                .single();
+
+            if (!submissionError && submission) {
+                console.log('[Invoice View] Found form submission:', submission.id);
+                source = 'form_submission';
+                invoiceData = transformSubmissionToInvoice(submission);
+            }
+        }
+
+        // Not found in either table
+        if (!invoiceData) {
+            console.error('[Invoice View] Invoice not found in orders or form_submissions');
             return res.status(404).send(renderError('Invoice not found'));
         }
 
-        console.log('[Invoice View] Found submission:', submission.id);
-
-        // Extract data
-        const data = submission.data || {};
-        const form = submission.forms || {};
-        const productName = data.product_name || form.product_name || 'Product';
-        const productPrice = data.product_price || form.product_price || 0;
-        const quantity = data.quantity || 1;
-        const total = data.total || (productPrice * quantity);
-        const currency = data.currency || form.currency || 'PHP';
-
-        // Extract customer name from various possible fields
-        const customerName = data.name
-            || data.full_name
-            || data.customer_name
-            || data.buyer_name
-            || data['Full Name']
-            || data['Name']
-            || submission.subscriber_name
-            || 'Customer';
-
-        const currencySymbols: Record<string, string> = {
-            PHP: '₱', USD: '$', EUR: '€', GBP: '£', JPY: '¥'
-        };
-        const currencySymbol = currencySymbols[currency] || '₱';
-
-        const paymentMethod = data.payment_method === 'cod'
-            ? 'Cash on Delivery'
-            : (data.ewallet_selected || 'E-Wallet');
-
-        const invoiceNumber = `INV-${id.slice(0, 8).toUpperCase()}`;
-        // Pass raw timestamp - will be formatted client-side for correct timezone
-        const orderTimestamp = submission.created_at;
+        console.log('[Invoice View] Invoice loaded from:', source);
+        console.log('[Invoice View] Cart items:', invoiceData.cartItems?.length || 0);
 
         // Return server-rendered HTML
         res.setHeader('Content-Type', 'text/html; charset=utf-8');
@@ -77,27 +81,137 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             companyAddress,
             color,
             logo,
-            invoiceNumber,
-            orderTimestamp,
-            customerName,
-            email: data.email,
-            phone: data.phone,
-            address: data.address || data.full_address,
-            productName,
-            productPrice,
-            quantity,
-            total,
-            currencySymbol,
-            paymentMethod,
-            proofUrl: data.proof_url,
-            couponApplied: data.coupon_applied,
-            orderStatus: data.order_status || 'pending'
+            invoiceNumber: invoiceData.invoiceNumber,
+            orderTimestamp: invoiceData.orderTimestamp,
+            customerName: invoiceData.customerName,
+            email: invoiceData.email,
+            phone: invoiceData.phone,
+            address: invoiceData.address,
+            // Support for cart items (multiple products)
+            cartItems: invoiceData.cartItems || [],
+            productName: invoiceData.productName,
+            productPrice: invoiceData.productPrice,
+            quantity: invoiceData.quantity,
+            subtotal: invoiceData.subtotal,
+            shippingFee: invoiceData.shippingFee || 0,
+            discount: invoiceData.discount || 0,
+            promoCode: invoiceData.promoCode || '',
+            total: invoiceData.total,
+            currencySymbol: invoiceData.currencySymbol,
+            paymentMethod: invoiceData.paymentMethod,
+            proofUrl: invoiceData.proofUrl,
+            orderStatus: invoiceData.orderStatus
         }));
 
     } catch (err: any) {
         console.error('[Invoice View] Exception:', err);
         return res.status(500).send(renderError('Failed to load invoice'));
     }
+}
+
+/**
+ * Transform an order from the orders table to invoice data
+ */
+function transformOrderToInvoice(order: any) {
+    const items = order.items || [];
+    const currencySymbols: Record<string, string> = {
+        PHP: '₱', USD: '$', EUR: '€', GBP: '£', JPY: '¥'
+    };
+
+    // Calculate subtotal from all cart items
+    const subtotal = items.reduce((sum: number, item: any) => {
+        const itemPrice = parseFloat(item.productPrice) || 0;
+        const itemQty = parseInt(item.quantity) || 1;
+        return sum + (itemPrice * itemQty);
+    }, 0);
+
+    return {
+        invoiceNumber: `INV-${order.id.replace('ORD-', '').slice(0, 8).toUpperCase()}`,
+        orderTimestamp: order.created_at,
+        customerName: order.customer_name || 'Customer',
+        email: order.customer_email,
+        phone: order.customer_phone,
+        address: order.customer_address,
+        // Cart items for displaying multiple products
+        cartItems: items,
+        // Legacy single product (use first item as fallback)
+        productName: items[0]?.productName || 'Product',
+        productPrice: parseFloat(items[0]?.productPrice) || 0,
+        quantity: parseInt(items[0]?.quantity) || 1,
+        subtotal: order.subtotal || subtotal,
+        shippingFee: order.shipping_fee || 0,
+        discount: order.metadata?.discount || 0,
+        promoCode: order.metadata?.promoCode || '',
+        total: order.total || subtotal,
+        currencySymbol: currencySymbols[order.metadata?.currency || 'PHP'] || '₱',
+        paymentMethod: order.payment_method_name || order.payment_method || 'Cash on Delivery',
+        proofUrl: order.metadata?.payment?.proofUrl || order.metadata?.proofUrl,
+        orderStatus: order.status || 'pending'
+    };
+}
+
+/**
+ * Transform a form submission to invoice data (legacy format)
+ */
+function transformSubmissionToInvoice(submission: any) {
+    const data = submission.data || {};
+    const form = submission.forms || {};
+
+    const currencySymbols: Record<string, string> = {
+        PHP: '₱', USD: '$', EUR: '€', GBP: '£', JPY: '¥'
+    };
+
+    const currency = data.currency || form.currency || 'PHP';
+    const productPrice = parseFloat(form.product_price) || parseFloat(data.product_price) || 0;
+    const quantity = parseInt(data.quantity) || 1;
+
+    // Check if cart exists (includes upsells)
+    let cartItems: any[] = [];
+    let subtotal = 0;
+
+    if (data.cart && Array.isArray(data.cart) && data.cart.length > 0) {
+        cartItems = data.cart;
+        subtotal = data.cart.reduce((sum: number, item: any) => {
+            const itemPrice = parseFloat(item.productPrice) || 0;
+            const itemQty = parseInt(item.quantity) || 1;
+            return sum + (itemPrice * itemQty);
+        }, 0);
+    } else {
+        // Single product
+        subtotal = productPrice * quantity;
+    }
+
+    // Extract customer name from various possible fields
+    const customerName = data.name
+        || data.full_name
+        || data.customer_name
+        || data.buyer_name
+        || data['Full Name']
+        || data['Name']
+        || submission.subscriber_name
+        || 'Customer';
+
+    return {
+        invoiceNumber: `INV-${submission.id.slice(0, 8).toUpperCase()}`,
+        orderTimestamp: submission.created_at,
+        customerName,
+        email: data.email,
+        phone: data.phone,
+        address: data.address || data.full_address,
+        cartItems,
+        productName: data.product_name || form.product_name || 'Product',
+        productPrice,
+        quantity,
+        subtotal,
+        shippingFee: parseFloat(data.shipping_fee) || 0,
+        discount: parseFloat(data.discount) || 0,
+        promoCode: data.coupon_applied || data.promoCode || '',
+        total: parseFloat(data.total) || parseFloat(data.discounted_total) || subtotal,
+        currencySymbol: currencySymbols[currency] || '₱',
+        paymentMethod: data.payment_method === 'cod' ? 'Cash on Delivery' : (data.ewallet_selected || data.payment_method_name || 'E-Wallet'),
+        proofUrl: data.proof_url,
+        orderStatus: data.order_status || 'pending'
+    };
 }
 
 function renderError(message: string): string {
@@ -164,20 +278,43 @@ interface InvoiceData {
     email?: string;
     phone?: string;
     address?: string;
+    // Cart items (multiple products including upsells)
+    cartItems?: Array<{
+        productName: string;
+        productPrice: number;
+        quantity: number;
+        productImage?: string;
+    }>;
+    // Legacy single product support
     productName: string;
     productPrice: number;
     quantity: number;
+    subtotal: number;
+    shippingFee?: number;
+    discount?: number;
+    promoCode?: string;
     total: number;
     currencySymbol: string;
     paymentMethod: string;
     proofUrl?: string;
-    couponApplied?: string;
     orderStatus: string;
 }
 
 function renderInvoice(data: InvoiceData): string {
-    const subtotal = data.productPrice * data.quantity;
-    const discount = data.couponApplied ? subtotal - data.total : 0;
+    // Calculate subtotal from cart items if available, otherwise use legacy single product
+    let calculatedSubtotal = data.subtotal || 0;
+    const hasCartItems = data.cartItems && data.cartItems.length > 0;
+
+    if (hasCartItems) {
+        calculatedSubtotal = data.cartItems!.reduce((sum, item) => {
+            return sum + (item.productPrice * (item.quantity || 1));
+        }, 0);
+    } else {
+        calculatedSubtotal = data.productPrice * data.quantity;
+    }
+
+    const shippingFee = data.shippingFee || 0;
+    const discount = data.discount || 0;
 
     return `
 <!DOCTYPE html>
@@ -398,26 +535,51 @@ function renderInvoice(data: InvoiceData): string {
             
             <div class="section">
                 <div class="section-title">Order Details</div>
-                <div class="product-row">
-                    <div>
-                        <div class="product-name">${escapeHtml(data.productName)}</div>
-                        <div class="product-qty">Qty: ${data.quantity}</div>
-                    </div>
-                    <div class="product-price">
-                        ${data.currencySymbol}${data.productPrice.toLocaleString()}
-                        ${data.quantity > 1 ? `<div class="product-calc">× ${data.quantity} = ${data.currencySymbol}${subtotal.toLocaleString()}</div>` : ''}
-                    </div>
-                </div>
+                ${hasCartItems ?
+            // Display all cart items (multiple products)
+            data.cartItems!.map((item, index) => {
+                const itemTotal = item.productPrice * (item.quantity || 1);
+                return `
+                        <div class="product-row" style="margin-bottom: 8px;">
+                            <div>
+                                <div class="product-name">${escapeHtml(item.productName || 'Product')}</div>
+                                <div class="product-qty">Qty: ${item.quantity || 1}</div>
+                            </div>
+                            <div class="product-price">
+                                ${data.currencySymbol}${item.productPrice.toLocaleString()}
+                                ${(item.quantity || 1) > 1 ? `<div class="product-calc">× ${item.quantity} = ${data.currencySymbol}${itemTotal.toLocaleString()}</div>` : ''}
+                            </div>
+                        </div>`;
+            }).join('')
+            :
+            // Single product (legacy)
+            `<div class="product-row">
+                        <div>
+                            <div class="product-name">${escapeHtml(data.productName)}</div>
+                            <div class="product-qty">Qty: ${data.quantity}</div>
+                        </div>
+                        <div class="product-price">
+                            ${data.currencySymbol}${data.productPrice.toLocaleString()}
+                            ${data.quantity > 1 ? `<div class="product-calc">× ${data.quantity} = ${data.currencySymbol}${calculatedSubtotal.toLocaleString()}</div>` : ''}
+                        </div>
+                    </div>`
+        }
             </div>
             
             <div class="summary">
                 <div class="summary-row">
                     <span class="summary-label">Subtotal</span>
-                    <span class="summary-value">${data.currencySymbol}${subtotal.toLocaleString()}</span>
+                    <span class="summary-value">${data.currencySymbol}${calculatedSubtotal.toLocaleString()}</span>
                 </div>
-                ${data.couponApplied ? `
+                ${shippingFee > 0 ? `
                 <div class="summary-row">
-                    <span class="summary-discount">Discount (${escapeHtml(data.couponApplied)})</span>
+                    <span class="summary-label">Shipping</span>
+                    <span class="summary-value">${data.currencySymbol}${shippingFee.toLocaleString()}</span>
+                </div>
+                ` : ''}
+                ${discount > 0 ? `
+                <div class="summary-row">
+                    <span class="summary-discount">Discount${data.promoCode ? ` (${escapeHtml(data.promoCode)})` : ''}</span>
                     <span class="summary-discount">-${data.currencySymbol}${discount.toLocaleString()}</span>
                 </div>
                 ` : ''}

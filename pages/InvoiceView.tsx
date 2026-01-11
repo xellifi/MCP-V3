@@ -28,34 +28,84 @@ const InvoiceView: React.FC = () => {
         }
 
         try {
-            console.log('[InvoiceView] Loading invoice for submission:', submissionId);
+            console.log('[InvoiceView] Loading invoice for:', submissionId);
             console.log('[InvoiceView] Full URL:', window.location.href);
 
-            const { data: submission, error: fetchError } = await supabase
-                .from('form_submissions')
-                .select('*, forms(*)')
-                .eq('id', submissionId)
-                .single();
+            let invoiceData: any = null;
 
-            if (fetchError) {
-                console.error('[InvoiceView] Supabase error:', fetchError);
-                console.error('[InvoiceView] Error code:', fetchError.code);
-                console.error('[InvoiceView] Error details:', fetchError.details);
-                setError(`Invoice not found (${fetchError.code || 'unknown error'})`);
-                setLoading(false);
-                return;
+            // STEP 1: Check orders table first (webview checkout orders start with "ORD-")
+            if (submissionId.startsWith('ORD-')) {
+                console.log('[InvoiceView] Checking orders table...');
+                const { data: order, error: orderError } = await supabase
+                    .from('orders')
+                    .select('*')
+                    .eq('id', submissionId)
+                    .single();
+
+                if (!orderError && order) {
+                    console.log('[InvoiceView] Found order:', order.id);
+                    // Transform order to invoice-compatible format
+                    invoiceData = {
+                        id: order.id,
+                        created_at: order.created_at,
+                        data: {
+                            // Customer info
+                            name: order.customer_name,
+                            phone: order.customer_phone,
+                            email: order.customer_email,
+                            address: order.customer_address,
+                            // Cart and pricing
+                            cart: order.items || [],
+                            total: order.total,
+                            shipping_fee: order.shipping_fee,
+                            discount: order.metadata?.discount,
+                            promoCode: order.metadata?.promoCode,
+                            // Payment
+                            payment_method: order.payment_method,
+                            payment_method_name: order.payment_method_name,
+                            proof_url: order.metadata?.payment?.proofUrl || order.metadata?.proofUrl,
+                            // Get first item for legacy fields
+                            product_name: order.items?.[0]?.productName,
+                            product_price: order.items?.[0]?.productPrice,
+                            quantity: order.items?.[0]?.quantity || 1,
+                            currency: order.metadata?.currency || 'PHP'
+                        },
+                        forms: {},
+                        source: 'order'
+                    };
+                }
             }
 
-            if (!submission) {
-                console.error('[InvoiceView] No submission data returned');
+            // STEP 2: If not found in orders, try form_submissions table
+            if (!invoiceData) {
+                console.log('[InvoiceView] Checking form_submissions table...');
+                const { data: submission, error: fetchError } = await supabase
+                    .from('form_submissions')
+                    .select('*, forms(*)')
+                    .eq('id', submissionId)
+                    .single();
+
+                if (fetchError) {
+                    console.error('[InvoiceView] Supabase error:', fetchError);
+                    console.error('[InvoiceView] Error code:', fetchError.code);
+                    console.error('[InvoiceView] Error details:', fetchError.details);
+                } else if (submission) {
+                    console.log('[InvoiceView] Found form submission:', submission.id);
+                    invoiceData = submission;
+                    invoiceData.source = 'form_submission';
+                }
+            }
+
+            // Not found in either table
+            if (!invoiceData) {
                 setError('Invoice not found');
                 setLoading(false);
                 return;
             }
 
-            console.log('[InvoiceView] Submission loaded:', submission);
-            console.log('[InvoiceView] Form data fields:', Object.keys(submission.data || {}));
-            setInvoice(submission);
+            console.log('[InvoiceView] Invoice loaded from:', invoiceData.source);
+            console.log('[InvoiceView] Data fields:', Object.keys(invoiceData.data || {}));
+            setInvoice(invoiceData);
         } catch (err: any) {
             console.error('[InvoiceView] Exception:', err);
             setError('Failed to load invoice: ' + (err.message || 'Unknown error'));
@@ -369,16 +419,27 @@ const InvoiceView: React.FC = () => {
                             <span className="text-gray-500">Subtotal</span>
                             <span className="text-gray-700">{currencySymbol}{total.toLocaleString()}</span>
                         </div>
-                        {data.coupon_applied && (
+                        {(data.shipping_fee > 0 || data.shippingFee > 0) && (
                             <div className="flex justify-between items-center mb-2 text-sm">
-                                <span className="text-green-600">Discount ({data.coupon_applied})</span>
-                                <span className="text-green-600">-{currencySymbol}{(total - (data.discounted_total || total)).toLocaleString()}</span>
+                                <span className="text-gray-500">Shipping</span>
+                                <span className="text-gray-700">{currencySymbol}{(data.shipping_fee || data.shippingFee || 0).toLocaleString()}</span>
+                            </div>
+                        )}
+                        {(data.discount > 0 || data.coupon_applied) && (
+                            <div className="flex justify-between items-center mb-2 text-sm">
+                                <span className="text-green-600">
+                                    Discount
+                                    {(data.promoCode || data.coupon_applied) && ` (${data.promoCode || data.coupon_applied})`}
+                                </span>
+                                <span className="text-green-600">
+                                    -{currencySymbol}{(data.discount || (total - (data.discounted_total || total)) || 0).toLocaleString()}
+                                </span>
                             </div>
                         )}
                         <div className="flex justify-between items-center pt-2 border-t border-gray-200">
                             <span className="font-bold text-gray-800">Total</span>
                             <span className="text-2xl font-bold" style={{ color: accentColor }}>
-                                {currencySymbol}{(data.discounted_total || total).toLocaleString()}
+                                {currencySymbol}{(data.total || data.discounted_total || total).toLocaleString()}
                             </span>
                         </div>
                     </div>

@@ -25,43 +25,104 @@ const OrderTracking: React.FC = () => {
         }
 
         try {
-            const { data: submission, error: fetchError } = await supabase
-                .from('form_submissions')
-                .select('*, forms(*)')
-                .eq('id', submissionId)
-                .single();
+            console.log('[OrderTracking] Loading order:', submissionId);
+            let orderData: any = null;
 
-            if (fetchError || !submission) {
+            // STEP 1: Check orders table first (webview checkout orders start with "ORD-")
+            if (submissionId.startsWith('ORD-')) {
+                console.log('[OrderTracking] Checking orders table...');
+                const { data: orderRow, error: orderError } = await supabase
+                    .from('orders')
+                    .select('*')
+                    .eq('id', submissionId)
+                    .single();
+
+                if (!orderError && orderRow) {
+                    console.log('[OrderTracking] Found order:', orderRow.id);
+                    // Transform order to tracking-compatible format
+                    orderData = {
+                        id: orderRow.id,
+                        created_at: orderRow.created_at,
+                        data: {
+                            name: orderRow.customer_name,
+                            phone: orderRow.customer_phone,
+                            email: orderRow.customer_email,
+                            address: orderRow.customer_address,
+                            cart: orderRow.items || [],
+                            total: orderRow.total,
+                            order_status: orderRow.status,
+                            payment_method: orderRow.payment_method,
+                            payment_method_name: orderRow.payment_method_name,
+                            currency: orderRow.metadata?.currency || 'PHP'
+                        },
+                        forms: {},
+                        source: 'order'
+                    };
+                }
+            }
+
+            // STEP 2: If not found in orders, try form_submissions table
+            if (!orderData) {
+                console.log('[OrderTracking] Checking form_submissions table...');
+                const { data: submission, error: fetchError } = await supabase
+                    .from('form_submissions')
+                    .select('*, forms(*)')
+                    .eq('id', submissionId)
+                    .single();
+
+                if (!fetchError && submission) {
+                    console.log('[OrderTracking] Found form submission:', submission.id);
+                    orderData = submission;
+                    orderData.source = 'form_submission';
+                }
+            }
+
+            if (!orderData) {
                 setError('Order not found');
                 setLoading(false);
                 return;
             }
 
-            setOrder(submission);
+            console.log('[OrderTracking] Order loaded from:', orderData.source);
+            setOrder(orderData);
         } catch (err: any) {
+            console.error('[OrderTracking] Error:', err);
             setError('Failed to load order');
         } finally {
             setLoading(false);
         }
     };
 
-    // Calculate order status based on created_at date
+    // Get order status from actual database status or legacy day-based calculation
     const getOrderStatus = () => {
         if (!order) return { step: 0, statuses: [] };
 
         const created = new Date(order.created_at);
         const now = new Date();
-        const daysSinceOrder = Math.floor((now.getTime() - created.getTime()) / (1000 * 60 * 60 * 24));
+
+        // Get actual status from data if available
+        const actualStatus = order.data?.order_status || order.status || 'pending';
+
+        // Map status to step number
+        const statusToStep: Record<string, number> = {
+            'pending': 1,
+            'confirmed': 2,
+            'processing': 2,
+            'shipped': 3,
+            'delivered': 4,
+            'cancelled': 0
+        };
+
+        const currentStep = statusToStep[actualStatus] || 1;
 
         const statuses = [
-            { id: 1, label: 'Order Placed', icon: '📦', description: 'We received your order', completed: true, date: created },
-            { id: 2, label: 'Confirmed', icon: '✅', description: 'Order has been confirmed', completed: daysSinceOrder >= 1, date: new Date(created.getTime() + 1 * 24 * 60 * 60 * 1000) },
-            { id: 3, label: 'Shipped', icon: '🚚', description: 'Package is on the way', completed: daysSinceOrder >= 2, date: new Date(created.getTime() + 2 * 24 * 60 * 60 * 1000) },
-            { id: 4, label: 'Delivered', icon: '🎉', description: 'Package delivered successfully', completed: daysSinceOrder >= 5, date: new Date(created.getTime() + 5 * 24 * 60 * 60 * 1000) },
+            { id: 1, label: 'Order Placed', icon: '📦', description: 'We received your order', completed: currentStep >= 1, date: created },
+            { id: 2, label: 'Confirmed', icon: '✅', description: 'Order has been confirmed', completed: currentStep >= 2, date: currentStep >= 2 ? new Date() : null },
+            { id: 3, label: 'Shipped', icon: '🚚', description: 'Package is on the way', completed: currentStep >= 3, date: currentStep >= 3 ? new Date() : null },
+            { id: 4, label: 'Delivered', icon: '🎉', description: 'Package delivered successfully', completed: currentStep >= 4, date: currentStep >= 4 ? new Date() : null },
         ];
 
-        const currentStep = statuses.filter(s => s.completed).length;
-        return { step: currentStep, statuses };
+        return { step: currentStep, statuses, isCancelled: actualStatus === 'cancelled' };
     };
 
     const formatDate = (date: Date) => {

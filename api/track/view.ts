@@ -8,6 +8,10 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 /**
  * Order Tracking View API - Server-side rendered tracking page
  * Works in mobile browsers including Messenger's in-app browser
+ * 
+ * UNIVERSAL: Supports both:
+ * 1. Orders table (webview checkout orders)
+ * 2. Form submissions (legacy form-based orders)
  */
 export default async function handler(req: VercelRequest, res: VercelResponse) {
     const { id } = req.query;
@@ -22,49 +26,92 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     try {
-        const { data: submission, error } = await supabase
-            .from('form_submissions')
-            .select('*, forms(*)')
-            .eq('id', id)
-            .single();
+        let trackingData: any = null;
 
-        if (error || !submission) {
-            console.error('[Track View] Error:', error);
+        // STEP 1: Check orders table first (webview checkout orders start with "ORD-")
+        if (id.startsWith('ORD-')) {
+            console.log('[Track View] Checking orders table...');
+            const { data: order, error: orderError } = await supabase
+                .from('orders')
+                .select('*')
+                .eq('id', id)
+                .single();
+
+            if (!orderError && order) {
+                console.log('[Track View] Found order:', order.id);
+                const items = order.items || [];
+                const firstItem = items[0] || {};
+
+                trackingData = {
+                    submissionId: order.id,
+                    orderNumber: order.id,
+                    createdAt: new Date(order.created_at).toISOString(),
+                    customerName: order.customer_name || 'Customer',
+                    productName: firstItem.productName || 'Product',
+                    quantity: items.reduce((sum: number, item: any) => sum + (item.quantity || 1), 0),
+                    total: order.total || 0,
+                    currencySymbol: getCurrencySymbol(order.metadata?.currency || 'PHP'),
+                    orderStatus: order.status || 'pending'
+                };
+            }
+        }
+
+        // STEP 2: If not found in orders, try form_submissions table
+        if (!trackingData) {
+            console.log('[Track View] Checking form_submissions table...');
+            const { data: submission, error: fetchError } = await supabase
+                .from('form_submissions')
+                .select('*, forms(*)')
+                .eq('id', id)
+                .single();
+
+            if (!fetchError && submission) {
+                console.log('[Track View] Found form submission:', submission.id);
+                const data = submission.data || {};
+                const form = submission.forms || {};
+                const productName = data.product_name || form.product_name || 'Product';
+                const total = data.total || (data.product_price || form.product_price || 0) * (data.quantity || 1);
+                const currency = data.currency || form.currency || 'PHP';
+                const customerName = data.name || data.full_name || data['Full Name'] || 'Customer';
+
+                trackingData = {
+                    submissionId: id,
+                    orderNumber: `ORD-${id.slice(0, 8).toUpperCase()}`,
+                    createdAt: new Date(submission.created_at).toISOString(),
+                    customerName,
+                    productName,
+                    quantity: data.quantity || 1,
+                    total,
+                    currencySymbol: getCurrencySymbol(currency),
+                    orderStatus: data.order_status || 'pending'
+                };
+            }
+        }
+
+        if (!trackingData) {
+            console.error('[Track View] Order not found in any table');
             return res.status(404).send(renderError('Order not found'));
         }
 
-        const data = submission.data || {};
-        const form = submission.forms || {};
-        const productName = data.product_name || form.product_name || 'Product';
-        const total = data.total || (data.product_price || form.product_price || 0) * (data.quantity || 1);
-        const currency = data.currency || form.currency || 'PHP';
-        const currencySymbols: Record<string, string> = { PHP: '₱', USD: '$', EUR: '€', GBP: '£', JPY: '¥' };
-        const currencySymbol = currencySymbols[currency] || '₱';
-
-        const customerName = data.name || data.full_name || data['Full Name'] || 'Customer';
-        const orderNumber = `ORD-${id.slice(0, 8).toUpperCase()}`;
-        const createdAt = new Date(submission.created_at);
+        console.log('[Track View] Tracking data prepared:', trackingData.orderNumber);
 
         res.setHeader('Content-Type', 'text/html; charset=utf-8');
         return res.status(200).send(renderTracking({
-            submissionId: id,
+            ...trackingData,
             company,
             color,
-            logo,
-            orderNumber,
-            createdAt: createdAt.toISOString(),
-            customerName,
-            productName,
-            quantity: data.quantity || 1,
-            total,
-            currencySymbol,
-            orderStatus: data.order_status || 'pending'
+            logo
         }));
 
     } catch (err: any) {
         console.error('[Track View] Exception:', err);
         return res.status(500).send(renderError('Failed to load order'));
     }
+}
+
+function getCurrencySymbol(currency: string): string {
+    const symbols: Record<string, string> = { PHP: '₱', USD: '$', EUR: '€', GBP: '£', JPY: '¥' };
+    return symbols[currency] || '₱';
 }
 
 function renderError(message: string): string {

@@ -535,14 +535,37 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 const companyAddress = config.companyAddress || '';
                 const accentColor = config.primaryColor || '#6366f1';
 
-                // Build invoice URL using the submissionId passed directly from FormView
-                // This is more reliable than looking it up by subscriber
+                // Build invoice URL - supports both form submissions and webview orders
                 let invoiceUrl = '';
-                let finalSubmissionId = submissionId; // Use the ID passed from FormView
+                let finalInvoiceId = submissionId; // First try the submissionId passed from FormView
 
-                // Fallback: If submissionId not passed, try to look it up
-                if (!finalSubmissionId) {
-                    console.log('[Continue Flow] No submissionId passed, looking up by subscriber:', subscriberId);
+                // PRIORITY 1: If submissionId is passed (form-based flow), use it directly
+                if (!finalInvoiceId) {
+                    console.log('[Continue Flow] No submissionId passed, checking orders table...');
+
+                    // PRIORITY 2: Try to find in orders table (webview checkout orders)
+                    try {
+                        const { data: order } = await supabase
+                            .from('orders')
+                            .select('id')
+                            .eq('subscriber_id', subscriberId)
+                            .eq('workspace_id', workspaceId)
+                            .order('created_at', { ascending: false })
+                            .limit(1)
+                            .maybeSingle();
+
+                        if (order) {
+                            console.log('[Continue Flow] Found order for invoice:', order.id);
+                            finalInvoiceId = order.id; // This will be like 'ORD-xxx'
+                        }
+                    } catch (err) {
+                        console.error('[Continue Flow] Error looking up order:', err);
+                    }
+                }
+
+                // PRIORITY 3: Fallback to form_submissions table
+                if (!finalInvoiceId) {
+                    console.log('[Continue Flow] No order found, checking form_submissions table...');
                     try {
                         const { data: submission } = await supabase
                             .from('form_submissions')
@@ -553,27 +576,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                             .maybeSingle();
 
                         if (submission) {
-                            finalSubmissionId = submission.id;
+                            finalInvoiceId = submission.id;
+                            console.log('[Continue Flow] Found form submission for invoice:', finalInvoiceId);
                         }
                     } catch (err) {
                         console.error('[Continue Flow] Error looking up submission:', err);
                     }
                 }
 
-                // IMPORTANT: Update the form submission with the current cart (includes upsells/downsells)
-                if (finalSubmissionId && context.cart && context.cart.length > 0) {
-                    console.log('[Continue Flow] Updating submission with cart:', context.cart.length, 'items');
+                // For form_submissions, update with cart data if needed
+                if (finalInvoiceId && !finalInvoiceId.startsWith('ORD-') && context.cart && context.cart.length > 0) {
+                    console.log('[Continue Flow] Updating form submission with cart:', context.cart.length, 'items');
                     try {
-                        // First, fetch the existing submission data
                         const { data: existingSubmission } = await supabase
                             .from('form_submissions')
                             .select('data')
-                            .eq('id', finalSubmissionId)
+                            .eq('id', finalInvoiceId)
                             .single();
 
                         const existingData = existingSubmission?.data || {};
 
-                        // Update with cart while preserving other data
                         const { error: updateError } = await supabase
                             .from('form_submissions')
                             .update({
@@ -583,7 +605,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                                     cartTotal: context.cartTotal
                                 }
                             })
-                            .eq('id', finalSubmissionId);
+                            .eq('id', finalInvoiceId);
 
                         if (updateError) {
                             console.error('[Continue Flow] Error updating submission with cart:', updateError);
@@ -595,13 +617,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     }
                 }
 
-                if (finalSubmissionId) {
-                    console.log('[Continue Flow] Using submission ID:', finalSubmissionId);
+                if (finalInvoiceId) {
+                    console.log('[Continue Flow] Using invoice ID:', finalInvoiceId, '(type:', finalInvoiceId.startsWith('ORD-') ? 'order' : 'submission', ')');
                     const baseUrl = process.env.VITE_APP_URL || 'https://mcp-v16.vercel.app';
 
                     // Use server-side rendered invoice endpoint (works in Messenger's in-app browser)
                     const params = new URLSearchParams();
-                    params.set('id', finalSubmissionId);
+                    params.set('id', finalInvoiceId);
                     params.set('company', companyName);
                     params.set('color', accentColor);
                     if (companyLogo) params.set('logo', companyLogo);
@@ -610,7 +632,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     invoiceUrl = `${baseUrl}/api/invoices/view?${params.toString()}`;
                     console.log('[Continue Flow] Invoice URL:', invoiceUrl);
                 } else {
-                    console.log('[Continue Flow] No submission ID available for invoice');
+                    console.log('[Continue Flow] No invoice ID available - neither order nor submission found');
                 }
 
                 // Send message with button to view invoice
