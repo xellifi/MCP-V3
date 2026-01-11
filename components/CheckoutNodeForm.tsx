@@ -2,8 +2,15 @@ import React, { useState, useEffect, memo, useCallback } from 'react';
 import {
     ShoppingCart, Type, Palette, Check, Image, Settings, Globe, Truck,
     Smartphone, Monitor, Tablet, X, Package, ChevronDown, ChevronUp,
-    CreditCard, User, Receipt, Save, Eye, ChevronLeft, ChevronRight
+    CreditCard, User, Receipt, Save, Eye, ChevronLeft, ChevronRight,
+    Phone, Mail, MapPin, Home, Building, Map, Hash, ClipboardList
 } from 'lucide-react';
+
+interface CustomerFieldConfig {
+    enabled: boolean;
+    required: boolean;
+    label?: string;
+}
 
 interface CheckoutNodeFormProps {
     workspaceId: string;
@@ -25,6 +32,19 @@ interface CheckoutNodeFormProps {
         cardBackgroundColor?: string;
         textColor?: string;
         accentColor?: string;
+        // Customer Fields Configuration
+        customerFields?: {
+            name?: CustomerFieldConfig;
+            phone?: CustomerFieldConfig;
+            email?: CustomerFieldConfig;
+            fullAddress?: CustomerFieldConfig;
+            street?: CustomerFieldConfig;
+            city?: CustomerFieldConfig;
+            province?: CustomerFieldConfig;
+            zipCode?: CustomerFieldConfig;
+            notes?: CustomerFieldConfig;
+        };
+        useFullAddress?: boolean; // true = single address field, false = split fields
     };
     onChange: (config: any) => void;
     onClose?: () => void;
@@ -123,6 +143,21 @@ const CheckoutNodeForm: React.FC<CheckoutNodeFormProps> = ({
     const [textColor, setTextColor] = useState(initialConfig?.textColor || '#ffffff');
     const [accentColor, setAccentColor] = useState(initialConfig?.accentColor || '#10b981');
 
+    // Customer Fields Configuration
+    const defaultFields = {
+        name: { enabled: true, required: true, label: 'Full Name' },
+        phone: { enabled: true, required: true, label: 'Phone Number' },
+        email: { enabled: true, required: false, label: 'Email Address' },
+        fullAddress: { enabled: true, required: true, label: 'Complete Address' },
+        street: { enabled: false, required: false, label: 'Street Address' },
+        city: { enabled: false, required: false, label: 'City' },
+        province: { enabled: false, required: false, label: 'Province/State' },
+        zipCode: { enabled: false, required: false, label: 'ZIP Code' },
+        notes: { enabled: false, required: false, label: 'Order Notes' },
+    };
+    const [customerFields, setCustomerFields] = useState(initialConfig?.customerFields || defaultFields);
+    const [useFullAddress, setUseFullAddress] = useState(initialConfig?.useFullAddress ?? true);
+
     // UI State
     const [previewDevice, setPreviewDevice] = useState<'desktop' | 'tablet' | 'mobile'>('mobile');
     const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1024);
@@ -137,13 +172,33 @@ const CheckoutNodeForm: React.FC<CheckoutNodeFormProps> = ({
 
     // Notify parent of config changes
     const notifyChange = useCallback((updates: Partial<typeof initialConfig> = {}) => {
+        // Compute flat field config for WebviewCheckout compatibility
+        const currentFields = updates.customerFields || customerFields;
+        const showAddress = useFullAddress
+            ? currentFields.fullAddress?.enabled
+            : (currentFields.street?.enabled || currentFields.city?.enabled);
+        const requireAddress = useFullAddress
+            ? currentFields.fullAddress?.required
+            : (currentFields.street?.required || currentFields.city?.required);
+
         onChange({
             headerText, buttonText, primaryColor, showItemDetails, showTotal,
             companyLogo, companyName, useWebview, showShipping, shippingFee,
             successMessage, thankYouMessage, backgroundColor, cardBackgroundColor,
-            textColor, accentColor, ...updates
+            textColor, accentColor, customerFields, useFullAddress,
+            // Flat field configs for WebviewCheckout compatibility
+            showNameField: currentFields.name?.enabled ?? true,
+            showPhoneField: currentFields.phone?.enabled ?? true,
+            showEmailField: currentFields.email?.enabled ?? false,
+            showAddressField: showAddress ?? true,
+            requireName: currentFields.name?.required ?? true,
+            requirePhone: currentFields.phone?.required ?? true,
+            requireEmail: currentFields.email?.required ?? false,
+            requireAddress: requireAddress ?? true,
+            showNotesField: currentFields.notes?.enabled ?? false,
+            ...updates
         });
-    }, [headerText, buttonText, primaryColor, showItemDetails, showTotal, companyLogo, companyName, useWebview, showShipping, shippingFee, successMessage, thankYouMessage, backgroundColor, cardBackgroundColor, textColor, accentColor, onChange]);
+    }, [headerText, buttonText, primaryColor, showItemDetails, showTotal, companyLogo, companyName, useWebview, showShipping, shippingFee, successMessage, thankYouMessage, backgroundColor, cardBackgroundColor, textColor, accentColor, customerFields, useFullAddress, onChange]);
 
     // Initial notification
     useEffect(() => {
@@ -287,17 +342,39 @@ const CheckoutNodeForm: React.FC<CheckoutNodeFormProps> = ({
                                     </div>
                                 )}
 
-                                {/* Customer Info */}
+                                {/* Customer Info - Dynamic based on config */}
                                 <div
-                                    className="rounded-xl p-4"
+                                    className="rounded-xl p-4 space-y-2"
                                     style={{ backgroundColor: cardBackgroundColor }}
                                 >
                                     <div className="flex items-center gap-2 mb-2">
                                         <User className="w-4 h-4" style={{ color: accentColor }} />
-                                        <span className="text-sm font-semibold" style={{ color: textColor }}>Customer</span>
+                                        <span className="text-sm font-semibold" style={{ color: textColor }}>Customer Info</span>
                                     </div>
-                                    <p className="text-sm" style={{ color: textColor }}>John Doe</p>
-                                    <p className="text-xs opacity-60" style={{ color: textColor }}>john@example.com</p>
+                                    {customerFields.name?.enabled && (
+                                        <div className="flex items-center gap-2">
+                                            <User className="w-3 h-3 opacity-50" style={{ color: textColor }} />
+                                            <span className="text-sm" style={{ color: textColor }}>John Doe {customerFields.name?.required && <span className="text-red-400">*</span>}</span>
+                                        </div>
+                                    )}
+                                    {customerFields.phone?.enabled && (
+                                        <div className="flex items-center gap-2">
+                                            <Phone className="w-3 h-3 opacity-50" style={{ color: textColor }} />
+                                            <span className="text-xs opacity-80" style={{ color: textColor }}>+63 912 345 6789 {customerFields.phone?.required && <span className="text-red-400">*</span>}</span>
+                                        </div>
+                                    )}
+                                    {customerFields.email?.enabled && (
+                                        <div className="flex items-center gap-2">
+                                            <Mail className="w-3 h-3 opacity-50" style={{ color: textColor }} />
+                                            <span className="text-xs opacity-60" style={{ color: textColor }}>john@example.com {customerFields.email?.required && <span className="text-red-400">*</span>}</span>
+                                        </div>
+                                    )}
+                                    {(customerFields.fullAddress?.enabled || customerFields.street?.enabled) && (
+                                        <div className="flex items-center gap-2">
+                                            <MapPin className="w-3 h-3 opacity-50" style={{ color: textColor }} />
+                                            <span className="text-xs opacity-60" style={{ color: textColor }}>123 Sample St, Cebu City {customerFields.fullAddress?.required && <span className="text-red-400">*</span>}</span>
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* Confirm Button */}
@@ -545,6 +622,108 @@ const CheckoutNodeForm: React.FC<CheckoutNodeFormProps> = ({
         </CollapsibleSection>
     );
 
+    // Customer Fields Configuration Section
+    const updateField = (fieldName: string, updates: Partial<CustomerFieldConfig>) => {
+        const newFields = {
+            ...customerFields,
+            [fieldName]: { ...customerFields[fieldName as keyof typeof customerFields], ...updates }
+        };
+        setCustomerFields(newFields);
+        notifyChange({ customerFields: newFields });
+    };
+
+    const FieldToggle = ({ fieldKey, icon: Icon, defaultLabel }: { fieldKey: string; icon: React.ElementType; defaultLabel: string }) => {
+        const field = customerFields[fieldKey as keyof typeof customerFields] || { enabled: false, required: false, label: defaultLabel };
+        return (
+            <div className="p-3 bg-black/20 rounded-lg space-y-2">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                        <Icon className="w-4 h-4 text-slate-400" />
+                        <span className="text-sm text-slate-300">{field.label || defaultLabel}</span>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={() => updateField(fieldKey, { enabled: !field.enabled })}
+                        className={`relative w-10 h-5 rounded-full transition-colors ${field.enabled ? 'bg-emerald-500' : 'bg-slate-600'}`}
+                    >
+                        <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-transform ${field.enabled ? 'left-5' : 'left-0.5'}`} />
+                    </button>
+                </div>
+                {field.enabled && (
+                    <div className="flex items-center gap-3 pl-6">
+                        <label className="flex items-center gap-1.5 text-xs text-slate-400 cursor-pointer">
+                            <input
+                                type="checkbox"
+                                checked={field.required}
+                                onChange={(e) => updateField(fieldKey, { required: e.target.checked })}
+                                className="w-3.5 h-3.5 rounded border-slate-500 bg-black/30 text-emerald-500 focus:ring-emerald-500/30"
+                            />
+                            Required
+                        </label>
+                    </div>
+                )}
+            </div>
+        );
+    };
+
+    const customerFieldsSection = (
+        <CollapsibleSection title="Customer Fields" icon={ClipboardList} defaultOpen={true} color="amber">
+            <div className="space-y-3">
+                <p className="text-xs text-slate-500 mb-3">Configure which fields the customer needs to fill out</p>
+
+                {/* Basic Info */}
+                <div className="space-y-2">
+                    <p className="text-xs font-medium text-slate-400 uppercase">Basic Info</p>
+                    <FieldToggle fieldKey="name" icon={User} defaultLabel="Full Name" />
+                    <FieldToggle fieldKey="phone" icon={Phone} defaultLabel="Phone Number" />
+                    <FieldToggle fieldKey="email" icon={Mail} defaultLabel="Email Address" />
+                </div>
+
+                {/* Address Section */}
+                <div className="space-y-2 pt-3 border-t border-white/10">
+                    <p className="text-xs font-medium text-slate-400 uppercase">Address</p>
+
+                    {/* Address Type Toggle */}
+                    <div className="flex items-center gap-2 mb-2">
+                        <button
+                            type="button"
+                            onClick={() => { setUseFullAddress(true); notifyChange({ useFullAddress: true }); }}
+                            className={`flex-1 py-2 px-3 rounded-lg text-xs font-medium transition-all ${useFullAddress ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-black/20 text-slate-400 border border-white/10'
+                                }`}
+                        >
+                            Single Field
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => { setUseFullAddress(false); notifyChange({ useFullAddress: false }); }}
+                            className={`flex-1 py-2 px-3 rounded-lg text-xs font-medium transition-all ${!useFullAddress ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-black/20 text-slate-400 border border-white/10'
+                                }`}
+                        >
+                            Split Fields
+                        </button>
+                    </div>
+
+                    {useFullAddress ? (
+                        <FieldToggle fieldKey="fullAddress" icon={MapPin} defaultLabel="Complete Address" />
+                    ) : (
+                        <>
+                            <FieldToggle fieldKey="street" icon={Home} defaultLabel="Street Address" />
+                            <FieldToggle fieldKey="city" icon={Building} defaultLabel="City" />
+                            <FieldToggle fieldKey="province" icon={Map} defaultLabel="Province/State" />
+                            <FieldToggle fieldKey="zipCode" icon={Hash} defaultLabel="ZIP Code" />
+                        </>
+                    )}
+                </div>
+
+                {/* Optional Fields */}
+                <div className="space-y-2 pt-3 border-t border-white/10">
+                    <p className="text-xs font-medium text-slate-400 uppercase">Optional</p>
+                    <FieldToggle fieldKey="notes" icon={ClipboardList} defaultLabel="Order Notes" />
+                </div>
+            </div>
+        </CollapsibleSection>
+    );
+
     // Modal width based on device selection
     const modalWidths = {
         mobile: 'max-w-4xl',
@@ -644,6 +823,7 @@ const CheckoutNodeForm: React.FC<CheckoutNodeFormProps> = ({
                         {/* Left: All Settings */}
                         <div className="border-r border-white/10 p-5 overflow-y-auto custom-scrollbar space-y-4">
                             {basicSection}
+                            {customerFieldsSection}
                             {shippingSection}
                             {brandingSection}
                             {styleSection}
@@ -689,6 +869,7 @@ const CheckoutNodeForm: React.FC<CheckoutNodeFormProps> = ({
             {/* Content */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
                 {basicSection}
+                {customerFieldsSection}
                 {shippingSection}
                 {brandingSection}
                 {styleSection}
