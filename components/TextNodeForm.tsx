@@ -23,6 +23,7 @@ interface TextNodeFormProps {
         buttons?: Button[];
     };
     onChange: (config: any) => void;
+    onSave?: () => void; // Callback to trigger FlowBuilder's handleSaveConfig
     onClose?: () => void;
 }
 
@@ -71,6 +72,7 @@ const TextNodeForm: React.FC<TextNodeFormProps> = ({
     pageId,
     initialConfig,
     onChange,
+    onSave,
     onClose
 }) => {
     const [textContent, setTextContent] = useState(initialConfig?.textContent || '');
@@ -786,6 +788,11 @@ const TextNodeForm: React.FC<TextNodeFormProps> = ({
                             <button
                                 type="button"
                                 onClick={() => {
+                                    // Call the FlowBuilder's save handler
+                                    if (onSave) {
+                                        onSave();
+                                    }
+                                    // Show success notification
                                     setSaveNotification(true);
                                     setTimeout(() => setSaveNotification(false), 3000);
                                 }}
