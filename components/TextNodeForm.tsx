@@ -5,11 +5,10 @@ import { api } from '../services/api';
 
 interface Button {
     title: string;
-    type: 'startFlow' | 'url' | 'newFlow' | 'upsell' | 'downsell' | 'nextNode' | 'productWebview';
+    type: 'startFlow' | 'url';
     flowId?: string;
     url?: string;
     webviewHeight?: 'compact' | 'tall' | 'full';
-    flowName?: string; // For newFlow type - name of the flow to create
     addLabel?: string; // Label to add when button clicked
     removeLabel?: string; // Label to remove when button clicked
 }
@@ -225,11 +224,6 @@ const TextNodeForm: React.FC<TextNodeFormProps> = ({
             if (!b.title.trim()) return false;
             if (b.type === 'startFlow') return !!b.flowId;
             if (b.type === 'url') return !!b.url?.trim();
-            if (b.type === 'newFlow') return true; // New Flow just needs a title
-            if (b.type === 'upsell') return true; // Connects to upsell node on canvas
-            if (b.type === 'downsell') return true; // Connects to downsell node on canvas
-            if (b.type === 'nextNode') return true; // Connects to next node on canvas
-            if (b.type === 'productWebview') return true; // Connects to product webview node on canvas
             return false;
         });
         onChange({ textContent: newTextContent, delaySeconds: newDelaySeconds, buttons: validButtons });
@@ -353,11 +347,6 @@ const TextNodeForm: React.FC<TextNodeFormProps> = ({
                                             >
                                                 {btn.type === 'url' && <Link className="w-3 h-3" />}
                                                 {btn.type === 'startFlow' && <Zap className="w-3 h-3" />}
-                                                {btn.type === 'newFlow' && <PlusCircle className="w-3 h-3" />}
-                                                {btn.type === 'upsell' && <TrendingUp className="w-3 h-3 text-green-500" />}
-                                                {btn.type === 'downsell' && <TrendingDown className="w-3 h-3 text-orange-500" />}
-                                                {btn.type === 'nextNode' && <ArrowRight className="w-3 h-3 text-cyan-500" />}
-                                                {btn.type === 'productWebview' && <ShoppingBag className="w-3 h-3 text-purple-500" />}
                                                 {btn.title}
                                             </button>
                                         ))}
@@ -465,28 +454,17 @@ const TextNodeForm: React.FC<TextNodeFormProps> = ({
                                             type: newType,
                                             flowId: newType === 'startFlow' ? '' : undefined,
                                             url: newType === 'url' ? '' : undefined,
-                                            webviewHeight: newType === 'url' ? 'full' : undefined,
-                                            flowName: newType === 'newFlow' ? '' : undefined
+                                            webviewHeight: newType === 'url' ? 'full' : undefined
                                         });
                                     }}
                                     className="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:ring-2 focus:ring-amber-500/50 outline-none"
                                 >
-                                    <option value="nextNode">→ Connect to Next Node</option>
-                                    <option value="upsell">↗ Show Upsell</option>
-                                    <option value="downsell">↘ Show Downsell</option>
-                                    <option value="productWebview">🛒 Product Webview</option>
                                     <option value="startFlow">⚡ Trigger Saved Flow</option>
                                     <option value="url">🔗 Open URL (Webview)</option>
-                                    <option value="newFlow">➕ Create New Flow</option>
                                 </select>
                                 <p className="text-xs text-slate-500 mt-1">
-                                    {button.type === 'nextNode' && '→ Continues to the node connected on the canvas'}
-                                    {button.type === 'upsell' && '↗ Shows an upsell offer to the user'}
-                                    {button.type === 'downsell' && '↘ Shows a downsell offer to the user'}
-                                    {button.type === 'productWebview' && '🛒 Opens the product webview'}
                                     {button.type === 'startFlow' && '⚡ Triggers an existing saved flow'}
                                     {button.type === 'url' && '🔗 Opens a URL in a webview'}
-                                    {button.type === 'newFlow' && '➕ Creates a new flow when clicked'}
                                 </p>
                             </div>
 
@@ -622,32 +600,8 @@ const TextNodeForm: React.FC<TextNodeFormProps> = ({
                                 </>
                             )}
 
-                            {/* New Flow Configuration */}
-                            {button.type === 'newFlow' && (
-                                <>
-                                    <div>
-                                        <label className="block text-xs text-slate-400 mb-1">Flow Name</label>
-                                        <input
-                                            type="text"
-                                            value={button.flowName || ''}
-                                            onChange={(e) => updateButton(index, { flowName: e.target.value })}
-                                            placeholder="e.g., Pricing Flow, FAQ Response"
-                                            className="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:ring-2 focus:ring-green-500/50 outline-none"
-                                        />
-                                    </div>
-                                    <div className="p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
-                                        <div className="flex items-center gap-2 text-green-400 text-xs">
-                                            <PlusCircle className="w-4 h-4" />
-                                            <span className="font-medium">New Flow Button</span>
-                                        </div>
-                                        <p className="text-xs text-green-300/70 mt-1">
-                                            A "New Flow" node will be created. When you publish this flow, the sub-flow will be saved and available in the Flows dropdown.
-                                        </p>
-                                    </div>
-                                </>
-                            )}
-
                             {/* Label Management */}
+
                             <div className="border-t border-white/10 pt-3">
                                 <div className="flex items-center gap-2 mb-2">
                                     <Tag className="w-3 h-3 text-purple-400" />
