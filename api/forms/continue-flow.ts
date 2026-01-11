@@ -717,6 +717,34 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 continue; // Don't add successors to queue
             }
 
+            // Handle Google Sheets Node - sync data and continue
+            const isSheetsNode = node.type === 'sheetsNode' ||
+                node.data?.nodeType === 'sheetsNode' ||
+                (node.data?.label || '').toLowerCase().includes('google') ||
+                (node.data?.label || '').toLowerCase().includes('sheets');
+
+            if (isSheetsNode) {
+                console.log('[Continue Flow] 📊 Processing Google Sheets node');
+                console.log('[Continue Flow] 📊 Node ID:', node.id);
+                console.log('[Continue Flow] 📊 Config keys:', Object.keys(config));
+
+                if (config.webhookUrl) {
+                    console.log('[Continue Flow] 📊 Webhook URL found, executing sync...');
+                    console.log('[Continue Flow] 📊 Cart items:', (context.cart || []).length);
+                    console.log('[Continue Flow] 📊 Cart total:', context.cartTotal);
+
+                    try {
+                        await syncToGoogleSheets(config, context, subscriberName);
+                        console.log('[Continue Flow] ✓ Google Sheets sync completed!');
+                    } catch (sheetsError: any) {
+                        console.error('[Continue Flow] ❌ Google Sheets sync error:', sheetsError.message);
+                    }
+                } else {
+                    console.log('[Continue Flow] ⚠️ No webhookUrl in sheetsNode config, skipping sync');
+                }
+                // Don't continue/return - let it fall through to add successors
+            }
+
             // Find outgoing edges for non-condition nodes
             const outgoingEdges = edges.filter((e: any) => e.source === currentNodeId);
             for (const edge of outgoingEdges) {
