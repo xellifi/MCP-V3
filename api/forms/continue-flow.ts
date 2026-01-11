@@ -539,7 +539,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 // This is more reliable than looking it up by subscriber
                 let invoiceUrl = '';
                 let finalSubmissionId = submissionId; // Use the ID passed from FormView
-                let submissionData: any = {}; // To store existing submission data
 
                 // Fallback: If submissionId not passed, try to look it up
                 if (!finalSubmissionId) {
@@ -547,7 +546,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     try {
                         const { data: submission } = await supabase
                             .from('form_submissions')
-                            .select('id, data')
+                            .select('id')
                             .eq('subscriber_external_id', subscriberId)
                             .order('created_at', { ascending: false })
                             .limit(1)
@@ -555,7 +554,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
                         if (submission) {
                             finalSubmissionId = submission.id;
-                            submissionData = submission.data || {};
                         }
                     } catch (err) {
                         console.error('[Continue Flow] Error looking up submission:', err);
@@ -566,11 +564,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 if (finalSubmissionId && context.cart && context.cart.length > 0) {
                     console.log('[Continue Flow] Updating submission with cart:', context.cart.length, 'items');
                     try {
+                        // First, fetch the existing submission data
+                        const { data: existingSubmission } = await supabase
+                            .from('form_submissions')
+                            .select('data')
+                            .eq('id', finalSubmissionId)
+                            .single();
+
+                        const existingData = existingSubmission?.data || {};
+
+                        // Update with cart while preserving other data
                         const { error: updateError } = await supabase
                             .from('form_submissions')
                             .update({
                                 data: {
-                                    ...submissionData,
+                                    ...existingData,
                                     cart: context.cart,
                                     cartTotal: context.cartTotal
                                 }
@@ -1873,6 +1881,10 @@ async function syncToGoogleSheets(
         webhookPayload['Customer Address'] = checkoutData.customerAddress || '';
         webhookPayload['Payment Method'] = checkoutData.paymentMethodName || checkoutData.paymentMethod || 'COD';
         webhookPayload['Shipping Fee'] = `₱${(checkoutData.shippingFee || 0).toLocaleString()}`;
+        webhookPayload['Payment Proof URL'] = checkoutData.paymentProof || '';
+        webhookPayload['Promo Code Used'] = checkoutData.promoCode || allPromoCodes.join(', ') || '';
+        webhookPayload['Discount'] = checkoutData.discount || 0;
+        webhookPayload['Notes'] = checkoutData.notes || '';
     }
 
     // Add timestamp if enabled

@@ -464,6 +464,10 @@ async function handleContinue(req: VercelRequest, res: VercelResponse) {
                         customerAddress: session.metadata.shipping?.address,
                         paymentMethod: session.metadata.payment?.method,
                         paymentMethodName: session.metadata.payment?.methodName,
+                        paymentProof: session.metadata.payment?.proofUrl || session.form_data?.paymentProof || '',
+                        promoCode: session.metadata.promoCode || session.form_data?.promoCode || '',
+                        discount: session.metadata.discount || session.form_data?.discount || 0,
+                        notes: session.metadata.notes || session.form_data?.notes || '',
                         shippingFee: session.metadata.shippingFee || 0
                     } : {},
                     // Pass access token for sending messages
