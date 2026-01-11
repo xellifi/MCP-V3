@@ -420,24 +420,38 @@ async function handleAction(req: VercelRequest, res: VercelResponse) {
             };
             const createdOrderId = await createOrder(orderSession);
 
-            // Sync to Google Sheets with Order ID and Status
+            // Save orderId to metadata so continue-flow.ts can use it for Google Sheets sync
+            // This ensures the Order ID in Google Sheets matches the database
             if (createdOrderId) {
-                await syncOrderToGoogleSheets(orderSession, createdOrderId);
+                updates.metadata = {
+                    ...orderMetadata,
+                    orderId: createdOrderId
+                };
+                console.log('[Webview] Order created with ID:', createdOrderId, '- will be synced via Google Sheets node');
             }
 
             result.orderCreated = true;
             result.response = 'confirmed';
             result.paymentProofUrl = paymentProofUrl;
+            result.orderId = createdOrderId; // Return orderId to frontend
             break;
         }
 
         case 'checkout_complete': {
-            updates = { user_response: 'checkout_complete', completed_at: new Date().toISOString() };
             const orderId = await createOrder(session);
+            updates = {
+                user_response: 'checkout_complete',
+                completed_at: new Date().toISOString(),
+                metadata: {
+                    ...(session.metadata || {}),
+                    orderId: orderId
+                }
+            };
             if (orderId) {
-                await syncOrderToGoogleSheets(session, orderId);
+                console.log('[Webview] Order created with ID:', orderId, '- will be synced via Google Sheets node');
             }
             result.orderCreated = true;
+            result.orderId = orderId;
             break;
         }
 
@@ -529,6 +543,8 @@ async function handleContinue(req: VercelRequest, res: VercelResponse) {
                     userResponse: session.user_response || 'completed',
                     // Pass checkout data (shipping, payment) for Google Sheets sync
                     checkoutData: session.metadata?.shipping ? {
+                        // IMPORTANT: Pass the orderId so Google Sheets uses the same ID as the database
+                        orderId: session.metadata?.orderId,
                         customerName: session.metadata.shipping?.name || session.customer_name,
                         customerPhone: session.metadata.shipping?.phone,
                         customerEmail: session.metadata.shipping?.email,
@@ -540,7 +556,7 @@ async function handleContinue(req: VercelRequest, res: VercelResponse) {
                         discount: session.metadata.discount || session.form_data?.discount || 0,
                         notes: session.metadata.notes || session.form_data?.notes || '',
                         shippingFee: session.metadata.shippingFee || 0
-                    } : {},
+                    } : { orderId: session.metadata?.orderId },
                     // Pass access token for sending messages
                     pageAccessToken: pageAccessToken
                 })

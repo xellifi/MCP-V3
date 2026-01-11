@@ -1879,8 +1879,10 @@ async function syncToGoogleSheets(
         }
     });
 
-    // Generate order ID
-    const orderId = `ORD-${Date.now().toString(36).toUpperCase()}`;
+    // Use orderId from checkout (if available) to ensure it matches the database
+    // This is CRITICAL for status updates to work correctly!
+    const orderId = checkoutData.orderId || `ORD-${Date.now().toString(36).toUpperCase()}`;
+    console.log('[syncToGoogleSheets] Using Order ID:', orderId, checkoutData.orderId ? '(from checkout)' : '(generated)');
 
     // Build webhook payload - organized in a predictable order
     const webhookPayload: any = {
