@@ -2197,6 +2197,228 @@ async function processTextMessage(messagingEvent: any, pageId: string) {
     }
 
     console.log('✗ No matching Start node found for message:', messageText);
+
+    // ========== AI NODE FALLBACK HANDLING ==========
+    // Check if any flow has an AI node configured for 'no_match' trigger
+    console.log('🤖 Checking for AI Node fallback...');
+
+    for (const flow of flows) {
+        const nodes = flow.nodes || [];
+        const configurations = flow.configurations || {};
+
+        // Find AI nodes
+        const aiNodes = nodes.filter((n: any) =>
+            n.type === 'aiNode' ||
+            n.data?.nodeType === 'aiNode' ||
+            (n.data?.label?.toLowerCase() || '').includes('ai agent')
+        );
+
+        for (const aiNode of aiNodes) {
+            const config = configurations[aiNode.id] || {};
+
+            // Check if AI node is enabled and configured for no_match trigger
+            if (!config.enabled) continue;
+            if (config.triggerOn && config.triggerOn !== 'no_match') continue;
+
+            console.log(`🤖 Found AI Node "${aiNode.data?.label}" with no_match trigger`);
+
+            try {
+                const provider = config.provider || 'openai';
+                const aiModel = config.model || (provider === 'openai' ? 'gpt-4o-mini' : 'gemini-pro');
+                const instructions = config.instructions || 'You are a helpful sales assistant.';
+                const memoryLines = config.memoryLines || 20;
+                const temperature = config.temperature || 0.7;
+                const maxTokens = config.maxTokens || 500;
+                const fallbackMessage = config.fallbackMessage || 'Sorry, I couldn\'t process your request. Please try again later.';
+
+                // Get or create subscriber for chat memory
+                let subscriber = null;
+                const { data: existingSub } = await supabase
+                    .from('subscribers')
+                    .select('*')
+                    .eq('workspace_id', workspaceId)
+                    .eq('platform_user_id', senderId)
+                    .maybeSingle();
+
+                subscriber = existingSub;
+                if (!subscriber) {
+                    const userName = await fetchUserName(senderId, pageAccessToken);
+                    const { data: newSub } = await supabase
+                        .from('subscribers')
+                        .insert({
+                            workspace_id: workspaceId,
+                            page_id: pageDbId,
+                            platform_user_id: senderId,
+                            name: userName,
+                            source: 'AI_AGENT',
+                            metadata: { ai_chat_history: [] }
+                        })
+                        .select()
+                        .single();
+                    subscriber = newSub;
+                }
+
+                // Get chat history from subscriber metadata
+                const chatHistory = subscriber?.metadata?.ai_chat_history || [];
+                const recentHistory = chatHistory.slice(-memoryLines);
+
+                // Build context messages for AI
+                const contextMessages = recentHistory.map((msg: any) => ({
+                    role: msg.role === 'ai' ? 'assistant' : 'user',
+                    content: msg.content
+                }));
+
+                // Add current message
+                contextMessages.push({ role: 'user', content: messageText });
+
+                // Get API key
+                let apiKey = null;
+                const { data: workspaceSettings } = await supabase
+                    .from('workspace_settings')
+                    .select('openai_api_key, gemini_api_key')
+                    .eq('workspace_id', workspaceId)
+                    .single();
+
+                if (workspaceSettings) {
+                    apiKey = provider === 'openai' ? workspaceSettings.openai_api_key : workspaceSettings.gemini_api_key;
+                }
+
+                if (!apiKey) {
+                    const { data: adminSettings } = await supabase
+                        .from('admin_settings')
+                        .select('openai_api_key, gemini_api_key')
+                        .eq('id', 1)
+                        .single();
+                    if (adminSettings) {
+                        apiKey = provider === 'openai' ? adminSettings.openai_api_key : adminSettings.gemini_api_key;
+                    }
+                }
+
+                if (!apiKey) {
+                    console.error(`🤖 No ${provider} API key found, sending fallback message`);
+                    await fetch(`https://graph.facebook.com/v21.0/me/messages`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            recipient: { id: senderId },
+                            message: { text: fallbackMessage },
+                            access_token: pageAccessToken
+                        })
+                    });
+                    return;
+                }
+
+                // Generate AI response
+                let aiResponse = null;
+                const systemPrompt = `${instructions}
+
+You are responding to a Facebook Messenger user. Keep your responses conversational, helpful, and concise. 
+Do not use markdown formatting. Be friendly and professional.`;
+
+                if (provider === 'openai') {
+                    const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${apiKey}`
+                        },
+                        body: JSON.stringify({
+                            model: aiModel,
+                            messages: [
+                                { role: 'system', content: systemPrompt },
+                                ...contextMessages
+                            ],
+                            max_tokens: maxTokens,
+                            temperature: temperature
+                        })
+                    });
+
+                    const openaiData = await openaiResponse.json();
+                    console.log('🤖 OpenAI response:', JSON.stringify(openaiData, null, 2));
+
+                    if (openaiData.error) {
+                        console.error('🤖 OpenAI API error:', openaiData.error.message);
+                        aiResponse = null;
+                    } else {
+                        aiResponse = openaiData.choices?.[0]?.message?.content?.trim();
+                    }
+                } else if (provider === 'gemini') {
+                    // Format messages for Gemini
+                    const geminiContents = contextMessages.map((msg: any) => ({
+                        role: msg.role === 'assistant' ? 'model' : 'user',
+                        parts: [{ text: msg.content }]
+                    }));
+
+                    // Prepend system instruction
+                    if (geminiContents.length > 0 && geminiContents[0].role === 'user') {
+                        geminiContents[0].parts[0].text = `${systemPrompt}\n\nUser: ${geminiContents[0].parts[0].text}`;
+                    }
+
+                    const geminiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${aiModel}:generateContent?key=${apiKey}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            contents: geminiContents,
+                            generationConfig: {
+                                maxOutputTokens: maxTokens,
+                                temperature: temperature
+                            }
+                        })
+                    });
+
+                    const geminiData = await geminiResponse.json();
+                    console.log('🤖 Gemini response:', JSON.stringify(geminiData, null, 2));
+
+                    if (geminiData.error) {
+                        console.error('🤖 Gemini API error:', geminiData.error.message);
+                        aiResponse = null;
+                    } else {
+                        aiResponse = geminiData.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+                    }
+                }
+
+                // Send response or fallback
+                const responseText = aiResponse || fallbackMessage;
+                console.log(`🤖 Sending AI response: "${responseText.substring(0, 100)}..."`);
+
+                await fetch(`https://graph.facebook.com/v21.0/me/messages`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        recipient: { id: senderId },
+                        message: { text: responseText },
+                        access_token: pageAccessToken
+                    })
+                });
+
+                // Save conversation to memory
+                const updatedHistory = [
+                    ...chatHistory,
+                    { role: 'user', content: messageText, timestamp: new Date().toISOString() },
+                    { role: 'ai', content: responseText, timestamp: new Date().toISOString() }
+                ].slice(-memoryLines * 2); // Keep last N exchanges
+
+                await supabase
+                    .from('subscribers')
+                    .update({
+                        metadata: {
+                            ...subscriber?.metadata,
+                            ai_chat_history: updatedHistory,
+                            ai_last_interaction: new Date().toISOString()
+                        }
+                    })
+                    .eq('id', subscriber?.id);
+
+                console.log('🤖 AI response sent and conversation saved');
+                return; // Handled by AI
+
+            } catch (aiError: any) {
+                console.error('🤖 AI Node error:', aiError.message);
+                // Continue to check other AI nodes
+            }
+        }
+    }
+    // ========== END AI NODE FALLBACK ==========
 }
 
 // Process a single comment event

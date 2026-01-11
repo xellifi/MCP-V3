@@ -111,6 +111,28 @@ const mapScheduledPost = (row: any): ScheduledPost => ({
   imageUrl: row.image_url
 });
 
+const mapTicketMessage = (row: any): TicketMessage => ({
+  id: row.id,
+  ticketId: row.ticket_id,
+  senderId: row.sender_id,
+  senderName: row.sender_name,
+  content: row.content,
+  createdAt: row.created_at,
+  isAdmin: row.is_admin
+});
+
+const mapSupportTicket = (row: any, messages: any[] = []): SupportTicket => ({
+  id: row.id,
+  workspaceId: row.workspace_id,
+  userId: row.user_id,
+  subject: row.subject,
+  status: row.status,
+  priority: row.priority,
+  createdAt: row.created_at,
+  lastUpdateAt: row.last_update_at,
+  messages: messages.map(mapTicketMessage)
+});
+
 // Mock DBs for features not yet migrated
 const MOCK_INTEGRATIONS_DB: Record<string, IntegrationSettings> = {};
 const MOCK_PAYOUTS_DB: Record<string, PayoutSettings> = {};
@@ -1785,55 +1807,141 @@ export const api = {
 
   support: {
     getTickets: async (workspaceId: string): Promise<SupportTicket[]> => {
-      await delay(400);
-      return MOCK_TICKETS_DB.filter(t => t.workspaceId === workspaceId);
-    },
-    getAllTickets: async (): Promise<SupportTicket[]> => {
-      await delay(500);
-      return MOCK_TICKETS_DB;
-    },
-    createTicket: async (workspaceId: string, userId: string, subject: string, message: string): Promise<void> => {
-      await delay(500);
-      const newTicket: SupportTicket = {
-        id: `t-${Date.now()}`,
-        workspaceId,
-        userId,
-        subject,
-        status: 'OPEN',
-        priority: 'MEDIUM',
-        createdAt: new Date().toISOString(),
-        lastUpdateAt: new Date().toISOString(),
-        messages: [
-          {
-            id: `tm-${Date.now()}`,
-            ticketId: `t-${Date.now()}`,
-            senderId: userId,
-            senderName: 'User',
-            content: message,
-            createdAt: new Date().toISOString(),
-            isAdmin: false
-          }
-        ]
-      };
-      MOCK_TICKETS_DB.unshift(newTicket);
-    },
-    replyTicket: async (ticketId: string, senderId: string, content: string, isAdmin: boolean): Promise<void> => {
-      await delay(400);
-      const ticket = MOCK_TICKETS_DB.find(t => t.id === ticketId);
-      if (ticket) {
-        ticket.messages.push({
-          id: `tm-${Date.now()}`,
-          ticketId,
-          senderId,
-          senderName: isAdmin ? 'Support Agent' : 'User',
-          content,
-          createdAt: new Date().toISOString(),
-          isAdmin
-        });
-        ticket.lastUpdateAt = new Date().toISOString();
-        if (isAdmin) ticket.status = 'IN_PROGRESS';
-        else ticket.status = 'OPEN';
+      const { data: tickets, error } = await supabase
+        .from('support_tickets')
+        .select('*')
+        .eq('workspace_id', workspaceId)
+        .order('last_update_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching tickets:', error);
+        return [];
       }
+
+      if (!tickets || tickets.length === 0) return [];
+
+      // Fetch messages for all tickets
+      const ticketIds = tickets.map(t => t.id);
+      const { data: messages } = await supabase
+        .from('ticket_messages')
+        .select('*')
+        .in('ticket_id', ticketIds)
+        .order('created_at', { ascending: true });
+
+      const messagesByTicket = (messages || []).reduce((acc: any, msg: any) => {
+        if (!acc[msg.ticket_id]) acc[msg.ticket_id] = [];
+        acc[msg.ticket_id].push(msg);
+        return acc;
+      }, {});
+
+      return tickets.map(t => mapSupportTicket(t, messagesByTicket[t.id] || []));
+    },
+
+    getAllTickets: async (): Promise<SupportTicket[]> => {
+      const { data: tickets, error } = await supabase
+        .from('support_tickets')
+        .select('*')
+        .order('last_update_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching all tickets:', error);
+        return [];
+      }
+
+      if (!tickets || tickets.length === 0) return [];
+
+      const ticketIds = tickets.map(t => t.id);
+      const { data: messages } = await supabase
+        .from('ticket_messages')
+        .select('*')
+        .in('ticket_id', ticketIds)
+        .order('created_at', { ascending: true });
+
+      const messagesByTicket = (messages || []).reduce((acc: any, msg: any) => {
+        if (!acc[msg.ticket_id]) acc[msg.ticket_id] = [];
+        acc[msg.ticket_id].push(msg);
+        return acc;
+      }, {});
+
+      return tickets.map(t => mapSupportTicket(t, messagesByTicket[t.id] || []));
+    },
+
+    createTicket: async (workspaceId: string, userId: string, subject: string, message: string): Promise<void> => {
+      // Get user profile for name
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('name')
+        .eq('id', userId)
+        .single();
+
+      const senderName = profile?.name || 'User';
+
+      // 1. Create Ticket
+      const { data: ticket, error: ticketError } = await supabase
+        .from('support_tickets')
+        .insert({
+          workspace_id: workspaceId,
+          user_id: userId,
+          subject: subject,
+          status: 'OPEN',
+          priority: 'MEDIUM'
+        })
+        .select()
+        .single();
+
+      if (ticketError || !ticket) {
+        console.error('Error creating ticket:', ticketError);
+        throw new Error('Failed to create ticket');
+      }
+
+      // 2. Create Initial Message
+      const { error: messageError } = await supabase
+        .from('ticket_messages')
+        .insert({
+          ticket_id: ticket.id,
+          sender_id: userId,
+          sender_name: senderName,
+          content: message,
+          is_admin: false
+        });
+
+      if (messageError) {
+        console.error('Error creating ticket message:', messageError);
+      }
+    },
+
+    replyTicket: async (ticketId: string, senderId: string, content: string, isAdmin: boolean): Promise<void> => {
+      let senderName = isAdmin ? 'Support Agent' : 'User';
+
+      if (!isAdmin) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('name')
+          .eq('id', senderId)
+          .single();
+        senderName = profile?.name || 'User';
+      }
+
+      const { error } = await supabase
+        .from('ticket_messages')
+        .insert({
+          ticket_id: ticketId,
+          sender_id: senderId,
+          sender_name: senderName,
+          content: content,
+          is_admin: isAdmin
+        });
+
+      if (error) {
+        console.error('Error replying to ticket:', error);
+        throw new Error('Failed to reply to ticket');
+      }
+
+      // Update ticket status
+      await supabase
+        .from('support_tickets')
+        .update({ status: isAdmin ? 'IN_PROGRESS' : 'OPEN', last_update_at: new Date().toISOString() })
+        .eq('id', ticketId);
     }
   }
 };

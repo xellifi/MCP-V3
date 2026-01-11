@@ -44,6 +44,7 @@ import CartSheetNodeForm from '../components/CartSheetNodeForm';
 import CheckoutNodeForm from '../components/CheckoutNodeForm';
 import CheckoutFormNodeForm from '../components/CheckoutFormNodeForm';
 import ProductWebviewNodeForm from '../components/ProductWebviewNodeForm';
+import AINodeForm from '../components/AINodeForm';
 import CustomEdge from '../components/edges/CustomEdge';
 import CustomTriggerNode from '../components/nodes/CustomTriggerNode';
 import CustomActionNode from '../components/nodes/CustomActionNode';
@@ -1813,6 +1814,18 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
       );
     }
 
+    // AI Node
+    if (nodeType === 'aiNode' || label.toLowerCase().includes('ai agent')) {
+      return (
+        <AINodeForm
+          workspaceId={workspace?.id || ''}
+          initialConfig={initialConfigRef.current}
+          onChange={handleConfigChange}
+          onClose={handleCloseModal}
+        />
+      );
+    }
+
     // Start Node
     if (nodeType === 'startNode' || label.toLowerCase().includes('start')) {
       // Check if this is a "New Flow" node (sub-flow start point)
@@ -2360,6 +2373,7 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
             selectedNode.data.nodeType === 'checkoutNode' ||
             selectedNode.data.nodeType === 'imageNode' ||
             selectedNode.data.nodeType === 'textNode' ||
+            selectedNode.data.nodeType === 'aiNode' ||
             (selectedNode.data.label as string || '').toLowerCase().includes('upsell') ||
             (selectedNode.data.label as string || '').toLowerCase().includes('downsell') ||
             (selectedNode.data.label as string || '').toLowerCase().includes('product webview') ||
