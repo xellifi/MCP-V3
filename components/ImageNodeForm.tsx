@@ -16,8 +16,9 @@ interface ImageNodeFormProps {
         delaySeconds?: number;
         showButton?: boolean;
         buttonText?: string;
-        buttonAction?: 'url' | 'create_flow' | 'existing_flow' | 'upsell' | 'downsell';
+        buttonAction?: 'existing_flow' | 'url' | 'create_flow';
         buttonUrl?: string;
+        webviewHeight?: 'compact' | 'tall' | 'full';
         buttonFlowId?: string;
         buttonFlowName?: string;
     };
@@ -84,10 +85,13 @@ const ImageNodeForm: React.FC<ImageNodeFormProps> = ({
 
     const [showButton, setShowButton] = useState(initialConfig?.showButton || false);
     const [buttonText, setButtonText] = useState(initialConfig?.buttonText || 'Learn More');
-    const [buttonAction, setButtonAction] = useState<'url' | 'create_flow' | 'existing_flow' | 'upsell' | 'downsell'>(
-        initialConfig?.buttonAction || 'url'
+    const [buttonAction, setButtonAction] = useState<'existing_flow' | 'url' | 'create_flow'>(
+        initialConfig?.buttonAction || 'existing_flow'
     );
     const [buttonUrl, setButtonUrl] = useState(initialConfig?.buttonUrl || '');
+    const [webviewHeight, setWebviewHeight] = useState<'compact' | 'tall' | 'full'>(
+        initialConfig?.webviewHeight || 'full'
+    );
     const [buttonFlowId, setButtonFlowId] = useState(initialConfig?.buttonFlowId || '');
     const [buttonFlowName, setButtonFlowName] = useState(initialConfig?.buttonFlowName || '');
 
@@ -127,7 +131,7 @@ const ImageNodeForm: React.FC<ImageNodeFormProps> = ({
     const notifyChange = (updates: any = {}) => {
         onChange({
             imageUrl, imageSource, caption, delaySeconds,
-            showButton, buttonText, buttonAction, buttonUrl, buttonFlowId, buttonFlowName,
+            showButton, buttonText, buttonAction, buttonUrl, webviewHeight, buttonFlowId, buttonFlowName,
             ...updates
         });
     };
@@ -216,11 +220,9 @@ const ImageNodeForm: React.FC<ImageNodeFormProps> = ({
     };
 
     const buttonActionOptions = [
-        { value: 'url', label: 'Open URL', icon: ExternalLink, description: 'Opens a web link' },
-        { value: 'create_flow', label: 'Create New Flow', icon: Plus, description: 'Create new automation' },
-        { value: 'existing_flow', label: 'Existing Flow', icon: Workflow, description: 'Run an existing flow' },
-        { value: 'upsell', label: 'Upsell Offer', icon: ArrowUp, description: 'Show upsell webview' },
-        { value: 'downsell', label: 'Downsell Offer', icon: ArrowDown, description: 'Show downsell webview' },
+        { value: 'existing_flow', label: '⚡ Trigger Saved Flow', icon: Workflow, description: 'Triggers an existing saved flow' },
+        { value: 'url', label: '🔗 Open URL (Webview)', icon: ExternalLink, description: 'Opens a URL in a webview' },
+        { value: 'create_flow', label: '➕ Start New Flow', icon: Plus, description: 'Creates a new flow with Start Node and Text Node' },
     ];
 
     // ================== PREVIEW (DEVICE MOCKUP) ==================
@@ -318,8 +320,6 @@ const ImageNodeForm: React.FC<ImageNodeFormProps> = ({
                                                 <div className="border-t border-slate-100">
                                                     <button className={`w-full ${previewDevice === 'desktop' ? 'py-2 text-xs' : 'py-3 text-sm'} text-blue-600 font-semibold hover:bg-blue-50 transition-colors flex items-center justify-center gap-1.5`}>
                                                         {buttonAction === 'url' && <ExternalLink className={`${previewDevice === 'desktop' ? 'w-3 h-3' : 'w-4 h-4'}`} />}
-                                                        {buttonAction === 'upsell' && <ShoppingBag className={`${previewDevice === 'desktop' ? 'w-3 h-3' : 'w-4 h-4'}`} />}
-                                                        {buttonAction === 'downsell' && <ShoppingBag className={`${previewDevice === 'desktop' ? 'w-3 h-3' : 'w-4 h-4'}`} />}
                                                         {buttonAction === 'existing_flow' && <Workflow className={`${previewDevice === 'desktop' ? 'w-3 h-3' : 'w-4 h-4'}`} />}
                                                         {buttonAction === 'create_flow' && <Plus className={`${previewDevice === 'desktop' ? 'w-3 h-3' : 'w-4 h-4'}`} />}
                                                         {buttonText || 'Button'}
@@ -467,12 +467,30 @@ const ImageNodeForm: React.FC<ImageNodeFormProps> = ({
                         </div>
                     </div>
                     {buttonAction === 'url' && (
-                        <div>
-                            <label className="block text-xs text-slate-400 mb-1">Destination URL</label>
-                            <input type="url" value={buttonUrl} onChange={(e) => { setButtonUrl(e.target.value); notifyChange({ buttonUrl: e.target.value }); }}
-                                placeholder="https://example.com"
-                                className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-rose-500/50 placeholder-slate-500" />
-                        </div>
+                        <>
+                            <div>
+                                <label className="block text-xs text-slate-400 mb-1">Destination URL</label>
+                                <input type="url" value={buttonUrl} onChange={(e) => { setButtonUrl(e.target.value); notifyChange({ buttonUrl: e.target.value }); }}
+                                    placeholder="https://example.com"
+                                    className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-rose-500/50 placeholder-slate-500" />
+                            </div>
+                            <div>
+                                <label className="block text-xs text-slate-400 mb-1">Webview Size</label>
+                                <div className="flex gap-2">
+                                    {(['compact', 'tall', 'full'] as const).map(size => (
+                                        <button
+                                            key={size}
+                                            type="button"
+                                            onClick={() => { setWebviewHeight(size); notifyChange({ webviewHeight: size }); }}
+                                            className={`flex-1 px-2 py-1.5 rounded-lg text-xs font-medium transition-all ${webviewHeight === size ? 'bg-rose-500 text-white' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}
+                                        >
+                                            {size === 'compact' ? '📱 Compact' : size === 'tall' ? '📲 Tall' : '🖥️ Full'}
+                                        </button>
+                                    ))}
+                                </div>
+                                <p className="text-[10px] text-slate-500 mt-1">Facebook webview height: compact (50%), tall (75%), full (100%)</p>
+                            </div>
+                        </>
                     )}
                     {buttonAction === 'existing_flow' && (
                         <div>
@@ -497,17 +515,7 @@ const ImageNodeForm: React.FC<ImageNodeFormProps> = ({
                             )}
                         </div>
                     )}
-                    {(buttonAction === 'upsell' || buttonAction === 'downsell') && (
-                        <div className="bg-rose-500/10 border border-rose-500/30 rounded-lg p-3">
-                            <div className="flex items-start gap-2">
-                                <ShoppingBag className="w-4 h-4 text-rose-400 flex-shrink-0 mt-0.5" />
-                                <div>
-                                    <h4 className="text-xs font-semibold text-white">{buttonAction === 'upsell' ? 'Upsell Offer' : 'Downsell Offer'}</h4>
-                                    <p className="text-[10px] text-slate-400 mt-0.5">Connect to {buttonAction === 'upsell' ? 'Upsell' : 'Downsell'} Node in flow builder.</p>
-                                </div>
-                            </div>
-                        </div>
-                    )}
+
                     {buttonAction === 'create_flow' && (
                         <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-3">
                             <div className="flex items-start gap-2">
