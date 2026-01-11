@@ -408,7 +408,7 @@ async function handleAction(req: VercelRequest, res: VercelResponse) {
             };
 
             // Create order with all the shipping/payment data
-            await createOrder({
+            const orderSession = {
                 ...session,
                 ...updates,
                 customerPhone,
@@ -417,10 +417,11 @@ async function handleAction(req: VercelRequest, res: VercelResponse) {
                 paymentMethod,
                 paymentMethodName,
                 shippingFee
-            });
+            };
+            await createOrder(orderSession);
 
-            // Note: Google Sheets sync is handled by the Google Sheets Node in the flow
-            // This allows per-flow control of which sheet to use
+            // Sync to Google Sheets with Order ID and Status
+            await syncOrderToGoogleSheets(orderSession);
 
             result.orderCreated = true;
             result.response = 'confirmed';
@@ -431,6 +432,7 @@ async function handleAction(req: VercelRequest, res: VercelResponse) {
         case 'checkout_complete':
             updates = { user_response: 'checkout_complete', completed_at: new Date().toISOString() };
             await createOrder(session);
+            await syncOrderToGoogleSheets(session);
             result.orderCreated = true;
             break;
 
@@ -749,7 +751,7 @@ async function syncOrderToGoogleSheets(session: any) {
         const response = await fetch(workspace.google_webhook_url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(orderPayload)
+            body: JSON.stringify({ rowData: orderPayload })
         });
 
         if (response.ok) {
