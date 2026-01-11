@@ -64,6 +64,7 @@ interface ProductWebviewNodeFormProps {
         enableSizeSelector?: boolean;
         colorOptions?: string[];
         sizeOptions?: string[];
+        promoCodes?: string[];
         // Add to Cart action trigger
         onAddToCartAction?: 'upsell' | 'downsell' | 'nextStep' | 'savedFlow';
         onAddToCartFlowId?: string;
@@ -367,7 +368,7 @@ const ProductWebviewNodeForm: React.FC<ProductWebviewNodeFormProps> = ({
             useWebview,
             // Product options
             enableQuantitySelector, enablePromoCode, enableColorSelector, enableSizeSelector,
-            colorOptions, sizeOptions,
+            colorOptions, sizeOptions, promoCodes,
             // Action triggers
             onAddToCartAction, onAddToCartFlowId,
             // Follow-up settings
@@ -1149,6 +1150,11 @@ const ProductWebviewNodeForm: React.FC<ProductWebviewNodeFormProps> = ({
     );
 
     // Product Options Section (NEW for Product Webview)
+    const [colorInputValue, setColorInputValue] = useState(initialConfig?.colorOptions?.join(', ') || 'Red, Blue, Black');
+    const [sizeInputValue, setSizeInputValue] = useState(initialConfig?.sizeOptions?.join(', ') || 'S, M, L, XL');
+    const [promoCodesInput, setPromoCodesInput] = useState(initialConfig?.promoCodes?.join(', ') || '');
+    const [promoCodes, setPromoCodes] = useState<string[]>(initialConfig?.promoCodes || []);
+
     const productOptionsSection = (
         <CollapsibleSection title="Product Options" icon={Settings} defaultOpen={false}>
             <Toggle
@@ -1165,6 +1171,25 @@ const ProductWebviewNodeForm: React.FC<ProductWebviewNodeFormProps> = ({
             />
             <p className="text-[10px] text-slate-500 -mt-2 mb-3">Allow buyers to enter promo codes</p>
 
+            {enablePromoCode && (
+                <div className="mb-3 pl-2 border-l-2 border-amber-500/30">
+                    <label className="text-xs text-slate-400 block mb-1">Valid Promo Codes (comma-separated, leave empty for any)</label>
+                    <input
+                        type="text"
+                        value={promoCodesInput}
+                        onChange={(e) => setPromoCodesInput(e.target.value)}
+                        onBlur={(e) => {
+                            const codes = e.target.value.split(',').map(c => c.trim().toUpperCase()).filter(c => c);
+                            setPromoCodes(codes);
+                            notifyChange({ promoCodes: codes });
+                        }}
+                        placeholder="SAVE10, DISCOUNT20, FREE"
+                        className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white"
+                    />
+                    <p className="text-[9px] text-slate-500 mt-1">Leave empty to accept any code entered by buyer</p>
+                </div>
+            )}
+
             <Toggle
                 value={enableColorSelector}
                 onChange={(v) => { setEnableColorSelector(v); notifyChange({ enableColorSelector: v }); }}
@@ -1175,11 +1200,12 @@ const ProductWebviewNodeForm: React.FC<ProductWebviewNodeFormProps> = ({
                     <label className="text-xs text-slate-400 block mb-1">Available Colors (comma-separated)</label>
                     <input
                         type="text"
-                        value={colorOptions.join(', ')}
-                        onChange={(e) => {
+                        value={colorInputValue}
+                        onChange={(e) => setColorInputValue(e.target.value)}
+                        onBlur={(e) => {
                             const colors = e.target.value.split(',').map(c => c.trim()).filter(c => c);
-                            setColorOptions(colors);
-                            notifyChange({ colorOptions: colors });
+                            setColorOptions(colors.length > 0 ? colors : ['Red', 'Blue', 'Black']);
+                            notifyChange({ colorOptions: colors.length > 0 ? colors : ['Red', 'Blue', 'Black'] });
                         }}
                         placeholder="Red, Blue, Black, White"
                         className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white"
@@ -1197,13 +1223,14 @@ const ProductWebviewNodeForm: React.FC<ProductWebviewNodeFormProps> = ({
                     <label className="text-xs text-slate-400 block mb-1">Available Sizes (comma-separated)</label>
                     <input
                         type="text"
-                        value={sizeOptions.join(', ')}
-                        onChange={(e) => {
+                        value={sizeInputValue}
+                        onChange={(e) => setSizeInputValue(e.target.value)}
+                        onBlur={(e) => {
                             const sizes = e.target.value.split(',').map(s => s.trim()).filter(s => s);
-                            setSizeOptions(sizes);
-                            notifyChange({ sizeOptions: sizes });
+                            setSizeOptions(sizes.length > 0 ? sizes : ['S', 'M', 'L', 'XL']);
+                            notifyChange({ sizeOptions: sizes.length > 0 ? sizes : ['S', 'M', 'L', 'XL'] });
                         }}
-                        placeholder="S, M, L, XL, XXL"
+                        placeholder="S, M, L, XL, XXL or 32, 34, 36, 38"
                         className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white"
                     />
                 </div>

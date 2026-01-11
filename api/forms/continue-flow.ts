@@ -1800,6 +1800,23 @@ async function syncToGoogleSheets(
         }
     });
 
+    // Extract variant info (color, size, promo code) from cart items
+    const allColors: string[] = [];
+    const allSizes: string[] = [];
+    const allPromoCodes: string[] = [];
+
+    cart.forEach((item: any) => {
+        if (item.variant?.color && !allColors.includes(item.variant.color)) {
+            allColors.push(item.variant.color);
+        }
+        if (item.variant?.size && !allSizes.includes(item.variant.size)) {
+            allSizes.push(item.variant.size);
+        }
+        if (item.promoCode && !allPromoCodes.includes(item.promoCode)) {
+            allPromoCodes.push(item.promoCode);
+        }
+    });
+
     // Generate order ID
     const orderId = `ORD-${Date.now().toString(36).toUpperCase()}`;
 
@@ -1815,6 +1832,10 @@ async function syncToGoogleSheets(
         'Total': `₱${cartTotal.toLocaleString()}`,
         'Total Amount': cartTotal,
         'Item Count': cart.length,
+        // Variant data
+        'Colors': allColors.join(', ') || '',
+        'Sizes': allSizes.join(', ') || '',
+        'Promo Codes': allPromoCodes.join(', ') || '',
     };
 
     // Add customer info if enabled
