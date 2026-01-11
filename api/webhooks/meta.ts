@@ -391,10 +391,25 @@ async function generateAIResponse(
             return null;
         }
 
+        // Validate API key format - reject obviously corrupted keys
+        if (apiKey.length > 300) {
+            console.error(`    ✗ API key appears corrupted (length: ${apiKey.length}). Max expected ~200 chars.`);
+            console.error(`    ℹ️ Please re-enter your ${provider.toUpperCase()} API key in Settings page`);
+            return null;
+        }
+
+        // Validate key format
+        if (provider === 'openai' && !apiKey.startsWith('sk-')) {
+            console.error(`    ✗ Invalid OpenAI API key format. Should start with 'sk-'`);
+            console.error(`    ℹ️ Current key starts with: ${apiKey.substring(0, 10)}...`);
+            return null;
+        }
+
         // Log API key info (masked for security)
         const maskedKey = apiKey.substring(0, 8) + '...' + apiKey.substring(apiKey.length - 4);
         console.log(`    🔑 Using ${provider} API key from: ${keySource}`);
         console.log(`    🔑 Key preview: ${maskedKey} (length: ${apiKey.length})`);
+        console.log(`    ℹ️ Node requested provider: ${provider}`);
 
         // Build the full prompt with context
         const fullPrompt = `You are a helpful assistant replying to a Facebook comment on behalf of a business page.
