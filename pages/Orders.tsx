@@ -5,7 +5,8 @@ import {
     ShoppingBag, Search, Filter, Download, Eye, Check, X, Truck, Clock,
     Package, ChevronDown, ChevronUp, MoreHorizontal, RefreshCw, Calendar,
     User, Phone, Mail, MapPin, CreditCard, Tag, ChevronLeft, ChevronRight,
-    AlertCircle, CheckCircle, XCircle, ArrowUpDown, ExternalLink, Printer
+    AlertCircle, CheckCircle, XCircle, ArrowUpDown, ExternalLink, Printer,
+    Pencil, Trash2, Save, AlertTriangle
 } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -63,6 +64,10 @@ const Orders: React.FC<OrdersProps> = ({ workspace }) => {
     const [showFilters, setShowFilters] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
     const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
+    const [editingOrder, setEditingOrder] = useState<Order | null>(null);
+    const [deletingOrder, setDeletingOrder] = useState<Order | null>(null);
+    const [editForm, setEditForm] = useState<Partial<Order>>({});
+    const [isSaving, setIsSaving] = useState(false);
     const ordersPerPage = 10;
 
     // Load orders
@@ -239,6 +244,132 @@ const Orders: React.FC<OrdersProps> = ({ workspace }) => {
             console.log('[Orders] Bulk status synced to Google Sheets');
         } catch (error) {
             console.error('Error bulk updating orders:', error);
+        }
+    };
+
+    // Edit order
+    const handleEditOrder = (order: Order) => {
+        setEditForm({
+            customer_name: order.customer_name,
+            customer_phone: order.customer_phone,
+            customer_email: order.customer_email,
+            customer_address: order.customer_address,
+            shipping_fee: order.shipping_fee,
+            status: order.status
+        });
+        setEditingOrder(order);
+    };
+
+    // Save edited order
+    const saveEditedOrder = async () => {
+        if (!editingOrder) return;
+
+        setIsSaving(true);
+        try {
+            // Calculate new total if shipping fee changed
+            const newShippingFee = editForm.shipping_fee ?? editingOrder.shipping_fee;
+            const newTotal = editingOrder.subtotal + newShippingFee;
+
+            const updateData = {
+                customer_name: editForm.customer_name,
+                customer_phone: editForm.customer_phone,
+                customer_email: editForm.customer_email,
+                customer_address: editForm.customer_address,
+                shipping_fee: newShippingFee,
+                total: newTotal,
+                status: editForm.status,
+                updated_at: new Date().toISOString()
+            };
+
+            const { error } = await supabase
+                .from('orders')
+                .update(updateData)
+                .eq('id', editingOrder.id);
+
+            if (error) throw error;
+
+            // Update local state
+            setOrders(prev => prev.map(order =>
+                order.id === editingOrder.id ? { ...order, ...updateData } : order
+            ));
+
+            // Update selected order if viewing
+            if (selectedOrder?.id === editingOrder.id) {
+                setSelectedOrder({ ...selectedOrder, ...updateData } as Order);
+            }
+
+            // Sync status change to Google Sheets if status was updated
+            if (editForm.status && editForm.status !== editingOrder.status) {
+                const statusLabel = STATUS_CONFIG[editForm.status as keyof typeof STATUS_CONFIG]?.label || editForm.status;
+                try {
+                    await fetch('/api/sheets/sync', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            action: 'updateStatus',
+                            orderId: editingOrder.id,
+                            newStatus: statusLabel,
+                            updatedAt: new Date().toISOString(),
+                            workspaceId: workspace.id
+                        })
+                    });
+                } catch (sheetsError) {
+                    console.error('[Orders] Failed to sync edit to Sheets:', sheetsError);
+                }
+            }
+
+            setEditingOrder(null);
+            console.log('[Orders] Order updated successfully');
+        } catch (error) {
+            console.error('Error updating order:', error);
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    // Delete order
+    const deleteOrder = async () => {
+        if (!deletingOrder) return;
+
+        setIsSaving(true);
+        try {
+            const { error } = await supabase
+                .from('orders')
+                .delete()
+                .eq('id', deletingOrder.id);
+
+            if (error) throw error;
+
+            // Update local state
+            setOrders(prev => prev.filter(order => order.id !== deletingOrder.id));
+
+            // Close detail modal if viewing the deleted order
+            if (selectedOrder?.id === deletingOrder.id) {
+                setSelectedOrder(null);
+            }
+
+            // Sync deletion to Google Sheets
+            try {
+                await fetch('/api/sheets/sync', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'deleteOrder',
+                        orderId: deletingOrder.id,
+                        workspaceId: workspace.id
+                    })
+                });
+                console.log('[Orders] Order deletion synced to Google Sheets');
+            } catch (sheetsError) {
+                console.error('[Orders] Failed to sync deletion to Sheets:', sheetsError);
+            }
+
+            setDeletingOrder(null);
+            console.log('[Orders] Order deleted successfully');
+        } catch (error) {
+            console.error('Error deleting order:', error);
+        } finally {
+            setIsSaving(false);
         }
     };
 
@@ -452,12 +583,216 @@ const Orders: React.FC<OrdersProps> = ({ workspace }) => {
                                 ))}
                             </select>
                         </div>
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={() => { setSelectedOrder(null); handleEditOrder(selectedOrder); }}
+                                className="flex items-center gap-2 px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg transition-colors"
+                            >
+                                <Pencil className="w-4 h-4" />
+                                Edit
+                            </button>
+                            <button
+                                onClick={() => { setSelectedOrder(null); setDeletingOrder(selectedOrder); }}
+                                className="flex items-center gap-2 px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg transition-colors border border-red-500/30"
+                            >
+                                <Trash2 className="w-4 h-4" />
+                                Delete
+                            </button>
+                            <button
+                                onClick={() => window.print()}
+                                className="flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors"
+                            >
+                                <Printer className="w-4 h-4" />
+                                Print
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    // Edit Order Modal
+    const EditOrderModal = () => {
+        if (!editingOrder) return null;
+
+        return (
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setEditingOrder(null)}>
+                <div className="bg-slate-800 rounded-2xl w-full max-w-lg overflow-hidden border border-white/10 shadow-2xl" onClick={e => e.stopPropagation()}>
+                    {/* Header */}
+                    <div className="p-6 border-b border-white/10 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-indigo-500/20 rounded-lg">
+                                <Pencil className="w-5 h-5 text-indigo-400" />
+                            </div>
+                            <div>
+                                <h2 className="text-xl font-bold text-white">Edit Order</h2>
+                                <p className="text-slate-400 text-sm font-mono">{editingOrder.id}</p>
+                            </div>
+                        </div>
+                        <button onClick={() => setEditingOrder(null)} className="p-2 hover:bg-white/10 rounded-lg transition-colors">
+                            <X className="w-5 h-5 text-slate-400" />
+                        </button>
+                    </div>
+
+                    {/* Form */}
+                    <div className="p-6 space-y-4 max-h-[60vh] overflow-y-auto">
+                        <div>
+                            <label className="block text-slate-400 text-sm mb-1.5">Customer Name</label>
+                            <input
+                                type="text"
+                                value={editForm.customer_name || ''}
+                                onChange={(e) => setEditForm({ ...editForm, customer_name: e.target.value })}
+                                className="w-full px-4 py-2.5 bg-black/30 border border-white/10 rounded-lg text-white focus:outline-none focus:border-indigo-500"
+                            />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-slate-400 text-sm mb-1.5">Phone</label>
+                                <input
+                                    type="text"
+                                    value={editForm.customer_phone || ''}
+                                    onChange={(e) => setEditForm({ ...editForm, customer_phone: e.target.value })}
+                                    className="w-full px-4 py-2.5 bg-black/30 border border-white/10 rounded-lg text-white focus:outline-none focus:border-indigo-500"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-slate-400 text-sm mb-1.5">Email</label>
+                                <input
+                                    type="email"
+                                    value={editForm.customer_email || ''}
+                                    onChange={(e) => setEditForm({ ...editForm, customer_email: e.target.value })}
+                                    className="w-full px-4 py-2.5 bg-black/30 border border-white/10 rounded-lg text-white focus:outline-none focus:border-indigo-500"
+                                />
+                            </div>
+                        </div>
+                        <div>
+                            <label className="block text-slate-400 text-sm mb-1.5">Address</label>
+                            <textarea
+                                value={editForm.customer_address || ''}
+                                onChange={(e) => setEditForm({ ...editForm, customer_address: e.target.value })}
+                                rows={2}
+                                className="w-full px-4 py-2.5 bg-black/30 border border-white/10 rounded-lg text-white focus:outline-none focus:border-indigo-500 resize-none"
+                            />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-slate-400 text-sm mb-1.5">Shipping Fee</label>
+                                <input
+                                    type="number"
+                                    value={editForm.shipping_fee || 0}
+                                    onChange={(e) => setEditForm({ ...editForm, shipping_fee: parseFloat(e.target.value) || 0 })}
+                                    className="w-full px-4 py-2.5 bg-black/30 border border-white/10 rounded-lg text-white focus:outline-none focus:border-indigo-500"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-slate-400 text-sm mb-1.5">Status</label>
+                                <select
+                                    value={editForm.status || 'pending'}
+                                    onChange={(e) => setEditForm({ ...editForm, status: e.target.value as any })}
+                                    className="w-full px-4 py-2.5 bg-black/30 border border-white/10 rounded-lg text-white focus:outline-none focus:border-indigo-500"
+                                >
+                                    {Object.entries(STATUS_CONFIG).map(([key, config]) => (
+                                        <option key={key} value={key}>{config.label}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        </div>
+
+                        {/* Order Summary (read-only) */}
+                        <div className="bg-black/20 rounded-xl p-4 mt-4">
+                            <h4 className="text-white font-medium mb-2">Order Summary</h4>
+                            <div className="text-sm space-y-1 text-slate-400">
+                                <div className="flex justify-between">
+                                    <span>Subtotal:</span>
+                                    <span className="text-white">₱{editingOrder.subtotal.toLocaleString()}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span>Shipping:</span>
+                                    <span className="text-white">₱{(editForm.shipping_fee ?? editingOrder.shipping_fee).toLocaleString()}</span>
+                                </div>
+                                <div className="flex justify-between pt-2 border-t border-white/10 text-white font-bold">
+                                    <span>Total:</span>
+                                    <span className="text-emerald-400">₱{(editingOrder.subtotal + (editForm.shipping_fee ?? editingOrder.shipping_fee)).toLocaleString()}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Footer */}
+                    <div className="p-6 border-t border-white/10 flex items-center justify-end gap-3">
                         <button
-                            onClick={() => window.print()}
-                            className="flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors"
+                            onClick={() => setEditingOrder(null)}
+                            className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors"
                         >
-                            <Printer className="w-4 h-4" />
-                            Print
+                            Cancel
+                        </button>
+                        <button
+                            onClick={saveEditedOrder}
+                            disabled={isSaving}
+                            className="flex items-center gap-2 px-4 py-2 bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 text-white rounded-lg transition-colors"
+                        >
+                            <Save className="w-4 h-4" />
+                            {isSaving ? 'Saving...' : 'Save Changes'}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    // Delete Confirmation Modal
+    const DeleteConfirmModal = () => {
+        if (!deletingOrder) return null;
+
+        return (
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setDeletingOrder(null)}>
+                <div className="bg-slate-800 rounded-2xl w-full max-w-md overflow-hidden border border-white/10 shadow-2xl" onClick={e => e.stopPropagation()}>
+                    {/* Header */}
+                    <div className="p-6 text-center">
+                        <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <AlertTriangle className="w-8 h-8 text-red-400" />
+                        </div>
+                        <h2 className="text-xl font-bold text-white mb-2">Delete Order?</h2>
+                        <p className="text-slate-400">
+                            Are you sure you want to delete order <span className="font-mono text-white">{deletingOrder.id.slice(0, 12)}...</span>?
+                        </p>
+                        <p className="text-red-400 text-sm mt-2">This action cannot be undone.</p>
+                    </div>
+
+                    {/* Order Info */}
+                    <div className="mx-6 p-4 bg-black/20 rounded-xl mb-6">
+                        <div className="text-sm space-y-2">
+                            <div className="flex justify-between">
+                                <span className="text-slate-400">Customer:</span>
+                                <span className="text-white">{deletingOrder.customer_name}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-slate-400">Total:</span>
+                                <span className="text-emerald-400 font-bold">₱{deletingOrder.total.toLocaleString()}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-slate-400">Items:</span>
+                                <span className="text-white">{deletingOrder.items.length} item(s)</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Footer */}
+                    <div className="p-6 border-t border-white/10 flex items-center justify-end gap-3">
+                        <button
+                            onClick={() => setDeletingOrder(null)}
+                            className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            onClick={deleteOrder}
+                            disabled={isSaving}
+                            className="flex items-center gap-2 px-4 py-2 bg-red-500 hover:bg-red-600 disabled:opacity-50 text-white rounded-lg transition-colors"
+                        >
+                            <Trash2 className="w-4 h-4" />
+                            {isSaving ? 'Deleting...' : 'Delete Order'}
                         </button>
                     </div>
                 </div>
@@ -723,6 +1058,20 @@ const Orders: React.FC<OrdersProps> = ({ workspace }) => {
                                                             <option key={key} value={key}>{config.label}</option>
                                                         ))}
                                                     </select>
+                                                    <button
+                                                        onClick={() => handleEditOrder(order)}
+                                                        className="p-2 hover:bg-white/10 rounded-lg transition-colors text-indigo-400 hover:text-indigo-300"
+                                                        title="Edit Order"
+                                                    >
+                                                        <Pencil className="w-4 h-4" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setDeletingOrder(order)}
+                                                        className="p-2 hover:bg-white/10 rounded-lg transition-colors text-red-500 hover:text-red-400"
+                                                        title="Delete Order"
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </button>
                                                 </div>
                                             </td>
                                         </tr>
@@ -787,6 +1136,12 @@ const Orders: React.FC<OrdersProps> = ({ workspace }) => {
 
             {/* Order Detail Modal */}
             <OrderDetailModal />
+
+            {/* Edit Order Modal */}
+            <EditOrderModal />
+
+            {/* Delete Confirmation Modal */}
+            <DeleteConfirmModal />
         </div>
     );
 };

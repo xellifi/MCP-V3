@@ -25,9 +25,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     try {
         const { action, webhookUrl, spreadsheetId, sheetName, rowData, data, orderId, newStatus, updatedAt, workspaceId } = req.body;
 
-        // Handle status update action
-        if (action === 'updateStatus') {
-            console.log('[Sheets Sync] Updating order status:', orderId, '->', newStatus);
+        // Handle status update or delete action
+        if (action === 'updateStatus' || action === 'deleteOrder') {
+            console.log(`[Sheets Sync] Processing action: ${action} for order: ${orderId}`);
 
             // Get webhook URL - try multiple sources
             let targetWebhookUrl = webhookUrl || process.env.GOOGLE_SHEETS_WEBHOOK_URL;
@@ -152,14 +152,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             console.log('[Sheets Sync] Sheet Name:', effectiveSheetName);
             console.log('[Sheets Sync] Webhook URL:', targetWebhookUrl.substring(0, 60) + '...');
 
-            // Call Apps Script with updateStatus action
-            const requestBody = {
-                action: 'updateStatus',
+            // Call Apps Script with action
+            const requestBody: any = {
+                action: action,
                 orderId: orderId,
-                newStatus: newStatus,
-                updatedAt: updatedAt || new Date().toISOString(),
                 sheetName: effectiveSheetName
             };
+
+            if (action === 'updateStatus') {
+                requestBody.newStatus = newStatus;
+                requestBody.updatedAt = updatedAt || new Date().toISOString();
+            }
+
             console.log('[Sheets Sync] Request body:', JSON.stringify(requestBody));
 
             const response = await fetch(targetWebhookUrl, {
@@ -180,7 +184,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 if (responseData.error) {
                     console.error('[Sheets Sync] ❌ Apps Script error:', responseData.error);
                 } else if (responseData.success) {
-                    console.log('[Sheets Sync] ✓ Update successful, row:', responseData.row);
+                    console.log('[Sheets Sync] ✓ Action successful:', action);
                 }
             } catch (e) {
                 console.log('[Sheets Sync] Response is not JSON');
@@ -190,7 +194,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 throw new Error(`Apps Script error: ${responseText}`);
             }
 
-            return res.status(200).json({ success: true, action: 'updateStatus', details: responseData });
+            return res.status(200).json({ success: true, action: action, details: responseData });
         }
 
         // Default action: Append new row
