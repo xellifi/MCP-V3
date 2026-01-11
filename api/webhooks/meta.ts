@@ -2324,17 +2324,24 @@ async function processTextMessage(messagingEvent: any, pageId: string) {
 
                 // Get or create subscriber for chat memory
                 let subscriber = null;
-                const { data: existingSub } = await supabase
+                const { data: existingSub, error: subError } = await supabase
                     .from('subscribers')
                     .select('*')
                     .eq('workspace_id', workspaceId)
                     .eq('platform_user_id', senderId)
                     .maybeSingle();
 
+                if (subError) {
+                    console.log(`🤖 Subscriber lookup error: ${subError.message}`);
+                }
+
                 subscriber = existingSub;
+                console.log(`🤖 Subscriber found: ${!!subscriber}, ID: ${subscriber?.id || 'N/A'}`);
+
                 if (!subscriber) {
                     const userName = await fetchUserName(senderId, pageAccessToken);
-                    const { data: newSub } = await supabase
+                    console.log(`🤖 Creating new subscriber for: ${userName}`);
+                    const { data: newSub, error: createError } = await supabase
                         .from('subscribers')
                         .insert({
                             workspace_id: workspaceId,
@@ -2346,12 +2353,21 @@ async function processTextMessage(messagingEvent: any, pageId: string) {
                         })
                         .select()
                         .single();
+
+                    if (createError) {
+                        console.log(`🤖 Create subscriber error: ${createError.message}`);
+                    }
                     subscriber = newSub;
                 }
 
                 // Get chat history from subscriber metadata
                 const chatHistory = subscriber?.metadata?.ai_chat_history || [];
                 const recentHistory = chatHistory.slice(-memoryLines);
+
+                console.log(`🤖 Chat history loaded: ${chatHistory.length} total messages, using ${recentHistory.length} for context`);
+                if (recentHistory.length > 0) {
+                    console.log(`🤖 Recent history:`, recentHistory.map((m: any) => `[${m.role}] ${m.content.substring(0, 50)}...`));
+                }
 
                 // Build context messages for AI
                 const contextMessages = recentHistory.map((msg: any) => ({
@@ -2509,7 +2525,9 @@ Do not use markdown formatting. Be friendly and professional.`;
                     { role: 'ai', content: responseText, timestamp: new Date().toISOString() }
                 ].slice(-memoryLines * 2); // Keep last N exchanges
 
-                await supabase
+                console.log(`🤖 Saving ${updatedHistory.length} messages to chat history for subscriber ${subscriber?.id}`);
+
+                const { error: saveError } = await supabase
                     .from('subscribers')
                     .update({
                         metadata: {
@@ -2519,6 +2537,12 @@ Do not use markdown formatting. Be friendly and professional.`;
                         }
                     })
                     .eq('id', subscriber?.id);
+
+                if (saveError) {
+                    console.error(`🤖 Error saving chat history: ${saveError.message}`);
+                } else {
+                    console.log('🤖 ✓ Chat history saved successfully');
+                }
 
                 console.log('🤖 AI response sent and conversation saved');
                 return; // Handled by AI
