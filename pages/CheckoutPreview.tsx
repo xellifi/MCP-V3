@@ -1,12 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { ShoppingCart, Check, Package, User, MapPin, Phone, Mail, CreditCard, Truck, Wallet, AlertCircle } from 'lucide-react';
+import { ShoppingCart, Check, Package, User, MapPin, Phone, Mail, CreditCard, Truck, Wallet, AlertCircle, Home, Building, Map, Hash, ClipboardList } from 'lucide-react';
 
 interface PaymentMethod {
     id: string;
     name: string;
     icon: string;
     description?: string;
+}
+
+interface CustomerFieldConfig {
+    enabled: boolean;
+    required: boolean;
+    label?: string;
 }
 
 interface CheckoutConfig {
@@ -25,6 +31,7 @@ interface CheckoutConfig {
     thankYouMessage?: string;
     showItemDetails?: boolean;
     showTotal?: boolean;
+    // Legacy flags
     showNameField?: boolean;
     showPhoneField?: boolean;
     showEmailField?: boolean;
@@ -33,6 +40,19 @@ interface CheckoutConfig {
     requirePhone?: boolean;
     requireEmail?: boolean;
     requireAddress?: boolean;
+    // New Detailed Configuration
+    customerFields?: {
+        name?: CustomerFieldConfig;
+        phone?: CustomerFieldConfig;
+        email?: CustomerFieldConfig;
+        fullAddress?: CustomerFieldConfig;
+        street?: CustomerFieldConfig;
+        city?: CustomerFieldConfig;
+        province?: CustomerFieldConfig;
+        zipCode?: CustomerFieldConfig;
+        notes?: CustomerFieldConfig;
+    };
+    useFullAddress?: boolean;
     paymentMethods?: PaymentMethod[];
 }
 
@@ -41,6 +61,11 @@ interface ShippingForm {
     phone: string;
     email: string;
     address: string;
+    street: string;
+    city: string;
+    province: string;
+    zipCode: string;
+    notes: string;
 }
 
 const DEFAULT_PAYMENT_METHODS: PaymentMethod[] = [
@@ -59,7 +84,12 @@ const CheckoutPreview: React.FC = () => {
         name: 'John Doe',
         phone: '09171234567',
         email: 'john@example.com',
-        address: '123 Sample Street, Cebu City, Cebu 6000'
+        address: '123 Sample Street, Cebu City, Cebu 6000',
+        street: '123 Sample Street',
+        city: 'Cebu City',
+        province: 'Cebu',
+        zipCode: '6000',
+        notes: 'Please ring the doorbell'
     });
     const [selectedPayment, setSelectedPayment] = useState<string>('cod');
 
@@ -94,11 +124,33 @@ const CheckoutPreview: React.FC = () => {
     const accentColor = config.accentColor || '#10b981';
     const paymentMethods = config.paymentMethods || DEFAULT_PAYMENT_METHODS;
 
-    // Field visibility
-    const showName = config.showNameField !== false;
-    const showPhone = config.showPhoneField !== false;
-    const showEmail = config.showEmailField === true;
-    const showAddress = config.showAddressField !== false;
+    // Field visibility logic (matching WebviewCheckout)
+    const fields = config.customerFields;
+
+    // Fallback to legacy triggers if config.customerFields is missing
+    const showName = fields ? fields.name?.enabled : (config.showNameField !== false);
+    const showPhone = fields ? fields.phone?.enabled : (config.showPhoneField !== false);
+    const showEmail = fields ? fields.email?.enabled : (config.showEmailField === true);
+
+    // Address visibility logic
+    const useFullAddress = config.useFullAddress ?? true;
+    const showFullAddress = fields ? (useFullAddress && fields.fullAddress?.enabled) : (config.showAddressField !== false);
+
+    // Split address fields
+    const showStreet = fields ? (!useFullAddress && fields.street?.enabled) : false;
+    const showCity = fields ? (!useFullAddress && fields.city?.enabled) : false;
+    const showProvince = fields ? (!useFullAddress && fields.province?.enabled) : false;
+    const showZip = fields ? (!useFullAddress && fields.zipCode?.enabled) : false;
+
+    // Notes
+    const showNotes = fields ? fields.notes?.enabled : false;
+
+    // Helper for labels and requirements
+    const getLabel = (key: keyof typeof fields, defaultLbl: string) => fields?.[key]?.label || defaultLbl;
+    const isRequired = (key: keyof typeof fields, legacyReq?: boolean) => {
+        if (fields && fields[key]) return fields[key]!.required;
+        return legacyReq;
+    };
 
     if (error) {
         return (
@@ -216,18 +268,18 @@ const CheckoutPreview: React.FC = () => {
                         </div>
                     )}
 
-                    {/* Shipping Information */}
+                    {/* Information Section */}
                     <div className="rounded-2xl p-4 mb-4 border border-slate-700/50" style={{ backgroundColor: cardBackgroundColor }}>
                         <div className="flex items-center gap-2 mb-4">
                             <User className="w-5 h-5" style={{ color: accentColor }} />
-                            <h2 className="font-bold" style={{ color: textColor }}>Shipping Information</h2>
+                            <h2 className="font-bold" style={{ color: textColor }}>Information</h2>
                         </div>
 
                         <div className="space-y-3">
                             {showName && (
                                 <div>
                                     <label className="text-xs mb-1 block" style={{ color: `${textColor}80` }}>
-                                        Full Name {config.requireName !== false && <span className="text-red-400">*</span>}
+                                        {getLabel('name', 'Full Name')} {isRequired('name', config.requireName !== false) && <span className="text-red-400">*</span>}
                                     </label>
                                     <div className="relative">
                                         <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: `${textColor}40` }} />
@@ -250,7 +302,7 @@ const CheckoutPreview: React.FC = () => {
                             {showPhone && (
                                 <div>
                                     <label className="text-xs mb-1 block" style={{ color: `${textColor}80` }}>
-                                        Phone Number {config.requirePhone !== false && <span className="text-red-400">*</span>}
+                                        {getLabel('phone', 'Phone Number')} {isRequired('phone', config.requirePhone !== false) && <span className="text-red-400">*</span>}
                                     </label>
                                     <div className="relative">
                                         <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: `${textColor}40` }} />
@@ -273,7 +325,7 @@ const CheckoutPreview: React.FC = () => {
                             {showEmail && (
                                 <div>
                                     <label className="text-xs mb-1 block" style={{ color: `${textColor}80` }}>
-                                        Email Address {config.requireEmail && <span className="text-red-400">*</span>}
+                                        {getLabel('email', 'Email Address')} {isRequired('email', config.requireEmail === true) && <span className="text-red-400">*</span>}
                                     </label>
                                     <div className="relative">
                                         <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: `${textColor}40` }} />
@@ -293,10 +345,11 @@ const CheckoutPreview: React.FC = () => {
                                 </div>
                             )}
 
-                            {showAddress && (
+                            {/* Full Address */}
+                            {showFullAddress && (
                                 <div>
                                     <label className="text-xs mb-1 block" style={{ color: `${textColor}80` }}>
-                                        Complete Address {config.requireAddress !== false && <span className="text-red-400">*</span>}
+                                        {getLabel('fullAddress', 'Complete Address')} {isRequired('fullAddress', config.requireAddress !== false) && <span className="text-red-400">*</span>}
                                     </label>
                                     <div className="relative">
                                         <MapPin className="absolute left-3 top-3 w-4 h-4" style={{ color: `${textColor}40` }} />
@@ -305,6 +358,124 @@ const CheckoutPreview: React.FC = () => {
                                             onChange={(e) => setShippingForm(prev => ({ ...prev, address: e.target.value }))}
                                             placeholder="House/Unit No., Street, Barangay, City, Province"
                                             rows={3}
+                                            className="w-full rounded-xl py-3 pl-10 pr-4 focus:outline-none focus:ring-2 resize-none"
+                                            style={{
+                                                backgroundColor: `${textColor}10`,
+                                                color: textColor,
+                                                borderColor: `${textColor}20`
+                                            }}
+                                        />
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Split Address Fields */}
+                            {showStreet && (
+                                <div>
+                                    <label className="text-xs mb-1 block" style={{ color: `${textColor}80` }}>
+                                        {getLabel('street', 'Street Address')} {isRequired('street') && <span className="text-red-400">*</span>}
+                                    </label>
+                                    <div className="relative">
+                                        <Home className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: `${textColor}40` }} />
+                                        <input
+                                            type="text"
+                                            value={shippingForm.street}
+                                            onChange={(e) => setShippingForm(prev => ({ ...prev, street: e.target.value }))}
+                                            placeholder="123 Street..."
+                                            className="w-full rounded-xl py-3 pl-10 pr-4 focus:outline-none focus:ring-2"
+                                            style={{
+                                                backgroundColor: `${textColor}10`,
+                                                color: textColor,
+                                                borderColor: `${textColor}20`
+                                            }}
+                                        />
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="grid grid-cols-2 gap-3">
+                                {showCity && (
+                                    <div>
+                                        <label className="text-xs mb-1 block" style={{ color: `${textColor}80` }}>
+                                            {getLabel('city', 'City')} {isRequired('city') && <span className="text-red-400">*</span>}
+                                        </label>
+                                        <div className="relative">
+                                            <Building className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: `${textColor}40` }} />
+                                            <input
+                                                type="text"
+                                                value={shippingForm.city}
+                                                onChange={(e) => setShippingForm(prev => ({ ...prev, city: e.target.value }))}
+                                                placeholder="City"
+                                                className="w-full rounded-xl py-3 pl-10 pr-4 focus:outline-none focus:ring-2"
+                                                style={{
+                                                    backgroundColor: `${textColor}10`,
+                                                    color: textColor,
+                                                    borderColor: `${textColor}20`
+                                                }}
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+                                {showProvince && (
+                                    <div>
+                                        <label className="text-xs mb-1 block" style={{ color: `${textColor}80` }}>
+                                            {getLabel('province', 'Province')} {isRequired('province') && <span className="text-red-400">*</span>}
+                                        </label>
+                                        <div className="relative">
+                                            <Map className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: `${textColor}40` }} />
+                                            <input
+                                                type="text"
+                                                value={shippingForm.province}
+                                                onChange={(e) => setShippingForm(prev => ({ ...prev, province: e.target.value }))}
+                                                placeholder="Province"
+                                                className="w-full rounded-xl py-3 pl-10 pr-4 focus:outline-none focus:ring-2"
+                                                style={{
+                                                    backgroundColor: `${textColor}10`,
+                                                    color: textColor,
+                                                    borderColor: `${textColor}20`
+                                                }}
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {showZip && (
+                                <div>
+                                    <label className="text-xs mb-1 block" style={{ color: `${textColor}80` }}>
+                                        {getLabel('zipCode', 'ZIP Code')} {isRequired('zipCode') && <span className="text-red-400">*</span>}
+                                    </label>
+                                    <div className="relative">
+                                        <Hash className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: `${textColor}40` }} />
+                                        <input
+                                            type="text"
+                                            value={shippingForm.zipCode}
+                                            onChange={(e) => setShippingForm(prev => ({ ...prev, zipCode: e.target.value }))}
+                                            placeholder="ZIP Code"
+                                            className="w-full rounded-xl py-3 pl-10 pr-4 focus:outline-none focus:ring-2"
+                                            style={{
+                                                backgroundColor: `${textColor}10`,
+                                                color: textColor,
+                                                borderColor: `${textColor}20`
+                                            }}
+                                        />
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Notes */}
+                            {showNotes && (
+                                <div>
+                                    <label className="text-xs mb-1 block" style={{ color: `${textColor}80` }}>
+                                        {getLabel('notes', 'Order Notes')} {isRequired('notes') && <span className="text-red-400">*</span>}
+                                    </label>
+                                    <div className="relative">
+                                        <ClipboardList className="absolute left-3 top-3 w-4 h-4" style={{ color: `${textColor}40` }} />
+                                        <textarea
+                                            value={shippingForm.notes}
+                                            onChange={(e) => setShippingForm(prev => ({ ...prev, notes: e.target.value }))}
+                                            placeholder="Additional instructions..."
+                                            rows={2}
                                             className="w-full rounded-xl py-3 pl-10 pr-4 focus:outline-none focus:ring-2 resize-none"
                                             style={{
                                                 backgroundColor: `${textColor}10`,

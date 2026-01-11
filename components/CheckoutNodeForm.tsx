@@ -788,12 +788,16 @@ const CheckoutNodeForm: React.FC<CheckoutNodeFormProps> = ({
                             <button
                                 type="button"
                                 onClick={() => {
-                                    // Open live preview in new tab
+                                    // Open live preview in new tab with full configuration
                                     const previewUrl = `${window.location.origin}/checkout/preview?config=${encodeURIComponent(JSON.stringify({
                                         headerText, buttonText, primaryColor, showItemDetails, showTotal,
                                         companyLogo, companyName, showShipping, shippingFee,
                                         successMessage, thankYouMessage, backgroundColor, cardBackgroundColor,
                                         textColor, accentColor,
+                                        // Pass full customer fields configuration
+                                        customerFields,
+                                        useFullAddress,
+                                        // Legacy flags for backward compatibility
                                         showNameField: customerFields.name?.enabled,
                                         showPhoneField: customerFields.phone?.enabled,
                                         showEmailField: customerFields.email?.enabled,
@@ -805,11 +809,11 @@ const CheckoutNodeForm: React.FC<CheckoutNodeFormProps> = ({
                                     }))}`;
                                     window.open(previewUrl, '_blank');
                                 }}
-                                className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-600 hover:bg-slate-500 rounded-lg text-white text-xs font-medium transition-colors"
+                                className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-500 rounded-lg text-white text-xs font-medium transition-colors shadow-lg"
                                 title="Open Live Preview"
                             >
-                                <ExternalLink className="w-3.5 h-3.5" />
-                                <span>Live Preview</span>
+                                <Eye className="w-3.5 h-3.5" />
+                                <span>Preview</span>
                             </button>
                             <button
                                 type="button"
