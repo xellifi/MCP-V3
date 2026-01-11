@@ -558,7 +558,11 @@ async function createOrder(session: any) {
             total: session.cart_total
         });
 
+        // Generate order ID
+        const orderId = `ORD-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+
         const orderData = {
+            id: orderId,
             workspace_id: session.workspace_id,
             subscriber_id: session.external_id,
             customer_name: session.customer_name,
