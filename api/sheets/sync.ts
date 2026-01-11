@@ -23,13 +23,48 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     try {
-        const { action, webhookUrl, spreadsheetId, sheetName, rowData, data, orderId, newStatus, updatedAt } = req.body;
+        const { action, webhookUrl, spreadsheetId, sheetName, rowData, data, orderId, newStatus, updatedAt, workspaceId } = req.body;
 
         // Handle status update action
         if (action === 'updateStatus') {
             console.log('[Sheets Sync] Updating order status:', orderId, '->', newStatus);
 
-            const targetWebhookUrl = webhookUrl || process.env.GOOGLE_SHEETS_WEBHOOK_URL;
+            // Get webhook URL - try multiple sources
+            let targetWebhookUrl = webhookUrl || process.env.GOOGLE_SHEETS_WEBHOOK_URL;
+
+            // If no webhook URL yet, try to get from workspace via order
+            if (!targetWebhookUrl && orderId) {
+                console.log('[Sheets Sync] No webhook URL provided, looking up from order...');
+                try {
+                    const { createClient } = await import('@supabase/supabase-js');
+                    const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '';
+                    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';
+                    const supabase = createClient(supabaseUrl, supabaseKey);
+
+                    // Get workspace_id from order
+                    const { data: order } = await supabase
+                        .from('orders')
+                        .select('workspace_id')
+                        .eq('id', orderId)
+                        .single();
+
+                    if (order?.workspace_id) {
+                        // Get webhook URL from workspace
+                        const { data: workspace } = await supabase
+                            .from('workspaces')
+                            .select('google_webhook_url')
+                            .eq('id', order.workspace_id)
+                            .single();
+
+                        if (workspace?.google_webhook_url) {
+                            targetWebhookUrl = workspace.google_webhook_url;
+                            console.log('[Sheets Sync] Found webhook URL from workspace');
+                        }
+                    }
+                } catch (err) {
+                    console.error('[Sheets Sync] Error looking up webhook URL:', err);
+                }
+            }
 
             if (!targetWebhookUrl) {
                 console.log('[Sheets Sync] No webhook URL configured, skipping status update');

@@ -710,7 +710,12 @@ async function syncOrderToGoogleSheets(session: any) {
         const shippingFee = session.shippingFee || 0;
         const totalAfterDiscount = subtotal - discount + shippingFee;
 
+        // Generate Order ID for tracking (same format as createOrder)
+        const orderId = session.orderId || `ORD-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+
         const orderPayload = {
+            // Order ID - IMPORTANT: This is used for status updates
+            'Order ID': orderId,
             // Timestamp
             order_date: new Date().toISOString(),
             // Customer info
@@ -732,8 +737,8 @@ async function syncOrderToGoogleSheets(session: any) {
             promo_code: session.metadata?.promoCode || session.form_data?.promoCode || '',
             // Notes
             notes: session.metadata?.notes || session.form_data?.notes || '',
-            // Status
-            status: 'Pending',
+            // Status - IMPORTANT: This is what status updates modify
+            Status: 'Pending',
             // Source
             source: 'Messenger Checkout',
             subscriber_id: session.external_id
