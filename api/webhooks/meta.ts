@@ -343,12 +343,21 @@ async function generateAIResponse(
         let apiKey = null;
         let keySource = 'none';
 
+        console.log(`    🔍 Looking up API keys for workspaceId: ${workspaceId || 'NOT PROVIDED'}`);
+
         if (workspaceId) {
             const { data: workspaceSettings, error: wsError } = await supabase
                 .from('workspace_settings')
                 .select('openai_api_key, gemini_api_key')
                 .eq('workspace_id', workspaceId)
                 .maybeSingle();
+
+            console.log(`    🔍 Workspace settings query result:`, {
+                found: !!workspaceSettings,
+                hasOpenAI: !!workspaceSettings?.openai_api_key,
+                hasGemini: !!workspaceSettings?.gemini_api_key,
+                error: wsError?.message || null
+            });
 
             if (wsError) {
                 console.log(`    ⚠️ Workspace settings lookup failed: ${wsError.message}`);
@@ -359,8 +368,13 @@ async function generateAIResponse(
                 apiKey = provider === 'openai' ? ws.openai_api_key : ws.gemini_api_key;
                 if (apiKey) {
                     keySource = 'workspace_settings';
+                    console.log(`    ✓ Found ${provider} key in workspace_settings`);
+                } else {
+                    console.log(`    ⚠️ workspace_settings exists but no ${provider} key found`);
                 }
             }
+        } else {
+            console.log(`    ⚠️ No workspaceId provided - skipping workspace_settings lookup`);
         }
 
         // Fallback to admin settings
@@ -3672,7 +3686,8 @@ async function executeAction(
                     commenterName: context.commenterName || 'User',
                     commentText: context.message || '',
                     pageName: context.pageName || 'Our Page'
-                }
+                },
+                context.workspaceId
             );
 
             if (!generatedMessage) {
@@ -3746,7 +3761,8 @@ async function executeAction(
                     commenterName: context.commenterName || 'User',
                     commentText: context.message || '',
                     pageName: context.pageName || 'Our Page'
-                }
+                },
+                context.workspaceId
             );
 
             if (!generatedMessage) {
