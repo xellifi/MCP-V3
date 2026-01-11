@@ -279,7 +279,9 @@ async function handleAction(req: VercelRequest, res: VercelResponse) {
                 cart, cartTotal,
                 customerName, customerPhone, customerEmail, customerAddress,
                 notes, addressDetails,
-                paymentMethod, paymentMethodName, shippingFee,
+                paymentMethod, paymentMethodName, paymentProof, paymentProofFileName,
+                promoCode, discount,
+                shippingFee,
                 confirmedAt
             } = payload;
 
@@ -296,8 +298,12 @@ async function handleAction(req: VercelRequest, res: VercelResponse) {
                 },
                 payment: {
                     method: paymentMethod,
-                    methodName: paymentMethodName
+                    methodName: paymentMethodName,
+                    proofUrl: paymentProof || '',
+                    proofFileName: paymentProofFileName || ''
                 },
+                promoCode: promoCode || '',
+                discount: discount || 0,
                 shippingFee: shippingFee || 0,
                 confirmedAt: confirmedAt || new Date().toISOString()
             };
@@ -315,6 +321,10 @@ async function handleAction(req: VercelRequest, res: VercelResponse) {
                     email: customerEmail,
                     address: customerAddress,
                     notes: notes,
+                    paymentProof: paymentProof || '',
+                    paymentProofFileName: paymentProofFileName || '',
+                    promoCode: promoCode || '',
+                    discount: discount || 0,
                     ...addressDetails
                 },
                 metadata: orderMetadata
@@ -628,6 +638,12 @@ async function syncOrderToGoogleSheets(session: any) {
             total: session.cart_total || 0,
             // Payment
             payment_method: session.paymentMethodName || session.paymentMethod || 'COD',
+            payment_proof_url: session.metadata?.payment?.proofUrl || session.form_data?.paymentProof || '',
+            // Promo code
+            promo_code: session.metadata?.promoCode || session.form_data?.promoCode || '',
+            discount: session.metadata?.discount || session.form_data?.discount || 0,
+            // Notes
+            notes: session.metadata?.notes || session.form_data?.notes || '',
             // Status
             status: 'Pending',
             // Source

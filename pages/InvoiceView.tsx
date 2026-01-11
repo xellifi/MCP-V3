@@ -163,13 +163,33 @@ const InvoiceView: React.FC = () => {
     const data = invoice.data || {};
     const form = invoice.forms || {};
     const productName = data.product_name || form.product_name || 'Product';
-    const productPrice = data.product_price || form.product_price || 0;
-    const quantity = data.quantity || 1;
-    const total = data.total || (productPrice * quantity);
+
+    // Parse quantity first
+    const quantity = parseInt(data.quantity) || 1;
+
+    // Get unit price (not pre-multiplied total!)
+    // Use form.product_price as the source of truth for unit price
+    const productPrice = parseFloat(form.product_price) || parseFloat(data.product_price) || 0;
+
+    // Calculate total: unit price * quantity
+    // Don't trust data.total if it exists, recalculate it
+    const total = productPrice * quantity;
+
     const currency = data.currency || form.currency || 'PHP';
     const currencySymbol = getCurrencySymbol(currency);
     const paymentMethod = data.payment_method === 'cod' ? 'Cash on Delivery' : (data.ewallet_selected || 'E-Wallet');
     const invoiceNumber = `INV-${submissionId?.slice(0, 8).toUpperCase() || 'UNKNOWN'}`;
+
+    // Debug logging
+    console.log('[InvoiceView] Calculation:', {
+        productName,
+        productPrice,
+        quantity,
+        total,
+        dataTotal: data.total,
+        formPrice: form.product_price,
+        dataPrice: data.product_price
+    });
 
     // Extract customer name from form data fields - look for common name fields
     const customerName = data.name

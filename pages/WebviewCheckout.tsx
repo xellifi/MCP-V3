@@ -73,6 +73,7 @@ interface SessionData {
     customerPhone?: string;
     customerAddress?: string;
     formData?: any;
+    metadata?: any;
     config: CheckoutConfig;
 }
 
@@ -278,6 +279,16 @@ const WebviewCheckout: React.FC = () => {
                 finalAddress = parts.join(', ');
             }
 
+            // Convert payment proof to base64 if exists
+            let paymentProofUrl = '';
+            if (paymentProof) {
+                paymentProofUrl = await new Promise<string>((resolve) => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => resolve(reader.result as string);
+                    reader.readAsDataURL(paymentProof);
+                });
+            }
+
             await fetch(`${API_BASE}/api/webview?route=action`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -302,6 +313,11 @@ const WebviewCheckout: React.FC = () => {
                         // Payment info
                         paymentMethod: selectedPayment,
                         paymentMethodName: selectedPaymentMethod?.name || selectedPayment,
+                        paymentProof: paymentProofUrl,
+                        paymentProofFileName: paymentProof?.name,
+                        // Promo code
+                        promoCode: session.metadata?.promoCode || '',
+                        discount: session.metadata?.discount || 0,
                         // Meta
                         shippingFee: session.config.showShipping ? (session.config.shippingFee || 0) : 0,
                         confirmedAt: new Date().toISOString()
@@ -499,11 +515,11 @@ const WebviewCheckout: React.FC = () => {
 
     // Main Checkout
     return (
-        <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
+        <div className="min-h-screen bg-slate-900 p-4">
             {/* Container */}
-            <div className="w-full max-w-md mx-auto bg-slate-900 rounded-2xl shadow-2xl overflow-hidden flex flex-col" style={{ maxHeight: '90vh' }}>
+            <div className="w-full max-w-md mx-auto bg-slate-900 rounded-2xl shadow-2xl overflow-hidden relative">
                 {/* Scrollable Content */}
-                <div className="flex-1 overflow-auto p-4 pb-24">
+                <div className="p-4 pb-24">
                     {/* Company Logo & Name Header */}
                     {(config.companyLogo || config.companyName || config.headerText) && (
                         <div className="text-center mb-4">
@@ -871,8 +887,8 @@ const WebviewCheckout: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Fixed Bottom Button */}
-                <div className="p-4 bg-slate-900 border-t border-slate-700/50 flex-shrink-0">
+                {/* Sticky Bottom Button */}
+                <div className="sticky bottom-0 p-4 bg-slate-900 border-t border-slate-700/50">
                     <button
                         onClick={handleConfirmOrder}
                         disabled={processing || session.cart.length === 0}
