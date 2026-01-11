@@ -118,7 +118,9 @@ const WebviewCheckout: React.FC = () => {
         notes: ''
     });
     const [selectedPayment, setSelectedPayment] = useState<string>('cod');
-    const [formErrors, setFormErrors] = useState<Partial<ShippingForm>>({});
+    const [paymentProof, setPaymentProof] = useState<File | null>(null);
+    const [paymentProofPreview, setPaymentProofPreview] = useState<string>('');
+    const [formErrors, setFormErrors] = useState<Partial<ShippingForm & { paymentProof?: string }>>({});
 
     useEffect(() => {
         loadSession();
@@ -239,6 +241,11 @@ const WebviewCheckout: React.FC = () => {
             errors.notes = 'Notes are required';
         }
 
+        // Payment proof validation for GCash and Bank Transfer
+        if ((selectedPayment === 'gcash' || selectedPayment === 'bank') && !paymentProof) {
+            (errors as any).paymentProof = 'Proof of payment is required';
+        }
+
         setFormErrors(errors);
         return Object.keys(errors).length === 0;
     };
@@ -340,6 +347,37 @@ const WebviewCheckout: React.FC = () => {
         const subtotal = calculateSubtotal();
         const shipping = session.config.showShipping ? (session.config.shippingFee || 0) : 0;
         return subtotal + shipping;
+    };
+
+    const handlePaymentProofUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            // Validate file type
+            if (!file.type.startsWith('image/')) {
+                setFormErrors(prev => ({ ...prev, paymentProof: 'Please upload an image file' }));
+                return;
+            }
+
+            // Validate file size (max 5MB)
+            if (file.size > 5 * 1024 * 1024) {
+                setFormErrors(prev => ({ ...prev, paymentProof: 'File size must be less than 5MB' }));
+                return;
+            }
+
+            setPaymentProof(file);
+            setFormErrors(prev => {
+                const newErrors = { ...prev };
+                delete newErrors.paymentProof;
+                return newErrors;
+            });
+
+            // Generate preview
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setPaymentProofPreview(reader.result as string);
+            };
+            reader.readAsDataURL(file);
+        }
     };
 
     const handleInputChange = (field: keyof ShippingForm, value: string) => {
@@ -458,10 +496,11 @@ const WebviewCheckout: React.FC = () => {
         );
     }
 
-    // Main Checkout - White background with centered container
+
+    // Main Checkout
     return (
-        <div className="min-h-screen bg-white flex items-center justify-center p-4">
-            {/* Dark Container */}
+        <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
+            {/* Container */}
             <div className="w-full max-w-md mx-auto bg-slate-900 rounded-2xl shadow-2xl overflow-hidden flex flex-col" style={{ maxHeight: '90vh' }}>
                 {/* Scrollable Content */}
                 <div className="flex-1 overflow-auto p-4 pb-24">
@@ -764,6 +803,71 @@ const WebviewCheckout: React.FC = () => {
                                 </label>
                             ))}
                         </div>
+
+                        {/* Proof of Payment Upload for GCash & Bank Transfer */}
+                        {(selectedPayment === 'gcash' || selectedPayment === 'bank') && (
+                            <div className="mt-4 p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl">
+                                <div className="flex items-start gap-2 mb-3">
+                                    <Mail className="w-4 h-4 text-amber-400 mt-0.5" />
+                                    <div>
+                                        <p className="text-amber-400 text-sm font-medium">Proof of Payment Required</p>
+                                        <p className="text-slate-400 text-xs mt-1">
+                                            Please upload a screenshot or photo of your payment confirmation
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* File Upload */}
+                                <div className="mt-3">
+                                    <label className="block">
+                                        <div className={`border-2 border-dashed rounded-xl p-4 cursor-pointer transition-all text-center ${formErrors.paymentProof
+                                            ? 'border-red-500 bg-red-500/10'
+                                            : paymentProof
+                                                ? 'border-emerald-500 bg-emerald-500/10'
+                                                : 'border-slate-600 bg-slate-700/30 hover:border-emerald-500/50'
+                                            }`}>
+                                            <input
+                                                type="file"
+                                                accept="image/*"
+                                                onChange={handlePaymentProofUpload}
+                                                className="hidden"
+                                            />
+                                            {paymentProofPreview ? (
+                                                <div className="space-y-2">
+                                                    <img
+                                                        src={paymentProofPreview}
+                                                        alt="Payment proof"
+                                                        className="max-h-40 mx-auto rounded-lg border border-emerald-500"
+                                                    />
+                                                    <p className="text-emerald-400 text-xs font-medium">✓ File uploaded</p>
+                                                    <p className="text-slate-400 text-xs">{paymentProof?.name}</p>
+                                                    <button
+                                                        type="button"
+                                                        onClick={(e) => {
+                                                            e.preventDefault();
+                                                            setPaymentProof(null);
+                                                            setPaymentProofPreview('');
+                                                        }}
+                                                        className="text-xs text-red-400 hover:text-red-300 underline"
+                                                    >
+                                                        Remove
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <div>
+                                                    <Package className="w-8 h-8 text-slate-400 mx-auto mb-2" />
+                                                    <p className="text-slate-300 text-sm font-medium">Click to upload</p>
+                                                    <p className="text-slate-500 text-xs mt-1">PNG, JPG up to 5MB</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </label>
+                                    {formErrors.paymentProof && (
+                                        <p className="text-red-400 text-xs mt-2">⚠ {formErrors.paymentProof}</p>
+                                    )}
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
 
