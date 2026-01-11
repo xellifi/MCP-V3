@@ -86,27 +86,51 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 return res.status(400).json({ error: 'Missing orderId or newStatus' });
             }
 
+            console.log('[Sheets Sync] ========== SENDING STATUS UPDATE ==========');
+            console.log('[Sheets Sync] Order ID:', orderId);
+            console.log('[Sheets Sync] New Status:', newStatus);
+            console.log('[Sheets Sync] Sheet Name:', sheetName || 'Sheet1');
+            console.log('[Sheets Sync] Webhook URL:', targetWebhookUrl.substring(0, 60) + '...');
+
             // Call Apps Script with updateStatus action
+            const requestBody = {
+                action: 'updateStatus',
+                orderId: orderId,
+                newStatus: newStatus,
+                updatedAt: updatedAt || new Date().toISOString(),
+                sheetName: sheetName || 'Sheet1'
+            };
+            console.log('[Sheets Sync] Request body:', JSON.stringify(requestBody));
+
             const response = await fetch(targetWebhookUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    action: 'updateStatus',
-                    orderId: orderId,
-                    newStatus: newStatus,
-                    updatedAt: updatedAt || new Date().toISOString(),
-                    sheetName: sheetName || 'Sheet1'
-                })
+                body: JSON.stringify(requestBody)
             });
 
             const responseText = await response.text();
-            console.log('[Sheets Sync] Status update response:', responseText);
+            console.log('[Sheets Sync] ========== APPS SCRIPT RESPONSE ==========');
+            console.log('[Sheets Sync] Status:', response.status);
+            console.log('[Sheets Sync] Response:', responseText);
+
+            // Try to parse the response to get more details
+            let responseData: any = {};
+            try {
+                responseData = JSON.parse(responseText);
+                if (responseData.error) {
+                    console.error('[Sheets Sync] ❌ Apps Script error:', responseData.error);
+                } else if (responseData.success) {
+                    console.log('[Sheets Sync] ✓ Update successful, row:', responseData.row);
+                }
+            } catch (e) {
+                console.log('[Sheets Sync] Response is not JSON');
+            }
 
             if (!response.ok) {
                 throw new Error(`Apps Script error: ${responseText}`);
             }
 
-            return res.status(200).json({ success: true, action: 'updateStatus' });
+            return res.status(200).json({ success: true, action: 'updateStatus', details: responseData });
         }
 
         // Default action: Append new row
