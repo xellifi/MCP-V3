@@ -78,19 +78,32 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                                 .limit(10);
 
                             if (flows) {
+                                console.log('[Sheets Sync] Checking', flows.length, 'flows for Google Sheets nodes');
                                 for (const flow of flows) {
                                     const nodes = flow.nodes || [];
+                                    console.log('[Sheets Sync] Flow has', nodes.length, 'nodes');
                                     for (const node of nodes) {
-                                        // Check if it's a Google Sheets node with webhookUrl
+                                        // Check if it's a Google Sheets node
                                         const nodeData = node.data || {};
-                                        const config = nodeData.config || nodeData;
-                                        if (config.webhookUrl &&
-                                            (node.type === 'sheetsNode' ||
-                                                nodeData.nodeType === 'sheetsNode' ||
-                                                (nodeData.label || '').toLowerCase().includes('sheet'))) {
-                                            targetWebhookUrl = config.webhookUrl;
-                                            console.log('[Sheets Sync] ✓ Found webhook URL from flow Google Sheets node');
-                                            break;
+                                        const isSheetNode = node.type === 'sheetsNode' ||
+                                            nodeData.nodeType === 'sheetsNode' ||
+                                            (nodeData.label || '').toLowerCase().includes('sheet') ||
+                                            (nodeData.label || '').toLowerCase().includes('google');
+
+                                        if (isSheetNode) {
+                                            console.log('[Sheets Sync] Found sheets node:', node.type, nodeData.label);
+                                            // Check multiple places where webhookUrl might be stored
+                                            const possibleWebhookUrl = nodeData.webhookUrl || // Direct on data
+                                                nodeData.config?.webhookUrl ||  // In config object
+                                                node.config?.webhookUrl;         // Direct on node
+
+                                            if (possibleWebhookUrl) {
+                                                targetWebhookUrl = possibleWebhookUrl;
+                                                console.log('[Sheets Sync] ✓ Found webhook URL from flow Google Sheets node');
+                                                break;
+                                            } else {
+                                                console.log('[Sheets Sync] Sheets node found but no webhookUrl, keys:', Object.keys(nodeData));
+                                            }
                                         }
                                     }
                                     if (targetWebhookUrl) break;
