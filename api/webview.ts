@@ -316,26 +316,41 @@ async function handleAction(req: VercelRequest, res: VercelResponse) {
                     // Generate unique filename
                     const fileName = `payment-proofs/${session.workspace_id}/${Date.now()}-${sessionId.substring(0, 8)}.${extension}`;
 
+                    // Try to create bucket if it doesn't exist (first time only)
+                    const bucketName = 'payment-proofs';
+                    const { error: bucketError } = await supabase.storage.createBucket(bucketName, {
+                        public: true,
+                        fileSizeLimit: 5242880 // 5MB
+                    });
+
+                    if (bucketError && !bucketError.message.includes('already exists')) {
+                        console.log('[Webview] Bucket creation note:', bucketError.message);
+                    }
+
                     // Upload to Supabase Storage
                     const { data: uploadData, error: uploadError } = await supabase.storage
-                        .from('uploads')
-                        .upload(fileName, buffer, {
+                        .from(bucketName)
+                        .upload(`${session.workspace_id}/${Date.now()}-${sessionId.substring(0, 8)}.${extension}`, buffer, {
                             contentType: mimeType,
                             upsert: true
                         });
 
                     if (uploadError) {
-                        console.error('[Webview] Payment proof upload error:', uploadError);
+                        console.error('[Webview] Payment proof upload error:', uploadError.message);
+                        // Fallback: Store a reference instead of full base64
+                        paymentProofUrl = `[Image uploaded - ${Math.round(buffer.length / 1024)}KB]`;
                     } else {
                         // Get public URL
                         const { data: urlData } = supabase.storage
-                            .from('uploads')
-                            .getPublicUrl(fileName);
+                            .from(bucketName)
+                            .getPublicUrl(uploadData.path);
                         paymentProofUrl = urlData?.publicUrl || '';
                         console.log('[Webview] Payment proof uploaded:', paymentProofUrl);
                     }
                 } catch (uploadErr: any) {
                     console.error('[Webview] Error uploading payment proof:', uploadErr.message);
+                    // Fallback
+                    paymentProofUrl = '[Image upload failed]';
                 }
             } else if (paymentProof) {
                 // Already a URL

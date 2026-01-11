@@ -1856,44 +1856,50 @@ async function syncToGoogleSheets(
     // Generate order ID
     const orderId = `ORD-${Date.now().toString(36).toUpperCase()}`;
 
-    // Build webhook payload
+    // Build webhook payload - organized in a predictable order
     const webhookPayload: any = {
+        // Core identifiers
         row_id: orderId,
         'Order ID': orderId,
+
+        // Customer info
         'Customer Name': checkoutData.customerName || customerName || 'Customer',
         'Customer ID': context.commenterId,
+        'Customer Phone': checkoutData.customerPhone || '',
+        'Customer Email': checkoutData.customerEmail || '',
+        'Customer Address': checkoutData.customerAddress || '',
+
+        // Products
         'Products': allProducts.join(', '),
         'Quantities': allQuantities.join(', '),
         'Prices': allPrices.join(', '),
-        'Total': `₱${cartTotal.toLocaleString()}`,
-        'Total Amount': cartTotal,
         'Item Count': cart.length,
-        // Variant data
+
+        // Variants
         'Colors': allColors.join(', ') || '',
         'Sizes': allSizes.join(', ') || '',
-        'Promo Codes': allPromoCodes.join(', ') || '',
+
+        // Promo & Discount
+        'Promo Code': checkoutData.promoCode || allPromoCodes.join(', ') || '',
+        'Discount': checkoutData.discount || 0,
+
+        // Totals
+        'Subtotal': cartTotal,
+        'Shipping Fee': checkoutData.shippingFee || 0,
+        'Total': cartTotal - (checkoutData.discount || 0) + (checkoutData.shippingFee || 0),
+
+        // Payment
+        'Payment Method': checkoutData.paymentMethodName || checkoutData.paymentMethod || 'COD',
+        'Payment Proof': checkoutData.paymentProof || '',
+
+        // Notes
+        'Notes': checkoutData.notes || '',
+
+        // Timestamp
+        'Timestamp': new Date().toISOString(),
+        'Date': new Date().toLocaleDateString('en-PH'),
+        'Time': new Date().toLocaleTimeString('en-PH')
     };
-
-    // Add customer info if enabled
-    if (includeCustomerInfo) {
-        webhookPayload['Customer Phone'] = checkoutData.customerPhone || '';
-        webhookPayload['Customer Email'] = checkoutData.customerEmail || '';
-        webhookPayload['Customer Address'] = checkoutData.customerAddress || '';
-        webhookPayload['Payment Method'] = checkoutData.paymentMethodName || checkoutData.paymentMethod || 'COD';
-        webhookPayload['Shipping Fee'] = `₱${(checkoutData.shippingFee || 0).toLocaleString()}`;
-        webhookPayload['Payment Proof URL'] = checkoutData.paymentProof || '';
-        webhookPayload['Promo Code Used'] = checkoutData.promoCode || allPromoCodes.join(', ') || '';
-        webhookPayload['Discount'] = checkoutData.discount || 0;
-        webhookPayload['Notes'] = checkoutData.notes || '';
-    }
-
-    // Add timestamp if enabled
-    if (includeTimestamp) {
-        const now = new Date();
-        webhookPayload['Timestamp'] = now.toISOString();
-        webhookPayload['Date'] = now.toLocaleDateString('en-PH');
-        webhookPayload['Time'] = now.toLocaleTimeString('en-PH');
-    }
 
     console.log('[syncToGoogleSheets] 📤 Sending to webhook:', webhookUrl.substring(0, 50) + '...');
     console.log('[syncToGoogleSheets] 📋 Payload:', JSON.stringify(webhookPayload, null, 2));

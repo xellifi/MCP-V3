@@ -168,6 +168,7 @@ const WebviewCheckout: React.FC = () => {
                 customerPhone: customerPhone,
                 customerAddress: customerAddress,
                 formData: data.session.form_data || {},
+                metadata: data.session.metadata || {},
                 config: data.session.page_config || {}
             };
 
@@ -362,7 +363,8 @@ const WebviewCheckout: React.FC = () => {
         if (!session) return 0;
         const subtotal = calculateSubtotal();
         const shipping = session.config.showShipping ? (session.config.shippingFee || 0) : 0;
-        return subtotal + shipping;
+        const discount = session.metadata?.discount || 0;
+        return subtotal - discount + shipping;
     };
 
     const handlePaymentProofUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -438,7 +440,10 @@ const WebviewCheckout: React.FC = () => {
     const buttonColor = config.buttonColor || '#10b981';
     const subtotal = calculateSubtotal();
     const shipping = config.showShipping ? (config.shippingFee || 0) : 0;
-    const total = subtotal + shipping;
+    // Get discount from metadata (applied via promo code in Product page)
+    const discount = session.metadata?.discount || 0;
+    const promoCode = session.metadata?.promoCode || '';
+    const total = subtotal - discount + shipping;
     const paymentMethods = config.paymentMethods || DEFAULT_PAYMENT_METHODS;
 
     // Field visibility (default to showing name, phone, address)
@@ -597,6 +602,15 @@ const WebviewCheckout: React.FC = () => {
                                         <span className={shipping === 0 ? 'text-emerald-400' : ''}>
                                             {shipping > 0 ? `₱${shipping.toLocaleString()}` : 'FREE'}
                                         </span>
+                                    </div>
+                                )}
+                                {/* Discount from promo code */}
+                                {discount > 0 && (
+                                    <div className="flex justify-between text-emerald-400">
+                                        <span className="flex items-center gap-1">
+                                            🎁 Discount {promoCode && <span className="text-xs bg-emerald-500/20 px-2 py-0.5 rounded-full">{promoCode}</span>}
+                                        </span>
+                                        <span>-₱{discount.toLocaleString()}</span>
                                     </div>
                                 )}
                                 <div className="border-t border-slate-600/50 pt-3">
