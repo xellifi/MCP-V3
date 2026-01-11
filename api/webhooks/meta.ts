@@ -341,39 +341,60 @@ async function generateAIResponse(
     try {
         // Get API keys - first try workspace settings, then admin settings
         let apiKey = null;
+        let keySource = 'none';
 
         if (workspaceId) {
-            const { data: workspaceSettings } = await supabase
+            const { data: workspaceSettings, error: wsError } = await supabase
                 .from('workspace_settings')
                 .select('openai_api_key, gemini_api_key')
                 .eq('workspace_id', workspaceId)
-                .single();
+                .maybeSingle();
+
+            if (wsError) {
+                console.log(`    ⚠️ Workspace settings lookup failed: ${wsError.message}`);
+            }
 
             if (workspaceSettings) {
                 const ws = workspaceSettings as any;
                 apiKey = provider === 'openai' ? ws.openai_api_key : ws.gemini_api_key;
+                if (apiKey) {
+                    keySource = 'workspace_settings';
+                }
             }
         }
 
         // Fallback to admin settings
         if (!apiKey) {
-            const { data: adminSettings } = await supabase
+            const { data: adminSettings, error: adminError } = await supabase
                 .from('admin_settings')
                 .select('openai_api_key, gemini_api_key')
                 .eq('id', 1)
                 .single();
 
+            if (adminError) {
+                console.log(`    ⚠️ Admin settings lookup failed: ${adminError.message}`);
+            }
+
             if (adminSettings) {
                 apiKey = provider === 'openai'
                     ? adminSettings.openai_api_key
                     : adminSettings.gemini_api_key;
+                if (apiKey) {
+                    keySource = 'admin_settings';
+                }
             }
         }
 
         if (!apiKey) {
-            console.error(`    ✗ No ${provider} API key found`);
+            console.error(`    ✗ No ${provider} API key found in workspace_settings or admin_settings`);
+            console.error(`    ℹ️ Please add your ${provider.toUpperCase()} API key in Settings page`);
             return null;
         }
+
+        // Log API key info (masked for security)
+        const maskedKey = apiKey.substring(0, 8) + '...' + apiKey.substring(apiKey.length - 4);
+        console.log(`    🔑 Using ${provider} API key from: ${keySource}`);
+        console.log(`    🔑 Key preview: ${maskedKey} (length: ${apiKey.length})`);
 
         // Build the full prompt with context
         const fullPrompt = `You are a helpful assistant replying to a Facebook comment on behalf of a business page.
@@ -404,10 +425,25 @@ Generate a personalized, conversational direct message reply. Keep it concise an
             });
 
             const data = await response.json();
-            console.log('    🤖 OpenAI response:', JSON.stringify(data, null, 2));
+            console.log('    🤖 OpenAI response status:', response.status);
 
             if (data.error) {
                 console.error('    ✗ OpenAI API error:', data.error.message);
+                console.error('    ✗ Error type:', data.error.type);
+                console.error('    ✗ Error code:', data.error.code);
+
+                // Provide helpful hints based on error type
+                if (data.error.code === 'invalid_api_key') {
+                    console.error('    ℹ️ HINT: Your API key is invalid. Please check:');
+                    console.error('       1. The key was copied correctly (no extra spaces)');
+                    console.error('       2. The key has not been revoked/regenerated');
+                    console.error('       3. Go to https://platform.openai.com/api-keys to verify');
+                } else if (data.error.code === 'insufficient_quota') {
+                    console.error('    ℹ️ HINT: Your OpenAI account has no credits. Add billing at https://platform.openai.com/account/billing');
+                } else if (data.error.type === 'invalid_request_error') {
+                    console.error('    ℹ️ HINT: The request format was invalid. Check the API key format.');
+                }
+
                 return null;
             }
 

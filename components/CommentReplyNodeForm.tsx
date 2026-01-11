@@ -13,6 +13,7 @@ interface AIProvider {
 
 interface CommentReplyNodeFormProps {
     userId: string;
+    workspaceId?: string;
     initialConfig?: {
         replyTemplate?: string;
         useAiReply?: boolean;
@@ -24,6 +25,7 @@ interface CommentReplyNodeFormProps {
 
 const CommentReplyNodeForm: React.FC<CommentReplyNodeFormProps> = ({
     userId,
+    workspaceId,
     initialConfig,
     onChange
 }) => {
@@ -64,26 +66,38 @@ const CommentReplyNodeForm: React.FC<CommentReplyNodeFormProps> = ({
 
     useEffect(() => {
         fetchAvailableProviders();
-    }, []);
+    }, [workspaceId]);
 
     const fetchAvailableProviders = async () => {
         setLoadingProviders(true);
         try {
-            // Get admin-level settings (available to all users)
+            // First check workspace-level settings
+            let workspaceSettings = null;
+            if (workspaceId) {
+                const { data } = await supabase
+                    .from('workspace_settings')
+                    .select('openai_api_key, gemini_api_key')
+                    .eq('workspace_id', workspaceId)
+                    .maybeSingle();
+                workspaceSettings = data;
+            }
+
+            // Then get admin-level settings (fallback)
             const { data: adminSettings } = await supabase
                 .from('admin_settings')
                 .select('openai_api_key, gemini_api_key')
                 .eq('id', 1)
                 .single();
 
+            console.log('Workspace settings for AI:', workspaceSettings);
             console.log('Admin settings for AI:', adminSettings);
 
             const providers = AI_PROVIDERS.map(provider => {
                 let available = false;
                 if (provider.id === 'openai') {
-                    available = !!(adminSettings?.openai_api_key);
+                    available = !!(workspaceSettings?.openai_api_key || adminSettings?.openai_api_key);
                 } else if (provider.id === 'gemini') {
-                    available = !!(adminSettings?.gemini_api_key);
+                    available = !!(workspaceSettings?.gemini_api_key || adminSettings?.gemini_api_key);
                 }
                 return { ...provider, available };
             });

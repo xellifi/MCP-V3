@@ -1597,6 +1597,7 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
       return (
         <CommentReplyNodeForm
           userId={workspace?.ownerId || ''}
+          workspaceId={workspace?.id || ''}
           initialConfig={initialConfigRef.current}
           onChange={handleConfigChange}
         />
