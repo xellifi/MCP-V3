@@ -158,12 +158,29 @@ const Orders: React.FC<OrdersProps> = ({ workspace }) => {
 
             if (error) throw error;
 
+            // Update local state
             setOrders(prev => prev.map(order =>
                 order.id === orderId ? { ...order, status: newStatus as any } : order
             ));
 
             if (selectedOrder?.id === orderId) {
                 setSelectedOrder(prev => prev ? { ...prev, status: newStatus as any } : null);
+            }
+
+            // Also update Google Sheets if webhook is configured
+            try {
+                await fetch('/api/sheets/update-status', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        orderId: orderId,
+                        newStatus: newStatus,
+                        updatedAt: new Date().toISOString()
+                    })
+                });
+                console.log('[Orders] Status synced to Google Sheets');
+            } catch (sheetsError) {
+                console.log('[Orders] Google Sheets sync skipped (not configured or failed)');
             }
         } catch (error) {
             console.error('Error updating order status:', error);
@@ -189,6 +206,24 @@ const Orders: React.FC<OrdersProps> = ({ workspace }) => {
                 selectedOrders.has(order.id) ? { ...order, status: newStatus as any } : order
             ));
             setSelectedOrders(new Set());
+
+            // Also update Google Sheets for each order
+            for (const orderId of orderIds) {
+                try {
+                    await fetch('/api/sheets/update-status', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            orderId: orderId,
+                            newStatus: newStatus,
+                            updatedAt: new Date().toISOString()
+                        })
+                    });
+                } catch (sheetsError) {
+                    // Ignore individual errors, continue with other orders
+                }
+            }
+            console.log('[Orders] Bulk status synced to Google Sheets');
         } catch (error) {
             console.error('Error bulk updating orders:', error);
         }

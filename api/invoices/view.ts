@@ -700,6 +700,7 @@ function escapeHtml(str: string): string {
 function getStatusBadge(status: string): string {
     const statuses: Record<string, { icon: string; label: string }> = {
         pending: { icon: '📦', label: 'Order Placed' },
+        confirmed: { icon: '✅', label: 'Confirmed' },
         processing: { icon: '✅', label: 'Confirmed' },
         shipped: { icon: '🚚', label: 'Shipped' },
         delivered: { icon: '🎉', label: 'Delivered' },

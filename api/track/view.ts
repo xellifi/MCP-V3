@@ -356,6 +356,7 @@ function renderTracking(data: TrackingData): string {
         // Map status to step index
         const statusToStep = {
             'pending': 0,
+            'confirmed': 1,
             'processing': 1,
             'shipped': 2,
             'delivered': 3,
