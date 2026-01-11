@@ -33,6 +33,7 @@ const Forms = lazy(() => import('./pages/Forms'));
 const Store = lazy(() => import('./pages/Store'));
 const StoreView = lazy(() => import('./pages/StoreView'));
 const SubscriptionPlans = lazy(() => import('./pages/SubscriptionPlans'));
+const Orders = lazy(() => import('./pages/Orders'));
 
 // Admin Pages - Lazy load (rarely accessed)
 const SystemSettings = lazy(() => import('./pages/SystemSettings'));
@@ -263,6 +264,7 @@ const App: React.FC = () => {
                   <Route path="/academy" element={<Academy user={user} />} />
                   <Route path="/forms-manager" element={<Forms workspace={currentWorkspace} />} />
                   <Route path="/store" element={<Store workspace={currentWorkspace} />} />
+                  <Route path="/orders" element={<Orders workspace={currentWorkspace} />} />
                   <Route path="/packages" element={<SubscriptionPlans />} />
 
                   {/* Admin Only Routes */}

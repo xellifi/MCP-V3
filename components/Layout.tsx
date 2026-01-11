@@ -26,7 +26,8 @@ import {
   GraduationCap,
   FileText,
   Store,
-  Package
+  Package,
+  ShoppingBag
 } from 'lucide-react';
 import { User, Workspace, UserRole } from '../types';
 import { api } from '../services/api';
@@ -56,13 +57,14 @@ const ALL_NAV_ITEMS: Record<string, { icon: any, label: string }> = {
   '/academy': { icon: GraduationCap, label: 'Academy' },
   '/forms-manager': { icon: FileText, label: 'Forms' },
   '/store': { icon: Store, label: 'Store' },
+  '/orders': { icon: ShoppingBag, label: 'Orders' },
   '/packages': { icon: Package, label: 'Packages' },
   '/support': { icon: LifeBuoy, label: 'Support' },
   // Backward compatibility maps
   '/api-keys': { icon: Sliders, label: 'Settings' }
 };
 
-const DEFAULT_ORDER = ['/', '/connections', '/connected-pages', '/subscribers', '/messages', '/flows', '/forms-manager', '/store', '/packages', '/scheduled', '/academy', '/settings', '/affiliates', '/support'];
+const DEFAULT_ORDER = ['/', '/connections', '/connected-pages', '/subscribers', '/messages', '/flows', '/forms-manager', '/store', '/orders', '/packages', '/scheduled', '/academy', '/settings', '/affiliates', '/support'];
 
 const Layout: React.FC<LayoutProps> = ({
   children,
