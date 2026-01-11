@@ -3,7 +3,9 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 /**
  * Google Sheets Sync API
  * 
- * This endpoint appends form submission data to a Google Sheet.
+ * This endpoint:
+ * 1. Appends form submission data to a Google Sheet (default)
+ * 2. Updates order status in existing row (when action='updateStatus')
  * 
  * SETUP REQUIRED:
  * 1. Share your Google Sheet with "Anyone with the link can edit"
@@ -21,8 +23,48 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     try {
-        const { webhookUrl, spreadsheetId, sheetName, rowData, data } = req.body;
-        const submissionData = rowData || data; // Support both field names
+        const { action, webhookUrl, spreadsheetId, sheetName, rowData, data, orderId, newStatus, updatedAt } = req.body;
+
+        // Handle status update action
+        if (action === 'updateStatus') {
+            console.log('[Sheets Sync] Updating order status:', orderId, '->', newStatus);
+
+            const targetWebhookUrl = webhookUrl || process.env.GOOGLE_SHEETS_WEBHOOK_URL;
+
+            if (!targetWebhookUrl) {
+                console.log('[Sheets Sync] No webhook URL configured, skipping status update');
+                return res.status(200).json({ success: false, message: 'No webhook configured' });
+            }
+
+            if (!orderId || !newStatus) {
+                return res.status(400).json({ error: 'Missing orderId or newStatus' });
+            }
+
+            // Call Apps Script with updateStatus action
+            const response = await fetch(targetWebhookUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'updateStatus',
+                    orderId: orderId,
+                    newStatus: newStatus,
+                    updatedAt: updatedAt || new Date().toISOString(),
+                    sheetName: sheetName || 'Sheet1'
+                })
+            });
+
+            const responseText = await response.text();
+            console.log('[Sheets Sync] Status update response:', responseText);
+
+            if (!response.ok) {
+                throw new Error(`Apps Script error: ${responseText}`);
+            }
+
+            return res.status(200).json({ success: true, action: 'updateStatus' });
+        }
+
+        // Default action: Append new row
+        const submissionData = rowData || data;
 
         if (!submissionData) {
             return res.status(400).json({ error: 'Missing data' });

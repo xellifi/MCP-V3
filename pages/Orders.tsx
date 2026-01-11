@@ -169,10 +169,11 @@ const Orders: React.FC<OrdersProps> = ({ workspace }) => {
 
             // Also update Google Sheets if webhook is configured
             try {
-                await fetch('/api/sheets/update-status', {
+                await fetch('/api/sheets/sync', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
+                        action: 'updateStatus',
                         orderId: orderId,
                         newStatus: newStatus,
                         updatedAt: new Date().toISOString()
@@ -210,10 +211,11 @@ const Orders: React.FC<OrdersProps> = ({ workspace }) => {
             // Also update Google Sheets for each order
             for (const orderId of orderIds) {
                 try {
-                    await fetch('/api/sheets/update-status', {
+                    await fetch('/api/sheets/sync', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
+                            action: 'updateStatus',
                             orderId: orderId,
                             newStatus: newStatus,
                             updatedAt: new Date().toISOString()
