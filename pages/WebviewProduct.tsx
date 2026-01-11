@@ -37,6 +37,8 @@ const WebviewProduct: React.FC = () => {
     const [selectedColor, setSelectedColor] = useState<string>('');
     const [selectedSize, setSelectedSize] = useState<string>('');
     const [promoCode, setPromoCode] = useState('');
+    const [promoApplied, setPromoApplied] = useState(false);
+    const [promoError, setPromoError] = useState('');
 
     // Toast notification
     const [toast, setToast] = useState<{ message: string; visible: boolean }>({ message: '', visible: false });
@@ -45,6 +47,40 @@ const WebviewProduct: React.FC = () => {
         setToast({ message, visible: true });
         setTimeout(() => setToast({ message: '', visible: false }), 3000);
     }, []);
+
+    // Apply promo code
+    const applyPromoCode = useCallback(() => {
+        if (!promoCode.trim()) {
+            setPromoError('Please enter a promo code');
+            setPromoApplied(false);
+            return;
+        }
+
+        // Get valid promo codes from config (if configured)
+        const validCodes = config?.promoCodes || [];
+
+        // If no codes configured, accept any code
+        if (validCodes.length === 0) {
+            setPromoApplied(true);
+            setPromoError('');
+            showToast('✅ Promo code applied!');
+            return;
+        }
+
+        // Check if entered code matches any valid code (case-insensitive)
+        const isValid = validCodes.some((code: string) =>
+            code.toUpperCase().trim() === promoCode.toUpperCase().trim()
+        );
+
+        if (isValid) {
+            setPromoApplied(true);
+            setPromoError('');
+            showToast('✅ Promo code applied successfully!');
+        } else {
+            setPromoApplied(false);
+            setPromoError('Invalid promo code');
+        }
+    }, [promoCode, config?.promoCodes, showToast]);
 
     useEffect(() => {
         loadSession();
@@ -406,8 +442,8 @@ const WebviewProduct: React.FC = () => {
                                             key={color}
                                             onClick={() => setSelectedColor(color)}
                                             className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${selectedColor === color
-                                                    ? 'bg-indigo-500 text-white shadow-lg scale-105'
-                                                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                                                ? 'bg-indigo-500 text-white shadow-lg scale-105'
+                                                : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                                                 }`}
                                         >
                                             {color}
@@ -427,8 +463,8 @@ const WebviewProduct: React.FC = () => {
                                             key={size}
                                             onClick={() => setSelectedSize(size)}
                                             className={`w-12 h-12 rounded-lg text-sm font-bold transition-all ${selectedSize === size
-                                                    ? 'bg-indigo-500 text-white shadow-lg scale-105'
-                                                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                                                ? 'bg-indigo-500 text-white shadow-lg scale-105'
+                                                : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                                                 }`}
                                         >
                                             {size}
@@ -441,16 +477,57 @@ const WebviewProduct: React.FC = () => {
                         {/* Promo Code Field */}
                         {config.enablePromoCode && (
                             <div className="mt-4">
-                                <div className="relative">
-                                    <Tag className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                                    <input
-                                        type="text"
-                                        value={promoCode}
-                                        onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
-                                        placeholder="Enter promo code"
-                                        className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 text-sm"
-                                    />
+                                <div className="flex gap-2">
+                                    <div className="relative flex-1">
+                                        <Tag className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${promoApplied ? 'text-green-500' : promoError ? 'text-red-400' : 'text-slate-400'}`} />
+                                        <input
+                                            type="text"
+                                            value={promoCode}
+                                            onChange={(e) => {
+                                                setPromoCode(e.target.value.toUpperCase());
+                                                setPromoError('');
+                                                setPromoApplied(false);
+                                            }}
+                                            onKeyDown={(e) => e.key === 'Enter' && applyPromoCode()}
+                                            placeholder="Enter promo code"
+                                            disabled={promoApplied}
+                                            className={`w-full pl-10 pr-4 py-3 border rounded-xl text-sm focus:outline-none focus:ring-2 ${promoApplied
+                                                    ? 'border-green-500 bg-green-50 text-green-700'
+                                                    : promoError
+                                                        ? 'border-red-400 bg-red-50 text-red-700 focus:ring-red-500/50'
+                                                        : 'border-slate-200 text-slate-700 placeholder-slate-400 focus:ring-indigo-500/50 focus:border-indigo-500'
+                                                }`}
+                                        />
+                                        {promoApplied && (
+                                            <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-green-500" />
+                                        )}
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={promoApplied ? () => {
+                                            setPromoCode('');
+                                            setPromoApplied(false);
+                                            setPromoError('');
+                                        } : applyPromoCode}
+                                        className={`px-4 py-3 rounded-xl font-semibold text-sm transition-all ${promoApplied
+                                                ? 'bg-red-100 text-red-600 hover:bg-red-200'
+                                                : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                                            }`}
+                                    >
+                                        {promoApplied ? 'Remove' : 'Apply'}
+                                    </button>
                                 </div>
+                                {/* Validation Message */}
+                                {promoError && (
+                                    <p className="mt-2 text-sm text-red-500 flex items-center gap-1">
+                                        <span className="text-lg">❌</span> {promoError}
+                                    </p>
+                                )}
+                                {promoApplied && (
+                                    <p className="mt-2 text-sm text-green-600 flex items-center gap-1">
+                                        <span className="text-lg">✅</span> Promo code applied!
+                                    </p>
+                                )}
                             </div>
                         )}
 
