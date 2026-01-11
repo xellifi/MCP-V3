@@ -32,9 +32,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             // Get webhook URL - try multiple sources
             let targetWebhookUrl = webhookUrl || process.env.GOOGLE_SHEETS_WEBHOOK_URL;
 
-            // If no webhook URL yet, try to get from workspace
+            // If no webhook URL yet, try to get from workspace or flow
             if (!targetWebhookUrl && (workspaceId || orderId)) {
-                console.log('[Sheets Sync] No webhook URL provided, looking up from workspace...');
+                console.log('[Sheets Sync] No webhook URL provided, looking up...');
                 try {
                     const { createClient } = await import('@supabase/supabase-js');
                     const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '';
@@ -48,7 +48,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                         console.log('[Sheets Sync] Getting workspace from order:', orderId);
                         const { data: order } = await supabase
                             .from('orders')
-                            .select('workspace_id')
+                            .select('workspace_id, source, metadata')
                             .eq('id', orderId)
                             .single();
                         wsId = order?.workspace_id;
@@ -56,7 +56,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
                     if (wsId) {
                         console.log('[Sheets Sync] Looking up webhook URL for workspace:', wsId);
-                        // Get webhook URL from workspace
+
+                        // Try 1: Get webhook URL from workspace settings
                         const { data: workspace } = await supabase
                             .from('workspaces')
                             .select('google_webhook_url')
@@ -67,7 +68,34 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                             targetWebhookUrl = workspace.google_webhook_url;
                             console.log('[Sheets Sync] ✓ Found webhook URL from workspace');
                         } else {
-                            console.log('[Sheets Sync] Workspace has no google_webhook_url configured');
+                            console.log('[Sheets Sync] Workspace has no google_webhook_url, checking flows...');
+
+                            // Try 2: Look for a flow with a Google Sheets node in this workspace
+                            const { data: flows } = await supabase
+                                .from('flows')
+                                .select('nodes')
+                                .eq('workspace_id', wsId)
+                                .limit(10);
+
+                            if (flows) {
+                                for (const flow of flows) {
+                                    const nodes = flow.nodes || [];
+                                    for (const node of nodes) {
+                                        // Check if it's a Google Sheets node with webhookUrl
+                                        const nodeData = node.data || {};
+                                        const config = nodeData.config || nodeData;
+                                        if (config.webhookUrl &&
+                                            (node.type === 'sheetsNode' ||
+                                                nodeData.nodeType === 'sheetsNode' ||
+                                                (nodeData.label || '').toLowerCase().includes('sheet'))) {
+                                            targetWebhookUrl = config.webhookUrl;
+                                            console.log('[Sheets Sync] ✓ Found webhook URL from flow Google Sheets node');
+                                            break;
+                                        }
+                                    }
+                                    if (targetWebhookUrl) break;
+                                }
+                            }
                         }
                     } else {
                         console.log('[Sheets Sync] Could not determine workspace ID');
