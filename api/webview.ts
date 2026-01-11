@@ -159,7 +159,7 @@ async function handleAction(req: VercelRequest, res: VercelResponse) {
 
     switch (action) {
         case 'add_to_cart': {
-            const { productId, productName, productPrice, productImage, quantity = 1, variant } = payload;
+            const { productId, productName, productPrice, productImage, quantity = 1, variant, promoCode } = payload;
             const cart: CartItem[] = session.cart || [];
             const existingIndex = cart.findIndex((item: CartItem) =>
                 item.productId === productId && JSON.stringify(item.variant) === JSON.stringify(variant)
@@ -172,7 +172,21 @@ async function handleAction(req: VercelRequest, res: VercelResponse) {
             }
 
             const cartTotal = cart.reduce((sum, item) => sum + (item.productPrice * item.quantity), 0);
-            updates = { cart, cart_total: cartTotal };
+
+            // Handle promo code if provided
+            const metadata = session.metadata || {};
+            if (promoCode && promoCode.trim()) {
+                metadata.promoCode = promoCode.trim();
+                // Calculate 10% discount as an example - you can make this configurable
+                metadata.discount = Math.round(cartTotal * 0.10);
+                console.log('[Webview] Promo code applied:', promoCode, 'Discount:', metadata.discount);
+            }
+
+            updates = {
+                cart,
+                cart_total: cartTotal,
+                metadata: promoCode ? metadata : session.metadata
+            };
             result.cart = cart;
             result.cartTotal = cartTotal;
             result.cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
@@ -622,6 +636,12 @@ async function syncOrderToGoogleSheets(session: any) {
             `${item.productName} x${item.quantity || 1} = ₱${(item.productPrice * (item.quantity || 1)).toLocaleString()}`
         ).join('; ');
 
+        // Calculate subtotal and discount
+        const subtotal = (session.cart || []).reduce((sum: number, item: any) => sum + (item.productPrice * (item.quantity || 1)), 0);
+        const discount = session.metadata?.discount || session.form_data?.discount || 0;
+        const shippingFee = session.shippingFee || 0;
+        const totalAfterDiscount = subtotal - discount + shippingFee;
+
         const orderPayload = {
             // Timestamp
             order_date: new Date().toISOString(),
@@ -633,15 +653,15 @@ async function syncOrderToGoogleSheets(session: any) {
             // Order details
             items: itemsList,
             item_count: (session.cart || []).reduce((sum: number, item: any) => sum + (item.quantity || 1), 0),
-            subtotal: (session.cart || []).reduce((sum: number, item: any) => sum + (item.productPrice * (item.quantity || 1)), 0),
-            shipping_fee: session.shippingFee || 0,
-            total: session.cart_total || 0,
+            subtotal: subtotal,
+            shipping_fee: shippingFee,
+            discount: discount,
+            total: totalAfterDiscount,
             // Payment
             payment_method: session.paymentMethodName || session.paymentMethod || 'COD',
             payment_proof_url: session.metadata?.payment?.proofUrl || session.form_data?.paymentProof || '',
             // Promo code
             promo_code: session.metadata?.promoCode || session.form_data?.promoCode || '',
-            discount: session.metadata?.discount || session.form_data?.discount || 0,
             // Notes
             notes: session.metadata?.notes || session.form_data?.notes || '',
             // Status
