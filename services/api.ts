@@ -1584,44 +1584,74 @@ export const api = {
     },
 
     getIntegrations: async (workspaceId: string): Promise<IntegrationSettings> => {
-      // Try to fetch from workspaces table
+      // Fetch from workspace_settings table
+      const { data: settings, error } = await supabase
+        .from('workspace_settings')
+        .select('*')
+        .eq('workspace_id', workspaceId)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error fetching workspace settings:', error);
+      }
+
+      // Also get google webhook url from workspaces table
       const { data: workspace } = await supabase
         .from('workspaces')
         .select('google_webhook_url')
         .eq('id', workspaceId)
         .single();
 
-      // Return settings (combine with mock data for now)
-      const mockSettings = (MOCK_INTEGRATIONS_DB[workspaceId] || {}) as any;
-
       return {
         workspaceId,
-        openaiApiKey: mockSettings.openaiApiKey || '',
-        geminiApiKey: mockSettings.geminiApiKey || '',
-        smtpHost: mockSettings.smtpHost || '',
-        smtpPort: mockSettings.smtpPort || '',
-        smtpUser: mockSettings.smtpUser || '',
-        smtpPassword: mockSettings.smtpPassword || '',
-        smtpFromEmail: mockSettings.smtpFromEmail || '',
+        openaiApiKey: settings?.openai_api_key || '',
+        geminiApiKey: settings?.gemini_api_key || '',
+        smtpHost: settings?.smtp_host || '',
+        smtpPort: settings?.smtp_port || '',
+        smtpUser: settings?.smtp_user || '',
+        smtpPassword: settings?.smtp_password || '',
+        smtpFromEmail: settings?.smtp_from_email || '',
         googleWebhookUrl: workspace?.google_webhook_url || ''
       };
     },
 
     saveIntegrations: async (workspaceId: string, settings: IntegrationSettings): Promise<void> => {
-      // Save Google Sheets webhook URL to workspaces table
+      console.log('[saveIntegrations] Saving workspace settings for:', workspaceId);
+
+      // Save API keys and SMTP settings to workspace_settings table
+      const { error: settingsError } = await supabase
+        .from('workspace_settings')
+        .upsert({
+          workspace_id: workspaceId,
+          openai_api_key: settings.openaiApiKey || null,
+          gemini_api_key: settings.geminiApiKey || null,
+          smtp_host: settings.smtpHost || null,
+          smtp_port: settings.smtpPort || null,
+          smtp_user: settings.smtpUser || null,
+          smtp_password: settings.smtpPassword || null,
+          smtp_from_email: settings.smtpFromEmail || null
+        }, {
+          onConflict: 'workspace_id'
+        });
+
+      if (settingsError) {
+        console.error('[saveIntegrations] Error saving workspace settings:', settingsError);
+        throw new Error('Failed to save workspace settings: ' + settingsError.message);
+      }
+
+      console.log('[saveIntegrations] ✓ Workspace settings saved to database');
+
+      // Save Google Sheets webhook URL to workspaces table (separate field)
       if (settings.googleWebhookUrl !== undefined) {
-        const { error } = await supabase
+        const { error: webhookError } = await supabase
           .from('workspaces')
           .update({ google_webhook_url: settings.googleWebhookUrl })
           .eq('id', workspaceId);
 
-        if (error) {
-          console.error('Error saving googleWebhookUrl:', error);
+        if (webhookError) {
+          console.error('[saveIntegrations] Error saving googleWebhookUrl:', webhookError);
         }
       }
-
-      // Save other settings to mock database (existing behavior)
-      MOCK_INTEGRATIONS_DB[workspaceId] = settings;
     },
 
     testSmtp: async (settings: Partial<IntegrationSettings>, toEmail: string): Promise<void> => {
