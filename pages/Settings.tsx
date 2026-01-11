@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { User, Workspace, IntegrationSettings, PayoutSettings } from '../types';
 import { api } from '../services/api';
-import { Key, Save, Eye, EyeOff, Bot, CreditCard, Mail, Server, ChevronDown, ChevronUp, Send, Sheet, ExternalLink, Copy, Check } from 'lucide-react';
+import { Key, Save, Eye, EyeOff, Bot, CreditCard, Mail, Server, ChevronDown, ChevronUp, Send } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import { useTheme } from '../context/ThemeContext';
 
@@ -96,14 +96,10 @@ const Settings: React.FC<SettingsProps> = ({ user, workspace }) => {
   const { isDark } = useTheme();
 
   const [openSections, setOpenSections] = useState({
-    payout: false,
+    payout: true,
     apiKeys: false,
-    smtp: false,
-    googleSheets: true
+    smtp: false
   });
-
-  const [copied, setCopied] = useState(false);
-
 
   useEffect(() => {
     loadData();
@@ -464,86 +460,6 @@ const Settings: React.FC<SettingsProps> = ({ user, workspace }) => {
               className={buttonPrimary}
             >
               {savingKeys ? 'Saving...' : 'Save SMTP Settings'}
-            </button>
-          </div>
-        </form>
-      </CollapsibleCard>
-
-      {/* 4. Google Sheets Integration */}
-      <CollapsibleCard
-        title="Google Sheets Integration"
-        subtitle="Automatically sync checkout orders to Google Sheets"
-        icon={Sheet}
-        colorClass="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
-        isOpen={openSections.googleSheets}
-        onToggle={() => toggleSection('googleSheets')}
-        isDark={isDark}
-      >
-        <form onSubmit={handleSaveIntegrations} className="space-y-6">
-          <div className="bg-emerald-500/10 border border-emerald-500/20 p-4 rounded-xl text-sm text-emerald-200 mb-6">
-            <p className="font-semibold mb-2">📋 How to set up Google Sheets sync:</p>
-            <ol className="list-decimal list-inside space-y-1 text-emerald-300/90">
-              <li>Open your Google Sheet</li>
-              <li>Go to <strong>Extensions → Apps Script</strong></li>
-              <li>Paste the script code (see documentation)</li>
-              <li>Deploy as <strong>Web App</strong> with access "Anyone"</li>
-              <li>Copy the Web App URL and paste it below</li>
-            </ol>
-          </div>
-
-          <div>
-            <label className={labelClasses}>Google Sheets Webhook URL</label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <Sheet className="h-5 w-5 text-slate-500" />
-              </div>
-              <input
-                type="url"
-                value={integrations.googleWebhookUrl || ''}
-                onChange={e => setIntegrations({ ...integrations, googleWebhookUrl: e.target.value })}
-                className={`${inputClasses} pl-12 font-mono text-sm`}
-                placeholder="https://script.google.com/macros/s/..."
-              />
-            </div>
-            <p className="text-xs text-slate-500 mt-2">
-              When a customer confirms checkout, their order will automatically be added to your Google Sheet.
-            </p>
-          </div>
-
-          {integrations.googleWebhookUrl && (
-            <div className="bg-white/5 border border-white/10 rounded-xl p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-emerald-400">
-                  <Check className="w-5 h-5" />
-                  <span className="font-medium">Webhook Configured</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    navigator.clipboard.writeText(integrations.googleWebhookUrl || '');
-                    setCopied(true);
-                    setTimeout(() => setCopied(false), 2000);
-                    toast.success('URL copied to clipboard');
-                  }}
-                  className="flex items-center gap-1 text-sm text-slate-400 hover:text-white transition-colors"
-                >
-                  {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                  {copied ? 'Copied!' : 'Copy'}
-                </button>
-              </div>
-              <p className="text-xs text-slate-400 mt-2 truncate font-mono">
-                {integrations.googleWebhookUrl}
-              </p>
-            </div>
-          )}
-
-          <div className="flex justify-end pt-4 border-t border-white/10">
-            <button
-              type="submit"
-              disabled={savingKeys}
-              className={buttonPrimary}
-            >
-              {savingKeys ? 'Saving...' : 'Save Google Sheets Settings'}
             </button>
           </div>
         </form>

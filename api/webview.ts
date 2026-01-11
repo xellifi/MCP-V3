@@ -320,18 +320,8 @@ async function handleAction(req: VercelRequest, res: VercelResponse) {
                 shippingFee
             });
 
-            // Also sync to Google Sheets with complete order data
-            await syncOrderToGoogleSheets({
-                ...session,
-                ...updates,
-                customerName,
-                customerPhone,
-                customerEmail,
-                customerAddress,
-                paymentMethod,
-                paymentMethodName,
-                shippingFee
-            });
+            // Note: Google Sheets sync is handled by the Google Sheets Node in the flow
+            // This allows per-flow control of which sheet to use
 
             result.orderCreated = true;
             result.response = 'confirmed';
