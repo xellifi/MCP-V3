@@ -77,6 +77,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                                 .eq('workspace_id', wsId)
                                 .limit(10);
 
+                            // Store found sheet name from node config
+                            let foundSheetName: string | null = null;
+
                             if (flows) {
                                 console.log('[Sheets Sync] Checking', flows.length, 'flows for Google Sheets nodes');
                                 for (const flow of flows) {
@@ -97,9 +100,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                                                 nodeData.config?.webhookUrl ||  // In config object
                                                 node.config?.webhookUrl;         // Direct on node
 
+                                            // Also get sheetName
+                                            const possibleSheetName = nodeData.sheetName ||
+                                                nodeData.config?.sheetName ||
+                                                node.config?.sheetName;
+
                                             if (possibleWebhookUrl) {
                                                 targetWebhookUrl = possibleWebhookUrl;
+                                                foundSheetName = possibleSheetName || null;
                                                 console.log('[Sheets Sync] ✓ Found webhook URL from flow Google Sheets node');
+                                                console.log('[Sheets Sync] ✓ Sheet name from node config:', foundSheetName || '(not set)');
                                                 break;
                                             } else {
                                                 console.log('[Sheets Sync] Sheets node found but no webhookUrl, keys:', Object.keys(nodeData));
@@ -108,6 +118,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                                     }
                                     if (targetWebhookUrl) break;
                                 }
+                            }
+
+                            // Use the sheet name from node config if we found one and no sheetName was provided
+                            if (foundSheetName && !sheetName) {
+                                // We'll use this later - store it in a variable we can access
+                                (req as any).foundSheetName = foundSheetName;
                             }
                         }
                     } else {
@@ -130,7 +146,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             console.log('[Sheets Sync] ========== SENDING STATUS UPDATE ==========');
             console.log('[Sheets Sync] Order ID:', orderId);
             console.log('[Sheets Sync] New Status:', newStatus);
-            console.log('[Sheets Sync] Sheet Name:', sheetName || 'Sheet1');
+
+            // Use sheet name from request, or from flow config, or default to 'Orders'
+            const effectiveSheetName = sheetName || (req as any).foundSheetName || 'Orders';
+            console.log('[Sheets Sync] Sheet Name:', effectiveSheetName);
             console.log('[Sheets Sync] Webhook URL:', targetWebhookUrl.substring(0, 60) + '...');
 
             // Call Apps Script with updateStatus action
@@ -139,7 +158,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 orderId: orderId,
                 newStatus: newStatus,
                 updatedAt: updatedAt || new Date().toISOString(),
-                sheetName: sheetName || 'Sheet1'
+                sheetName: effectiveSheetName
             };
             console.log('[Sheets Sync] Request body:', JSON.stringify(requestBody));
 
