@@ -169,19 +169,28 @@ const Orders: React.FC<OrdersProps> = ({ workspace }) => {
 
             // Also update Google Sheets if webhook is configured
             try {
-                await fetch('/api/sheets/sync', {
+                // Convert status ID to label (e.g., 'confirmed' -> 'Confirmed')
+                const statusLabel = STATUS_CONFIG[newStatus as keyof typeof STATUS_CONFIG]?.label || newStatus;
+
+                const sheetsResponse = await fetch('/api/sheets/sync', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         action: 'updateStatus',
                         orderId: orderId,
-                        newStatus: newStatus,
-                        updatedAt: new Date().toISOString()
+                        newStatus: statusLabel, // Send display label, not ID
+                        updatedAt: new Date().toISOString(),
+                        workspaceId: workspace.id // Help API find webhook URL
                     })
                 });
-                console.log('[Orders] Status synced to Google Sheets');
+                const sheetsResult = await sheetsResponse.json();
+                if (sheetsResult.success) {
+                    console.log('[Orders] ✓ Status synced to Google Sheets');
+                } else {
+                    console.log('[Orders] Google Sheets sync result:', sheetsResult);
+                }
             } catch (sheetsError) {
-                console.log('[Orders] Google Sheets sync skipped (not configured or failed)');
+                console.log('[Orders] Google Sheets sync skipped (not configured or failed):', sheetsError);
             }
         } catch (error) {
             console.error('Error updating order status:', error);
@@ -209,6 +218,7 @@ const Orders: React.FC<OrdersProps> = ({ workspace }) => {
             setSelectedOrders(new Set());
 
             // Also update Google Sheets for each order
+            const statusLabel = STATUS_CONFIG[newStatus as keyof typeof STATUS_CONFIG]?.label || newStatus;
             for (const orderId of orderIds) {
                 try {
                     await fetch('/api/sheets/sync', {
@@ -217,8 +227,9 @@ const Orders: React.FC<OrdersProps> = ({ workspace }) => {
                         body: JSON.stringify({
                             action: 'updateStatus',
                             orderId: orderId,
-                            newStatus: newStatus,
-                            updatedAt: new Date().toISOString()
+                            newStatus: statusLabel, // Send display label
+                            updatedAt: new Date().toISOString(),
+                            workspaceId: workspace.id
                         })
                     });
                 } catch (sheetsError) {
