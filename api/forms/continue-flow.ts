@@ -1837,11 +1837,14 @@ async function syncToGoogleSheets(
     console.log('[syncToGoogleSheets] 📤 Sending to webhook:', webhookUrl.substring(0, 50) + '...');
     console.log('[syncToGoogleSheets] 📋 Payload:', JSON.stringify(webhookPayload, null, 2));
 
-    // Send to Google Sheets webhook
+    // Send to Google Sheets webhook - include sheetName for correct tab
     const response = await fetch(webhookUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ rowData: webhookPayload })
+        body: JSON.stringify({
+            sheetName: sheetName,
+            rowData: webhookPayload
+        })
     });
 
     const responseText = await response.text();
