@@ -171,9 +171,21 @@ const InvoiceView: React.FC = () => {
     // Use form.product_price as the source of truth for unit price
     const productPrice = parseFloat(form.product_price) || parseFloat(data.product_price) || 0;
 
-    // Calculate total: unit price * quantity
-    // Don't trust data.total if it exists, recalculate it
-    const total = productPrice * quantity;
+    // Calculate total from cart if available (includes main product + upsells)
+    let total = 0;
+    if (data.cart && Array.isArray(data.cart) && data.cart.length > 0) {
+        // Sum all cart items
+        total = data.cart.reduce((sum: number, item: any) => {
+            const itemPrice = parseFloat(item.productPrice) || 0;
+            const itemQty = parseInt(item.quantity) || 1;
+            return sum + (itemPrice * itemQty);
+        }, 0);
+        console.log('[InvoiceView] Cart total calculated:', total, 'from', data.cart.length, 'items');
+    } else {
+        // Fallback: single product
+        total = productPrice * quantity;
+        console.log('[InvoiceView] Single product total:', total);
+    }
 
     const currency = data.currency || form.currency || 'PHP';
     const currencySymbol = getCurrencySymbol(currency);
@@ -186,6 +198,8 @@ const InvoiceView: React.FC = () => {
         productPrice,
         quantity,
         total,
+        hasCart: !!data.cart,
+        cartItems: data.cart?.length || 0,
         dataTotal: data.total,
         formPrice: form.product_price,
         dataPrice: data.product_price
@@ -300,22 +314,52 @@ const InvoiceView: React.FC = () => {
                     <div className="px-6 py-4 border-b border-gray-100">
                         <h3 className="text-xs uppercase tracking-wider text-gray-400 mb-3">Order Details</h3>
                         <div className="space-y-3">
-                            <div className="flex justify-between items-start">
-                                <div className="flex-1">
-                                    <p className="font-medium text-gray-800">{productName}</p>
-                                    <p className="text-sm text-gray-500">Qty: {quantity}</p>
-                                </div>
-                                <div className="text-right">
-                                    <p className="font-semibold text-gray-800">
-                                        {currencySymbol}{productPrice.toLocaleString()}
-                                    </p>
-                                    {quantity > 1 && (
-                                        <p className="text-xs text-gray-400">
-                                            × {quantity} = {currencySymbol}{(productPrice * quantity).toLocaleString()}
+                            {/* Check if cart exists in data - this includes main product + upsells */}
+                            {data.cart && Array.isArray(data.cart) && data.cart.length > 0 ? (
+                                // Display all cart items (main product + upsells)
+                                data.cart.map((item: any, index: number) => {
+                                    const itemPrice = parseFloat(item.productPrice) || 0;
+                                    const itemQty = parseInt(item.quantity) || 1;
+                                    const itemTotal = itemPrice * itemQty;
+
+                                    return (
+                                        <div key={index} className="flex justify-between items-start">
+                                            <div className="flex-1">
+                                                <p className="font-medium text-gray-800">{item.productName || 'Product'}</p>
+                                                <p className="text-sm text-gray-500">Qty: {itemQty}</p>
+                                            </div>
+                                            <div className="text-right">
+                                                <p className="font-semibold text-gray-800">
+                                                    {currencySymbol}{itemPrice.toLocaleString()}
+                                                </p>
+                                                {itemQty > 1 && (
+                                                    <p className="text-xs text-gray-400">
+                                                        × {itemQty} = {currencySymbol}{itemTotal.toLocaleString()}
+                                                    </p>
+                                                )}
+                                            </div>
+                                        </div>
+                                    );
+                                })
+                            ) : (
+                                // Fallback: Display single product (legacy format)
+                                <div className="flex justify-between items-start">
+                                    <div className="flex-1">
+                                        <p className="font-medium text-gray-800">{productName}</p>
+                                        <p className="text-sm text-gray-500">Qty: {quantity}</p>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="font-semibold text-gray-800">
+                                            {currencySymbol}{productPrice.toLocaleString()}
                                         </p>
-                                    )}
+                                        {quantity > 1 && (
+                                            <p className="text-xs text-gray-400">
+                                                × {quantity} = {currencySymbol}{(productPrice * quantity).toLocaleString()}
+                                            </p>
+                                        )}
+                                    </div>
                                 </div>
-                            </div>
+                            )}
                         </div>
                     </div>
 
@@ -323,18 +367,18 @@ const InvoiceView: React.FC = () => {
                     <div className="px-6 py-4 bg-gray-50">
                         <div className="flex justify-between items-center mb-2 text-sm">
                             <span className="text-gray-500">Subtotal</span>
-                            <span className="text-gray-700">{currencySymbol}{(productPrice * quantity).toLocaleString()}</span>
+                            <span className="text-gray-700">{currencySymbol}{total.toLocaleString()}</span>
                         </div>
                         {data.coupon_applied && (
                             <div className="flex justify-between items-center mb-2 text-sm">
                                 <span className="text-green-600">Discount ({data.coupon_applied})</span>
-                                <span className="text-green-600">-{currencySymbol}{((productPrice * quantity) - total).toLocaleString()}</span>
+                                <span className="text-green-600">-{currencySymbol}{(total - (data.discounted_total || total)).toLocaleString()}</span>
                             </div>
                         )}
                         <div className="flex justify-between items-center pt-2 border-t border-gray-200">
                             <span className="font-bold text-gray-800">Total</span>
                             <span className="text-2xl font-bold" style={{ color: accentColor }}>
-                                {currencySymbol}{total.toLocaleString()}
+                                {currencySymbol}{(data.discounted_total || total).toLocaleString()}
                             </span>
                         </div>
                     </div>
