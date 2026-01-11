@@ -159,7 +159,7 @@ async function handleAction(req: VercelRequest, res: VercelResponse) {
 
     switch (action) {
         case 'add_to_cart': {
-            const { productId, productName, productPrice, productImage, quantity = 1, variant, promoCode } = payload;
+            const { productId, productName, productPrice, productImage, quantity = 1, variant, promoCode, discountPercent } = payload;
             const cart: CartItem[] = session.cart || [];
             const existingIndex = cart.findIndex((item: CartItem) =>
                 item.productId === productId && JSON.stringify(item.variant) === JSON.stringify(variant)
@@ -177,9 +177,11 @@ async function handleAction(req: VercelRequest, res: VercelResponse) {
             const metadata = session.metadata || {};
             if (promoCode && promoCode.trim()) {
                 metadata.promoCode = promoCode.trim();
-                // Calculate 10% discount as an example - you can make this configurable
-                metadata.discount = Math.round(cartTotal * 0.10);
-                console.log('[Webview] Promo code applied:', promoCode, 'Discount:', metadata.discount);
+                // Use discount percentage from config (default 10% if not specified)
+                const discountRate = (discountPercent || 10) / 100;
+                metadata.discount = Math.round(cartTotal * discountRate);
+                metadata.discountPercent = discountPercent || 10;
+                console.log('[Webview] Promo code applied:', promoCode, 'Discount:', metadata.discount, `(${discountPercent || 10}%)`);
             }
 
             updates = {
@@ -299,6 +301,52 @@ async function handleAction(req: VercelRequest, res: VercelResponse) {
                 confirmedAt
             } = payload;
 
+            // Upload payment proof to Supabase Storage if it's base64
+            let paymentProofUrl = '';
+            if (paymentProof && paymentProof.startsWith('data:image')) {
+                try {
+                    // Extract base64 data
+                    const base64Data = paymentProof.split(',')[1];
+                    const mimeType = paymentProof.split(';')[0].split(':')[1];
+                    const extension = mimeType.split('/')[1] || 'png';
+
+                    // Convert base64 to buffer
+                    const buffer = Buffer.from(base64Data, 'base64');
+
+                    // Generate unique filename
+                    const fileName = `payment-proofs/${session.workspace_id}/${Date.now()}-${sessionId.substring(0, 8)}.${extension}`;
+
+                    // Upload to Supabase Storage
+                    const { data: uploadData, error: uploadError } = await supabase.storage
+                        .from('uploads')
+                        .upload(fileName, buffer, {
+                            contentType: mimeType,
+                            upsert: true
+                        });
+
+                    if (uploadError) {
+                        console.error('[Webview] Payment proof upload error:', uploadError);
+                    } else {
+                        // Get public URL
+                        const { data: urlData } = supabase.storage
+                            .from('uploads')
+                            .getPublicUrl(fileName);
+                        paymentProofUrl = urlData?.publicUrl || '';
+                        console.log('[Webview] Payment proof uploaded:', paymentProofUrl);
+                    }
+                } catch (uploadErr: any) {
+                    console.error('[Webview] Error uploading payment proof:', uploadErr.message);
+                }
+            } else if (paymentProof) {
+                // Already a URL
+                paymentProofUrl = paymentProof;
+            }
+
+            // Calculate discount amount if promo code is applied
+            const subtotal = (cart || session.cart || []).reduce((sum: number, item: any) =>
+                sum + (item.productPrice * (item.quantity || 1)), 0);
+            const discountAmount = discount || Math.round(subtotal * 0.10); // Default 10% if promo applied
+
             // Build complete order metadata
             const orderMetadata = {
                 ...session.metadata,
@@ -313,11 +361,11 @@ async function handleAction(req: VercelRequest, res: VercelResponse) {
                 payment: {
                     method: paymentMethod,
                     methodName: paymentMethodName,
-                    proofUrl: paymentProof || '',
+                    proofUrl: paymentProofUrl,
                     proofFileName: paymentProofFileName || ''
                 },
                 promoCode: promoCode || '',
-                discount: discount || 0,
+                discount: promoCode ? discountAmount : 0,
                 shippingFee: shippingFee || 0,
                 confirmedAt: confirmedAt || new Date().toISOString()
             };
@@ -335,10 +383,10 @@ async function handleAction(req: VercelRequest, res: VercelResponse) {
                     email: customerEmail,
                     address: customerAddress,
                     notes: notes,
-                    paymentProof: paymentProof || '',
+                    paymentProof: paymentProofUrl,
                     paymentProofFileName: paymentProofFileName || '',
                     promoCode: promoCode || '',
-                    discount: discount || 0,
+                    discount: promoCode ? discountAmount : 0,
                     ...addressDetails
                 },
                 metadata: orderMetadata
@@ -361,6 +409,7 @@ async function handleAction(req: VercelRequest, res: VercelResponse) {
 
             result.orderCreated = true;
             result.response = 'confirmed';
+            result.paymentProofUrl = paymentProofUrl;
             break;
         }
 

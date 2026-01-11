@@ -162,7 +162,12 @@ const WebviewProduct: React.FC = () => {
                 productImage: config.imageUrl,
                 quantity,
                 variant,
-                promoCode: config.enablePromoCode ? promoCode : undefined
+                // Only send promo code if it was successfully applied
+                promoCode: (config.enablePromoCode && promoApplied && promoCode) ? promoCode : undefined,
+                // Send discount percentage from config (default 10%)
+                discountPercent: (config.enablePromoCode && promoApplied && promoCode)
+                    ? (config.promoDiscountPercent || 10)
+                    : undefined
             };
 
             const response = await fetch(`${API_BASE}/api/webview?route=action`, {
@@ -492,10 +497,10 @@ const WebviewProduct: React.FC = () => {
                                             placeholder="Enter promo code"
                                             disabled={promoApplied}
                                             className={`w-full pl-10 pr-4 py-3 border rounded-xl text-sm focus:outline-none focus:ring-2 ${promoApplied
-                                                    ? 'border-green-500 bg-green-50 text-green-700'
-                                                    : promoError
-                                                        ? 'border-red-400 bg-red-50 text-red-700 focus:ring-red-500/50'
-                                                        : 'border-slate-200 text-slate-700 placeholder-slate-400 focus:ring-indigo-500/50 focus:border-indigo-500'
+                                                ? 'border-green-500 bg-green-50 text-green-700'
+                                                : promoError
+                                                    ? 'border-red-400 bg-red-50 text-red-700 focus:ring-red-500/50'
+                                                    : 'border-slate-200 text-slate-700 placeholder-slate-400 focus:ring-indigo-500/50 focus:border-indigo-500'
                                                 }`}
                                         />
                                         {promoApplied && (
@@ -510,8 +515,8 @@ const WebviewProduct: React.FC = () => {
                                             setPromoError('');
                                         } : applyPromoCode}
                                         className={`px-4 py-3 rounded-xl font-semibold text-sm transition-all ${promoApplied
-                                                ? 'bg-red-100 text-red-600 hover:bg-red-200'
-                                                : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                                            ? 'bg-red-100 text-red-600 hover:bg-red-200'
+                                            : 'bg-indigo-600 text-white hover:bg-indigo-700'
                                             }`}
                                     >
                                         {promoApplied ? 'Remove' : 'Apply'}
