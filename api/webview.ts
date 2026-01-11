@@ -430,6 +430,16 @@ async function handleContinue(req: VercelRequest, res: VercelResponse) {
                     cartTotal: session.cart_total || 0,
                     formData: session.form_data || {},
                     userResponse: session.user_response || 'completed',
+                    // Pass checkout data (shipping, payment) for Google Sheets sync
+                    checkoutData: session.metadata?.shipping ? {
+                        customerName: session.metadata.shipping?.name || session.customer_name,
+                        customerPhone: session.metadata.shipping?.phone,
+                        customerEmail: session.metadata.shipping?.email,
+                        customerAddress: session.metadata.shipping?.address,
+                        paymentMethod: session.metadata.payment?.method,
+                        paymentMethodName: session.metadata.payment?.methodName,
+                        shippingFee: session.metadata.shippingFee || 0
+                    } : {},
                     // Pass access token for sending messages
                     pageAccessToken: pageAccessToken
                 })

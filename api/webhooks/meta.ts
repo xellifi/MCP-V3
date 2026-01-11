@@ -2821,11 +2821,25 @@ async function executeAction(
                     'Item Count': cart.length,
                 };
 
-                // Add customer info if enabled
-                if (includeCustomerInfo && subscriber?.metadata) {
-                    webhookPayload['Customer Phone'] = subscriber.metadata.phone || '';
-                    webhookPayload['Customer Email'] = subscriber.metadata.email || '';
-                    webhookPayload['Customer Address'] = subscriber.metadata.address || '';
+                // Add customer info if enabled - check both direct context and subscriber metadata
+                if (includeCustomerInfo) {
+                    // First try webview checkout data from context
+                    const checkoutData = (context as any).checkoutData || {};
+                    const subMeta = subscriber?.metadata || {};
+
+                    webhookPayload['Customer Phone'] = checkoutData.customerPhone || subMeta.phone || subMeta.customerPhone || '';
+                    webhookPayload['Customer Email'] = checkoutData.customerEmail || subMeta.email || subMeta.customerEmail || '';
+                    webhookPayload['Customer Address'] = checkoutData.customerAddress || subMeta.address || subMeta.customerAddress || '';
+
+                    // Payment method from webview checkout
+                    if (checkoutData.paymentMethod || subMeta.paymentMethod) {
+                        webhookPayload['Payment Method'] = checkoutData.paymentMethodName || checkoutData.paymentMethod || subMeta.paymentMethodName || subMeta.paymentMethod || 'COD';
+                    }
+
+                    // Shipping fee
+                    if (checkoutData.shippingFee !== undefined || subMeta.shippingFee !== undefined) {
+                        webhookPayload['Shipping Fee'] = `₱${(checkoutData.shippingFee || subMeta.shippingFee || 0).toLocaleString()}`;
+                    }
                 }
 
                 // Add timestamp if enabled

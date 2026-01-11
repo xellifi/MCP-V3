@@ -76,6 +76,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         // Also accept cart context from webview sessions
         let passedCart = req.body.cart || [];
         let passedCartTotal = req.body.cartTotal || 0;
+        let passedCheckoutData = req.body.checkoutData || {};
 
         if (!pageAccessToken && pageId) {
             console.log('[Continue Flow] Looking up page with page_id:', pageId);
@@ -139,14 +140,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             commentId: `flow_continuation_${Date.now()}`,
             // Use passed cart from webview, or start fresh for form submissions
             cart: passedCart.length > 0 ? passedCart : [],
-            cartTotal: passedCartTotal > 0 ? passedCartTotal : 0
+            cartTotal: passedCartTotal > 0 ? passedCartTotal : 0,
+            // Checkout data from webview (shipping, payment info)
+            checkoutData: passedCheckoutData
         };
 
         console.log('[Continue Flow] Execution context:', {
             commenterId: context.commenterId,
             form_submitted: context.form_submitted,
             passedCartItems: passedCart.length,
-            passedCartTotal: passedCartTotal
+            passedCartTotal: passedCartTotal,
+            hasCheckoutData: Object.keys(passedCheckoutData).length > 0
         });
 
         // Log if cart was passed from webview
