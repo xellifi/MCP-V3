@@ -53,6 +53,7 @@ const UpsellPreview = lazy(() => import('./pages/UpsellPreview'));
 const DownsellPreview = lazy(() => import('./pages/DownsellPreview'));
 const ProductPreview = lazy(() => import('./pages/ProductPreview'));
 const ProductWebviewPreview = lazy(() => import('./pages/ProductWebviewPreview'));
+const CheckoutPreview = lazy(() => import('./pages/CheckoutPreview'));
 
 
 const App: React.FC = () => {
@@ -229,6 +230,11 @@ const App: React.FC = () => {
           <Route path="/product-webview-preview" element={
             <Suspense fallback={<LoadingSpinner />}>
               <ProductWebviewPreview />
+            </Suspense>
+          } />
+          <Route path="/checkout/preview" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <CheckoutPreview />
             </Suspense>
           } />
 

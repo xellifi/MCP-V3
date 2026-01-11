@@ -3,7 +3,7 @@ import {
     ShoppingCart, Type, Palette, Check, Image, Settings, Globe, Truck,
     Smartphone, Monitor, Tablet, X, Package, ChevronDown, ChevronUp,
     CreditCard, User, Receipt, Save, Eye, ChevronLeft, ChevronRight,
-    Phone, Mail, MapPin, Home, Building, Map, Hash, ClipboardList
+    Phone, Mail, MapPin, Home, Building, Map, Hash, ClipboardList, ExternalLink
 } from 'lucide-react';
 
 interface CustomerFieldConfig {
@@ -779,12 +779,38 @@ const CheckoutNodeForm: React.FC<CheckoutNodeFormProps> = ({
                             </div>
                         </div>
 
-                        {/* Right: Save + Close */}
+                        {/* Right: Live Preview + Save + Close */}
                         <div className="flex items-center gap-2 flex-shrink-0">
                             <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs ${useWebview ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'}`}>
                                 {useWebview ? <Check className="w-3.5 h-3.5" /> : <X className="w-3.5 h-3.5" />}
                                 Webview {useWebview ? 'ON' : 'OFF'}
                             </div>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    // Open live preview in new tab
+                                    const previewUrl = `${window.location.origin}/checkout/preview?config=${encodeURIComponent(JSON.stringify({
+                                        headerText, buttonText, primaryColor, showItemDetails, showTotal,
+                                        companyLogo, companyName, showShipping, shippingFee,
+                                        successMessage, thankYouMessage, backgroundColor, cardBackgroundColor,
+                                        textColor, accentColor,
+                                        showNameField: customerFields.name?.enabled,
+                                        showPhoneField: customerFields.phone?.enabled,
+                                        showEmailField: customerFields.email?.enabled,
+                                        showAddressField: useFullAddress ? customerFields.fullAddress?.enabled : customerFields.street?.enabled,
+                                        requireName: customerFields.name?.required,
+                                        requirePhone: customerFields.phone?.required,
+                                        requireEmail: customerFields.email?.required,
+                                        requireAddress: useFullAddress ? customerFields.fullAddress?.required : customerFields.street?.required
+                                    }))}`;
+                                    window.open(previewUrl, '_blank');
+                                }}
+                                className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-600 hover:bg-slate-500 rounded-lg text-white text-xs font-medium transition-colors"
+                                title="Open Live Preview"
+                            >
+                                <ExternalLink className="w-3.5 h-3.5" />
+                                <span>Live Preview</span>
+                            </button>
                             <button
                                 type="button"
                                 onClick={() => {
