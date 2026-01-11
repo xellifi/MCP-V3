@@ -367,9 +367,31 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             console.log('[Continue Flow] Checking edge target:', edge.target, '-> type:', targetNode?.type);
             if (!targetNode) continue;
 
-            // If it's a sheetsNode, skip it and find nodes after it
+            // If it's a sheetsNode, EXECUTE it and then find nodes after it
             if (targetNode.type === 'sheetsNode') {
-                console.log('[Continue Flow] Found sheets node, looking for nodes after it');
+                console.log('[Continue Flow] 📊 Found sheets node, executing Google Sheets sync...');
+
+                // Get the sheetsNode config
+                const sheetsConfig = configurations[targetNode.id] || {};
+                console.log('[Continue Flow] 📊 Sheets config:', {
+                    webhookUrl: sheetsConfig.webhookUrl ? 'SET' : 'NOT SET',
+                    sheetName: sheetsConfig.sheetName,
+                    sourceType: sheetsConfig.sourceType
+                });
+
+                // Execute the Google Sheets sync
+                if (sheetsConfig.webhookUrl && context.cart && context.cart.length > 0) {
+                    try {
+                        await syncToGoogleSheets(sheetsConfig, context, subscriberName);
+                        console.log('[Continue Flow] ✓ Google Sheets sync completed');
+                    } catch (err: any) {
+                        console.error('[Continue Flow] ❌ Google Sheets sync failed:', err.message);
+                    }
+                } else {
+                    console.log('[Continue Flow] ⚠️ Skipping sheets sync: no webhookUrl or empty cart');
+                }
+
+                // Continue to nodes after sheetsNode
                 const sheetsEdges = edges.filter((e: any) => e.source === edge.target);
                 for (const sheetsEdge of sheetsEdges) {
                     console.log('[Continue Flow] Adding sheets successor:', sheetsEdge.target);
@@ -1696,4 +1718,104 @@ async function sendFacebookMessage(
         throw new Error(result.error.message);
     }
     console.log('[Continue Flow] ✓ Message sent, ID:', result.message_id);
+}
+
+// Google Sheets sync function for sheetsNode execution
+async function syncToGoogleSheets(
+    config: any,
+    context: any,
+    customerName: string
+): Promise<void> {
+    const webhookUrl = config.webhookUrl;
+    const sheetName = config.sheetName || 'Orders';
+    const includeMainProduct = config.includeMainProduct ?? true;
+    const includeUpsells = config.includeUpsells ?? true;
+    const includeDownsells = config.includeDownsells ?? true;
+    const includeCustomerInfo = config.includeCustomerInfo ?? true;
+    const includeTimestamp = config.includeTimestamp ?? true;
+
+    const cart = context.cart || [];
+    const cartTotal = context.cartTotal || 0;
+    const checkoutData = context.checkoutData || {};
+
+    console.log('[syncToGoogleSheets] Starting sync...');
+    console.log('[syncToGoogleSheets] Cart items:', cart.length);
+    console.log('[syncToGoogleSheets] Checkout data:', Object.keys(checkoutData).length > 0 ? 'present' : 'empty');
+
+    // Build product lists
+    const allProducts: string[] = [];
+    const allQuantities: string[] = [];
+    const allPrices: string[] = [];
+
+    cart.forEach((item: any) => {
+        const productName = item.productName || 'Unknown Product';
+        const quantity = item.quantity || 1;
+        const price = item.productPrice || 0;
+
+        if (item.isMainProduct && includeMainProduct) {
+            allProducts.push(`[Main] ${productName}`);
+            allQuantities.push(String(quantity));
+            allPrices.push(`₱${price}`);
+        } else if (item.isUpsell && includeUpsells) {
+            allProducts.push(`[Upsell] ${productName}`);
+            allQuantities.push(String(quantity));
+            allPrices.push(`₱${price}`);
+        } else if (item.isDownsell && includeDownsells) {
+            allProducts.push(`[Downsell] ${productName}`);
+            allQuantities.push(String(quantity));
+            allPrices.push(`₱${price}`);
+        } else if (!item.isMainProduct && !item.isUpsell && !item.isDownsell) {
+            // Include if no specific flag
+            allProducts.push(productName);
+            allQuantities.push(String(quantity));
+            allPrices.push(`₱${price}`);
+        }
+    });
+
+    // Generate order ID
+    const orderId = `ORD-${Date.now().toString(36).toUpperCase()}`;
+
+    // Build webhook payload
+    const webhookPayload: any = {
+        row_id: orderId,
+        'Order ID': orderId,
+        'Customer Name': checkoutData.customerName || customerName || 'Customer',
+        'Customer ID': context.commenterId,
+        'Products': allProducts.join(', '),
+        'Quantities': allQuantities.join(', '),
+        'Prices': allPrices.join(', '),
+        'Total': `₱${cartTotal.toLocaleString()}`,
+        'Total Amount': cartTotal,
+        'Item Count': cart.length,
+    };
+
+    // Add customer info if enabled
+    if (includeCustomerInfo) {
+        webhookPayload['Customer Phone'] = checkoutData.customerPhone || '';
+        webhookPayload['Customer Email'] = checkoutData.customerEmail || '';
+        webhookPayload['Customer Address'] = checkoutData.customerAddress || '';
+        webhookPayload['Payment Method'] = checkoutData.paymentMethodName || checkoutData.paymentMethod || 'COD';
+        webhookPayload['Shipping Fee'] = `₱${(checkoutData.shippingFee || 0).toLocaleString()}`;
+    }
+
+    // Add timestamp if enabled
+    if (includeTimestamp) {
+        const now = new Date();
+        webhookPayload['Timestamp'] = now.toISOString();
+        webhookPayload['Date'] = now.toLocaleDateString('en-PH');
+        webhookPayload['Time'] = now.toLocaleTimeString('en-PH');
+    }
+
+    console.log('[syncToGoogleSheets] 📤 Sending to webhook:', webhookUrl.substring(0, 50) + '...');
+    console.log('[syncToGoogleSheets] 📋 Payload:', JSON.stringify(webhookPayload, null, 2));
+
+    // Send to Google Sheets webhook
+    const response = await fetch(webhookUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rowData: webhookPayload })
+    });
+
+    const responseText = await response.text();
+    console.log('[syncToGoogleSheets] ✓ Response:', response.status, responseText.substring(0, 100));
 }
