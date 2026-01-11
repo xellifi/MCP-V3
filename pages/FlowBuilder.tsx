@@ -785,9 +785,15 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
         selectedNode.data?.nodeType === 'textNode' ||
         selectedNode.data?.label?.toLowerCase().includes('text');
 
+      console.log('[FlowBuilder.handleSaveConfig] Is Text Node:', isTextNode);
+      console.log('[FlowBuilder.handleSaveConfig] configToSave.buttons:', configToSave.buttons);
+
       if (isTextNode && configToSave.buttons && Array.isArray(configToSave.buttons)) {
+        console.log('[FlowBuilder.handleSaveConfig] All buttons:', configToSave.buttons.map((b: any) => ({ type: b.type, title: b.title, flowName: b.flowName, processed: b.processed })));
+
         // Filter for unprocessed newFlow buttons only
         const newFlowButtons = configToSave.buttons.filter((btn: any) => btn.type === 'newFlow' && (btn.title || btn.flowName) && !btn.processed);
+        console.log('[FlowBuilder.handleSaveConfig] newFlow buttons found:', newFlowButtons.length);
 
         if (newFlowButtons.length > 0) {
           console.log('[FlowBuilder.handleSaveConfig] Creating nodes for newFlow buttons:', newFlowButtons);
