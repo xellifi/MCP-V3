@@ -278,6 +278,7 @@ async function handleAction(req: VercelRequest, res: VercelResponse) {
             const {
                 cart, cartTotal,
                 customerName, customerPhone, customerEmail, customerAddress,
+                notes, addressDetails,
                 paymentMethod, paymentMethodName, shippingFee,
                 confirmedAt
             } = payload;
@@ -285,11 +286,13 @@ async function handleAction(req: VercelRequest, res: VercelResponse) {
             // Build complete order metadata
             const orderMetadata = {
                 ...session.metadata,
+                notes: notes || '',
                 shipping: {
                     name: customerName,
                     phone: customerPhone,
                     email: customerEmail,
-                    address: customerAddress
+                    address: customerAddress,
+                    details: addressDetails
                 },
                 payment: {
                     method: paymentMethod,
@@ -305,6 +308,15 @@ async function handleAction(req: VercelRequest, res: VercelResponse) {
                 customer_name: customerName,
                 user_response: 'checkout_confirmed',
                 completed_at: confirmedAt || new Date().toISOString(),
+                form_data: {
+                    ...(session.form_data || {}),
+                    name: customerName,
+                    phone: customerPhone,
+                    email: customerEmail,
+                    address: customerAddress,
+                    notes: notes,
+                    ...addressDetails
+                },
                 metadata: orderMetadata
             };
 

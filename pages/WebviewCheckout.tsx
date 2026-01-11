@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { ShoppingCart, Check, Package, User, MapPin, Phone, Mail, CreditCard, Truck, Wallet } from 'lucide-react';
+import { ShoppingCart, Check, Package, User, MapPin, Phone, Mail, CreditCard, Truck, Wallet, Home, Building, Map, Hash, ClipboardList } from 'lucide-react';
 
 interface CartItem {
     productName: string;
@@ -18,6 +18,12 @@ interface PaymentMethod {
     description?: string;
 }
 
+interface CustomerFieldConfig {
+    enabled: boolean;
+    required: boolean;
+    label?: string;
+}
+
 interface CheckoutConfig {
     companyName?: string;
     headerText?: string;
@@ -32,7 +38,7 @@ interface CheckoutConfig {
     thankYouMessage?: string;
     successMessage?: string;
     accentColor?: string;
-    // Shipping form config
+    // Legacy flags
     showNameField?: boolean;
     showPhoneField?: boolean;
     showEmailField?: boolean;
@@ -41,6 +47,19 @@ interface CheckoutConfig {
     requirePhone?: boolean;
     requireEmail?: boolean;
     requireAddress?: boolean;
+    // New Detailed Configuration
+    customerFields?: {
+        name?: CustomerFieldConfig;
+        phone?: CustomerFieldConfig;
+        email?: CustomerFieldConfig;
+        fullAddress?: CustomerFieldConfig;
+        street?: CustomerFieldConfig;
+        city?: CustomerFieldConfig;
+        province?: CustomerFieldConfig;
+        zipCode?: CustomerFieldConfig;
+        notes?: CustomerFieldConfig;
+    };
+    useFullAddress?: boolean;
     // Payment methods
     paymentMethods?: PaymentMethod[];
 }
@@ -61,6 +80,11 @@ interface ShippingForm {
     phone: string;
     email: string;
     address: string;
+    street: string;
+    city: string;
+    province: string;
+    zipCode: string;
+    notes: string;
 }
 
 const DEFAULT_PAYMENT_METHODS: PaymentMethod[] = [
@@ -85,7 +109,12 @@ const WebviewCheckout: React.FC = () => {
         name: '',
         phone: '',
         email: '',
-        address: ''
+        address: '',
+        street: '',
+        city: '',
+        province: '',
+        zipCode: '',
+        notes: ''
     });
     const [selectedPayment, setSelectedPayment] = useState<string>('cod');
     const [formErrors, setFormErrors] = useState<Partial<ShippingForm>>({});
@@ -143,7 +172,12 @@ const WebviewCheckout: React.FC = () => {
                 name: customerName,
                 phone: customerPhone,
                 email: customerEmail,
-                address: customerAddress
+                address: customerAddress,
+                street: '',
+                city: '',
+                province: '',
+                zipCode: '',
+                notes: ''
             });
 
             setSession(sessionData);
@@ -158,32 +192,50 @@ const WebviewCheckout: React.FC = () => {
         if (!session) return false;
 
         const config = session.config;
+        const fields = config.customerFields;
         const errors: Partial<ShippingForm> = {};
 
-        // Default: require name and phone if fields are shown (or config doesn't exist yet)
-        const showName = config.showNameField !== false;
-        const showPhone = config.showPhoneField !== false;
-        const showEmail = config.showEmailField === true;
-        const showAddress = config.showAddressField !== false;
+        // Helper to check requirements
+        const isRequired = (key: keyof typeof fields, legacyReq?: boolean, legacyFlag?: boolean) => {
+            if (fields && fields[key]) return fields[key]!.required && fields[key]!.enabled;
+            if (typeof legacyReq !== 'undefined' && typeof legacyFlag !== 'undefined') return legacyReq && legacyFlag;
+            return false;
+        };
 
-        const requireName = config.requireName !== false && showName;
-        const requirePhone = config.requirePhone !== false && showPhone;
-        const requireEmail = config.requireEmail === true && showEmail;
-        const requireAddress = config.requireAddress !== false && showAddress;
+        const requireName = isRequired('name', config.requireName !== false, config.showNameField !== false);
+        const requirePhone = isRequired('phone', config.requirePhone !== false, config.showPhoneField !== false);
+        const requireEmail = isRequired('email', config.requireEmail === true, config.showEmailField === true);
 
-        if (requireName && !shippingForm.name.trim()) {
-            errors.name = 'Name is required';
-        }
-        if (requirePhone && !shippingForm.phone.trim()) {
-            errors.phone = 'Phone is required';
-        }
+        // Address logic
+        const useFullAddress = config.useFullAddress ?? true;
+        const requireFullAddress = isRequired('fullAddress', config.requireAddress !== false, config.showAddressField !== false);
+
+        const requireStreet = fields?.street?.enabled && fields.street.required;
+        const requireCity = fields?.city?.enabled && fields.city.required;
+        const requireProvince = fields?.province?.enabled && fields.province.required;
+        const requireZip = fields?.zipCode?.enabled && fields.zipCode.required;
+
+        if (requireName && !shippingForm.name.trim()) errors.name = 'Name is required';
+        if (requirePhone && !shippingForm.phone.trim()) errors.phone = 'Phone is required';
+
         if (requireEmail && !shippingForm.email.trim()) {
             errors.email = 'Email is required';
-        } else if (showEmail && shippingForm.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(shippingForm.email)) {
+        } else if (shippingForm.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(shippingForm.email)) {
             errors.email = 'Invalid email format';
         }
-        if (requireAddress && !shippingForm.address.trim()) {
-            errors.address = 'Address is required';
+
+        if (useFullAddress) {
+            if (requireFullAddress && !shippingForm.address.trim()) errors.address = 'Address is required';
+        } else {
+            if (requireStreet && !shippingForm.street.trim()) errors.street = 'Street is required';
+            if (requireCity && !shippingForm.city.trim()) errors.city = 'City is required';
+            if (requireProvince && !shippingForm.province.trim()) errors.province = 'Province is required';
+            if (requireZip && !shippingForm.zipCode.trim()) errors.zipCode = 'ZIP Code is required';
+        }
+
+        // Notes
+        if (fields?.notes?.enabled && fields.notes.required && !shippingForm.notes.trim()) {
+            errors.notes = 'Notes are required';
         }
 
         setFormErrors(errors);
@@ -203,6 +255,21 @@ const WebviewCheckout: React.FC = () => {
             const paymentMethods = session.config.paymentMethods || DEFAULT_PAYMENT_METHODS;
             const selectedPaymentMethod = paymentMethods.find(p => p.id === selectedPayment);
 
+            // Construct address
+            let finalAddress = shippingForm.address;
+            const useFullAddress = session.config.useFullAddress ?? true;
+
+            if (!useFullAddress) {
+                // Combine split fields
+                const parts = [
+                    shippingForm.street,
+                    shippingForm.city,
+                    shippingForm.province,
+                    shippingForm.zipCode
+                ].filter(Boolean);
+                finalAddress = parts.join(', ');
+            }
+
             await fetch(`${API_BASE}/api/webview?route=action`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -216,7 +283,14 @@ const WebviewCheckout: React.FC = () => {
                         customerName: shippingForm.name,
                         customerPhone: shippingForm.phone,
                         customerEmail: shippingForm.email,
-                        customerAddress: shippingForm.address,
+                        customerAddress: finalAddress,
+                        addressDetails: !useFullAddress ? {
+                            street: shippingForm.street,
+                            city: shippingForm.city,
+                            province: shippingForm.province,
+                            zipCode: shippingForm.zipCode
+                        } : undefined,
+                        notes: shippingForm.notes,
                         // Payment info
                         paymentMethod: selectedPayment,
                         paymentMethodName: selectedPaymentMethod?.name || selectedPayment,
@@ -313,10 +387,28 @@ const WebviewCheckout: React.FC = () => {
     const paymentMethods = config.paymentMethods || DEFAULT_PAYMENT_METHODS;
 
     // Field visibility (default to showing name, phone, address)
-    const showName = config.showNameField !== false;
-    const showPhone = config.showPhoneField !== false;
-    const showEmail = config.showEmailField === true;
-    const showAddress = config.showAddressField !== false;
+    const fields = config.customerFields;
+
+    // Fallback to legacy triggers if config.customerFields is missing
+    const showName = fields ? fields.name?.enabled : (config.showNameField !== false);
+    const showPhone = fields ? fields.phone?.enabled : (config.showPhoneField !== false);
+    const showEmail = fields ? fields.email?.enabled : (config.showEmailField === true);
+
+    // Address visibility logic
+    const useFullAddress = config.useFullAddress ?? true;
+    const showFullAddress = fields ? (useFullAddress && fields.fullAddress?.enabled) : (config.showAddressField !== false);
+
+    // Split address fields
+    const showStreet = fields ? (!useFullAddress && fields.street?.enabled) : false;
+    const showCity = fields ? (!useFullAddress && fields.city?.enabled) : false;
+    const showProvince = fields ? (!useFullAddress && fields.province?.enabled) : false;
+    const showZip = fields ? (!useFullAddress && fields.zipCode?.enabled) : false;
+
+    // Notes
+    const showNotes = fields ? fields.notes?.enabled : false;
+
+    // Labels
+    const getLabel = (key: keyof typeof fields, defaultLbl: string) => fields?.[key]?.label || defaultLbl;
 
     // Success Screen
     if (showSuccess) {
@@ -446,13 +538,13 @@ const WebviewCheckout: React.FC = () => {
                     <div className="bg-slate-800/50 rounded-2xl p-4 mb-4 border border-slate-700/50">
                         <div className="flex items-center gap-2 mb-4">
                             <User className="w-5 h-5 text-emerald-400" />
-                            <h2 className="text-white font-bold">Shipping Information</h2>
+                            <h2 className="text-white font-bold">Information</h2>
                         </div>
 
                         <div className="space-y-3">
                             {showName && (
                                 <div>
-                                    <label className="text-slate-400 text-xs mb-1 block">Full Name</label>
+                                    <label className="text-slate-400 text-xs mb-1 block">{getLabel('name', 'Full Name')}</label>
                                     <div className="relative">
                                         <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                                         <input
@@ -469,7 +561,7 @@ const WebviewCheckout: React.FC = () => {
 
                             {showPhone && (
                                 <div>
-                                    <label className="text-slate-400 text-xs mb-1 block">Phone Number</label>
+                                    <label className="text-slate-400 text-xs mb-1 block">{getLabel('phone', 'Phone Number')}</label>
                                     <div className="relative">
                                         <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                                         <input
@@ -486,7 +578,7 @@ const WebviewCheckout: React.FC = () => {
 
                             {showEmail && (
                                 <div>
-                                    <label className="text-slate-400 text-xs mb-1 block">Email Address</label>
+                                    <label className="text-slate-400 text-xs mb-1 block">{getLabel('email', 'Email Address')}</label>
                                     <div className="relative">
                                         <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                                         <input
@@ -501,9 +593,10 @@ const WebviewCheckout: React.FC = () => {
                                 </div>
                             )}
 
-                            {showAddress && (
+                            {/* Full Address */}
+                            {showFullAddress && (
                                 <div>
-                                    <label className="text-slate-400 text-xs mb-1 block">Complete Address</label>
+                                    <label className="text-slate-400 text-xs mb-1 block">{getLabel('fullAddress', 'Complete Address')}</label>
                                     <div className="relative">
                                         <MapPin className="absolute left-3 top-3 w-4 h-4 text-slate-500" />
                                         <textarea
@@ -517,6 +610,95 @@ const WebviewCheckout: React.FC = () => {
                                     {formErrors.address && <p className="text-red-400 text-xs mt-1">{formErrors.address}</p>}
                                 </div>
                             )}
+
+                            {/* Split Address Fields */}
+                            {showStreet && (
+                                <div>
+                                    <label className="text-slate-400 text-xs mb-1 block">{getLabel('street', 'Street Address')}</label>
+                                    <div className="relative">
+                                        <Home className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                                        <input
+                                            type="text"
+                                            value={shippingForm.street}
+                                            onChange={(e) => handleInputChange('street', e.target.value)}
+                                            placeholder="House/Unit No., Street, Barangay"
+                                            className={`w-full bg-slate-700/50 border rounded-xl py-3 pl-10 pr-4 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 ${formErrors.street ? 'border-red-500' : 'border-slate-600/50'}`}
+                                        />
+                                    </div>
+                                    {formErrors.street && <p className="text-red-400 text-xs mt-1">{formErrors.street}</p>}
+                                </div>
+                            )}
+
+                            <div className="grid grid-cols-2 gap-3">
+                                {showCity && (
+                                    <div>
+                                        <label className="text-slate-400 text-xs mb-1 block">{getLabel('city', 'City')}</label>
+                                        <div className="relative">
+                                            <Building className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                                            <input
+                                                type="text"
+                                                value={shippingForm.city}
+                                                onChange={(e) => handleInputChange('city', e.target.value)}
+                                                placeholder="City"
+                                                className={`w-full bg-slate-700/50 border rounded-xl py-3 pl-10 pr-4 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 ${formErrors.city ? 'border-red-500' : 'border-slate-600/50'}`}
+                                            />
+                                        </div>
+                                        {formErrors.city && <p className="text-red-400 text-xs mt-1">{formErrors.city}</p>}
+                                    </div>
+                                )}
+                                {showProvince && (
+                                    <div>
+                                        <label className="text-slate-400 text-xs mb-1 block">{getLabel('province', 'Province')}</label>
+                                        <div className="relative">
+                                            <Map className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                                            <input
+                                                type="text"
+                                                value={shippingForm.province}
+                                                onChange={(e) => handleInputChange('province', e.target.value)}
+                                                placeholder="Province"
+                                                className={`w-full bg-slate-700/50 border rounded-xl py-3 pl-10 pr-4 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 ${formErrors.province ? 'border-red-500' : 'border-slate-600/50'}`}
+                                            />
+                                        </div>
+                                        {formErrors.province && <p className="text-red-400 text-xs mt-1">{formErrors.province}</p>}
+                                    </div>
+                                )}
+                            </div>
+
+                            {showZip && (
+                                <div>
+                                    <label className="text-slate-400 text-xs mb-1 block">{getLabel('zipCode', 'ZIP Code')}</label>
+                                    <div className="relative">
+                                        <Hash className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                                        <input
+                                            type="text"
+                                            value={shippingForm.zipCode}
+                                            onChange={(e) => handleInputChange('zipCode', e.target.value)}
+                                            placeholder="ZIP Code"
+                                            className={`w-full bg-slate-700/50 border rounded-xl py-3 pl-10 pr-4 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 ${formErrors.zipCode ? 'border-red-500' : 'border-slate-600/50'}`}
+                                        />
+                                    </div>
+                                    {formErrors.zipCode && <p className="text-red-400 text-xs mt-1">{formErrors.zipCode}</p>}
+                                </div>
+                            )}
+
+                            {/* Notes Field */}
+                            {showNotes && (
+                                <div>
+                                    <label className="text-slate-400 text-xs mb-1 block">{getLabel('notes', 'Order Notes')}</label>
+                                    <div className="relative">
+                                        <ClipboardList className="absolute left-3 top-3 w-4 h-4 text-slate-500" />
+                                        <textarea
+                                            value={shippingForm.notes}
+                                            onChange={(e) => handleInputChange('notes', e.target.value)}
+                                            placeholder="Special instructions..."
+                                            rows={2}
+                                            className={`w-full bg-slate-700/50 border rounded-xl py-3 pl-10 pr-4 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 resize-none ${formErrors.notes ? 'border-red-500' : 'border-slate-600/50'}`}
+                                        />
+                                    </div>
+                                    {formErrors.notes && <p className="text-red-400 text-xs mt-1">{formErrors.notes}</p>}
+                                </div>
+                            )}
+
                         </div>
                     </div>
 
