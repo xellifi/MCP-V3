@@ -17,11 +17,11 @@ const VisualToolNode = ({ data }: { data: any }) => {
 
             {/* Node Container - Circle */}
             <div className={`w-20 h-20 border-2 rounded-full shadow-lg flex flex-col items-center justify-center gap-1 transition-all hover:scale-105 relative z-0 overflow-hidden ${isDark
-                    ? 'bg-slate-900 border-slate-600 hover:shadow-indigo-500/20'
-                    : 'bg-white border-slate-200 hover:border-indigo-400 hover:shadow-indigo-500/20'
+                ? 'bg-slate-900 border-slate-600 hover:shadow-blue-500/20'
+                : 'bg-white border-slate-200 hover:border-blue-400 hover:shadow-blue-500/20'
                 }`}>
-                <div className={`absolute inset-0 pointer-events-none ${isDark ? 'bg-indigo-500/5' : 'bg-indigo-50/50'}`} />
-                <Wrench className={`w-8 h-8 ${isDark ? 'text-indigo-500' : 'text-indigo-600'}`} />
+                <div className={`absolute inset-0 pointer-events-none ${isDark ? 'bg-blue-500/5' : 'bg-blue-50/50'}`} />
+                <Wrench className={`w-8 h-8 ${isDark ? 'text-blue-500' : 'text-blue-600'}`} />
             </div>
 
             {/* Controls - Outside circle, positioned to right */}
@@ -29,8 +29,8 @@ const VisualToolNode = ({ data }: { data: any }) => {
                 <button
                     onClick={(e) => { e.stopPropagation(); data.onConfigure?.(); }}
                     className={`w-7 h-7 rounded-full flex items-center justify-center border shadow-md transform hover:scale-110 transition-all ${isDark
-                            ? 'bg-slate-800 hover:bg-slate-700 border-white/10'
-                            : 'bg-white hover:bg-slate-50 border-slate-200'
+                        ? 'bg-slate-800 hover:bg-slate-700 border-white/10'
+                        : 'bg-white hover:bg-slate-50 border-slate-200'
                         }`}
                     title="Configure"
                 >
@@ -39,8 +39,8 @@ const VisualToolNode = ({ data }: { data: any }) => {
                 <button
                     onClick={(e) => { e.stopPropagation(); data.onDelete?.(); }}
                     className={`w-7 h-7 rounded-full flex items-center justify-center border shadow-md transform hover:scale-110 transition-all group/delete ${isDark
-                            ? 'bg-slate-800 hover:bg-red-900/50 border-white/10'
-                            : 'bg-white hover:bg-red-50 border-slate-200'
+                        ? 'bg-slate-800 hover:bg-red-900/50 border-white/10'
+                        : 'bg-white hover:bg-red-50 border-slate-200'
                         }`}
                     title="Delete"
                 >

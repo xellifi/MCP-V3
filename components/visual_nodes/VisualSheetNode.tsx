@@ -17,8 +17,8 @@ const VisualSheetNode = ({ data }: { data: any }) => {
 
             {/* Node Container - Square */}
             <div className={`w-24 h-24 backdrop-blur-md border-2 rounded-xl shadow-lg flex flex-col items-center justify-center gap-2 transition-all hover:scale-105 ${isDark
-                    ? 'bg-slate-900/95 border-emerald-500 hover:shadow-emerald-500/20'
-                    : 'bg-white border-slate-200 hover:border-emerald-500 hover:shadow-emerald-500/20'
+                ? 'bg-slate-900/95 border-emerald-500 hover:shadow-emerald-500/20'
+                : 'bg-white border-slate-200 hover:border-emerald-500 hover:shadow-emerald-500/20'
                 }`}>
 
 
@@ -28,8 +28,8 @@ const VisualSheetNode = ({ data }: { data: any }) => {
                     <button
                         onClick={(e) => { e.stopPropagation(); data.onConfigure?.(); }}
                         className={`w-7 h-7 rounded-full flex items-center justify-center border shadow-md transform hover:scale-110 transition-all ${isDark
-                                ? 'bg-slate-800 hover:bg-slate-700 border-white/10'
-                                : 'bg-white hover:bg-slate-50 border-slate-200'
+                            ? 'bg-slate-800 hover:bg-slate-700 border-white/10'
+                            : 'bg-white hover:bg-slate-50 border-slate-200'
                             }`}
                         title="Configure"
                     >
@@ -38,8 +38,8 @@ const VisualSheetNode = ({ data }: { data: any }) => {
                     <button
                         onClick={(e) => { e.stopPropagation(); data.onDelete?.(); }}
                         className={`w-7 h-7 rounded-full flex items-center justify-center border shadow-md transform hover:scale-110 transition-all group/delete ${isDark
-                                ? 'bg-slate-800 hover:bg-red-900/50 border-white/10'
-                                : 'bg-white hover:bg-red-50 border-slate-200'
+                            ? 'bg-slate-800 hover:bg-red-900/50 border-white/10'
+                            : 'bg-white hover:bg-red-50 border-slate-200'
                             }`}
                         title="Delete"
                     >
@@ -47,7 +47,7 @@ const VisualSheetNode = ({ data }: { data: any }) => {
                     </button>
                 </div>
 
-                <Table className="w-10 h-10 text-emerald-500" />
+                <Table className={`w-10 h-10 ${isDark ? 'text-emerald-500' : 'text-emerald-600'}`} />
             </div>
 
             {/* Label Below */}
