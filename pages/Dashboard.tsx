@@ -24,26 +24,35 @@ interface ChartData {
   messages: number;
 }
 
-const StatCard = ({ title, value, icon: Icon, gradient, loading }: any) => (
-  <div className="glass-panel p-6 rounded-2xl border border-white/10 transition-all duration-300 hover:-translate-y-1 hover:border-indigo-500/30 group relative overflow-hidden">
-    <div className={`absolute -inset-1 bg-gradient-to-br ${gradient} opacity-0 group-hover:opacity-10 transition-opacity duration-500 blur-xl`}></div>
-    <div className="relative z-10">
-      <div className="flex items-center justify-between mb-4">
-        <div className={`p-3 rounded-xl bg-gradient-to-br ${gradient} text-white shadow-lg group-hover:scale-110 transition-transform duration-300`}>
-          <Icon className="w-6 h-6" />
+const StatCard = ({ title, value, icon: Icon, gradient, loading }: any) => {
+  const { isDark } = useTheme();
+  return (
+    <div className={`p-6 rounded-2xl border transition-all duration-300 hover:-translate-y-1 group relative overflow-hidden ${isDark
+        ? 'glass-panel border-white/10 hover:border-indigo-500/30'
+        : 'bg-white border-gray-200 hover:border-blue-300 shadow-sm hover:shadow-md'
+      }`}>
+      <div className={`absolute -inset-1 bg-gradient-to-br ${gradient} opacity-0 group-hover:opacity-10 transition-opacity duration-500 blur-xl`}></div>
+      <div className="relative z-10">
+        <div className="flex items-center justify-between mb-4">
+          <div className={`p-3 rounded-xl bg-gradient-to-br ${gradient} text-white shadow-lg group-hover:scale-110 transition-transform duration-300`}>
+            <Icon className="w-6 h-6" />
+          </div>
+        </div>
+        <div>
+          <p className={`text-sm font-semibold uppercase tracking-wide ${isDark ? 'text-slate-400' : 'text-gray-500'
+            }`}>{title}</p>
+          {loading ? (
+            <div className={`h-8 w-24 animate-pulse rounded mt-1 ${isDark ? 'bg-white/10' : 'bg-gray-200'
+              }`}></div>
+          ) : (
+            <h3 className={`text-3xl font-bold tracking-tight mt-1 ${isDark ? 'text-white' : 'text-gray-900'
+              }`}>{value.toLocaleString()}</h3>
+          )}
         </div>
       </div>
-      <div>
-        <p className="text-sm font-semibold text-slate-400 uppercase tracking-wide">{title}</p>
-        {loading ? (
-          <div className="h-8 w-24 bg-white/10 animate-pulse rounded mt-1"></div>
-        ) : (
-          <h3 className="text-3xl font-bold text-white tracking-tight mt-1">{value.toLocaleString()}</h3>
-        )}
-      </div>
     </div>
-  </div>
-);
+  );
+};
 
 const Dashboard: React.FC<DashboardProps> = ({ workspace }) => {
   const { isDark } = useTheme();
@@ -146,14 +155,21 @@ const Dashboard: React.FC<DashboardProps> = ({ workspace }) => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
-          <h1 className="text-4xl font-bold text-white tracking-tight mb-2">Dashboard</h1>
-          <p className="text-slate-400 text-lg">
-            Overview for <span className="font-semibold text-indigo-400">{workspace.name}</span>
+          <h1 className={`text-4xl font-bold tracking-tight mb-2 ${isDark ? 'text-white' : 'text-gray-900'
+            }`}>Dashboard</h1>
+          <p className={isDark ? 'text-slate-400 text-lg' : 'text-gray-600 text-lg'}>
+            Overview for <span className={`font-semibold ${isDark ? 'text-indigo-400' : 'text-blue-600'
+              }`}>{workspace.name}</span>
           </p>
         </div>
-        <div className="glass-panel px-4 py-2 rounded-xl border border-white/10 flex items-center gap-3 text-sm font-medium text-slate-300">
-          <div className="p-1.5 bg-indigo-500/20 rounded-lg">
-            <CalendarDays className="w-4 h-4 text-indigo-400" />
+        <div className={`px-4 py-2 rounded-xl border flex items-center gap-3 text-sm font-medium ${isDark
+            ? 'glass-panel border-white/10 text-slate-300'
+            : 'bg-white border-gray-200 text-gray-700 shadow-sm'
+          }`}>
+          <div className={`p-1.5 rounded-lg ${isDark ? 'bg-indigo-500/20' : 'bg-blue-50'
+            }`}>
+            <CalendarDays className={`w-4 h-4 ${isDark ? 'text-indigo-400' : 'text-blue-600'
+              }`} />
           </div>
           Last 7 Days
         </div>
