@@ -282,7 +282,10 @@ const Subscribers: React.FC<SubscribersProps> = ({ workspace }) => {
         <div className="flex items-center gap-3">
           <button
             onClick={() => toast.info('Export feature coming soon!')}
-            className="flex items-center gap-2 px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-slate-200 hover:bg-white/10 font-medium transition-colors shadow-sm"
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium transition-colors shadow-sm border ${isDark
+                ? 'bg-white/5 border-white/10 text-slate-200 hover:bg-white/10'
+                : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-800'
+              }`}
           >
             <Download className="w-4 h-4" />
             <span className="hidden sm:inline">Export</span>
@@ -293,8 +296,8 @@ const Subscribers: React.FC<SubscribersProps> = ({ workspace }) => {
             <button
               onClick={() => setViewMode('list')}
               className={`p-2 rounded-lg transition-all ${viewMode === 'list'
-                  ? 'bg-indigo-500 text-white shadow-md'
-                  : isDark ? 'text-slate-400 hover:text-white hover:bg-white/5' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-50'
+                ? 'bg-indigo-500 text-white shadow-md'
+                : isDark ? 'text-slate-400 hover:text-white hover:bg-white/5' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-50'
                 }`}
               title="List View"
             >
@@ -303,8 +306,8 @@ const Subscribers: React.FC<SubscribersProps> = ({ workspace }) => {
             <button
               onClick={() => setViewMode('grid')}
               className={`p-2 rounded-lg transition-all ${viewMode === 'grid'
-                  ? 'bg-indigo-500 text-white shadow-md'
-                  : isDark ? 'text-slate-400 hover:text-white hover:bg-white/5' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-50'
+                ? 'bg-indigo-500 text-white shadow-md'
+                : isDark ? 'text-slate-400 hover:text-white hover:bg-white/5' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-50'
                 }`}
               title="Grid View"
             >
@@ -374,8 +377,8 @@ const Subscribers: React.FC<SubscribersProps> = ({ workspace }) => {
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search by name or ID..."
               className={`w-full pl-10 pr-4 py-2.5 text-sm rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-transparent transition-all border ${isDark
-                  ? 'bg-black/20 border-white/10 text-white placeholder-slate-500'
-                  : 'bg-white border-slate-200 text-slate-900 placeholder-slate-400 focus:bg-white'
+                ? 'bg-black/20 border-white/10 text-white placeholder-slate-500'
+                : 'bg-white border-slate-200 text-slate-900 placeholder-slate-400 focus:bg-white'
                 }`}
             />
           </div>
@@ -387,8 +390,8 @@ const Subscribers: React.FC<SubscribersProps> = ({ workspace }) => {
               <button
                 onClick={() => setShowPageDropdown(!showPageDropdown)}
                 className={`w-full px-3 py-2.5 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all cursor-pointer flex items-center gap-2 ${isDark
-                    ? 'bg-black/20 border-white/10 text-slate-200 hover:bg-white/5'
-                    : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                  ? 'bg-black/20 border-white/10 text-slate-200 hover:bg-white/5'
+                  : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
                   }`}
               >
                 {selectedPageId ? (
@@ -419,8 +422,8 @@ const Subscribers: React.FC<SubscribersProps> = ({ workspace }) => {
 
               {showPageDropdown && (
                 <div className={`absolute z-[999] w-full mt-2 border rounded-xl shadow-2xl max-h-64 overflow-y-auto custom-scrollbar backdrop-blur-xl ${isDark
-                    ? 'bg-slate-900 border-white/10'
-                    : 'bg-white border-slate-200'
+                  ? 'bg-slate-900 border-white/10'
+                  : 'bg-white border-slate-200'
                   }`}>
                   {/* All Pages Option */}
                   <button
@@ -479,8 +482,8 @@ const Subscribers: React.FC<SubscribersProps> = ({ workspace }) => {
             <button
               onClick={() => setStatusFilter('all')}
               className={`px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${statusFilter === 'all'
-                  ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/25'
-                  : isDark ? 'bg-white/5 text-slate-400 hover:text-white hover:bg-white/10' : 'bg-slate-100 text-slate-500 hover:text-slate-700'
+                ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/25'
+                : isDark ? 'bg-white/5 text-slate-400 hover:text-white hover:bg-white/10' : 'bg-slate-100 text-slate-500 hover:text-slate-700'
                 }`}
             >
               All
@@ -488,8 +491,8 @@ const Subscribers: React.FC<SubscribersProps> = ({ workspace }) => {
             <button
               onClick={() => setStatusFilter('SUBSCRIBED')}
               className={`px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${statusFilter === 'SUBSCRIBED'
-                  ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/25'
-                  : isDark ? 'bg-white/5 text-slate-400 hover:text-white hover:bg-white/10' : 'bg-slate-100 text-slate-500 hover:text-slate-700'
+                ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/25'
+                : isDark ? 'bg-white/5 text-slate-400 hover:text-white hover:bg-white/10' : 'bg-slate-100 text-slate-500 hover:text-slate-700'
                 }`}
             >
               Active
@@ -497,8 +500,8 @@ const Subscribers: React.FC<SubscribersProps> = ({ workspace }) => {
             <button
               onClick={() => setStatusFilter('UNSUBSCRIBED')}
               className={`px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${statusFilter === 'UNSUBSCRIBED'
-                  ? 'bg-slate-500 text-white shadow-lg shadow-slate-500/25'
-                  : isDark ? 'bg-white/5 text-slate-400 hover:text-white hover:bg-white/10' : 'bg-slate-100 text-slate-500 hover:text-slate-700'
+                ? 'bg-slate-500 text-white shadow-lg shadow-slate-500/25'
+                : isDark ? 'bg-white/5 text-slate-400 hover:text-white hover:bg-white/10' : 'bg-slate-100 text-slate-500 hover:text-slate-700'
                 }`}
             >
               Inactive
@@ -518,8 +521,8 @@ const Subscribers: React.FC<SubscribersProps> = ({ workspace }) => {
               key={subscriber.id}
               onClick={() => openSubscriberProfile(subscriber)}
               className={`border rounded-2xl overflow-hidden cursor-pointer group transition-all duration-300 relative ${isDark
-                  ? 'glass-panel border-white/10 hover:border-indigo-500/50 hover:shadow-[0_0_30px_rgba(99,102,241,0.15)]'
-                  : 'bg-white border-slate-200 shadow-sm hover:border-indigo-400 hover:shadow-xl'
+                ? 'glass-panel border-white/10 hover:border-indigo-500/50 hover:shadow-[0_0_30px_rgba(99,102,241,0.15)]'
+                : 'bg-white border-slate-200 shadow-sm hover:border-indigo-400 hover:shadow-xl'
                 } ${viewMode === 'grid' ? 'p-5' : 'p-4 flex items-center gap-4'}`}
             >
               {/* Actions Menu - Top Right */}
@@ -565,14 +568,14 @@ const Subscribers: React.FC<SubscribersProps> = ({ workspace }) => {
                     src={subscriber.avatarUrl}
                     alt={subscriber.name}
                     className={`rounded-full object-cover border-2 transition-colors ${isDark
-                        ? 'border-white/10 group-hover:border-indigo-500/50'
-                        : 'border-slate-100 group-hover:border-indigo-500/30'
+                      ? 'border-white/10 group-hover:border-indigo-500/50'
+                      : 'border-slate-100 group-hover:border-indigo-500/30'
                       } ${viewMode === 'grid' ? 'w-20 h-20' : 'w-12 h-12'}`}
                   />
                 ) : (
                   <div className={`rounded-full flex items-center justify-center border-2 transition-colors ${isDark
-                      ? 'bg-gradient-to-br from-indigo-500/30 to-purple-500/30 text-slate-300 border-white/10 group-hover:border-indigo-500/50'
-                      : 'bg-gradient-to-br from-indigo-50 to-purple-50 text-indigo-400 border-slate-100 group-hover:border-indigo-500/30'
+                    ? 'bg-gradient-to-br from-indigo-500/30 to-purple-500/30 text-slate-300 border-white/10 group-hover:border-indigo-500/50'
+                    : 'bg-gradient-to-br from-indigo-50 to-purple-50 text-indigo-400 border-slate-100 group-hover:border-indigo-500/30'
                     } ${viewMode === 'grid' ? 'w-20 h-20' : 'w-12 h-12'}`}>
                     <User className={viewMode === 'grid' ? 'w-8 h-8' : 'w-5 h-5'} />
                   </div>
