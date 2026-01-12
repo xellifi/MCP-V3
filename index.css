@@ -158,6 +158,61 @@
     filter: drop-shadow(0 0 20px rgba(139, 92, 246, 0.5));
   }
 
+  /* ========================================
+   LIGHT MODE NODE STYLING REFINEMENTS
+   Force white background and solid colored borders
+   ======================================== */
+  :not(.dark) .react-flow__node div[class*="bg-"][class*="-500/"] {
+    background-color: white !important;
+    border-width: 2px !important;
+    border-style: solid !important;
+  }
+
+  /* Force opaque borders for standard colors in light mode */
+  :not(.dark) .react-flow__node div[class*="border-emerald-500"] {
+    border-color: #10b981 !important;
+  }
+
+  :not(.dark) .react-flow__node div[class*="border-blue-500"] {
+    border-color: #3b82f6 !important;
+  }
+
+  :not(.dark) .react-flow__node div[class*="border-amber-500"] {
+    border-color: #f59e0b !important;
+  }
+
+  :not(.dark) .react-flow__node div[class*="border-rose-500"] {
+    border-color: #f43f5e !important;
+  }
+
+  :not(.dark) .react-flow__node div[class*="border-cyan-500"] {
+    border-color: #06b6d4 !important;
+  }
+
+  :not(.dark) .react-flow__node div[class*="border-indigo-500"] {
+    border-color: #6366f1 !important;
+  }
+
+  :not(.dark) .react-flow__node div[class*="border-orange-500"] {
+    border-color: #f97316 !important;
+  }
+
+  :not(.dark) .react-flow__node div[class*="border-purple-500"] {
+    border-color: #a855f7 !important;
+  }
+
+  :not(.dark) .react-flow__node div[class*="border-green-500"] {
+    border-color: #22c55e !important;
+  }
+
+  :not(.dark) .react-flow__node div[class*="border-teal-500"] {
+    border-color: #14b8a6 !important;
+  }
+
+  :not(.dark) .react-flow__node div[class*="border-violet-500"] {
+    border-color: #8b5cf6 !important;
+  }
+
   /* Enhanced glass panels */
   .glass-panel {
     @apply bg-white dark:bg-white/5 backdrop-blur-2xl border border-gray-300 dark:border-white/10;
