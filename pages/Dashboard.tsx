@@ -28,8 +28,8 @@ const StatCard = ({ title, value, icon: Icon, gradient, loading }: any) => {
   const { isDark } = useTheme();
   return (
     <div className={`p-6 rounded-2xl border transition-all duration-300 hover:-translate-y-1 group relative overflow-hidden ${isDark
-        ? 'glass-panel border-white/10 hover:border-indigo-500/30'
-        : 'bg-white border-gray-300 hover:border-blue-400'
+      ? 'glass-panel border-white/10 hover:border-indigo-500/30'
+      : 'bg-white border-gray-300 hover:border-blue-400'
       }`}>
       <div className={`absolute -inset-1 bg-gradient-to-br ${gradient} opacity-0 group-hover:opacity-10 transition-opacity duration-500 blur-xl`}></div>
       <div className="relative z-10">
@@ -173,7 +173,7 @@ const Dashboard: React.FC<DashboardProps> = ({ workspace }) => {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         <StatCard
           title="Connected Pages"
           value={stats.connectedPages}

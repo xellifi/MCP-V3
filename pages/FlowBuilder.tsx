@@ -2103,8 +2103,8 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
     <div className={`${isFullscreen ? 'fixed inset-0 z-50' : 'h-[calc(100vh-60px)] w-full -m-6 relative'} ${isDark ? 'bg-slate-950' : 'bg-gray-50'
       } overflow-hidden`}>
 
-      {/* Header Overlay (Title & Back) - Always visible now */}
-      <div className="absolute top-6 left-6 z-10 block">
+      {/* Header Overlay (Title & Back) - Hidden on Mobile */}
+      <div className="absolute top-6 left-6 z-10 hidden md:block">
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigate('/flows')}
@@ -2154,7 +2154,16 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
 
       {/* Top Right Controls (Save / Publish) */}
       <div className="absolute top-4 left-auto right-6 md:top-6 z-10 flex gap-2 md:gap-3 w-max items-center">
-        {/* Mobile Tools Toggle - REMOVED since we are using desktop toolbar now */}
+        {/* Mobile Tools Toggle */}
+        <button
+          onClick={() => setShowMobileNodeGrid(true)}
+          className={`md:hidden group relative w-10 h-10 flex items-center justify-center backdrop-blur-md rounded-xl transition-all border shadow-lg ${isDark
+            ? 'bg-white/10 border-white/10 text-white hover:bg-white/20'
+            : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
+            }`}
+        >
+          <Grid3x3 className="w-5 h-5" />
+        </button>
 
         {/* Fullscreen Toggle */}
         <button
@@ -2209,10 +2218,10 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
         </button>
       </div>
 
-      {/* Floating Toolbar - Horizontal for Desktop AND Mobile - Always Visible */}
-      <div className={`absolute z-10 transition-all duration-300 ease-out
+      {/* Floating Toolbar - HIDDEN ON MOBILE */}
+      <div className={`hidden md:block absolute z-10 transition-all duration-300 ease-out
         opacity-100 pointer-events-auto
-        left-1/2 -translate-x-1/2 top-20 md:top-6
+        left-1/2 -translate-x-1/2 top-6
       `}>
         <div className={`
           flex
@@ -2497,6 +2506,222 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
                 {isSaving && <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>}
                 {isSaving ? 'Saving...' : 'Save Flow'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Mobile Node Grid Overlay - Centered Popup */}
+      {showMobileNodeGrid && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-200">
+          {/* Backdrop */}
+          <div
+            className={`absolute inset-0 backdrop-blur-sm transition-opacity ${isDark ? 'bg-slate-950/80' : 'bg-white/60'
+              }`}
+            onClick={() => setShowMobileNodeGrid(false)}
+          />
+
+          {/* Modal Container */}
+          <div className={`relative w-full max-w-sm border rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh] animate-in zoom-in-95 duration-200 ${isDark
+              ? 'bg-slate-900 border-white/10'
+              : 'bg-white border-gray-200'
+            }`}>
+            <div className={`flex items-center justify-between p-4 border-b shrink-0 ${isDark
+                ? 'border-white/10 bg-slate-900/50'
+                : 'border-gray-100 bg-white/50'
+              }`}>
+              <h2 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>Add Node</h2>
+              <button
+                onClick={() => setShowMobileNodeGrid(false)}
+                className={`p-2 rounded-full transition-colors ${isDark
+                    ? 'bg-white/5 text-white hover:bg-white/10'
+                    : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                  }`}
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
+              <div className="grid grid-cols-4 gap-3 sm:gap-4">
+                <div className={`col-span-4 text-xs font-bold uppercase tracking-wider mb-1 ${isDark ? 'text-slate-500' : 'text-slate-400'
+                  }`}>Core</div>
+
+                <button onClick={() => { addNode('startNode', 'Start'); setShowMobileNodeGrid(false); }} className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform group">
+                  <div className={`w-12 h-12 border rounded-2xl flex items-center justify-center shadow-lg transition-colors ${isDark
+                      ? 'bg-emerald-500/10 border-emerald-500/20 group-hover:bg-emerald-500/20 group-hover:border-emerald-500/30 text-emerald-400'
+                      : 'bg-emerald-50 border-emerald-200 group-hover:bg-emerald-100 group-hover:border-emerald-300 text-emerald-600'
+                    }`}>
+                    <Play className="w-5 h-5 fill-current" />
+                  </div>
+                  <span className={`text-[10px] font-medium text-center leading-tight ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Start</span>
+                </button>
+
+                <button onClick={() => { addCommentReplyTemplate(); setShowMobileNodeGrid(false); }} className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform group">
+                  <div className={`w-12 h-12 border rounded-2xl flex items-center justify-center shadow-lg transition-colors ${isDark
+                      ? 'bg-blue-500/10 border-blue-500/20 group-hover:bg-blue-500/20 group-hover:border-blue-500/30 text-blue-400'
+                      : 'bg-blue-50 border-blue-200 group-hover:bg-blue-100 group-hover:border-blue-300 text-blue-600'
+                    }`}>
+                    <MessageCircle className="w-5 h-5" />
+                  </div>
+                  <span className={`text-[10px] font-medium text-center leading-tight ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Comment</span>
+                </button>
+
+                <button onClick={() => { addNode('textNode', 'Text'); setShowMobileNodeGrid(false); }} className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform group">
+                  <div className={`w-12 h-12 border rounded-2xl flex items-center justify-center shadow-lg transition-colors ${isDark
+                      ? 'bg-amber-500/10 border-amber-500/20 group-hover:bg-amber-500/20 group-hover:border-amber-500/30 text-amber-400'
+                      : 'bg-amber-50 border-amber-200 group-hover:bg-amber-100 group-hover:border-amber-300 text-amber-600'
+                    }`}>
+                    <MessageSquare className="w-5 h-5" />
+                  </div>
+                  <span className={`text-[10px] font-medium text-center leading-tight ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Text</span>
+                </button>
+
+                <button onClick={() => { addNode('imageNode', 'Image'); setShowMobileNodeGrid(false); }} className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform group">
+                  <div className={`w-12 h-12 border rounded-2xl flex items-center justify-center shadow-lg transition-colors ${isDark
+                      ? 'bg-rose-500/10 border-rose-500/20 group-hover:bg-rose-500/20 group-hover:border-rose-500/30 text-rose-400'
+                      : 'bg-rose-50 border-rose-200 group-hover:bg-rose-100 group-hover:border-rose-300 text-rose-600'
+                    }`}>
+                    <Image className="w-5 h-5" />
+                  </div>
+                  <span className={`text-[10px] font-medium text-center leading-tight ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Image</span>
+                </button>
+
+                <button onClick={() => { addNode('videoNode', 'Video'); setShowMobileNodeGrid(false); }} className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform group">
+                  <div className={`w-12 h-12 border rounded-2xl flex items-center justify-center shadow-lg transition-colors ${isDark
+                      ? 'bg-cyan-500/10 border-cyan-500/20 group-hover:bg-cyan-500/20 group-hover:border-cyan-500/30 text-cyan-400'
+                      : 'bg-cyan-50 border-cyan-200 group-hover:bg-cyan-100 group-hover:border-cyan-300 text-cyan-600'
+                    }`}>
+                    <Video className="w-5 h-5" />
+                  </div>
+                  <span className={`text-[10px] font-medium text-center leading-tight ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Video</span>
+                </button>
+
+                <div className={`col-span-4 text-xs font-bold uppercase tracking-wider mb-1 mt-3 ${isDark ? 'text-slate-500' : 'text-slate-400'
+                  }`}>Automation</div>
+
+                <button onClick={() => { addNode('aiNode', 'AI Agent'); setShowMobileNodeGrid(false); }} className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform group">
+                  <div className={`w-12 h-12 border rounded-2xl flex items-center justify-center shadow-lg transition-colors ${isDark
+                      ? 'bg-indigo-500/10 border-indigo-500/20 group-hover:bg-indigo-500/20 group-hover:border-indigo-500/30 text-indigo-400'
+                      : 'bg-indigo-50 border-indigo-200 group-hover:bg-indigo-100 group-hover:border-indigo-300 text-indigo-600'
+                    }`}>
+                    <Sparkles className="w-5 h-5" />
+                  </div>
+                  <span className={`text-[10px] font-medium text-center leading-tight ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>AI Agent</span>
+                </button>
+
+                <button onClick={() => { addNode('conditionNode', 'Condition'); setShowMobileNodeGrid(false); }} className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform group">
+                  <div className={`w-12 h-12 border rounded-2xl flex items-center justify-center shadow-lg transition-colors ${isDark
+                      ? 'bg-orange-500/10 border-orange-500/20 group-hover:bg-orange-500/20 group-hover:border-orange-500/30 text-orange-400'
+                      : 'bg-orange-50 border-orange-200 group-hover:bg-orange-100 group-hover:border-orange-300 text-orange-600'
+                    }`}>
+                    <GitBranch className="w-5 h-5" />
+                  </div>
+                  <span className={`text-[10px] font-medium text-center leading-tight ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Condition</span>
+                </button>
+
+                <button onClick={() => { addNode('followupNode', 'Follow-up'); setShowMobileNodeGrid(false); }} className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform group">
+                  <div className={`w-12 h-12 border rounded-2xl flex items-center justify-center shadow-lg transition-colors ${isDark
+                      ? 'bg-rose-500/10 border-rose-500/20 group-hover:bg-rose-500/20 group-hover:border-rose-500/30 text-rose-400'
+                      : 'bg-rose-50 border-rose-200 group-hover:bg-rose-100 group-hover:border-rose-300 text-rose-600'
+                    }`}>
+                    <RefreshCw className="w-5 h-5" />
+                  </div>
+                  <span className={`text-[10px] font-medium text-center leading-tight ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Follow-up</span>
+                </button>
+
+                <div className={`col-span-4 text-xs font-bold uppercase tracking-wider mb-1 mt-3 ${isDark ? 'text-slate-500' : 'text-slate-400'
+                  }`}>Store</div>
+
+                <button onClick={() => { addNode('productWebviewNode', 'Product Webview'); setShowMobileNodeGrid(false); }} className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform group">
+                  <div className={`w-12 h-12 border rounded-2xl flex items-center justify-center shadow-lg relative transition-colors ${isDark
+                      ? 'bg-indigo-500/10 border-indigo-500/20 group-hover:bg-indigo-500/20 group-hover:border-indigo-500/30 text-indigo-400'
+                      : 'bg-indigo-50 border-indigo-200 group-hover:bg-indigo-100 group-hover:border-indigo-300 text-indigo-600'
+                    }`}>
+                    <ShoppingBag className="w-5 h-5" />
+                    <Globe className="w-2.5 h-2.5 text-white absolute bottom-1 right-1 bg-indigo-600 rounded-full p-0.5" />
+                  </div>
+                  <span className={`text-[10px] font-medium text-center leading-tight ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Webview</span>
+                </button>
+
+                <button onClick={() => { addNode('upsellNode', 'Upsell'); setShowMobileNodeGrid(false); }} className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform group">
+                  <div className={`w-12 h-12 border rounded-2xl flex items-center justify-center shadow-lg relative transition-colors ${isDark
+                      ? 'bg-teal-500/10 border-teal-500/20 group-hover:bg-teal-500/20 group-hover:border-teal-500/30 text-teal-400'
+                      : 'bg-teal-50 border-teal-200 group-hover:bg-teal-100 group-hover:border-teal-300 text-teal-600'
+                    }`}>
+                    <ShoppingCart className="w-5 h-5" />
+                    <ArrowUp className="w-2.5 h-2.5 text-white absolute bottom-1 right-1 bg-teal-600 rounded-full p-0.5" />
+                  </div>
+                  <span className={`text-[10px] font-medium text-center leading-tight ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Upsell</span>
+                </button>
+
+                <button onClick={() => { addNode('downsellNode', 'Downsell'); setShowMobileNodeGrid(false); }} className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform group">
+                  <div className={`w-12 h-12 border rounded-2xl flex items-center justify-center shadow-lg relative transition-colors ${isDark
+                      ? 'bg-orange-500/10 border-orange-500/20 group-hover:bg-orange-500/20 group-hover:border-orange-500/30 text-orange-400'
+                      : 'bg-orange-50 border-orange-200 group-hover:bg-orange-100 group-hover:border-orange-300 text-orange-600'
+                    }`}>
+                    <ShoppingCart className="w-5 h-5" />
+                    <ArrowDown className="w-2.5 h-2.5 text-white absolute bottom-1 right-1 bg-orange-600 rounded-full p-0.5" />
+                  </div>
+                  <span className={`text-[10px] font-medium text-center leading-tight ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Downsell</span>
+                </button>
+
+                <button onClick={() => { addNode('formNode', 'Form'); setShowMobileNodeGrid(false); }} className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform group">
+                  <div className={`w-12 h-12 border rounded-2xl flex items-center justify-center shadow-lg transition-colors ${isDark
+                      ? 'bg-purple-500/10 border-purple-500/20 group-hover:bg-purple-500/20 group-hover:border-purple-500/30 text-purple-400'
+                      : 'bg-purple-50 border-purple-200 group-hover:bg-purple-100 group-hover:border-purple-300 text-purple-600'
+                    }`}>
+                    <FileText className="w-5 h-5" />
+                  </div>
+                  <span className={`text-[10px] font-medium text-center leading-tight ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Form</span>
+                </button>
+
+                <button onClick={() => { addNode('sheetsNode', 'Sheets'); setShowMobileNodeGrid(false); }} className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform group">
+                  <div className={`w-12 h-12 border rounded-2xl flex items-center justify-center shadow-lg transition-colors ${isDark
+                      ? 'bg-green-500/10 border-green-500/20 group-hover:bg-green-500/20 group-hover:border-green-500/30 text-green-400'
+                      : 'bg-green-50 border-green-200 group-hover:bg-green-100 group-hover:border-green-300 text-green-600'
+                    }`}>
+                    <Table className="w-5 h-5" />
+                  </div>
+                  <span className={`text-[10px] font-medium text-center leading-tight ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Sheets</span>
+                </button>
+
+                <button onClick={() => { addNode('invoiceNode', 'Invoice'); setShowMobileNodeGrid(false); }} className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform group">
+                  <div className={`w-12 h-12 border rounded-2xl flex items-center justify-center shadow-lg transition-colors ${isDark
+                      ? 'bg-violet-500/10 border-violet-500/20 group-hover:bg-violet-500/20 group-hover:border-violet-500/30 text-violet-400'
+                      : 'bg-violet-50 border-violet-200 group-hover:bg-violet-100 group-hover:border-violet-300 text-violet-600'
+                    }`}>
+                    <Receipt className="w-5 h-5" />
+                  </div>
+                  <span className={`text-[10px] font-medium text-center leading-tight ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Invoice</span>
+                </button>
+
+                <button onClick={() => { addNode('productNode', 'Product'); setShowMobileNodeGrid(false); }} className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform group">
+                  <div className={`w-12 h-12 border rounded-2xl flex items-center justify-center shadow-lg transition-colors ${isDark
+                      ? 'bg-emerald-500/10 border-emerald-500/20 group-hover:bg-emerald-500/20 group-hover:border-emerald-500/30 text-emerald-400'
+                      : 'bg-emerald-50 border-emerald-200 group-hover:bg-emerald-100 group-hover:border-emerald-300 text-emerald-600'
+                    }`}>
+                    <Package className="w-5 h-5" />
+                  </div>
+                  <span className={`text-[10px] font-medium text-center leading-tight ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Product</span>
+                </button>
+
+                <button onClick={() => { addNode('checkoutNode', 'Checkout'); setShowMobileNodeGrid(false); }} className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform group">
+                  <div className={`w-12 h-12 border rounded-2xl flex items-center justify-center shadow-lg transition-colors ${isDark
+                      ? 'bg-emerald-500/10 border-emerald-500/20 group-hover:bg-emerald-500/20 group-hover:border-emerald-500/30 text-emerald-400'
+                      : 'bg-emerald-50 border-emerald-200 group-hover:bg-emerald-100 group-hover:border-emerald-300 text-emerald-600'
+                    }`}>
+                    <ShoppingCart className="w-5 h-5" />
+                  </div>
+                  <span className={`text-[10px] font-medium text-center leading-tight ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Checkout</span>
+                </button>
+              </div>
+            </div>
+
+            <div className={`p-4 border-t ${isDark ? 'border-white/10 bg-slate-900/50' : 'border-gray-100 bg-white/50'}`}>
+              <button onClick={() => setShowMobileNodeGrid(false)} className={`w-full py-2.5 border rounded-xl font-medium transition-colors text-sm ${isDark
+                  ? 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10 hover:text-white'
+                  : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                }`}>Cancel</button>
             </div>
           </div>
         </div>
