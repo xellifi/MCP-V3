@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, X, MousePointer2 } from 'lucide-react';
 import CollapsibleTips from './CollapsibleTips';
+import { useTheme } from '../context/ThemeContext';
 
 interface ButtonNodeFormProps {
     userId: string;
@@ -16,6 +17,7 @@ const ButtonNodeForm: React.FC<ButtonNodeFormProps> = ({
     initialConfig,
     onChange
 }) => {
+    const { isDark } = useTheme();
     const [messageText, setMessageText] = useState(initialConfig?.messageText || '');
     const [buttons, setButtons] = useState<Array<{ title: string; payload: string }>>(
         initialConfig?.buttons && initialConfig.buttons.length > 0
@@ -58,7 +60,7 @@ const ButtonNodeForm: React.FC<ButtonNodeFormProps> = ({
         <div className="space-y-6">
             {/* Message Text */}
             <div>
-                <label className="block text-sm font-semibold text-slate-300 mb-2">
+                <label className={`block text-sm font-semibold ${isDark ? 'text-slate-300' : 'text-slate-700'} mb-2`}>
                     Message Text
                 </label>
                 <textarea
@@ -66,14 +68,14 @@ const ButtonNodeForm: React.FC<ButtonNodeFormProps> = ({
                     onChange={(e) => handleMessageChange(e.target.value)}
                     placeholder="Enter your message..."
                     rows={3}
-                    className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500/50 outline-none transition-all placeholder-slate-500 resize-y min-h-[80px]"
+                    className={`w-full ${isDark ? 'bg-black/20 border-white/10 text-white placeholder-slate-500' : 'bg-white border-slate-200 text-slate-900 placeholder-slate-400'} border rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500/50 outline-none transition-all resize-y min-h-[80px]`}
                 />
             </div>
 
             {/* Buttons */}
             <div>
                 <div className="flex items-center justify-between mb-3">
-                    <label className="text-sm font-semibold text-slate-300">
+                    <label className={`text-sm font-semibold ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
                         <MousePointer2 className="w-4 h-4 inline mr-2" />
                         Quick Reply Buttons (max 13)
                     </label>
@@ -96,14 +98,14 @@ const ButtonNodeForm: React.FC<ButtonNodeFormProps> = ({
                                 onChange={(e) => updateButton(index, 'title', e.target.value)}
                                 placeholder="Button text"
                                 maxLength={20}
-                                className="flex-1 bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:ring-2 focus:ring-blue-500/50 outline-none"
+                                className={`flex-1 ${isDark ? 'bg-black/20 border-white/10 text-white' : 'bg-white border-slate-200 text-slate-900'} border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500/50 outline-none`}
                             />
                             <input
                                 type="text"
                                 value={button.payload}
                                 onChange={(e) => updateButton(index, 'payload', e.target.value)}
                                 placeholder="Payload (e.g., BUTTON_1)"
-                                className="flex-1 bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:ring-2 focus:ring-blue-500/50 outline-none"
+                                className={`flex-1 ${isDark ? 'bg-black/20 border-white/10 text-white' : 'bg-white border-slate-200 text-slate-900'} border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500/50 outline-none`}
                             />
                             <button
                                 onClick={() => removeButton(index)}

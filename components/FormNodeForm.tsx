@@ -710,7 +710,7 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
 
                 {/* On Open Form Click */}
                 <div className={`mb-4 p-3 border rounded-xl ${isDark ? 'bg-blue-500/10 border-blue-500/20' : 'bg-blue-50 border-blue-200'}`}>
-                    <div className="text-xs font-medium text-blue-300 mb-2">📋 On "Open Form" Button Click</div>
+                    <div className={`text-xs font-bold mb-2 ${isDark ? 'text-blue-300' : 'text-blue-700'}`}>📋 On "Open Form" Button Click</div>
                     <div className="grid grid-cols-2 gap-3">
                         <div>
                             <label className={labelClass}>Add Label</label>
@@ -757,7 +757,7 @@ const FormNodeForm: React.FC<FormNodeFormProps> = ({ workspaceId, initialConfig,
 
                 {/* On Form Submit */}
                 <div className={`p-3 border rounded-xl ${isDark ? 'bg-green-500/10 border-green-500/20' : 'bg-green-50 border-green-200'}`}>
-                    <div className="text-xs font-medium text-green-300 mb-2">✅ On Form Submit (Place Order)</div>
+                    <div className={`text-xs font-bold mb-2 ${isDark ? 'text-green-300' : 'text-green-700'}`}>✅ On Form Submit (Place Order)</div>
                     <div className="grid grid-cols-2 gap-3">
                         <div>
                             <label className={labelClass}>Add Label</label>

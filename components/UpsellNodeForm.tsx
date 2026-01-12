@@ -7,6 +7,8 @@ import {
     ChevronDown, ChevronUp, Clock, Timer, ArrowUp, PlusCircle
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { useTheme } from '../context/ThemeContext';
+
 
 interface UpsellNodeFormProps {
     workspaceId: string;
@@ -106,7 +108,9 @@ const ColorPickerComponent = memo(({
     return (
         <div className="space-y-2">
             <div className="flex items-center justify-between">
-                <label className="block text-xs font-medium text-slate-400">{label}</label>
+                <div className="flex items-center gap-2">
+                    <label className="block text-xs font-medium text-slate-400">{label}</label>
+                </div>
                 {defaultValue && (
                     <button
                         type="button"
@@ -173,17 +177,18 @@ const CollapsibleSection = ({
     defaultOpen?: boolean;
 }) => {
     const [isOpen, setIsOpen] = useState(defaultOpen);
+    const { isDark } = useTheme();
 
     return (
-        <div className="bg-black/20 rounded-xl overflow-hidden border border-white/5">
+        <div className={`${isDark ? 'bg-black/20 border-white/5' : 'bg-slate-50 border-slate-200'} rounded-xl overflow-hidden border`}>
             <button
                 type="button"
                 onClick={() => setIsOpen(!isOpen)}
-                className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-white/5 transition-colors"
+                className={`w-full px-4 py-3 flex items-center justify-between text-left ${isDark ? 'hover:bg-white/5' : 'hover:bg-slate-100'} transition-colors`}
             >
                 <div className="flex items-center gap-2">
                     {Icon && <Icon className="w-4 h-4 text-teal-400" />}
-                    <span className="text-sm font-semibold text-white">{title}</span>
+                    <span className={`text-sm font-semibold ${isDark ? 'text-white' : 'text-slate-900'}`}>{title}</span>
                 </div>
                 {isOpen ? (
                     <ChevronUp className="w-4 h-4 text-slate-400" />
@@ -192,7 +197,7 @@ const CollapsibleSection = ({
                 )}
             </button>
             {isOpen && (
-                <div className="px-4 pb-4 space-y-4 border-t border-white/5">
+                <div className={`px-4 pb-4 space-y-4 border-t ${isDark ? 'border-white/5' : 'border-slate-200'}`}>
                     {children}
                 </div>
             )}
@@ -218,6 +223,7 @@ const UpsellNodeForm: React.FC<UpsellNodeFormProps> = ({
     onChange,
     onClose
 }) => {
+    const { isDark } = useTheme();
     // ================== STATE ==================
     const [headline, setHeadline] = useState(initialConfig?.headline || 'Want to Add this item?');
     const [headlineColor, setHeadlineColor] = useState(initialConfig?.headlineColor || '#ffffff');
@@ -359,12 +365,19 @@ const UpsellNodeForm: React.FC<UpsellNodeFormProps> = ({
 
     const Toggle = ({ value, onChange: onToggle, label }: { value: boolean; onChange: (v: boolean) => void; label: string }) => (
         <div className="flex items-center justify-between">
-            <label className="text-sm font-medium text-slate-300">{label}</label>
-            <button onClick={() => onToggle(!value)} className={`w-12 h-6 rounded-full transition-all ${value ? 'bg-teal-500' : 'bg-slate-600'}`}>
+            <label className={`text-sm font-medium ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>{label}</label>
+            <button onClick={() => onToggle(!value)} className={`w-12 h-6 rounded-full transition-all ${value ? 'bg-teal-500' : (isDark ? 'bg-slate-600' : 'bg-slate-300')}`}>
                 <div className={`w-5 h-5 bg-white rounded-full shadow transition-transform ${value ? 'translate-x-6' : 'translate-x-0.5'}`} />
             </button>
         </div>
     );
+
+    const inputClass = `w-full ${isDark ? 'bg-black/30 border-white/10 text-white' : 'bg-white border-slate-200 text-slate-900'} rounded-lg px-3 py-2 text-sm border focus:outline-none focus:ring-2 focus:ring-teal-500/50`;
+    const labelClass = `block text-xs ${isDark ? 'text-slate-400' : 'text-slate-600'} mb-1`;
+    const sectionBorderClass = isDark ? 'border-white/10' : 'border-slate-200';
+    const buttonBaseClass = `flex-1 py-2 text-xs flex items-center justify-center gap-1 rounded-lg border transition-all`;
+    const activeInfoClass = `bg-teal-500/20 text-teal-400 border-teal-500/50`;
+    const inactiveClass = isDark ? 'bg-black/20 text-slate-400 border-white/10 hover:text-white' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50';
 
     // ================== PREVIEW (DEVICE MOCKUP) ==================
     const deviceSizes = {
@@ -400,12 +413,12 @@ const UpsellNodeForm: React.FC<UpsellNodeFormProps> = ({
         };
         // Desktop has white background, others have dark
         const getScreenBg = () => {
-            return previewDevice === 'desktop' ? 'bg-white' : 'bg-gradient-to-b from-slate-800 to-slate-900';
+            return previewDevice === 'desktop' ? 'bg-white' : 'bg-slate-50';
         };
         const getStatusBarStyle = () => {
             return previewDevice === 'desktop'
                 ? 'text-slate-500 bg-slate-100 border-b border-slate-200'
-                : 'text-white/60';
+                : 'text-slate-900';
         };
 
         // Helper for countdown background gradient
@@ -433,12 +446,12 @@ const UpsellNodeForm: React.FC<UpsellNodeFormProps> = ({
                 <div className="relative" style={{ width: size.width, height: size.height }}>
                     {/* Device Frame */}
                     <div
-                        className={`w-full h-full shadow-2xl border-4 flex flex-col ${previewDevice === 'desktop' ? 'bg-slate-200 border-slate-400' : 'bg-slate-900 border-slate-700'}`}
+                        className={`w-full h-full shadow-2xl border-4 flex flex-col ${previewDevice === 'desktop' ? 'bg-slate-200 border-slate-400' : 'bg-white border-slate-200'}`}
                         style={{ borderRadius: size.radius }}
                     >
                         {/* Notch (mobile only) */}
                         {size.notch && (
-                            <div className="absolute top-2 left-1/2 -translate-x-1/2 w-20 h-5 bg-black rounded-full z-10" />
+                            <div className="absolute top-2 left-1/2 -translate-x-1/2 w-20 h-5 bg-slate-200 rounded-full z-10" />
                         )}
                         {/* Screen */}
                         <div
@@ -704,7 +717,7 @@ const UpsellNodeForm: React.FC<UpsellNodeFormProps> = ({
                             {/* Home indicator (mobile only) */}
                             {size.notch && (
                                 <div className="h-4 flex-shrink-0 flex items-center justify-center">
-                                    <div className="w-20 h-1 bg-white/30 rounded-full" />
+                                    <div className="w-20 h-1 bg-slate-900/20 rounded-full" />
                                 </div>
                             )}
                         </div>
@@ -719,25 +732,25 @@ const UpsellNodeForm: React.FC<UpsellNodeFormProps> = ({
         <CollapsibleSection title="Basic Info" icon={Type} defaultOpen={true}>
             <div>
                 <div className="flex items-center justify-between mb-1">
-                    <label className="text-xs text-slate-400">Headline</label>
+                    <label className={labelClass}>Headline</label>
                     <ResetButton onClick={() => { setHeadline('Want to Add this item?'); notifyChange({ headline: 'Want to Add this item?' }); }} />
                 </div>
                 <input type="text" value={headline}
                     onChange={(e) => { setHeadline(e.target.value); notifyChange({ headline: e.target.value }); }}
                     placeholder="e.g. Want to Add this item?"
-                    className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white" />
-                <p className="text-[10px] text-slate-500 mt-0.5">Shown in yellow banner at top</p>
+                    className={inputClass} />
+                <p className={`text-[10px] ${isDark ? 'text-slate-500' : 'text-slate-400'} mt-0.5`}>Shown in yellow banner at top</p>
             </div>
             <div>
                 <div className="flex items-center justify-between mb-1">
-                    <label className="text-xs text-slate-400">Product Name</label>
+                    <label className={labelClass}>Product Name</label>
                     <ResetButton onClick={() => { setProductName(''); notifyChange({ productName: '' }); }} />
                 </div>
                 <input type="text" value={productName}
                     onChange={(e) => { setProductName(e.target.value); notifyChange({ productName: e.target.value }); }}
                     placeholder="e.g. Premium Korean Sneakers"
-                    className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white" />
-                <p className="text-[10px] text-slate-500 mt-0.5">Shown in green product bar</p>
+                    className={inputClass} />
+                <p className={`text-[10px] ${isDark ? 'text-slate-500' : 'text-slate-400'} mt-0.5`}>Shown in green product bar</p>
             </div>
             <ColorPicker value={headlineColor} onChange={(c) => { setHeadlineColor(c); notifyChange({ headlineColor: c }); }} label="Headline Text Color" defaultValue="#1f2937" allowNone={true} />
             <ColorPicker value={headlineBgColor} onChange={(c) => { setHeadlineBgColor(c); notifyChange({ headlineBgColor: c }); }} label="Headline Banner Color" defaultValue="#fbbf24" allowNone={true} />
@@ -746,7 +759,7 @@ const UpsellNodeForm: React.FC<UpsellNodeFormProps> = ({
                 <div className="flex gap-2">
                     {EMOJI_OPTIONS.map(e => (
                         <button key={e.value} type="button" onClick={() => { setEmojiType(e.value as any); notifyChange({ emojiType: e.value }); }}
-                            className={`w-8 h-8 rounded-lg flex items-center justify-center ${emojiType === e.value ? 'bg-teal-500/30 border-teal-500' : 'bg-black/30 border-white/10'} border`}>
+                            className={`w-8 h-8 rounded-lg flex items-center justify-center border transition-all ${emojiType === e.value ? activeInfoClass : inactiveClass}`}>
                             {e.label}
                         </button>
                     ))}
@@ -754,21 +767,21 @@ const UpsellNodeForm: React.FC<UpsellNodeFormProps> = ({
             )}
             <div>
                 <div className="flex items-center justify-between mb-1">
-                    <label className="text-xs text-slate-400">Price</label>
+                    <label className={labelClass}>Price</label>
                     <ResetButton onClick={() => { setPrice('₱588'); notifyChange({ price: '₱588' }); }} />
                 </div>
                 <input type="text" value={price}
                     onChange={(e) => { setPrice(e.target.value); notifyChange({ price: e.target.value }); }}
-                    className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white" />
+                    className={inputClass} />
             </div>
             <div>
                 <div className="flex items-center justify-between mb-1">
-                    <label className="text-xs text-slate-400">Description</label>
+                    <label className={labelClass}>Description</label>
                     <ResetButton onClick={() => { setDescription('High quality shoes from Korea!'); notifyChange({ description: 'High quality shoes from Korea!' }); }} />
                 </div>
                 <textarea value={description}
                     onChange={(e) => { setDescription(e.target.value); notifyChange({ description: e.target.value }); }}
-                    className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white h-16 resize-none" />
+                    className={`${inputClass} h-16 resize-none`} />
             </div>
             <ColorPicker value={descriptionColor} onChange={(c) => { setDescriptionColor(c); notifyChange({ descriptionColor: c }); }} label="Description Text Color" defaultValue="#ffffff" allowNone={true} />
         </CollapsibleSection>
@@ -777,13 +790,13 @@ const UpsellNodeForm: React.FC<UpsellNodeFormProps> = ({
     const imageSection = (
         <CollapsibleSection title="Product Image" icon={Image} defaultOpen={true}>
             {/* Source Selector - URL, Upload, Gallery */}
-            <div className="flex rounded-lg overflow-hidden border border-white/10">
+            <div className={`flex rounded-lg overflow-hidden border ${isDark ? 'border-white/10' : 'border-slate-200'} p-0.5 gap-0.5`}>
                 <button type="button" onClick={() => { setImageSource('url'); notifyChange({ imageSource: 'url' }); }}
-                    className={`flex-1 py-2 text-xs flex items-center justify-center gap-1 ${imageSource === 'url' ? 'bg-teal-500/20 text-teal-400' : 'bg-black/20 text-slate-400'}`}>
+                    className={`${buttonBaseClass} ${imageSource === 'url' ? activeInfoClass : 'border-transparent hover:bg-black/5 dark:hover:bg-white/5 text-slate-500'}`}>
                     <Link className="w-3 h-3" /> URL
                 </button>
                 <button type="button" onClick={() => { setImageSource('upload'); notifyChange({ imageSource: 'upload' }); }}
-                    className={`flex-1 py-2 text-xs flex items-center justify-center gap-1 ${imageSource === 'upload' ? 'bg-teal-500/20 text-teal-400' : 'bg-black/20 text-slate-400'}`}>
+                    className={`${buttonBaseClass} ${imageSource === 'upload' ? activeInfoClass : 'border-transparent hover:bg-black/5 dark:hover:bg-white/5 text-slate-500'}`}>
                     <Upload className="w-3 h-3" /> Upload
                 </button>
                 <button type="button" onClick={async () => {
@@ -809,7 +822,7 @@ const UpsellNodeForm: React.FC<UpsellNodeFormProps> = ({
                     } catch (e) { console.error('Failed to load gallery:', e); }
                     setLoadingGallery(false);
                 }}
-                    className={`flex-1 py-2 text-xs flex items-center justify-center gap-1 ${imageSource === 'gallery' ? 'bg-teal-500/20 text-teal-400' : 'bg-black/20 text-slate-400'}`}>
+                    className={`${buttonBaseClass} ${imageSource === 'gallery' ? activeInfoClass : 'border-transparent hover:bg-black/5 dark:hover:bg-white/5 text-slate-500'}`}>
                     <Sparkles className="w-3 h-3" /> Gallery
                 </button>
             </div>
@@ -818,7 +831,7 @@ const UpsellNodeForm: React.FC<UpsellNodeFormProps> = ({
             {imageSource === 'url' && (
                 <input type="url" value={imageUrl} placeholder="https://..."
                     onChange={(e) => { setImageUrl(e.target.value); notifyChange({ imageUrl: e.target.value }); }}
-                    className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white" />
+                    className={inputClass} />
             )}
 
             {/* Upload Input */}
@@ -826,7 +839,7 @@ const UpsellNodeForm: React.FC<UpsellNodeFormProps> = ({
                 <div>
                     <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileSelect} className="hidden" />
                     <button type="button" onClick={() => fileInputRef.current?.click()} disabled={isUploading}
-                        className="w-full py-3 border-2 border-dashed border-white/20 rounded-lg text-slate-400 hover:border-teal-500/50 flex items-center justify-center gap-2">
+                        className={`w-full py-3 border-2 border-dashed ${isDark ? 'border-white/20 text-slate-400 hover:border-teal-500/50' : 'border-slate-300 text-slate-500 hover:border-teal-500/50 hover:bg-slate-50'} rounded-lg flex items-center justify-center gap-2 transition-colors`}>
                         {isUploading ? 'Uploading...' : <><Upload className="w-4 h-4" /> Click to upload</>}
                     </button>
                     {uploadError && <p className="text-xs text-red-400 mt-1">{uploadError}</p>}
@@ -837,19 +850,19 @@ const UpsellNodeForm: React.FC<UpsellNodeFormProps> = ({
             {imageSource === 'gallery' && (
                 <div className="space-y-2">
                     {loadingGallery ? (
-                        <div className="text-center py-4 text-slate-400 text-sm">Loading gallery...</div>
+                        <div className={`text-center py-4 ${isDark ? 'text-slate-400' : 'text-slate-500'} text-sm`}>Loading gallery...</div>
                     ) : galleryImages.length === 0 ? (
-                        <div className="text-center py-4 text-slate-400 text-sm">No images in gallery yet. Upload some images first!</div>
+                        <div className={`text-center py-4 ${isDark ? 'text-slate-400' : 'text-slate-500'} text-sm`}>No images in gallery yet. Upload some images first!</div>
                     ) : (
                         <>
-                            <p className="text-[10px] text-slate-500">Click to select, hover to delete</p>
-                            <div className="grid grid-cols-4 gap-2 max-h-48 overflow-y-auto p-1">
+                            <p className={`text-[10px] ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Click to select, hover to delete</p>
+                            <div className="grid grid-cols-4 gap-2 max-h-48 overflow-y-auto p-1 custom-scrollbar">
                                 {galleryImages.map((url, i) => (
                                     <div key={i} className="relative group aspect-square">
                                         <button
                                             type="button"
                                             onClick={() => { setImageUrl(url); notifyChange({ imageUrl: url }); }}
-                                            className={`w-full h-full rounded-lg overflow-hidden border-2 ${imageUrl === url ? 'border-teal-500' : 'border-transparent'} hover:border-teal-500/50 transition-colors`}
+                                            className={`w-full h-full rounded-lg overflow-hidden border-2 ${imageUrl === url ? 'border-teal-500' : 'border-transparent'} hover:border-teal-500/50 transition-colors bg-slate-100 dark:bg-slate-800`}
                                         >
                                             <img src={url} alt="" className="w-full h-full object-cover" />
                                         </button>
@@ -873,23 +886,23 @@ const UpsellNodeForm: React.FC<UpsellNodeFormProps> = ({
             {/* Image Size */}
             <div>
                 <div className="flex items-center justify-between mb-1">
-                    <label className="text-xs text-slate-400">Image Size: {imagePreviewSize}%</label>
+                    <label className={labelClass}>Image Size: {imagePreviewSize}%</label>
                     <ResetButton onClick={() => { setImagePreviewSize(100); notifyChange({ imagePreviewSize: 100 }); }} />
                 </div>
                 <input type="range" min="50" max="150" value={imagePreviewSize}
                     onChange={(e) => { setImagePreviewSize(Number(e.target.value)); notifyChange({ imagePreviewSize: Number(e.target.value) }); }}
-                    className="w-full" />
+                    className="w-full accent-teal-500" />
             </div>
 
             {/* Border Radius */}
             <div>
                 <div className="flex items-center justify-between mb-1">
-                    <label className="text-xs text-slate-400">Border Radius: {imageBorderRadius}px</label>
+                    <label className={labelClass}>Border Radius: {imageBorderRadius}px</label>
                     <ResetButton onClick={() => { setImageBorderRadius(16); notifyChange({ imageBorderRadius: 16 }); }} />
                 </div>
                 <input type="range" min="0" max="50" value={imageBorderRadius}
                     onChange={(e) => { setImageBorderRadius(Number(e.target.value)); notifyChange({ imageBorderRadius: Number(e.target.value) }); }}
-                    className="w-full" />
+                    className="w-full accent-teal-500" />
             </div>
             <ColorPicker value={imageBorderColor} onChange={(c) => { setImageBorderColor(c); notifyChange({ imageBorderColor: c }); }} label="Border Color" defaultValue="#ffffff" allowNone={true} />
         </CollapsibleSection>
@@ -903,14 +916,14 @@ const UpsellNodeForm: React.FC<UpsellNodeFormProps> = ({
             {/* Headline Animation */}
             <div>
                 <div className="flex items-center justify-between mb-1">
-                    <label className="text-xs text-slate-400">Headline Animation</label>
+                    <label className={labelClass}>Headline Animation</label>
                     <ResetButton onClick={() => { setHeadlineAnimation('none'); notifyChange({ headlineAnimation: 'none' }); }} />
                 </div>
                 <div className="flex gap-2">
                     {(['none', 'blink', 'shake'] as const).map(anim => (
                         <button key={anim} type="button"
                             onClick={() => { setHeadlineAnimation(anim); notifyChange({ headlineAnimation: anim }); }}
-                            className={`flex-1 py-2 text-xs rounded-lg capitalize ${headlineAnimation === anim ? 'bg-teal-500/30 border-teal-500' : 'bg-black/30 border-white/10'} border`}>
+                            className={`flex-1 py-2 text-xs rounded-lg capitalize border transition-all ${headlineAnimation === anim ? activeInfoClass : inactiveClass}`}>
                             {anim === 'none' ? '— None' : anim === 'blink' ? '✨ Blink' : '🔔 Shake'}
                         </button>
                     ))}
@@ -922,13 +935,13 @@ const UpsellNodeForm: React.FC<UpsellNodeFormProps> = ({
                 headlineAnimation !== 'none' && (
                     <div>
                         <div className="flex items-center justify-between mb-1">
-                            <label className="text-xs text-slate-400">Speed: {headlineAnimationSpeed} blinks/sec</label>
+                            <label className={labelClass}>Speed: {headlineAnimationSpeed} blinks/sec</label>
                             <ResetButton onClick={() => { setHeadlineAnimationSpeed(2); notifyChange({ headlineAnimationSpeed: 2 }); }} />
                         </div>
                         <input type="range" min="1" max="4" step="0.5" value={headlineAnimationSpeed}
                             onChange={(e) => { setHeadlineAnimationSpeed(Number(e.target.value)); notifyChange({ headlineAnimationSpeed: Number(e.target.value) }); }}
-                            className="w-full" />
-                        <div className="flex justify-between text-[10px] text-slate-500 mt-1">
+                            className="w-full accent-teal-500" />
+                        <div className={`flex justify-between text-[10px] ${isDark ? 'text-slate-500' : 'text-slate-400'} mt-1`}>
                             <span>1/sec (slow)</span>
                             <span>4/sec (fast)</span>
                         </div>
@@ -939,17 +952,17 @@ const UpsellNodeForm: React.FC<UpsellNodeFormProps> = ({
             {/* Price Badge Size */}
             <div>
                 <div className="flex items-center justify-between mb-1">
-                    <label className="text-xs text-slate-400">Price Badge Size: {priceBadgeSize}px</label>
+                    <label className={labelClass}>Price Badge Size: {priceBadgeSize}px</label>
                     <ResetButton onClick={() => { setPriceBadgeSize(80); notifyChange({ priceBadgeSize: 80 }); }} />
                 </div>
                 <input type="range" min="80" max="150" value={priceBadgeSize}
                     onChange={(e) => { setPriceBadgeSize(Number(e.target.value)); notifyChange({ priceBadgeSize: Number(e.target.value) }); }}
-                    className="w-full" />
+                    className="w-full accent-teal-500" />
             </div>
             <ColorPicker value={priceBadgeColor} onChange={(c) => { setPriceBadgeColor(c); notifyChange({ priceBadgeColor: c }); }} label="Price Badge Color" defaultValue="#22c55e" allowNone={true} />
 
             {/* Product Name Bar Options */}
-            <div className="pt-3 border-t border-white/10">
+            <div className={`pt-3 border-t ${sectionBorderClass}`}>
                 <Toggle value={showProductName} onChange={(v) => { setShowProductName(v); notifyChange({ showProductName: v }); }} label="Show Product Name Bar" />
                 {showProductName && (
                     <div className="mt-3 space-y-3">
@@ -957,23 +970,23 @@ const UpsellNodeForm: React.FC<UpsellNodeFormProps> = ({
                         <ColorPicker value={productNameTextColor} onChange={(c) => { setProductNameTextColor(c); notifyChange({ productNameTextColor: c }); }} label="Text Color" defaultValue="#ffffff" allowNone={true} />
                         <div>
                             <div className="flex items-center justify-between mb-1">
-                                <label className="text-xs text-slate-400">Font Size: {productNameFontSize}px</label>
+                                <label className={labelClass}>Font Size: {productNameFontSize}px</label>
                                 <ResetButton onClick={() => { setProductNameFontSize(16); notifyChange({ productNameFontSize: 16 }); }} />
                             </div>
                             <input type="range" min="12" max="28" value={productNameFontSize}
                                 onChange={(e) => { setProductNameFontSize(Number(e.target.value)); notifyChange({ productNameFontSize: Number(e.target.value) }); }}
-                                className="w-full" />
+                                className="w-full accent-teal-500" />
                         </div>
                         <Toggle value={productNameFullWidth} onChange={(v) => { setProductNameFullWidth(v); notifyChange({ productNameFullWidth: v }); }} label="Full Width (Edge-to-Edge)" />
                         {!productNameFullWidth && (
                             <div>
                                 <div className="flex items-center justify-between mb-1">
-                                    <label className="text-xs text-slate-400">Corner Radius: {productNameBorderRadius}px</label>
+                                    <label className={labelClass}>Corner Radius: {productNameBorderRadius}px</label>
                                     <ResetButton onClick={() => { setProductNameBorderRadius(0); notifyChange({ productNameBorderRadius: 0 }); }} />
                                 </div>
                                 <input type="range" min="0" max="24" value={productNameBorderRadius}
                                     onChange={(e) => { setProductNameBorderRadius(Number(e.target.value)); notifyChange({ productNameBorderRadius: Number(e.target.value) }); }}
-                                    className="w-full" />
+                                    className="w-full accent-teal-500" />
                             </div>
                         )}
                     </div>
@@ -981,29 +994,29 @@ const UpsellNodeForm: React.FC<UpsellNodeFormProps> = ({
             </div>
 
             {/* Countdown Timer - Elegant Design */}
-            <div className="pt-3 border-t border-white/10">
+            <div className={`pt-3 border-t ${sectionBorderClass}`}>
                 <Toggle value={showCountdown} onChange={(v) => { setShowCountdown(v); notifyChange({ showCountdown: v }); }} label="⏱️ Countdown Timer" />
                 {showCountdown && (
                     <div className="mt-3 space-y-3">
                         {/* Timer Duration */}
                         <div>
                             <div className="flex items-center justify-between mb-1">
-                                <label className="text-xs text-slate-400">Duration: {countdownMinutes} minutes</label>
+                                <label className={labelClass}>Duration: {countdownMinutes} minutes</label>
                                 <ResetButton onClick={() => { setCountdownMinutes(10); notifyChange({ countdownMinutes: 10 }); }} />
                             </div>
                             <input type="range" min="1" max="60" value={countdownMinutes}
                                 onChange={(e) => { setCountdownMinutes(Number(e.target.value)); notifyChange({ countdownMinutes: Number(e.target.value) }); }}
-                                className="w-full" />
+                                className="w-full accent-teal-500" />
                         </div>
 
                         {/* Timer Position */}
                         <div>
-                            <label className="block text-xs text-slate-400 mb-1">Position</label>
+                            <label className={labelClass}>Position</label>
                             <div className="flex gap-2">
                                 {(['above', 'middle', 'below'] as const).map(pos => (
                                     <button key={pos} type="button"
                                         onClick={() => { setCountdownPosition(pos); notifyChange({ countdownPosition: pos }); }}
-                                        className={`flex-1 py-2 text-xs rounded-lg ${countdownPosition === pos ? 'bg-teal-500/30 border-teal-500' : 'bg-black/30 border-white/10'} border`}>
+                                        className={`flex-1 py-2 text-xs rounded-lg border transition-all ${countdownPosition === pos ? activeInfoClass : inactiveClass}`}>
                                         {pos === 'above' ? '⬆️' : pos === 'middle' ? '↔️' : '⬇️'} {pos.charAt(0).toUpperCase() + pos.slice(1)}
                                     </button>
                                 ))}
@@ -1014,12 +1027,12 @@ const UpsellNodeForm: React.FC<UpsellNodeFormProps> = ({
                         <ColorPicker value={countdownTextColor} onChange={(c) => { setCountdownTextColor(c); notifyChange({ countdownTextColor: c }); }} label="Text Color" defaultValue="#ffffff" allowNone={true} />
                         <div>
                             <div className="flex items-center justify-between mb-1">
-                                <label className="text-xs text-slate-400">Font Size: {countdownFontSize}px</label>
+                                <label className={labelClass}>Font Size: {countdownFontSize}px</label>
                                 <ResetButton onClick={() => { setCountdownFontSize(18); notifyChange({ countdownFontSize: 18 }); }} />
                             </div>
                             <input type="range" min="12" max="32" value={countdownFontSize}
                                 onChange={(e) => { setCountdownFontSize(Number(e.target.value)); notifyChange({ countdownFontSize: Number(e.target.value) }); }}
-                                className="w-full" />
+                                className="w-full accent-teal-500" />
                         </div>
 
                         <Toggle value={countdownShowBg} onChange={(v) => { setCountdownShowBg(v); notifyChange({ countdownShowBg: v }); }} label="Show Background" />
@@ -1028,12 +1041,12 @@ const UpsellNodeForm: React.FC<UpsellNodeFormProps> = ({
                                 <ColorPicker value={countdownBgColor} onChange={(c) => { setCountdownBgColor(c); notifyChange({ countdownBgColor: c }); }} label="Background Color" defaultValue="#ec4899" allowNone={true} />
                                 <div>
                                     <div className="flex items-center justify-between mb-1">
-                                        <label className="text-xs text-slate-400">Corner Radius: {countdownBorderRadius}px</label>
+                                        <label className={labelClass}>Corner Radius: {countdownBorderRadius}px</label>
                                         <ResetButton onClick={() => { setCountdownBorderRadius(12); notifyChange({ countdownBorderRadius: 12 }); }} />
                                     </div>
                                     <input type="range" min="0" max="20" value={countdownBorderRadius}
                                         onChange={(e) => { setCountdownBorderRadius(Number(e.target.value)); notifyChange({ countdownBorderRadius: Number(e.target.value) }); }}
-                                        className="w-full" />
+                                        className="w-full accent-teal-500" />
                                 </div>
                                 <Toggle value={countdownFullWidth} onChange={(v) => { setCountdownFullWidth(v); notifyChange({ countdownFullWidth: v }); }} label="Full Width" />
                             </>
@@ -1042,22 +1055,22 @@ const UpsellNodeForm: React.FC<UpsellNodeFormProps> = ({
                 )}
             </div>
 
-            <div className="pt-3 border-t border-white/10">
-                <label className="block text-xs text-slate-400 mb-1">Button Text</label>
+            <div className={`pt-3 border-t ${sectionBorderClass}`}>
+                <label className={labelClass}>Button Text</label>
                 <input type="text" value={buttonText}
                     onChange={(e) => { setButtonText(e.target.value); notifyChange({ buttonText: e.target.value }); }}
-                    className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white" />
+                    className={inputClass} />
             </div>
             <ColorPicker value={buttonBgColor} onChange={(c) => { setButtonBgColor(c); notifyChange({ buttonBgColor: c }); }} label="Button Color" defaultValue="#16a34a" allowNone={true} />
             <Toggle value={showButtonIcon} onChange={(v) => { setShowButtonIcon(v); notifyChange({ showButtonIcon: v }); }} label="Show Button Icon" />
             <div>
                 <div className="flex items-center justify-between mb-1">
-                    <label className="text-xs text-slate-400">Button Radius: {buttonBorderRadius}px</label>
+                    <label className={labelClass}>Button Radius: {buttonBorderRadius}px</label>
                     <ResetButton onClick={() => { setButtonBorderRadius(12); notifyChange({ buttonBorderRadius: 12 }); }} />
                 </div>
                 <input type="range" min="0" max="24" value={buttonBorderRadius}
                     onChange={(e) => { setButtonBorderRadius(Number(e.target.value)); notifyChange({ buttonBorderRadius: Number(e.target.value) }); }}
-                    className="w-full" />
+                    className="w-full accent-teal-500" />
             </div>
         </CollapsibleSection>
     );
@@ -1066,17 +1079,17 @@ const UpsellNodeForm: React.FC<UpsellNodeFormProps> = ({
         <CollapsibleSection title="Cart Action" icon={ShoppingCart} defaultOpen={false}>
             <div className="grid grid-cols-2 gap-2">
                 <button onClick={() => { setCartAction('add'); notifyChange({ cartAction: 'add' }); }}
-                    className={`p-3 rounded-lg border text-left ${cartAction === 'add' ? 'bg-teal-500/20 border-teal-500/50' : 'bg-black/30 border-white/10'}`}>
-                    <div className="text-sm font-medium text-white">➕ Add</div>
-                    <div className="text-xs text-slate-400">Add to cart</div>
+                    className={`p-3 rounded-lg border text-left transition-all ${cartAction === 'add' ? activeInfoClass : inactiveClass}`}>
+                    <div className={`text-sm font-medium ${isDark ? 'text-white' : 'text-slate-900'}`}>➕ Add</div>
+                    <div className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Add to cart</div>
                 </button>
                 <button onClick={() => { setCartAction('replace'); notifyChange({ cartAction: 'replace' }); }}
-                    className={`p-3 rounded-lg border text-left ${cartAction === 'replace' ? 'bg-orange-500/20 border-orange-500/50' : 'bg-black/30 border-white/10'}`}>
-                    <div className="text-sm font-medium text-white">🔄 Replace</div>
-                    <div className="text-xs text-slate-400">Replace main</div>
+                    className={`p-3 rounded-lg border text-left transition-all ${cartAction === 'replace' ? 'bg-orange-500/20 border-orange-500/50 text-orange-500' : inactiveClass}`}>
+                    <div className={`text-sm font-medium ${isDark ? 'text-white' : 'text-slate-900'}`}>🔄 Replace</div>
+                    <div className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Replace main</div>
                 </button>
             </div>
-            <div className="pt-3 border-t border-white/10">
+            <div className={`pt-3 border-t ${sectionBorderClass}`}>
                 <Toggle value={useWebview} onChange={(v) => { setUseWebview(v); notifyChange({ useWebview: v }); }} label="Use Webview Display" />
                 {useWebview && (
                     <div className="mt-2 p-2 bg-teal-500/10 border border-teal-500/30 rounded-lg">
@@ -1122,26 +1135,26 @@ const UpsellNodeForm: React.FC<UpsellNodeFormProps> = ({
     // Desktop: Responsive modal width based on device selector
     if (isDesktop) {
         return (
-            <div className="fixed inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 z-50 p-[15px] flex items-center justify-center">
-                <div className={`w-full ${modalWidths[previewDevice]} h-full max-h-full flex flex-col bg-slate-800/50 rounded-2xl border border-white/10 overflow-hidden transition-all duration-300`}>
+            <div className={`fixed inset-0 z-50 p-[15px] flex items-center justify-center ${isDark ? 'bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900' : 'bg-slate-100/50 backdrop-blur-sm'}`}>
+                <div className={`w-full ${modalWidths[previewDevice]} h-full max-h-full flex flex-col ${isDark ? 'bg-slate-800/50 border-white/10' : 'bg-white border-slate-200 shadow-xl'} rounded-2xl border overflow-hidden transition-all duration-300`}>
                     {/* Header with Device Switcher */}
-                    <div className="flex-shrink-0 h-14 border-b border-white/10 flex items-center px-4 gap-4">
+                    <div className={`flex-shrink-0 h-14 border-b ${isDark ? 'border-white/10' : 'border-slate-200'} flex items-center px-4 gap-4`}>
                         {/* Left: Title */}
                         <div className="flex items-center gap-3 min-w-0 flex-shrink-0">
                             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center relative">
                                 <ShoppingCart className="w-4 h-4 text-white" />
                                 <ArrowUp className="w-2.5 h-2.5 text-white absolute -bottom-0.5 -right-0.5 bg-green-600 rounded-full p-0.5" />
                             </div>
-                            <span className="text-base font-bold text-white whitespace-nowrap">Upsell</span>
+                            <span className={`text-base font-bold ${isDark ? 'text-white' : 'text-slate-900'} whitespace-nowrap`}>Upsell</span>
                         </div>
 
                         {/* Center: Device Switcher */}
                         <div className="flex-1 flex justify-center">
-                            <div className="flex items-center gap-1 bg-slate-700/50 rounded-lg p-1 border border-white/10">
+                            <div className={`flex items-center gap-1 ${isDark ? 'bg-slate-700/50 border-white/10' : 'bg-slate-100 border-slate-200'} rounded-lg p-1 border`}>
                                 <button
                                     type="button"
                                     onClick={() => setPreviewDevice('mobile')}
-                                    className={`p-2 rounded-md transition-all ${previewDevice === 'mobile' ? 'bg-teal-500 text-white' : 'text-slate-400 hover:text-white hover:bg-white/10'}`}
+                                    className={`p-2 rounded-md transition-all ${previewDevice === 'mobile' ? 'bg-teal-500 text-white' : `${isDark ? 'text-slate-400 hover:text-white hover:bg-white/10' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-200'}`}`}
                                     title="Mobile"
                                 >
                                     <Smartphone className="w-4 h-4" />
@@ -1149,7 +1162,7 @@ const UpsellNodeForm: React.FC<UpsellNodeFormProps> = ({
                                 <button
                                     type="button"
                                     onClick={() => setPreviewDevice('tablet')}
-                                    className={`p-2 rounded-md transition-all ${previewDevice === 'tablet' ? 'bg-teal-500 text-white' : 'text-slate-400 hover:text-white hover:bg-white/10'}`}
+                                    className={`p-2 rounded-md transition-all ${previewDevice === 'tablet' ? 'bg-teal-500 text-white' : `${isDark ? 'text-slate-400 hover:text-white hover:bg-white/10' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-200'}`}`}
                                     title="Tablet"
                                 >
                                     <Tablet className="w-4 h-4" />
@@ -1157,7 +1170,7 @@ const UpsellNodeForm: React.FC<UpsellNodeFormProps> = ({
                                 <button
                                     type="button"
                                     onClick={() => setPreviewDevice('desktop')}
-                                    className={`p-2 rounded-md transition-all ${previewDevice === 'desktop' ? 'bg-teal-500 text-white' : 'text-slate-400 hover:text-white hover:bg-white/10'}`}
+                                    className={`p-2 rounded-md transition-all ${previewDevice === 'desktop' ? 'bg-teal-500 text-white' : `${isDark ? 'text-slate-400 hover:text-white hover:bg-white/10' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-200'}`}`}
                                     title="Desktop"
                                 >
                                     <Monitor className="w-4 h-4" />
@@ -1192,7 +1205,7 @@ const UpsellNodeForm: React.FC<UpsellNodeFormProps> = ({
                                 <button
                                     type="button"
                                     onClick={onClose}
-                                    className="p-1.5 hover:bg-white/10 rounded-lg text-slate-400 hover:text-white transition-colors"
+                                    className={`p-1.5 rounded-lg transition-colors ${isDark ? 'hover:bg-white/10 text-slate-400 hover:text-white' : 'hover:bg-slate-100 text-slate-500 hover:text-slate-900'}`}
                                     title="Close"
                                 >
                                     <X className="w-4 h-4" />
@@ -1213,45 +1226,45 @@ const UpsellNodeForm: React.FC<UpsellNodeFormProps> = ({
                     {previewDevice === 'desktop' ? (
                         // Desktop: 3-Column Layout
                         <div className="flex-1 grid grid-cols-12 gap-0 overflow-hidden">
-                            <div className="col-span-4 border-r border-white/10 p-6 overflow-y-auto custom-scrollbar">
+                            <div className={`col-span-4 border-r ${isDark ? 'border-white/10' : 'border-slate-200'} p-6 overflow-y-auto custom-scrollbar`}>
                                 {basicSection}
-                                <div className="mt-6 pt-6 border-t border-white/10">
+                                <div className={`mt-6 pt-6 border-t ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
                                     {imageSection}
                                 </div>
                             </div>
-                            <div className="col-span-4 border-r border-white/10 p-6 overflow-y-auto custom-scrollbar">
+                            <div className={`col-span-4 border-r ${isDark ? 'border-white/10' : 'border-slate-200'} p-6 overflow-y-auto custom-scrollbar`}>
                                 {styleSection}
-                                <div className="mt-6 pt-6 border-t border-white/10">
+                                <div className={`mt-6 pt-6 border-t ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
                                     {actionSection}
                                 </div>
                             </div>
-                            <div className="col-span-4 p-6 flex items-center justify-center bg-slate-950/50 overflow-auto">
+                            <div className={`col-span-4 p-6 flex items-center justify-center overflow-auto ${isDark ? 'bg-slate-950/50' : 'bg-slate-50'}`}>
                                 <DevicePreview />
                             </div>
                         </div>
                     ) : previewDevice === 'tablet' ? (
                         // Tablet: 2-Column Layout
                         <div className="flex-1 grid grid-cols-2 gap-0 overflow-hidden">
-                            <div className="border-r border-white/10 p-4 overflow-y-auto custom-scrollbar space-y-4">
+                            <div className={`border-r ${isDark ? 'border-white/10' : 'border-slate-200'} p-4 overflow-y-auto custom-scrollbar space-y-4`}>
                                 {basicSection}
-                                <div className="pt-4 border-t border-white/10">{imageSection}</div>
-                                <div className="pt-4 border-t border-white/10">{styleSection}</div>
-                                <div className="pt-4 border-t border-white/10">{actionSection}</div>
+                                <div className={`pt-4 border-t ${isDark ? 'border-white/10' : 'border-slate-200'}`}>{imageSection}</div>
+                                <div className={`pt-4 border-t ${isDark ? 'border-white/10' : 'border-slate-200'}`}>{styleSection}</div>
+                                <div className={`pt-4 border-t ${isDark ? 'border-white/10' : 'border-slate-200'}`}>{actionSection}</div>
                             </div>
-                            <div className="p-4 flex items-center justify-center bg-slate-950/50 overflow-auto">
+                            <div className={`p-4 flex items-center justify-center overflow-auto ${isDark ? 'bg-slate-950/50' : 'bg-slate-50'}`}>
                                 <DevicePreview />
                             </div>
                         </div>
                     ) : (
                         // Mobile: 2-Column Layout (same as tablet - side by side)
                         <div className="flex-1 grid grid-cols-2 gap-0 overflow-hidden">
-                            <div className="border-r border-white/10 p-4 overflow-y-auto custom-scrollbar space-y-4">
+                            <div className={`border-r ${isDark ? 'border-white/10' : 'border-slate-200'} p-4 overflow-y-auto custom-scrollbar space-y-4`}>
                                 {basicSection}
-                                <div className="pt-4 border-t border-white/10">{imageSection}</div>
-                                <div className="pt-4 border-t border-white/10">{styleSection}</div>
-                                <div className="pt-4 border-t border-white/10">{actionSection}</div>
+                                <div className={`pt-4 border-t ${isDark ? 'border-white/10' : 'border-slate-200'}`}>{imageSection}</div>
+                                <div className={`pt-4 border-t ${isDark ? 'border-white/10' : 'border-slate-200'}`}>{styleSection}</div>
+                                <div className={`pt-4 border-t ${isDark ? 'border-white/10' : 'border-slate-200'}`}>{actionSection}</div>
                             </div>
-                            <div className="p-4 flex items-center justify-center bg-slate-950/50 overflow-auto">
+                            <div className={`p-4 flex items-center justify-center overflow-auto ${isDark ? 'bg-slate-950/50' : 'bg-slate-50'}`}>
                                 <DevicePreview />
                             </div>
                         </div>
@@ -1276,10 +1289,10 @@ const UpsellNodeForm: React.FC<UpsellNodeFormProps> = ({
 
     if (showMobilePreview) {
         return (
-            <div className="min-h-screen bg-slate-900 p-4">
+            <div className={`min-h-screen ${isDark ? 'bg-slate-900' : 'bg-slate-50'} p-4`}>
                 <div className="flex items-center justify-between mb-4">
                     <button onClick={() => setShowMobilePreview(false)}
-                        className="flex items-center gap-2 text-slate-400 text-sm">
+                        className={`flex items-center gap-2 text-sm ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
                         <ChevronLeft className="w-4 h-4" /> Back to Editor
                     </button>
                     <button onClick={openLivePreview}
@@ -1295,11 +1308,11 @@ const UpsellNodeForm: React.FC<UpsellNodeFormProps> = ({
     }
 
     return (
-        <div className="min-h-screen bg-slate-900 flex flex-col">
+        <div className={`min-h-screen flex flex-col ${isDark ? 'bg-slate-900' : 'bg-slate-50'}`}>
             {/* Progress Bar */}
-            <div className="p-4 border-b border-white/10">
+            <div className={`p-4 border-b ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
                 <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-white font-medium">Step {mobileStep + 1} of {WIZARD_STEPS.length}</span>
+                    <span className={`text-sm font-medium ${isDark ? 'text-white' : 'text-slate-900'}`}>Step {mobileStep + 1} of {WIZARD_STEPS.length}</span>
                     <div className="flex items-center gap-2">
                         <button onClick={() => setShowMobilePreview(true)}
                             className="flex items-center gap-1 text-xs text-teal-400 bg-teal-500/20 px-2 py-1 rounded-lg">
@@ -1312,12 +1325,12 @@ const UpsellNodeForm: React.FC<UpsellNodeFormProps> = ({
                         </button>
                     </div>
                 </div>
-                <div className="h-1 bg-slate-700 rounded-full overflow-hidden">
+                <div className={`h-1 rounded-full overflow-hidden ${isDark ? 'bg-slate-700' : 'bg-slate-200'}`}>
                     <div className="h-full bg-teal-500 transition-all" style={{ width: `${((mobileStep + 1) / WIZARD_STEPS.length) * 100}%` }} />
                 </div>
                 <div className="flex mt-2">
                     {WIZARD_STEPS.map((step, i) => (
-                        <div key={step.id} className={`flex-1 text-center text-[10px] ${i <= mobileStep ? 'text-teal-400' : 'text-slate-500'}`}>
+                        <div key={step.id} className={`flex-1 text-center text-[10px] ${i <= mobileStep ? 'text-teal-400' : isDark ? 'text-slate-500' : 'text-slate-400'}`}>
                             {step.title}
                         </div>
                     ))}
@@ -1330,9 +1343,9 @@ const UpsellNodeForm: React.FC<UpsellNodeFormProps> = ({
             </div>
 
             {/* Navigation */}
-            <div className="flex-shrink-0 p-4 border-t border-white/10 flex gap-3">
+            <div className={`flex-shrink-0 p-4 border-t flex gap-3 ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
                 <button onClick={() => setMobileStep(Math.max(0, mobileStep - 1))} disabled={mobileStep === 0}
-                    className={`flex-1 py-3 rounded-lg flex items-center justify-center gap-2 ${mobileStep === 0 ? 'bg-slate-700 text-slate-500' : 'bg-slate-700 text-white'}`}>
+                    className={`flex-1 py-3 rounded-lg flex items-center justify-center gap-2 ${mobileStep === 0 ? isDark ? 'bg-slate-700 text-slate-500' : 'bg-slate-200 text-slate-400' : isDark ? 'bg-slate-700 text-white' : 'bg-slate-200 text-slate-900'}`}>
                     <ChevronLeft className="w-4 h-4" /> Back
                 </button>
                 {mobileStep < WIZARD_STEPS.length - 1 ? (

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { RefreshCw, Clock, MessageSquare, Info, Plus, Trash2, Tag, AlertTriangle, ChevronDown, ChevronUp } from 'lucide-react';
+import { useTheme } from '../context/ThemeContext';
 
 interface ScheduledFollowup {
     id: string;
@@ -65,6 +66,7 @@ const DAY_OPTIONS = [
 ];
 
 const FollowupNodeForm: React.FC<FollowupNodeFormProps> = ({ config, onChange }) => {
+    const { isDark } = useTheme();
     const [expandedId, setExpandedId] = useState<string | null>(null);
 
     const scheduledFollowups: ScheduledFollowup[] = config.scheduledFollowups || [];
@@ -111,13 +113,14 @@ const FollowupNodeForm: React.FC<FollowupNodeFormProps> = ({ config, onChange })
     return (
         <div className="space-y-6">
             {/* Header */}
-            <div className="flex items-center gap-3 pb-4 border-b border-white/10">
-                <div className="p-3 bg-rose-500/20 rounded-xl">
-                    <RefreshCw className="w-6 h-6 text-rose-400" />
+            {/* Header */}
+            <div className={`flex items-center gap-3 pb-4 border-b ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
+                <div className="p-3 bg-blue-500/10 rounded-xl">
+                    <RefreshCw className="w-6 h-6 text-blue-600" />
                 </div>
                 <div>
-                    <h3 className="text-lg font-bold text-white">Follow-up Node</h3>
-                    <p className="text-sm text-slate-400">
+                    <h3 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>Follow-up Node</h3>
+                    <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                         Schedule reminders for abandoned forms
                     </p>
                 </div>
@@ -126,10 +129,10 @@ const FollowupNodeForm: React.FC<FollowupNodeFormProps> = ({ config, onChange })
             {/* Info Box */}
             <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4">
                 <div className="flex items-start gap-3">
-                    <Info className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
-                    <div className="text-sm text-blue-200">
+                    <Info className={`w-5 h-5 flex-shrink-0 mt-0.5 ${isDark ? 'text-blue-400' : 'text-blue-600'}`} />
+                    <div className={`text-sm ${isDark ? 'text-blue-200' : 'text-blue-900'}`}>
                         <p className="font-medium mb-1">How it works:</p>
-                        <ul className="text-blue-300/80 space-y-1 text-xs">
+                        <ul className={`space-y-1 text-xs ${isDark ? 'text-blue-300/80' : 'text-blue-700/80'}`}>
                             <li>• Click <strong>+ Add Follow-up</strong> to create scheduled messages</li>
                             <li>• Messages within 24hr: send anytime (promotional OK)</li>
                             <li>• Messages outside 24hr: require Message Tags (non-promotional only)</li>
@@ -141,13 +144,13 @@ const FollowupNodeForm: React.FC<FollowupNodeFormProps> = ({ config, onChange })
             {/* Scheduled Follow-ups List */}
             <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-white font-semibold">
-                        <Clock className="w-4 h-4 text-rose-400" />
+                    <div className={`flex items-center gap-2 font-semibold ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                        <Clock className="w-4 h-4 text-blue-500" />
                         Scheduled Follow-ups
                     </div>
                     <button
                         onClick={handleAddFollowup}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 rounded-lg text-sm font-medium transition-colors"
+                        className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors shadow-lg shadow-blue-500/20"
                     >
                         <Plus className="w-4 h-4" />
                         Add Follow-up
@@ -155,10 +158,10 @@ const FollowupNodeForm: React.FC<FollowupNodeFormProps> = ({ config, onChange })
                 </div>
 
                 {scheduledFollowups.length === 0 ? (
-                    <div className="bg-slate-800/50 border border-dashed border-slate-600 rounded-xl p-6 text-center">
-                        <MessageSquare className="w-8 h-8 text-slate-500 mx-auto mb-2" />
-                        <p className="text-slate-400 text-sm">No follow-ups scheduled</p>
-                        <p className="text-slate-500 text-xs mt-1">Click + Add Follow-up to create one</p>
+                    <div className={`${isDark ? 'bg-slate-800/50 border-slate-600' : 'bg-slate-50 border-slate-200'} border border-dashed rounded-xl p-6 text-center`}>
+                        <MessageSquare className={`w-8 h-8 mx-auto mb-2 ${isDark ? 'text-slate-500' : 'text-slate-400'}`} />
+                        <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>No follow-ups scheduled</p>
+                        <p className={`text-xs mt-1 ${isDark ? 'text-slate-500' : 'text-slate-500'}`}>Click + Add Follow-up to create one</p>
                     </div>
                 ) : (
                     <div className="space-y-3">
@@ -170,32 +173,32 @@ const FollowupNodeForm: React.FC<FollowupNodeFormProps> = ({ config, onChange })
                             return (
                                 <div
                                     key={followup.id}
-                                    className={`bg-slate-800/60 border rounded-xl overflow-hidden transition-all ${needsTag ? 'border-amber-500/50' : 'border-slate-600/50'
+                                    className={`border rounded-xl overflow-hidden transition-all ${isDark ? 'bg-slate-800/60' : 'bg-white'} ${needsTag ? 'border-amber-500/50' : (isDark ? 'border-slate-600/50' : 'border-slate-200')
                                         }`}
                                 >
                                     {/* Header */}
                                     <div
-                                        className="flex items-center gap-3 p-4 cursor-pointer hover:bg-white/5 transition-colors"
+                                        className={`flex items-center gap-3 p-4 cursor-pointer transition-colors ${isDark ? 'hover:bg-white/5' : 'hover:bg-slate-50'}`}
                                         onClick={() => setExpandedId(isExpanded ? null : followup.id)}
                                     >
-                                        <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-rose-500/20 text-rose-300 font-bold text-sm">
+                                        <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-blue-500/10 text-blue-600 font-bold text-sm">
                                             #{index + 1}
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-center gap-2">
-                                                <span className="text-white font-medium text-sm">
+                                                <span className={`font-medium text-sm ${isDark ? 'text-white' : 'text-slate-900'}`}>
                                                     {followup.type === 'delay'
                                                         ? `${followup.delayMinutes} minutes after open`
                                                         : `Day ${followup.scheduledDays} at ${TIME_OPTIONS.find(t => t.value === followup.scheduledTime)?.label || followup.scheduledTime}`
                                                     }
                                                 </span>
                                                 {outside24 && (
-                                                    <span className="px-2 py-0.5 bg-purple-500/20 text-purple-300 text-xs rounded-full">
+                                                    <span className="px-2 py-0.5 bg-purple-600 text-white text-xs rounded-full shadow-sm">
                                                         Outside 24hr
                                                     </span>
                                                 )}
                                             </div>
-                                            <p className="text-slate-400 text-xs truncate mt-0.5">
+                                            <p className={`text-xs truncate mt-0.5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                                                 {followup.message || 'No message set'}
                                             </p>
                                         </div>
@@ -217,16 +220,16 @@ const FollowupNodeForm: React.FC<FollowupNodeFormProps> = ({ config, onChange })
 
                                     {/* Expanded Content */}
                                     {isExpanded && (
-                                        <div className="px-4 pb-4 space-y-4 border-t border-slate-700/50 pt-4">
+                                        <div className={`px-4 pb-4 space-y-4 border-t pt-4 ${isDark ? 'border-slate-700/50' : 'border-slate-100'}`}>
                                             {/* Type Selector */}
                                             <div>
-                                                <label className="block text-xs font-medium text-slate-400 mb-2">Send Type</label>
+                                                <label className={`block text-xs font-medium mb-2 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Send Type</label>
                                                 <div className="grid grid-cols-2 gap-2">
                                                     <button
                                                         onClick={() => handleUpdateFollowup(followup.id, 'type', 'delay')}
                                                         className={`p-3 rounded-lg border text-sm font-medium transition-all ${followup.type === 'delay'
-                                                            ? 'bg-rose-500/20 border-rose-500/50 text-rose-300'
-                                                            : 'bg-slate-700/50 border-slate-600 text-slate-400 hover:border-slate-500'
+                                                            ? (isDark ? 'bg-blue-500/20 border-blue-500/50 text-blue-300' : 'bg-blue-50 border-blue-200 text-blue-700')
+                                                            : (isDark ? 'bg-slate-700/50 border-slate-600 text-slate-400 hover:border-slate-500' : 'bg-slate-50 border-slate-200 text-slate-600 hover:border-slate-300')
                                                             }`}
                                                     >
                                                         ⏱️ Delay-based
@@ -234,8 +237,8 @@ const FollowupNodeForm: React.FC<FollowupNodeFormProps> = ({ config, onChange })
                                                     <button
                                                         onClick={() => handleUpdateFollowup(followup.id, 'type', 'scheduled')}
                                                         className={`p-3 rounded-lg border text-sm font-medium transition-all ${followup.type === 'scheduled'
-                                                            ? 'bg-rose-500/20 border-rose-500/50 text-rose-300'
-                                                            : 'bg-slate-700/50 border-slate-600 text-slate-400 hover:border-slate-500'
+                                                            ? (isDark ? 'bg-blue-500/20 border-blue-500/50 text-blue-300' : 'bg-blue-50 border-blue-200 text-blue-700')
+                                                            : (isDark ? 'bg-slate-700/50 border-slate-600 text-slate-400 hover:border-slate-500' : 'bg-slate-50 border-slate-200 text-slate-600 hover:border-slate-300')
                                                             }`}
                                                     >
                                                         📅 Specific Time
@@ -246,7 +249,7 @@ const FollowupNodeForm: React.FC<FollowupNodeFormProps> = ({ config, onChange })
                                             {/* Delay-based settings */}
                                             {followup.type === 'delay' && (
                                                 <div>
-                                                    <label className="block text-xs font-medium text-slate-400 mb-2">
+                                                    <label className={`block text-xs font-medium mb-2 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                                                         Minutes after form opened
                                                     </label>
                                                     <input
@@ -255,7 +258,7 @@ const FollowupNodeForm: React.FC<FollowupNodeFormProps> = ({ config, onChange })
                                                         onChange={(e) => handleUpdateFollowup(followup.id, 'delayMinutes', parseInt(e.target.value) || 30)}
                                                         min={1}
                                                         max={10080}
-                                                        className="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-4 py-2.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-rose-500/50"
+                                                        className={`w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 ${isDark ? 'bg-slate-700/50 border-slate-600 text-white' : 'bg-white border-slate-200 text-slate-900'}`}
                                                     />
                                                     <p className="text-xs text-slate-500 mt-1">
                                                         1-1380 min = within 24hr | 1381+ min = requires Message Tag
@@ -267,11 +270,11 @@ const FollowupNodeForm: React.FC<FollowupNodeFormProps> = ({ config, onChange })
                                             {followup.type === 'scheduled' && (
                                                 <div className="grid grid-cols-2 gap-3">
                                                     <div>
-                                                        <label className="block text-xs font-medium text-slate-400 mb-2">Day</label>
+                                                        <label className={`block text-xs font-medium mb-2 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Day</label>
                                                         <select
                                                             value={followup.scheduledDays}
                                                             onChange={(e) => handleUpdateFollowup(followup.id, 'scheduledDays', parseInt(e.target.value))}
-                                                            className="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-3 py-2.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-rose-500/50 appearance-none cursor-pointer"
+                                                            className={`w-full border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 appearance-none cursor-pointer ${isDark ? 'bg-slate-700/50 border-slate-600 text-white' : 'bg-white border-slate-200 text-slate-900'}`}
                                                             style={{
                                                                 backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%239ca3af' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
                                                                 backgroundPosition: 'right 0.5rem center',
@@ -281,16 +284,16 @@ const FollowupNodeForm: React.FC<FollowupNodeFormProps> = ({ config, onChange })
                                                             }}
                                                         >
                                                             {DAY_OPTIONS.map(opt => (
-                                                                <option key={opt.value} value={opt.value} className="bg-slate-800">{opt.label}</option>
+                                                                <option key={opt.value} value={opt.value} className={isDark ? 'bg-slate-800' : 'bg-white'}>{opt.label}</option>
                                                             ))}
                                                         </select>
                                                     </div>
                                                     <div>
-                                                        <label className="block text-xs font-medium text-slate-400 mb-2">Time (user's timezone)</label>
+                                                        <label className={`block text-xs font-medium mb-2 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Time (user's timezone)</label>
                                                         <select
                                                             value={followup.scheduledTime}
                                                             onChange={(e) => handleUpdateFollowup(followup.id, 'scheduledTime', e.target.value)}
-                                                            className="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-3 py-2.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-rose-500/50 appearance-none cursor-pointer"
+                                                            className={`w-full border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 appearance-none cursor-pointer ${isDark ? 'bg-slate-700/50 border-slate-600 text-white' : 'bg-white border-slate-200 text-slate-900'}`}
                                                             style={{
                                                                 backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%239ca3af' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
                                                                 backgroundPosition: 'right 0.5rem center',
@@ -300,7 +303,7 @@ const FollowupNodeForm: React.FC<FollowupNodeFormProps> = ({ config, onChange })
                                                             }}
                                                         >
                                                             {TIME_OPTIONS.map(opt => (
-                                                                <option key={opt.value} value={opt.value} className="bg-slate-800">{opt.label}</option>
+                                                                <option key={opt.value} value={opt.value} className={isDark ? 'bg-slate-800' : 'bg-white'}>{opt.label}</option>
                                                             ))}
                                                         </select>
                                                     </div>
@@ -312,13 +315,12 @@ const FollowupNodeForm: React.FC<FollowupNodeFormProps> = ({ config, onChange })
                                                 <div>
                                                     <div className="flex items-center gap-2 mb-2">
                                                         <Tag className="w-3.5 h-3.5 text-purple-400" />
-                                                        <label className="text-xs font-medium text-slate-400">Message Tag (required for outside 24hr)</label>
+                                                        <label className={`text-xs font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Message Tag (required for outside 24hr)</label>
                                                     </div>
                                                     <select
                                                         value={followup.messageTag}
                                                         onChange={(e) => handleUpdateFollowup(followup.id, 'messageTag', e.target.value)}
-                                                        className={`w-full bg-slate-700/50 border rounded-lg px-3 py-2.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-rose-500/50 appearance-none cursor-pointer ${needsTag ? 'border-amber-500/50' : 'border-slate-600'
-                                                            }`}
+                                                        className={`w-full border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 appearance-none cursor-pointer ${needsTag ? 'border-amber-500/50' : (isDark ? 'border-slate-600' : 'border-slate-200')} ${isDark ? 'bg-slate-700/50 text-white' : 'bg-white text-slate-900'}`}
                                                         style={{
                                                             backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%239ca3af' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
                                                             backgroundPosition: 'right 0.5rem center',
@@ -328,7 +330,7 @@ const FollowupNodeForm: React.FC<FollowupNodeFormProps> = ({ config, onChange })
                                                         }}
                                                     >
                                                         {MESSAGE_TAGS.map(tag => (
-                                                            <option key={tag.value} value={tag.value} className="bg-slate-800">{tag.label}</option>
+                                                            <option key={tag.value} value={tag.value} className={isDark ? 'bg-slate-800' : 'bg-white'}>{tag.label}</option>
                                                         ))}
                                                     </select>
                                                     {followup.messageTag && (
@@ -348,7 +350,7 @@ const FollowupNodeForm: React.FC<FollowupNodeFormProps> = ({ config, onChange })
 
                                             {/* Message */}
                                             <div>
-                                                <label className="block text-xs font-medium text-slate-400 mb-2">
+                                                <label className={`block text-xs font-medium mb-2 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                                                     <MessageSquare className="w-3.5 h-3.5 inline mr-1" />
                                                     Message
                                                 </label>
@@ -356,7 +358,7 @@ const FollowupNodeForm: React.FC<FollowupNodeFormProps> = ({ config, onChange })
                                                     value={followup.message}
                                                     onChange={(e) => handleUpdateFollowup(followup.id, 'message', e.target.value)}
                                                     rows={3}
-                                                    className="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-4 py-2.5 text-white text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-rose-500/50 resize-none"
+                                                    className={`w-full border rounded-lg px-4 py-2.5 text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 resize-none ${isDark ? 'bg-slate-700/50 border-slate-600 text-white' : 'bg-white border-slate-200 text-slate-900'}`}
                                                     placeholder="Hey {commenter_name}! 👋 Your cart is waiting..."
                                                 />
                                                 <p className="text-xs text-slate-500 mt-1">
@@ -365,9 +367,9 @@ const FollowupNodeForm: React.FC<FollowupNodeFormProps> = ({ config, onChange })
                                             </div>
 
                                             {/* Button CTA */}
-                                            <div className="p-3 bg-slate-800/40 border border-slate-600/30 rounded-lg space-y-3">
+                                            <div className={`p-3 border rounded-lg space-y-3 ${isDark ? 'bg-slate-800/40 border-slate-600/30' : 'bg-slate-50 border-slate-200'}`}>
                                                 <div className="flex items-center justify-between">
-                                                    <span className="text-xs font-medium text-white">🔗 Add Button</span>
+                                                    <span className={`text-xs font-medium ${isDark ? 'text-white' : 'text-slate-900'}`}>🔗 Add Button</span>
                                                     <label className="relative inline-flex items-center cursor-pointer">
                                                         <input
                                                             type="checkbox"
@@ -375,7 +377,7 @@ const FollowupNodeForm: React.FC<FollowupNodeFormProps> = ({ config, onChange })
                                                             onChange={(e) => handleUpdateFollowup(followup.id, 'buttonEnabled', e.target.checked)}
                                                             className="sr-only peer"
                                                         />
-                                                        <div className="w-9 h-5 bg-slate-700 rounded-full peer peer-checked:after:translate-x-4 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-rose-500"></div>
+                                                        <div className={`w-9 h-5 rounded-full peer peer-checked:after:translate-x-4 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600 ${isDark ? 'bg-slate-700' : 'bg-slate-300'}`}></div>
                                                     </label>
                                                 </div>
 
@@ -386,7 +388,7 @@ const FollowupNodeForm: React.FC<FollowupNodeFormProps> = ({ config, onChange })
                                                             value={followup.buttonText || 'Complete Order 🛒'}
                                                             onChange={(e) => handleUpdateFollowup(followup.id, 'buttonText', e.target.value)}
                                                             placeholder="Button text..."
-                                                            className="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-rose-500/50"
+                                                            className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 ${isDark ? 'bg-slate-700/50 border-slate-600 text-white' : 'bg-white border-slate-200 text-slate-900'}`}
                                                         />
                                                         <p className="text-[10px] text-slate-500">
                                                             Button opens the form so they can complete their order
@@ -406,10 +408,10 @@ const FollowupNodeForm: React.FC<FollowupNodeFormProps> = ({ config, onChange })
             {/* Warning for outside 24hr */}
             <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4">
                 <div className="flex items-start gap-3">
-                    <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
-                    <div className="text-sm text-amber-200">
+                    <AlertTriangle className={`w-5 h-5 flex-shrink-0 mt-0.5 ${isDark ? 'text-amber-400' : 'text-amber-600'}`} />
+                    <div className={`text-sm ${isDark ? 'text-amber-200' : 'text-amber-900'}`}>
                         <p className="font-medium mb-1">⚠️ Outside 24hr Policy:</p>
-                        <ul className="text-amber-300/80 space-y-1 text-xs">
+                        <ul className={`space-y-1 text-xs ${isDark ? 'text-amber-300/80' : 'text-amber-700/80'}`}>
                             <li>• Messages MUST be non-promotional (no deals, discounts, offers)</li>
                             <li>• Only use Message Tags for their intended purpose</li>
                             <li>• Misuse can result in Page restrictions or bans</li>

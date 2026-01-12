@@ -5,6 +5,7 @@ import {
     CreditCard, User, Receipt, Save, Eye, ChevronLeft, ChevronRight,
     Phone, Mail, MapPin, Home, Building, Map, Hash, ClipboardList, ExternalLink, Tag, Plus, Trash2
 } from 'lucide-react';
+import { useTheme } from '../context/ThemeContext';
 
 interface CustomerFieldConfig {
     enabled: boolean;
@@ -77,17 +78,18 @@ const CollapsibleSection = memo(({
     color?: string;
 }) => {
     const [isOpen, setIsOpen] = useState(defaultOpen);
+    const { isDark } = useTheme();
 
     return (
-        <div className="bg-black/20 rounded-xl overflow-hidden border border-white/5">
+        <div className={`${isDark ? 'bg-black/20 border-white/5' : 'bg-white border-slate-200 shadow-sm'} rounded-xl overflow-hidden border`}>
             <button
                 type="button"
                 onClick={() => setIsOpen(!isOpen)}
-                className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-white/5 transition-colors"
+                className={`w-full px-4 py-3 flex items-center justify-between text-left ${isDark ? 'hover:bg-white/5' : 'hover:bg-slate-50'} transition-colors`}
             >
                 <div className="flex items-center gap-2">
                     {Icon && <Icon className={`w-4 h-4 text-${color}-400`} />}
-                    <span className="text-sm font-semibold text-white">{title}</span>
+                    <span className={`text-sm font-semibold ${isDark ? 'text-white' : 'text-slate-900'}`}>{title}</span>
                 </div>
                 {isOpen ? (
                     <ChevronUp className="w-4 h-4 text-slate-400" />
@@ -96,7 +98,7 @@ const CollapsibleSection = memo(({
                 )}
             </button>
             {isOpen && (
-                <div className="px-4 pb-4 space-y-4 border-t border-white/5 pt-4">
+                <div className={`px-4 pb-4 space-y-4 ${isDark ? 'border-white/5' : 'border-slate-100'} border-t pt-4`}>
                     {children}
                 </div>
             )}
@@ -106,21 +108,24 @@ const CollapsibleSection = memo(({
 CollapsibleSection.displayName = 'CollapsibleSection';
 
 // Toggle Component
-const Toggle = memo(({ value, onChange, label, description }: { value: boolean; onChange: (v: boolean) => void; label: string; description?: string }) => (
-    <div className="flex items-center justify-between">
-        <div className="flex-1">
-            <span className="text-sm font-medium text-slate-300">{label}</span>
-            {description && <p className="text-xs text-slate-500 mt-0.5">{description}</p>}
+const Toggle = memo(({ value, onChange, label, description }: { value: boolean; onChange: (v: boolean) => void; label: string; description?: string }) => {
+    const { isDark } = useTheme();
+    return (
+        <div className="flex items-center justify-between">
+            <div className="flex-1">
+                <span className={`text-sm font-medium ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>{label}</span>
+                {description && <p className="text-xs text-slate-500 mt-0.5">{description}</p>}
+            </div>
+            <button
+                type="button"
+                onClick={() => onChange(!value)}
+                className={`relative w-12 h-6 rounded-full transition-colors flex-shrink-0 ${value ? 'bg-emerald-500' : (isDark ? 'bg-slate-600' : 'bg-slate-300')}`}
+            >
+                <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform shadow-md ${value ? 'left-7' : 'left-1'}`} />
+            </button>
         </div>
-        <button
-            type="button"
-            onClick={() => onChange(!value)}
-            className={`relative w-12 h-6 rounded-full transition-colors flex-shrink-0 ${value ? 'bg-emerald-500' : 'bg-slate-600'}`}
-        >
-            <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform shadow-md ${value ? 'left-7' : 'left-1'}`} />
-        </button>
-    </div>
-));
+    );
+});
 Toggle.displayName = 'Toggle';
 
 const CheckoutNodeForm: React.FC<CheckoutNodeFormProps> = ({
@@ -129,6 +134,16 @@ const CheckoutNodeForm: React.FC<CheckoutNodeFormProps> = ({
     onChange,
     onClose
 }) => {
+    const { isDark } = useTheme();
+
+    // Theme-aware styles
+    const inputClass = isDark
+        ? "bg-black/30 border-white/10 text-white placeholder-white/40 focus:border-emerald-500/50"
+        : "bg-white border-slate-200 text-slate-900 placeholder-slate-400 focus:border-emerald-500";
+
+    const labelClass = isDark ? "text-slate-400" : "text-slate-600";
+    const sectionBgClass = isDark ? "bg-black/20" : "bg-white border border-slate-200";
+
     // State
     const [headerText, setHeaderText] = useState(initialConfig?.headerText || '🛒 Your Order Summary');
     const [buttonText, setButtonText] = useState(initialConfig?.buttonText || '✅ Confirm Order');
@@ -142,9 +157,9 @@ const CheckoutNodeForm: React.FC<CheckoutNodeFormProps> = ({
     const [shippingFee, setShippingFee] = useState(initialConfig?.shippingFee || 0);
     const [successMessage, setSuccessMessage] = useState(initialConfig?.successMessage || 'Order Confirmed! 🎉');
     const [thankYouMessage, setThankYouMessage] = useState(initialConfig?.thankYouMessage || 'Thank you for your purchase!');
-    const [backgroundColor, setBackgroundColor] = useState(initialConfig?.backgroundColor || '#0f172a');
-    const [cardBackgroundColor, setCardBackgroundColor] = useState(initialConfig?.cardBackgroundColor || '#1e293b');
-    const [textColor, setTextColor] = useState(initialConfig?.textColor || '#ffffff');
+    const [backgroundColor, setBackgroundColor] = useState(initialConfig?.backgroundColor || '#f1f5f9');
+    const [cardBackgroundColor, setCardBackgroundColor] = useState(initialConfig?.cardBackgroundColor || '#ffffff');
+    const [textColor, setTextColor] = useState(initialConfig?.textColor || '#0f172a');
     const [accentColor, setAccentColor] = useState(initialConfig?.accentColor || '#10b981');
 
     // Customer Fields Configuration
@@ -227,40 +242,44 @@ const CheckoutNodeForm: React.FC<CheckoutNodeFormProps> = ({
 
     // Device sizes for preview
     const deviceSizes = {
-        mobile: { width: 320, height: 580, radius: 40, notch: true },
-        tablet: { width: 420, height: 560, radius: 24, notch: false },
-        desktop: { width: 560, height: 380, radius: 8, notch: false }
+        mobile: { width: 280, height: 480, radius: 40, notch: true },
+        tablet: { width: 340, height: 440, radius: 24, notch: false },
+        desktop: { width: 480, height: 280, radius: 8, notch: false }
     };
 
     // Preview Component
     const DevicePreview = () => {
         const size = deviceSizes[previewDevice];
 
+        const getStatusBarStyle = () => {
+            return previewDevice === 'desktop'
+                ? 'text-slate-500 bg-slate-100 border-b border-slate-200'
+                : 'text-slate-900';
+        };
+
         return (
             <div className="flex flex-col items-center">
                 <div className="relative" style={{ width: size.width, height: size.height }}>
                     {/* Device Frame */}
                     <div
-                        className={`w-full h-full shadow-2xl border-4 flex flex-col overflow-hidden ${previewDevice === 'desktop' ? 'bg-slate-200 border-slate-400' : 'bg-slate-900 border-slate-700'
-                            }`}
+                        className={`w-full h-full shadow-2xl border-4 flex flex-col overflow-hidden ${previewDevice === 'desktop' ? 'bg-slate-200 border-slate-400' : 'bg-white border-slate-200'}`}
                         style={{ borderRadius: size.radius }}
                     >
                         {/* Notch (mobile only) */}
                         {size.notch && (
-                            <div className="absolute top-2 left-1/2 -translate-x-1/2 w-24 h-6 bg-black rounded-full z-10" />
+                            <div className="absolute top-2 left-1/2 -translate-x-1/2 w-20 h-5 bg-slate-200 rounded-full z-10" />
                         )}
 
                         {/* Screen Content */}
                         <div
-                            className="w-full h-full overflow-y-auto flex flex-col"
+                            className={`w-full h-full overflow-y-auto flex flex-col`}
                             style={{
-                                backgroundColor,
+                                backgroundColor: backgroundColor,
                                 borderRadius: Math.max(size.radius - 6, 4)
                             }}
                         >
                             {/* Status bar */}
-                            <div className={`h-7 flex-shrink-0 flex items-center justify-between px-4 text-[10px] ${previewDevice === 'desktop' ? 'text-slate-500 bg-slate-100' : 'text-white/60'
-                                }`}>
+                            <div className={`h-7 flex-shrink-0 flex items-center justify-between px-4 text-[10px] ${getStatusBarStyle()}`}>
                                 {previewDevice === 'desktop' ? (
                                     <>
                                         <div className="flex items-center gap-1.5">
@@ -400,9 +419,9 @@ const CheckoutNodeForm: React.FC<CheckoutNodeFormProps> = ({
                             </div>
 
                             {/* Home indicator (mobile only) */}
-                            {size.notch && (
-                                <div className="h-5 flex-shrink-0 flex items-center justify-center">
-                                    <div className="w-28 h-1 bg-white/30 rounded-full" />
+                            {previewDevice !== 'desktop' && (
+                                <div className="h-5 flex-shrink-0 flex items-center justify-center bg-white">
+                                    <div className="w-24 h-1 bg-slate-300 rounded-full" />
                                 </div>
                             )}
                         </div>
@@ -432,47 +451,47 @@ const CheckoutNodeForm: React.FC<CheckoutNodeFormProps> = ({
                 </div>
 
                 <div>
-                    <label className="block text-xs font-medium text-slate-400 mb-1.5">Header Title</label>
+                    <label className={`block text-xs font-medium ${labelClass} mb-1.5`}>Header Title</label>
                     <input
                         type="text"
                         value={headerText}
                         onChange={(e) => { setHeaderText(e.target.value); notifyChange({ headerText: e.target.value }); }}
                         placeholder="🛒 Your Order Summary"
-                        className="w-full px-3 py-2.5 bg-black/30 border border-white/10 rounded-lg text-white text-sm placeholder-white/40 focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/30"
+                        className={`w-full px-3 py-2.5 ${inputClass} rounded-lg text-sm`}
                     />
                 </div>
 
                 <div>
-                    <label className="block text-xs font-medium text-slate-400 mb-1.5">Button Text</label>
+                    <label className={`block text-xs font-medium ${labelClass} mb-1.5`}>Button Text</label>
                     <input
                         type="text"
                         value={buttonText}
                         onChange={(e) => { setButtonText(e.target.value); notifyChange({ buttonText: e.target.value }); }}
                         placeholder="✅ Confirm Order"
-                        className="w-full px-3 py-2.5 bg-black/30 border border-white/10 rounded-lg text-white text-sm placeholder-white/40 focus:border-emerald-500/50"
+                        className={`w-full px-3 py-2.5 ${inputClass} rounded-lg text-sm`}
                     />
                 </div>
 
                 {useWebview && (
                     <>
                         <div>
-                            <label className="block text-xs font-medium text-slate-400 mb-1.5">Success Message</label>
+                            <label className={`block text-xs font-medium ${labelClass} mb-1.5`}>Success Message</label>
                             <input
                                 type="text"
                                 value={successMessage}
                                 onChange={(e) => { setSuccessMessage(e.target.value); notifyChange({ successMessage: e.target.value }); }}
                                 placeholder="Order Confirmed! 🎉"
-                                className="w-full px-3 py-2.5 bg-black/30 border border-white/10 rounded-lg text-white text-sm placeholder-white/40"
+                                className={`w-full px-3 py-2.5 ${inputClass} rounded-lg text-sm`}
                             />
                         </div>
                         <div>
-                            <label className="block text-xs font-medium text-slate-400 mb-1.5">Thank You Message</label>
+                            <label className={`block text-xs font-medium ${labelClass} mb-1.5`}>Thank You Message</label>
                             <input
                                 type="text"
                                 value={thankYouMessage}
                                 onChange={(e) => { setThankYouMessage(e.target.value); notifyChange({ thankYouMessage: e.target.value }); }}
                                 placeholder="Thank you for your purchase!"
-                                className="w-full px-3 py-2.5 bg-black/30 border border-white/10 rounded-lg text-white text-sm placeholder-white/40"
+                                className={`w-full px-3 py-2.5 ${inputClass} rounded-lg text-sm`}
                             />
                         </div>
                     </>
@@ -491,7 +510,7 @@ const CheckoutNodeForm: React.FC<CheckoutNodeFormProps> = ({
                 />
                 {showShipping && (
                     <div>
-                        <label className="block text-xs font-medium text-slate-400 mb-1.5">Shipping Fee (₱)</label>
+                        <label className={`block text-xs font-medium ${labelClass} mb-1.5`}>Shipping Fee (₱)</label>
                         <input
                             type="number"
                             value={shippingFee}
@@ -503,7 +522,7 @@ const CheckoutNodeForm: React.FC<CheckoutNodeFormProps> = ({
                             placeholder="0"
                             min="0"
                             step="10"
-                            className="w-full px-3 py-2.5 bg-black/30 border border-white/10 rounded-lg text-white text-sm"
+                            className={`w-full px-3 py-2.5 ${inputClass} rounded-lg text-sm`}
                         />
                         <p className="text-xs text-slate-500 mt-1">Set to 0 for FREE shipping</p>
                     </div>
@@ -516,23 +535,23 @@ const CheckoutNodeForm: React.FC<CheckoutNodeFormProps> = ({
         <CollapsibleSection title="Company Info" icon={Image} defaultOpen={true} color="blue">
             <div className="space-y-4">
                 <div>
-                    <label className="block text-xs font-medium text-slate-400 mb-1.5">Company Name</label>
+                    <label className={`block text-xs font-medium ${labelClass} mb-1.5`}>Company Name</label>
                     <input
                         type="text"
                         value={companyName}
                         onChange={(e) => { setCompanyName(e.target.value); notifyChange({ companyName: e.target.value }); }}
                         placeholder="Your Store Name"
-                        className="w-full px-3 py-2.5 bg-black/30 border border-white/10 rounded-lg text-white text-sm placeholder-white/40"
+                        className={`w-full px-3 py-2.5 ${inputClass} rounded-lg text-sm`}
                     />
                 </div>
                 <div>
-                    <label className="block text-xs font-medium text-slate-400 mb-1.5">Logo URL</label>
+                    <label className={`block text-xs font-medium ${labelClass} mb-1.5`}>Logo URL</label>
                     <input
                         type="text"
                         value={companyLogo}
                         onChange={(e) => { setCompanyLogo(e.target.value); notifyChange({ companyLogo: e.target.value }); }}
                         placeholder="https://example.com/logo.png"
-                        className="w-full px-3 py-2.5 bg-black/30 border border-white/10 rounded-lg text-white text-sm placeholder-white/40"
+                        className={`w-full px-3 py-2.5 ${inputClass} rounded-lg text-sm`}
                     />
                 </div>
             </div>
@@ -544,14 +563,14 @@ const CheckoutNodeForm: React.FC<CheckoutNodeFormProps> = ({
             <div className="space-y-5">
                 {/* Primary/Button Color */}
                 <div>
-                    <label className="block text-xs font-medium text-slate-400 mb-2">Button Color</label>
+                    <label className={`block text-xs font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'} mb-2`}>Button Color</label>
                     <div className="flex flex-wrap gap-2">
                         {PRESET_COLORS.map((color) => (
                             <button
                                 key={color}
                                 type="button"
                                 onClick={() => { setPrimaryColor(color); notifyChange({ primaryColor: color }); }}
-                                className={`w-8 h-8 rounded-lg transition-all ${primaryColor === color ? 'ring-2 ring-white ring-offset-2 ring-offset-slate-900 scale-110' : 'hover:scale-105'}`}
+                                className={`w-8 h-8 rounded-lg transition-all ${primaryColor === color ? `ring-2 ring-white ring-offset-2 ${isDark ? 'ring-offset-slate-900' : 'ring-offset-slate-50'} scale-110` : 'hover:scale-105'}`}
                                 style={{ backgroundColor: color }}
                             >
                                 {primaryColor === color && <Check className="w-4 h-4 text-white mx-auto" />}
@@ -562,7 +581,7 @@ const CheckoutNodeForm: React.FC<CheckoutNodeFormProps> = ({
 
                 {/* Accent Color */}
                 <div>
-                    <label className="block text-xs font-medium text-slate-400 mb-2">Accent Color</label>
+                    <label className={`block text-xs font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'} mb-2`}>Accent Color</label>
                     <div className="flex flex-wrap gap-2">
                         {PRESET_COLORS.map((color) => (
                             <button
@@ -580,14 +599,14 @@ const CheckoutNodeForm: React.FC<CheckoutNodeFormProps> = ({
 
                 {/* Background Color */}
                 <div>
-                    <label className="block text-xs font-medium text-slate-400 mb-2">Page Background</label>
+                    <label className={`block text-xs font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'} mb-2`}>Page Background</label>
                     <div className="flex flex-wrap gap-2">
                         {BG_COLORS.map((color) => (
                             <button
                                 key={color}
                                 type="button"
                                 onClick={() => { setBackgroundColor(color); notifyChange({ backgroundColor: color }); }}
-                                className={`w-8 h-8 rounded-lg transition-all border border-white/20 ${backgroundColor === color ? 'ring-2 ring-white ring-offset-2 ring-offset-slate-900 scale-110' : 'hover:scale-105'}`}
+                                className={`w-8 h-8 rounded-lg transition-all border ${isDark ? 'border-white/20' : 'border-slate-200'} ${backgroundColor === color ? `ring-2 ring-white ring-offset-2 ${isDark ? 'ring-offset-slate-900' : 'ring-offset-slate-50'} scale-110` : 'hover:scale-105'}`}
                                 style={{ backgroundColor: color }}
                             >
                                 {backgroundColor === color && <Check className={`w-4 h-4 mx-auto ${color === '#ffffff' ? 'text-black' : 'text-white'}`} />}
@@ -598,14 +617,14 @@ const CheckoutNodeForm: React.FC<CheckoutNodeFormProps> = ({
 
                 {/* Card Background */}
                 <div>
-                    <label className="block text-xs font-medium text-slate-400 mb-2">Card Background</label>
+                    <label className={`block text-xs font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'} mb-2`}>Card Background</label>
                     <div className="flex flex-wrap gap-2">
                         {CARD_COLORS.map((color) => (
                             <button
                                 key={color}
                                 type="button"
                                 onClick={() => { setCardBackgroundColor(color); notifyChange({ cardBackgroundColor: color }); }}
-                                className={`w-8 h-8 rounded-lg transition-all border border-white/20 ${cardBackgroundColor === color ? 'ring-2 ring-white ring-offset-2 ring-offset-slate-900 scale-110' : 'hover:scale-105'}`}
+                                className={`w-8 h-8 rounded-lg transition-all border ${isDark ? 'border-white/20' : 'border-slate-200'} ${cardBackgroundColor === color ? `ring-2 ring-white ring-offset-2 ${isDark ? 'ring-offset-slate-900' : 'ring-offset-slate-50'} scale-110` : 'hover:scale-105'}`}
                                 style={{ backgroundColor: color }}
                             >
                                 {cardBackgroundColor === color && <Check className={`w-4 h-4 mx-auto ${color === '#f8fafc' ? 'text-black' : 'text-white'}`} />}
@@ -679,7 +698,7 @@ const CheckoutNodeForm: React.FC<CheckoutNodeFormProps> = ({
                                     }}
                                     min="1"
                                     max="100"
-                                    className="w-24 px-3 py-2.5 bg-black/30 border border-white/10 rounded-lg text-white text-sm"
+                                    className={`w-24 px-3 py-2.5 ${inputClass} rounded-lg text-sm`}
                                 />
                                 <span className="text-slate-400 text-sm">% off</span>
                             </div>
@@ -696,7 +715,7 @@ const CheckoutNodeForm: React.FC<CheckoutNodeFormProps> = ({
                                     onChange={(e) => setNewPromoCode(e.target.value.toUpperCase())}
                                     onKeyDown={(e) => e.key === 'Enter' && addPromoCode()}
                                     placeholder="Enter code (e.g., 10OFF)"
-                                    className="flex-1 px-3 py-2.5 bg-black/30 border border-white/10 rounded-lg text-white text-sm placeholder-white/40"
+                                    className={`flex-1 px-3 py-2.5 ${inputClass} rounded-lg text-sm`}
                                 />
                                 <button
                                     type="button"
@@ -716,10 +735,10 @@ const CheckoutNodeForm: React.FC<CheckoutNodeFormProps> = ({
                         {promoCodes.length > 0 && (
                             <div className="space-y-2">
                                 {promoCodes.map((code) => (
-                                    <div key={code} className="flex items-center justify-between p-3 bg-black/20 rounded-lg border border-white/5">
+                                    <div key={code} className={`flex items-center justify-between p-3 ${isDark ? 'bg-black/20 border-white/5' : 'bg-slate-50 border-slate-200'} rounded-lg border`}>
                                         <div className="flex items-center gap-2">
                                             <Tag className="w-4 h-4 text-pink-400" />
-                                            <span className="text-sm font-medium text-white">{code}</span>
+                                            <span className={`text-sm font-medium ${isDark ? 'text-white' : 'text-slate-900'}`}>{code}</span>
                                             <span className="text-xs text-slate-500">({promoDiscountPercent}% off)</span>
                                         </div>
                                         <button
@@ -752,16 +771,16 @@ const CheckoutNodeForm: React.FC<CheckoutNodeFormProps> = ({
     const FieldToggle = ({ fieldKey, icon: Icon, defaultLabel }: { fieldKey: string; icon: React.ElementType; defaultLabel: string }) => {
         const field = customerFields[fieldKey as keyof typeof customerFields] || { enabled: false, required: false, label: defaultLabel };
         return (
-            <div className="p-3 bg-black/20 rounded-lg space-y-2">
+            <div className={`p-3 ${isDark ? 'bg-black/20' : 'bg-slate-50 border border-slate-200'} rounded-lg space-y-2`}>
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                         <Icon className="w-4 h-4 text-slate-400" />
-                        <span className="text-sm text-slate-300">{field.label || defaultLabel}</span>
+                        <span className={`text-sm ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>{field.label || defaultLabel}</span>
                     </div>
                     <button
                         type="button"
                         onClick={() => updateField(fieldKey, { enabled: !field.enabled })}
-                        className={`relative w-10 h-5 rounded-full transition-colors ${field.enabled ? 'bg-emerald-500' : 'bg-slate-600'}`}
+                        className={`relative w-10 h-5 rounded-full transition-colors ${field.enabled ? 'bg-emerald-500' : (isDark ? 'bg-slate-600' : 'bg-slate-300')}`}
                     >
                         <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-transform ${field.enabled ? 'left-5' : 'left-0.5'}`} />
                     </button>
@@ -805,7 +824,7 @@ const CheckoutNodeForm: React.FC<CheckoutNodeFormProps> = ({
                         <button
                             type="button"
                             onClick={() => { setUseFullAddress(true); notifyChange({ useFullAddress: true }); }}
-                            className={`flex-1 py-2 px-3 rounded-lg text-xs font-medium transition-all ${useFullAddress ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-black/20 text-slate-400 border border-white/10'
+                            className={`flex-1 py-2 px-3 rounded-lg text-xs font-medium transition-all ${useFullAddress ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : (isDark ? 'bg-black/20 text-slate-400 border border-white/10' : 'bg-white text-slate-500 border border-slate-200 hover:bg-slate-50')
                                 }`}
                         >
                             Single Field
@@ -813,7 +832,7 @@ const CheckoutNodeForm: React.FC<CheckoutNodeFormProps> = ({
                         <button
                             type="button"
                             onClick={() => { setUseFullAddress(false); notifyChange({ useFullAddress: false }); }}
-                            className={`flex-1 py-2 px-3 rounded-lg text-xs font-medium transition-all ${!useFullAddress ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-black/20 text-slate-400 border border-white/10'
+                            className={`flex-1 py-2 px-3 rounded-lg text-xs font-medium transition-all ${!useFullAddress ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : (isDark ? 'bg-black/20 text-slate-400 border border-white/10' : 'bg-white text-slate-500 border border-slate-200 hover:bg-slate-50')
                                 }`}
                         >
                             Split Fields
@@ -849,19 +868,20 @@ const CheckoutNodeForm: React.FC<CheckoutNodeFormProps> = ({
     };
 
     // ================== DESKTOP: Full Modal ==================
+
     if (isDesktop) {
         return (
-            <div className="fixed inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 z-50 p-4 flex items-center justify-center">
-                <div className={`w-full ${modalWidths[previewDevice]} h-full max-h-full flex flex-col bg-slate-800/50 rounded-2xl border border-white/10 overflow-hidden transition-all duration-300`}>
+            <div className={`fixed inset-0 ${isDark ? 'bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900' : 'bg-slate-100'} z-50 p-4 flex items-center justify-center`}>
+                <div className={`w-full ${modalWidths[previewDevice]} h-full max-h-full flex flex-col ${isDark ? 'bg-slate-800/50 border-white/10' : 'bg-white border-slate-200 shadow-xl'} rounded-2xl border overflow-hidden transition-all duration-300`}>
                     {/* Header */}
-                    <div className="flex-shrink-0 h-14 border-b border-white/10 flex items-center px-4 gap-4">
+                    <div className={`flex-shrink-0 h-14 ${isDark ? 'border-white/10' : 'border-slate-200'} border-b flex items-center px-4 gap-4`}>
                         {/* Left: Title */}
                         <div className="flex items-center gap-3 min-w-0 flex-shrink-0">
                             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center">
                                 <ShoppingCart className="w-5 h-5 text-white" />
                             </div>
                             <div>
-                                <span className="text-base font-bold text-white">Checkout Node</span>
+                                <span className={`text-base font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>Checkout Node</span>
                                 <p className="text-[10px] text-slate-400">Configure your checkout page</p>
                             </div>
                         </div>
@@ -968,7 +988,7 @@ const CheckoutNodeForm: React.FC<CheckoutNodeFormProps> = ({
                     {/* Content - 2 Column Layout (Settings | Preview) */}
                     <div className="flex-1 grid grid-cols-2 gap-0 overflow-hidden">
                         {/* Left: All Settings */}
-                        <div className="border-r border-white/10 p-5 overflow-y-auto custom-scrollbar space-y-4">
+                        <div className={`border-r ${isDark ? 'border-white/10' : 'border-slate-200'} p-5 overflow-y-auto custom-scrollbar space-y-4`}>
                             {basicSection}
                             {customerFieldsSection}
                             {shippingSection}
@@ -979,7 +999,7 @@ const CheckoutNodeForm: React.FC<CheckoutNodeFormProps> = ({
                         </div>
 
                         {/* Right: Live Preview */}
-                        <div className="p-5 flex items-center justify-center bg-slate-950/50 overflow-auto">
+                        <div className={`p-5 flex items-center justify-center ${isDark ? 'bg-slate-950/50' : 'bg-slate-100'} overflow-auto`}>
                             <DevicePreview />
                         </div>
                     </div>
@@ -990,14 +1010,14 @@ const CheckoutNodeForm: React.FC<CheckoutNodeFormProps> = ({
 
     // ================== MOBILE: Simple Layout ==================
     return (
-        <div className="fixed inset-0 bg-slate-900 z-50 flex flex-col overflow-hidden">
+        <div className={`fixed inset-0 ${isDark ? 'bg-slate-900' : 'bg-white'} z-50 flex flex-col overflow-hidden`}>
             {/* Header */}
-            <div className="flex-shrink-0 flex items-center justify-between px-4 py-3 border-b border-white/10">
+            <div className={`flex-shrink-0 flex items-center justify-between px-4 py-3 border-b ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
                 <div className="flex items-center gap-2">
                     <div className="p-1.5 rounded-lg bg-emerald-500/20">
                         <ShoppingCart className="w-4 h-4 text-emerald-400" />
                     </div>
-                    <span className="text-sm font-bold text-white">Checkout</span>
+                    <span className={`text-sm font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>Checkout</span>
                 </div>
                 <div className="flex items-center gap-2">
                     <button
@@ -1007,7 +1027,7 @@ const CheckoutNodeForm: React.FC<CheckoutNodeFormProps> = ({
                         Save
                     </button>
                     {onClose && (
-                        <button onClick={onClose} className="p-1.5 hover:bg-white/10 rounded-lg text-slate-400">
+                        <button onClick={onClose} className={`p-1.5 rounded-lg transition-colors ${isDark ? 'hover:bg-white/10 text-slate-400 hover:text-white' : 'hover:bg-slate-100 text-slate-500 hover:text-slate-900'}`}>
                             <X className="w-4 h-4" />
                         </button>
                     )}

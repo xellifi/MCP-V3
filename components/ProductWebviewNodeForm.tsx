@@ -8,6 +8,7 @@ import {
     MessageSquare, RefreshCw
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { useTheme } from '../context/ThemeContext';
 
 interface ProductWebviewNodeFormProps {
     workspaceId: string;
@@ -112,6 +113,7 @@ const ColorPickerComponent = memo(({
     allowNone?: boolean;
 }) => {
     const inputRef = useRef<HTMLInputElement>(null);
+    const { isDark } = useTheme();
 
     const handleColorChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
         onChange(e.target.value);
@@ -122,12 +124,12 @@ const ColorPickerComponent = memo(({
     return (
         <div className="space-y-2">
             <div className="flex items-center justify-between">
-                <label className="block text-xs font-medium text-slate-400">{label}</label>
+                <label className={labelClass(isDark)}>{label}</label>
                 {defaultValue && (
                     <button
                         type="button"
                         onClick={() => onChange(defaultValue)}
-                        className="p-1 text-slate-500 hover:text-teal-400 transition-colors"
+                        className={`p-1 transition-colors ${isDark ? 'text-slate-500 hover:text-teal-400' : 'text-slate-400 hover:text-teal-600'}`}
                         title="Reset to default"
                     >
                         <RotateCcw className="w-3 h-3" />
@@ -177,6 +179,15 @@ const ColorPickerComponent = memo(({
 ColorPickerComponent.displayName = 'ColorPicker';
 
 // Collapsible Section Component
+// Helper constants for consistent styling
+const inputClass = (isDark: boolean) => `w-full ${isDark ? 'bg-slate-900 border-white/10 text-white' : 'bg-white border-slate-200 text-slate-900'} border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-teal-500/50 outline-none transition-all`;
+const labelClass = (isDark: boolean) => `block text-xs font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'} mb-1`;
+const sectionBorderClass = (isDark: boolean) => isDark ? 'border-white/10' : 'border-slate-200';
+const buttonBaseClass = (isDark: boolean) => `p-2 rounded-lg border transition-all ${isDark ? 'hover:bg-white/5 border-transparent' : 'hover:bg-slate-100 border-transparent'}`;
+const activeInfoClass = (isDark: boolean) => isDark ? 'bg-teal-500/10 border-teal-500/50 text-teal-400' : 'bg-teal-50 border-teal-500 text-teal-600';
+const inactiveClass = (isDark: boolean) => isDark ? 'bg-slate-800/50 border-white/5 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-500';
+
+// Collapsible Section Component
 const CollapsibleSection = ({
     title,
     icon: Icon,
@@ -189,26 +200,27 @@ const CollapsibleSection = ({
     defaultOpen?: boolean;
 }) => {
     const [isOpen, setIsOpen] = useState(defaultOpen);
+    const { isDark } = useTheme();
 
     return (
-        <div className="bg-black/20 rounded-xl overflow-hidden border border-white/5">
+        <div className={`rounded-xl overflow-hidden border ${isDark ? 'bg-black/20 border-white/5' : 'bg-white border-slate-200 shadow-sm'}`}>
             <button
                 type="button"
                 onClick={() => setIsOpen(!isOpen)}
-                className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-white/5 transition-colors"
+                className={`w-full px-4 py-3 flex items-center justify-between text-left transition-colors ${isDark ? 'hover:bg-white/5' : 'hover:bg-slate-50'}`}
             >
                 <div className="flex items-center gap-2">
-                    {Icon && <Icon className="w-4 h-4 text-teal-400" />}
-                    <span className="text-sm font-semibold text-white">{title}</span>
+                    {Icon && <Icon className="w-4 h-4 text-teal-500" />}
+                    <span className={`text-sm font-semibold ${isDark ? 'text-white' : 'text-slate-900'}`}>{title}</span>
                 </div>
                 {isOpen ? (
-                    <ChevronUp className="w-4 h-4 text-slate-400" />
+                    <ChevronUp className={`w-4 h-4 ${isDark ? 'text-slate-400' : 'text-slate-500'}`} />
                 ) : (
-                    <ChevronDown className="w-4 h-4 text-slate-400" />
+                    <ChevronDown className={`w-4 h-4 ${isDark ? 'text-slate-400' : 'text-slate-500'}`} />
                 )}
             </button>
             {isOpen && (
-                <div className="px-4 pb-4 space-y-4 border-t border-white/5">
+                <div className={`px-4 pb-4 space-y-4 border-t ${isDark ? 'border-white/5' : 'border-slate-100'}`}>
                     {children}
                 </div>
             )}
@@ -235,6 +247,7 @@ const ProductWebviewNodeForm: React.FC<ProductWebviewNodeFormProps> = ({
     onClose
 }) => {
     // ================== STATE ==================
+    const { isDark } = useTheme();
     const [headline, setHeadline] = useState(initialConfig?.headline || 'Want to Add this item?');
     const [headlineColor, setHeadlineColor] = useState(initialConfig?.headlineColor || '#ffffff');
     const [headlineBgColor, setHeadlineBgColor] = useState(initialConfig?.headlineBgColor || '#ea580c');
@@ -440,8 +453,8 @@ const ProductWebviewNodeForm: React.FC<ProductWebviewNodeFormProps> = ({
 
     const Toggle = ({ value, onChange: onToggle, label }: { value: boolean; onChange: (v: boolean) => void; label: string }) => (
         <div className="flex items-center justify-between">
-            <label className="text-sm font-medium text-slate-300">{label}</label>
-            <button onClick={() => onToggle(!value)} className={`w-12 h-6 rounded-full transition-all ${value ? 'bg-teal-500' : 'bg-slate-600'}`}>
+            <label className={`text-sm font-medium ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>{label}</label>
+            <button onClick={() => onToggle(!value)} className={`w-12 h-6 rounded-full transition-all ${value ? 'bg-teal-500' : isDark ? 'bg-slate-600' : 'bg-slate-300'}`}>
                 <div className={`w-5 h-5 bg-white rounded-full shadow transition-transform ${value ? 'translate-x-6' : 'translate-x-0.5'}`} />
             </button>
         </div>
@@ -481,12 +494,12 @@ const ProductWebviewNodeForm: React.FC<ProductWebviewNodeFormProps> = ({
         };
         // Desktop has white background, others have dark
         const getScreenBg = () => {
-            return previewDevice === 'desktop' ? 'bg-white' : 'bg-gradient-to-b from-slate-800 to-slate-900';
+            return previewDevice === 'desktop' ? 'bg-white' : 'bg-slate-50';
         };
         const getStatusBarStyle = () => {
             return previewDevice === 'desktop'
                 ? 'text-slate-500 bg-slate-100 border-b border-slate-200'
-                : 'text-white/60';
+                : 'text-slate-900';
         };
 
         // Helper for countdown background gradient
@@ -514,12 +527,12 @@ const ProductWebviewNodeForm: React.FC<ProductWebviewNodeFormProps> = ({
                 <div className="relative" style={{ width: size.width, height: size.height }}>
                     {/* Device Frame */}
                     <div
-                        className={`w-full h-full shadow-2xl border-4 flex flex-col ${previewDevice === 'desktop' ? 'bg-slate-200 border-slate-400' : 'bg-slate-900 border-slate-700'}`}
+                        className={`w-full h-full shadow-2xl border-4 flex flex-col ${previewDevice === 'desktop' ? 'bg-slate-200 border-slate-400' : 'bg-white border-slate-200'}`}
                         style={{ borderRadius: size.radius }}
                     >
                         {/* Notch (mobile only) */}
                         {size.notch && (
-                            <div className="absolute top-2 left-1/2 -translate-x-1/2 w-20 h-5 bg-black rounded-full z-10" />
+                            <div className="absolute top-2 left-1/2 -translate-x-1/2 w-20 h-5 bg-slate-200 rounded-full z-10" />
                         )}
                         {/* Screen */}
                         <div
@@ -535,7 +548,7 @@ const ProductWebviewNodeForm: React.FC<ProductWebviewNodeFormProps> = ({
                                             <div className="w-2 h-2 rounded-full bg-yellow-400"></div>
                                             <div className="w-2 h-2 rounded-full bg-green-400"></div>
                                         </div>
-                                        <span className="text-[8px] text-slate-400">mystore.com/upsell</span>
+                                        <span className="text-[8px] text-slate-400">mystore.com/product</span>
                                         <div></div>
                                     </>
                                 ) : (
@@ -778,7 +791,7 @@ const ProductWebviewNodeForm: React.FC<ProductWebviewNodeFormProps> = ({
                             {/* Home indicator (mobile only) */}
                             {size.notch && (
                                 <div className="h-4 flex-shrink-0 flex items-center justify-center">
-                                    <div className="w-20 h-1 bg-white/30 rounded-full" />
+                                    <div className="w-20 h-1 bg-slate-900/20 rounded-full" />
                                 </div>
                             )}
                         </div>
@@ -788,30 +801,37 @@ const ProductWebviewNodeForm: React.FC<ProductWebviewNodeFormProps> = ({
         );
     };
 
+    // ================== STATE ==================
+    // ... (state declarations remain the same)
+
+
+
+    // ... (DevicePreview remains similar but let's update basicSection first)
+
     // ================== FORM SECTIONS ==================
     const basicSection = (
         <CollapsibleSection title="Basic Info" icon={Type} defaultOpen={true}>
             <div>
                 <div className="flex items-center justify-between mb-1">
-                    <label className="text-xs text-slate-400">Headline</label>
+                    <label className={labelClass(isDark)}>Headline</label>
                     <ResetButton onClick={() => { setHeadline('Want to Add this item?'); notifyChange({ headline: 'Want to Add this item?' }); }} />
                 </div>
                 <input type="text" value={headline}
                     onChange={(e) => { setHeadline(e.target.value); notifyChange({ headline: e.target.value }); }}
                     placeholder="e.g. Want to Add this item?"
-                    className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white" />
-                <p className="text-[10px] text-slate-500 mt-0.5">Shown in yellow banner at top</p>
+                    className={inputClass(isDark)} />
+                <p className={`text-[10px] ${isDark ? 'text-slate-500' : 'text-slate-400'} mt-0.5`}>Shown in yellow banner at top</p>
             </div>
             <div>
                 <div className="flex items-center justify-between mb-1">
-                    <label className="text-xs text-slate-400">Product Name</label>
+                    <label className={labelClass(isDark)}>Product Name</label>
                     <ResetButton onClick={() => { setProductName(''); notifyChange({ productName: '' }); }} />
                 </div>
                 <input type="text" value={productName}
                     onChange={(e) => { setProductName(e.target.value); notifyChange({ productName: e.target.value }); }}
                     placeholder="e.g. Premium Korean Sneakers"
-                    className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white" />
-                <p className="text-[10px] text-slate-500 mt-0.5">Shown in green product bar</p>
+                    className={inputClass(isDark)} />
+                <p className={`text-[10px] ${isDark ? 'text-slate-500' : 'text-slate-400'} mt-0.5`}>Shown in green product bar</p>
             </div>
             <ColorPicker value={headlineColor} onChange={(c) => { setHeadlineColor(c); notifyChange({ headlineColor: c }); }} label="Headline Text Color" defaultValue="#1f2937" allowNone={true} />
             <ColorPicker value={headlineBgColor} onChange={(c) => { setHeadlineBgColor(c); notifyChange({ headlineBgColor: c }); }} label="Headline Banner Color" defaultValue="#fbbf24" allowNone={true} />
@@ -820,7 +840,7 @@ const ProductWebviewNodeForm: React.FC<ProductWebviewNodeFormProps> = ({
                 <div className="flex gap-2">
                     {EMOJI_OPTIONS.map(e => (
                         <button key={e.value} type="button" onClick={() => { setEmojiType(e.value as any); notifyChange({ emojiType: e.value }); }}
-                            className={`w-8 h-8 rounded-lg flex items-center justify-center ${emojiType === e.value ? 'bg-teal-500/30 border-teal-500' : 'bg-black/30 border-white/10'} border`}>
+                            className={`w-8 h-8 rounded-lg flex items-center justify-center ${emojiType === e.value ? 'bg-teal-500/30 border-teal-500' : isDark ? 'bg-black/30 border-white/10' : 'bg-slate-100 border-slate-200'} border transition-all hover:scale-105`}>
                             {e.label}
                         </button>
                     ))}
@@ -828,21 +848,21 @@ const ProductWebviewNodeForm: React.FC<ProductWebviewNodeFormProps> = ({
             )}
             <div>
                 <div className="flex items-center justify-between mb-1">
-                    <label className="text-xs text-slate-400">Price</label>
+                    <label className={labelClass(isDark)}>Price</label>
                     <ResetButton onClick={() => { setPrice('₱588'); notifyChange({ price: '₱588' }); }} />
                 </div>
                 <input type="text" value={price}
                     onChange={(e) => { setPrice(e.target.value); notifyChange({ price: e.target.value }); }}
-                    className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white" />
+                    className={inputClass(isDark)} />
             </div>
             <div>
                 <div className="flex items-center justify-between mb-1">
-                    <label className="text-xs text-slate-400">Description</label>
+                    <label className={labelClass(isDark)}>Description</label>
                     <ResetButton onClick={() => { setDescription('High quality shoes from Korea!'); notifyChange({ description: 'High quality shoes from Korea!' }); }} />
                 </div>
                 <textarea value={description}
                     onChange={(e) => { setDescription(e.target.value); notifyChange({ description: e.target.value }); }}
-                    className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white h-16 resize-none" />
+                    className={`${inputClass(isDark)} h-16 resize-none`} />
             </div>
             <ColorPicker value={descriptionColor} onChange={(c) => { setDescriptionColor(c); notifyChange({ descriptionColor: c }); }} label="Description Text Color" defaultValue="#ffffff" allowNone={true} />
         </CollapsibleSection>
@@ -851,13 +871,13 @@ const ProductWebviewNodeForm: React.FC<ProductWebviewNodeFormProps> = ({
     const imageSection = (
         <CollapsibleSection title="Product Image" icon={Image} defaultOpen={true}>
             {/* Source Selector - URL, Upload, Gallery */}
-            <div className="flex rounded-lg overflow-hidden border border-white/10">
+            <div className={`flex rounded-lg overflow-hidden border ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
                 <button type="button" onClick={() => { setImageSource('url'); notifyChange({ imageSource: 'url' }); }}
-                    className={`flex-1 py-2 text-xs flex items-center justify-center gap-1 ${imageSource === 'url' ? 'bg-teal-500/20 text-teal-400' : 'bg-black/20 text-slate-400'}`}>
+                    className={`flex-1 py-2 text-xs flex items-center justify-center gap-1 ${imageSource === 'url' ? activeInfoClass(isDark) : inactiveClass(isDark)}`}>
                     <Link className="w-3 h-3" /> URL
                 </button>
                 <button type="button" onClick={() => { setImageSource('upload'); notifyChange({ imageSource: 'upload' }); }}
-                    className={`flex-1 py-2 text-xs flex items-center justify-center gap-1 ${imageSource === 'upload' ? 'bg-teal-500/20 text-teal-400' : 'bg-black/20 text-slate-400'}`}>
+                    className={`flex-1 py-2 text-xs flex items-center justify-center gap-1 ${imageSource === 'upload' ? activeInfoClass(isDark) : inactiveClass(isDark)}`}>
                     <Upload className="w-3 h-3" /> Upload
                 </button>
                 <button type="button" onClick={async () => {
@@ -883,7 +903,7 @@ const ProductWebviewNodeForm: React.FC<ProductWebviewNodeFormProps> = ({
                     } catch (e) { console.error('Failed to load gallery:', e); }
                     setLoadingGallery(false);
                 }}
-                    className={`flex-1 py-2 text-xs flex items-center justify-center gap-1 ${imageSource === 'gallery' ? 'bg-teal-500/20 text-teal-400' : 'bg-black/20 text-slate-400'}`}>
+                    className={`flex-1 py-2 text-xs flex items-center justify-center gap-1 ${imageSource === 'gallery' ? activeInfoClass(isDark) : inactiveClass(isDark)}`}>
                     <Sparkles className="w-3 h-3" /> Gallery
                 </button>
             </div>
@@ -892,7 +912,7 @@ const ProductWebviewNodeForm: React.FC<ProductWebviewNodeFormProps> = ({
             {imageSource === 'url' && (
                 <input type="url" value={imageUrl} placeholder="https://..."
                     onChange={(e) => { setImageUrl(e.target.value); notifyChange({ imageUrl: e.target.value }); }}
-                    className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white" />
+                    className={inputClass(isDark)} />
             )}
 
             {/* Upload Input */}
@@ -900,10 +920,10 @@ const ProductWebviewNodeForm: React.FC<ProductWebviewNodeFormProps> = ({
                 <div>
                     <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileSelect} className="hidden" />
                     <button type="button" onClick={() => fileInputRef.current?.click()} disabled={isUploading}
-                        className="w-full py-3 border-2 border-dashed border-white/20 rounded-lg text-slate-400 hover:border-teal-500/50 flex items-center justify-center gap-2">
+                        className={`w-full py-3 border-2 border-dashed rounded-lg flex items-center justify-center gap-2 ${isDark ? 'border-white/20 text-slate-400 hover:border-teal-500/50' : 'border-slate-300 text-slate-500 hover:border-teal-500/50 hover:bg-slate-50'}`}>
                         {isUploading ? 'Uploading...' : <><Upload className="w-4 h-4" /> Click to upload</>}
                     </button>
-                    {uploadError && <p className="text-xs text-red-400 mt-1">{uploadError}</p>}
+                    {uploadError && <p className="text-xs text-red-500 mt-1">{uploadError}</p>}
                 </div>
             )}
 
@@ -911,19 +931,19 @@ const ProductWebviewNodeForm: React.FC<ProductWebviewNodeFormProps> = ({
             {imageSource === 'gallery' && (
                 <div className="space-y-2">
                     {loadingGallery ? (
-                        <div className="text-center py-4 text-slate-400 text-sm">Loading gallery...</div>
+                        <div className={`text-center py-4 text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Loading gallery...</div>
                     ) : galleryImages.length === 0 ? (
-                        <div className="text-center py-4 text-slate-400 text-sm">No images in gallery yet. Upload some images first!</div>
+                        <div className={`text-center py-4 text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>No images in gallery yet. Upload some images first!</div>
                     ) : (
                         <>
-                            <p className="text-[10px] text-slate-500">Click to select, hover to delete</p>
-                            <div className="grid grid-cols-4 gap-2 max-h-48 overflow-y-auto p-1">
+                            <p className={`text-[10px] ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Click to select, hover to delete</p>
+                            <div className="grid grid-cols-4 gap-2 max-h-48 overflow-y-auto p-1 custom-scrollbar">
                                 {galleryImages.map((url, i) => (
                                     <div key={i} className="relative group aspect-square">
                                         <button
                                             type="button"
                                             onClick={() => { setImageUrl(url); notifyChange({ imageUrl: url }); }}
-                                            className={`w-full h-full rounded-lg overflow-hidden border-2 ${imageUrl === url ? 'border-teal-500' : 'border-transparent'} hover:border-teal-500/50 transition-colors`}
+                                            className={`w-full h-full rounded-lg overflow-hidden border-2 ${imageUrl === url ? 'border-teal-500' : 'border-transparent'} hover:border-teal-500/50 transition-colors ${isDark ? 'bg-black/20' : 'bg-slate-100'}`}
                                         >
                                             <img src={url} alt="" className="w-full h-full object-cover" />
                                         </button>
@@ -947,23 +967,23 @@ const ProductWebviewNodeForm: React.FC<ProductWebviewNodeFormProps> = ({
             {/* Image Size */}
             <div>
                 <div className="flex items-center justify-between mb-1">
-                    <label className="text-xs text-slate-400">Image Size: {imagePreviewSize}%</label>
+                    <label className={labelClass(isDark)}>Image Size: {imagePreviewSize}%</label>
                     <ResetButton onClick={() => { setImagePreviewSize(100); notifyChange({ imagePreviewSize: 100 }); }} />
                 </div>
                 <input type="range" min="50" max="150" value={imagePreviewSize}
                     onChange={(e) => { setImagePreviewSize(Number(e.target.value)); notifyChange({ imagePreviewSize: Number(e.target.value) }); }}
-                    className="w-full" />
+                    className="w-full accent-teal-500" />
             </div>
 
             {/* Border Radius */}
             <div>
                 <div className="flex items-center justify-between mb-1">
-                    <label className="text-xs text-slate-400">Border Radius: {imageBorderRadius}px</label>
+                    <label className={labelClass(isDark)}>Border Radius: {imageBorderRadius}px</label>
                     <ResetButton onClick={() => { setImageBorderRadius(16); notifyChange({ imageBorderRadius: 16 }); }} />
                 </div>
                 <input type="range" min="0" max="50" value={imageBorderRadius}
                     onChange={(e) => { setImageBorderRadius(Number(e.target.value)); notifyChange({ imageBorderRadius: Number(e.target.value) }); }}
-                    className="w-full" />
+                    className="w-full accent-teal-500" />
             </div>
             <ColorPicker value={imageBorderColor} onChange={(c) => { setImageBorderColor(c); notifyChange({ imageBorderColor: c }); }} label="Border Color" defaultValue="#ffffff" allowNone={true} />
         </CollapsibleSection>
@@ -977,14 +997,14 @@ const ProductWebviewNodeForm: React.FC<ProductWebviewNodeFormProps> = ({
             {/* Headline Animation */}
             <div>
                 <div className="flex items-center justify-between mb-1">
-                    <label className="text-xs text-slate-400">Headline Animation</label>
+                    <label className={labelClass(isDark)}>Headline Animation</label>
                     <ResetButton onClick={() => { setHeadlineAnimation('none'); notifyChange({ headlineAnimation: 'none' }); }} />
                 </div>
                 <div className="flex gap-2">
                     {(['none', 'blink', 'shake'] as const).map(anim => (
                         <button key={anim} type="button"
                             onClick={() => { setHeadlineAnimation(anim); notifyChange({ headlineAnimation: anim }); }}
-                            className={`flex-1 py-2 text-xs rounded-lg capitalize ${headlineAnimation === anim ? 'bg-teal-500/30 border-teal-500' : 'bg-black/30 border-white/10'} border`}>
+                            className={`flex-1 py-2 text-xs rounded-lg capitalize ${headlineAnimation === anim ? 'bg-teal-500/30 border-teal-500' : isDark ? 'bg-black/30 border-white/10' : 'bg-slate-100 border-slate-200'} border transition-all scroll-smooth`}>
                             {anim === 'none' ? '— None' : anim === 'blink' ? '✨ Blink' : '🔔 Shake'}
                         </button>
                     ))}
@@ -996,13 +1016,13 @@ const ProductWebviewNodeForm: React.FC<ProductWebviewNodeFormProps> = ({
                 headlineAnimation !== 'none' && (
                     <div>
                         <div className="flex items-center justify-between mb-1">
-                            <label className="text-xs text-slate-400">Speed: {headlineAnimationSpeed} blinks/sec</label>
+                            <label className={labelClass(isDark)}>Speed: {headlineAnimationSpeed} blinks/sec</label>
                             <ResetButton onClick={() => { setHeadlineAnimationSpeed(2); notifyChange({ headlineAnimationSpeed: 2 }); }} />
                         </div>
                         <input type="range" min="1" max="4" step="0.5" value={headlineAnimationSpeed}
                             onChange={(e) => { setHeadlineAnimationSpeed(Number(e.target.value)); notifyChange({ headlineAnimationSpeed: Number(e.target.value) }); }}
-                            className="w-full" />
-                        <div className="flex justify-between text-[10px] text-slate-500 mt-1">
+                            className="w-full accent-teal-500" />
+                        <div className={`flex justify-between text-[10px] ${isDark ? 'text-slate-500' : 'text-slate-400'} mt-1`}>
                             <span>1/sec (slow)</span>
                             <span>4/sec (fast)</span>
                         </div>
@@ -1013,17 +1033,17 @@ const ProductWebviewNodeForm: React.FC<ProductWebviewNodeFormProps> = ({
             {/* Price Badge Size */}
             <div>
                 <div className="flex items-center justify-between mb-1">
-                    <label className="text-xs text-slate-400">Price Badge Size: {priceBadgeSize}px</label>
+                    <label className={labelClass(isDark)}>Price Badge Size: {priceBadgeSize}px</label>
                     <ResetButton onClick={() => { setPriceBadgeSize(80); notifyChange({ priceBadgeSize: 80 }); }} />
                 </div>
                 <input type="range" min="80" max="150" value={priceBadgeSize}
                     onChange={(e) => { setPriceBadgeSize(Number(e.target.value)); notifyChange({ priceBadgeSize: Number(e.target.value) }); }}
-                    className="w-full" />
+                    className="w-full accent-teal-500" />
             </div>
             <ColorPicker value={priceBadgeColor} onChange={(c) => { setPriceBadgeColor(c); notifyChange({ priceBadgeColor: c }); }} label="Price Badge Color" defaultValue="#22c55e" allowNone={true} />
 
             {/* Product Name Bar Options */}
-            <div className="pt-3 border-t border-white/10">
+            <div className={`pt-3 border-t ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
                 <Toggle value={showProductName} onChange={(v) => { setShowProductName(v); notifyChange({ showProductName: v }); }} label="Show Product Name Bar" />
                 {showProductName && (
                     <div className="mt-3 space-y-3">
@@ -1031,23 +1051,23 @@ const ProductWebviewNodeForm: React.FC<ProductWebviewNodeFormProps> = ({
                         <ColorPicker value={productNameTextColor} onChange={(c) => { setProductNameTextColor(c); notifyChange({ productNameTextColor: c }); }} label="Text Color" defaultValue="#ffffff" allowNone={true} />
                         <div>
                             <div className="flex items-center justify-between mb-1">
-                                <label className="text-xs text-slate-400">Font Size: {productNameFontSize}px</label>
+                                <label className={labelClass(isDark)}>Font Size: {productNameFontSize}px</label>
                                 <ResetButton onClick={() => { setProductNameFontSize(16); notifyChange({ productNameFontSize: 16 }); }} />
                             </div>
                             <input type="range" min="12" max="28" value={productNameFontSize}
                                 onChange={(e) => { setProductNameFontSize(Number(e.target.value)); notifyChange({ productNameFontSize: Number(e.target.value) }); }}
-                                className="w-full" />
+                                className="w-full accent-teal-500" />
                         </div>
                         <Toggle value={productNameFullWidth} onChange={(v) => { setProductNameFullWidth(v); notifyChange({ productNameFullWidth: v }); }} label="Full Width (Edge-to-Edge)" />
                         {!productNameFullWidth && (
                             <div>
                                 <div className="flex items-center justify-between mb-1">
-                                    <label className="text-xs text-slate-400">Corner Radius: {productNameBorderRadius}px</label>
+                                    <label className={labelClass(isDark)}>Corner Radius: {productNameBorderRadius}px</label>
                                     <ResetButton onClick={() => { setProductNameBorderRadius(0); notifyChange({ productNameBorderRadius: 0 }); }} />
                                 </div>
                                 <input type="range" min="0" max="24" value={productNameBorderRadius}
                                     onChange={(e) => { setProductNameBorderRadius(Number(e.target.value)); notifyChange({ productNameBorderRadius: Number(e.target.value) }); }}
-                                    className="w-full" />
+                                    className="w-full accent-teal-500" />
                             </div>
                         )}
                     </div>
@@ -1055,29 +1075,29 @@ const ProductWebviewNodeForm: React.FC<ProductWebviewNodeFormProps> = ({
             </div>
 
             {/* Countdown Timer - Elegant Design */}
-            <div className="pt-3 border-t border-white/10">
+            <div className={`pt-3 border-t ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
                 <Toggle value={showCountdown} onChange={(v) => { setShowCountdown(v); notifyChange({ showCountdown: v }); }} label="⏱️ Countdown Timer" />
                 {showCountdown && (
                     <div className="mt-3 space-y-3">
                         {/* Timer Duration */}
                         <div>
                             <div className="flex items-center justify-between mb-1">
-                                <label className="text-xs text-slate-400">Duration: {countdownMinutes} minutes</label>
+                                <label className={labelClass(isDark)}>Duration: {countdownMinutes} minutes</label>
                                 <ResetButton onClick={() => { setCountdownMinutes(10); notifyChange({ countdownMinutes: 10 }); }} />
                             </div>
                             <input type="range" min="1" max="60" value={countdownMinutes}
                                 onChange={(e) => { setCountdownMinutes(Number(e.target.value)); notifyChange({ countdownMinutes: Number(e.target.value) }); }}
-                                className="w-full" />
+                                className="w-full accent-teal-500" />
                         </div>
 
                         {/* Timer Position */}
                         <div>
-                            <label className="block text-xs text-slate-400 mb-1">Position</label>
+                            <label className={labelClass(isDark)}>Position</label>
                             <div className="flex gap-2">
                                 {(['above', 'middle', 'below'] as const).map(pos => (
                                     <button key={pos} type="button"
                                         onClick={() => { setCountdownPosition(pos); notifyChange({ countdownPosition: pos }); }}
-                                        className={`flex-1 py-2 text-xs rounded-lg ${countdownPosition === pos ? 'bg-teal-500/30 border-teal-500' : 'bg-black/30 border-white/10'} border`}>
+                                        className={`flex-1 py-2 text-xs rounded-lg ${countdownPosition === pos ? 'bg-teal-500/30 border-teal-500' : isDark ? 'bg-black/30 border-white/10' : 'bg-slate-100 border-slate-200'} border`}>
                                         {pos === 'above' ? '⬆️' : pos === 'middle' ? '↔️' : '⬇️'} {pos.charAt(0).toUpperCase() + pos.slice(1)}
                                     </button>
                                 ))}
@@ -1088,12 +1108,12 @@ const ProductWebviewNodeForm: React.FC<ProductWebviewNodeFormProps> = ({
                         <ColorPicker value={countdownTextColor} onChange={(c) => { setCountdownTextColor(c); notifyChange({ countdownTextColor: c }); }} label="Text Color" defaultValue="#ffffff" allowNone={true} />
                         <div>
                             <div className="flex items-center justify-between mb-1">
-                                <label className="text-xs text-slate-400">Font Size: {countdownFontSize}px</label>
+                                <label className={labelClass(isDark)}>Font Size: {countdownFontSize}px</label>
                                 <ResetButton onClick={() => { setCountdownFontSize(18); notifyChange({ countdownFontSize: 18 }); }} />
                             </div>
                             <input type="range" min="12" max="32" value={countdownFontSize}
                                 onChange={(e) => { setCountdownFontSize(Number(e.target.value)); notifyChange({ countdownFontSize: Number(e.target.value) }); }}
-                                className="w-full" />
+                                className="w-full accent-teal-500" />
                         </div>
 
                         <Toggle value={countdownShowBg} onChange={(v) => { setCountdownShowBg(v); notifyChange({ countdownShowBg: v }); }} label="Show Background" />
@@ -1102,12 +1122,12 @@ const ProductWebviewNodeForm: React.FC<ProductWebviewNodeFormProps> = ({
                                 <ColorPicker value={countdownBgColor} onChange={(c) => { setCountdownBgColor(c); notifyChange({ countdownBgColor: c }); }} label="Background Color" defaultValue="#ec4899" allowNone={true} />
                                 <div>
                                     <div className="flex items-center justify-between mb-1">
-                                        <label className="text-xs text-slate-400">Corner Radius: {countdownBorderRadius}px</label>
+                                        <label className={labelClass(isDark)}>Corner Radius: {countdownBorderRadius}px</label>
                                         <ResetButton onClick={() => { setCountdownBorderRadius(12); notifyChange({ countdownBorderRadius: 12 }); }} />
                                     </div>
                                     <input type="range" min="0" max="20" value={countdownBorderRadius}
                                         onChange={(e) => { setCountdownBorderRadius(Number(e.target.value)); notifyChange({ countdownBorderRadius: Number(e.target.value) }); }}
-                                        className="w-full" />
+                                        className="w-full accent-teal-500" />
                                 </div>
                                 <Toggle value={countdownFullWidth} onChange={(v) => { setCountdownFullWidth(v); notifyChange({ countdownFullWidth: v }); }} label="Full Width" />
                             </>
@@ -1116,34 +1136,35 @@ const ProductWebviewNodeForm: React.FC<ProductWebviewNodeFormProps> = ({
                 )}
             </div>
 
-            <div className="pt-3 border-t border-white/10">
-                <label className="block text-xs text-slate-400 mb-1">Button Text</label>
+            <div className={`pt-3 border-t ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
+                <label className={labelClass(isDark)}>Button Text</label>
                 <input type="text" value={buttonText}
                     onChange={(e) => { setButtonText(e.target.value); notifyChange({ buttonText: e.target.value }); }}
-                    className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white" />
+                    className={inputClass(isDark)} />
             </div>
             <ColorPicker value={buttonBgColor} onChange={(c) => { setButtonBgColor(c); notifyChange({ buttonBgColor: c }); }} label="Button Color" defaultValue="#16a34a" allowNone={true} />
             <Toggle value={showButtonIcon} onChange={(v) => { setShowButtonIcon(v); notifyChange({ showButtonIcon: v }); }} label="Show Button Icon" />
             <div>
                 <div className="flex items-center justify-between mb-1">
-                    <label className="text-xs text-slate-400">Button Radius: {buttonBorderRadius}px</label>
+                    <label className={labelClass(isDark)}>Button Radius: {buttonBorderRadius}px</label>
                     <ResetButton onClick={() => { setButtonBorderRadius(12); notifyChange({ buttonBorderRadius: 12 }); }} />
                 </div>
                 <input type="range" min="0" max="24" value={buttonBorderRadius}
                     onChange={(e) => { setButtonBorderRadius(Number(e.target.value)); notifyChange({ buttonBorderRadius: Number(e.target.value) }); }}
-                    className="w-full" />
+                    className="w-full accent-teal-500" />
             </div>
         </CollapsibleSection>
     );
 
 
     // Webview Display Section (moved to top, removed Cart Action buttons)
+    // Webview Display Section (moved to top, removed Cart Action buttons)
     const actionSection = (
         <CollapsibleSection title="Webview Display" icon={Globe} defaultOpen={true}>
             <Toggle value={useWebview} onChange={(v) => { setUseWebview(v); notifyChange({ useWebview: v }); }} label="Use Webview Display" />
             {useWebview && (
-                <div className="mt-2 p-2 bg-teal-500/10 border border-teal-500/30 rounded-lg">
-                    <p className="text-xs text-teal-300">✨ Custom webview page instead of Facebook template</p>
+                <div className={`mt-2 p-2 rounded-lg border ${isDark ? 'bg-teal-500/10 border-teal-500/30' : 'bg-teal-50 border-teal-200'}`}>
+                    <p className={`text-xs ${isDark ? 'text-teal-300' : 'text-teal-700'}`}>✨ Custom webview page instead of Facebook template</p>
                 </div>
             )}
         </CollapsibleSection>
@@ -1162,18 +1183,18 @@ const ProductWebviewNodeForm: React.FC<ProductWebviewNodeFormProps> = ({
                 onChange={(v) => { setEnableQuantitySelector(v); notifyChange({ enableQuantitySelector: v }); }}
                 label="Quantity Selector"
             />
-            <p className="text-[10px] text-slate-500 -mt-2 mb-3">Allow buyers to select quantity</p>
+            <p className={`text-[10px] ${isDark ? 'text-slate-500' : 'text-slate-400'} -mt-2 mb-3`}>Allow buyers to select quantity</p>
 
             <Toggle
                 value={enablePromoCode}
                 onChange={(v) => { setEnablePromoCode(v); notifyChange({ enablePromoCode: v }); }}
                 label="Promo Code Field"
             />
-            <p className="text-[10px] text-slate-500 -mt-2 mb-3">Allow buyers to enter promo codes</p>
+            <p className={`text-[10px] ${isDark ? 'text-slate-500' : 'text-slate-400'} -mt-2 mb-3`}>Allow buyers to enter promo codes</p>
 
             {enablePromoCode && (
-                <div className="mb-3 pl-2 border-l-2 border-amber-500/30">
-                    <label className="text-xs text-slate-400 block mb-1">Valid Promo Codes (comma-separated, leave empty for any)</label>
+                <div className={`mb-3 pl-2 border-l-2 ${isDark ? 'border-amber-500/30' : 'border-amber-500/50'}`}>
+                    <label className={labelClass(isDark)}>Valid Promo Codes (comma-separated, leave empty for any)</label>
                     <input
                         type="text"
                         value={promoCodesInput}
@@ -1184,9 +1205,9 @@ const ProductWebviewNodeForm: React.FC<ProductWebviewNodeFormProps> = ({
                             notifyChange({ promoCodes: codes });
                         }}
                         placeholder="SAVE10, DISCOUNT20, FREE"
-                        className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white"
+                        className={inputClass(isDark)}
                     />
-                    <p className="text-[9px] text-slate-500 mt-1">Leave empty to accept any code entered by buyer</p>
+                    <p className={`text-[9px] ${isDark ? 'text-slate-500' : 'text-slate-400'} mt-1`}>Leave empty to accept any code entered by buyer</p>
                 </div>
             )}
 
@@ -1196,8 +1217,8 @@ const ProductWebviewNodeForm: React.FC<ProductWebviewNodeFormProps> = ({
                 label="Color Options"
             />
             {enableColorSelector && (
-                <div className="mb-3 pl-2 border-l-2 border-indigo-500/30">
-                    <label className="text-xs text-slate-400 block mb-1">Available Colors (comma-separated)</label>
+                <div className={`mb-3 pl-2 border-l-2 ${isDark ? 'border-indigo-500/30' : 'border-indigo-500/50'}`}>
+                    <label className={labelClass(isDark)}>Available Colors (comma-separated)</label>
                     <input
                         type="text"
                         value={colorInputValue}
@@ -1208,7 +1229,7 @@ const ProductWebviewNodeForm: React.FC<ProductWebviewNodeFormProps> = ({
                             notifyChange({ colorOptions: colors.length > 0 ? colors : ['Red', 'Blue', 'Black'] });
                         }}
                         placeholder="Red, Blue, Black, White"
-                        className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white"
+                        className={inputClass(isDark)}
                     />
                 </div>
             )}
@@ -1219,8 +1240,8 @@ const ProductWebviewNodeForm: React.FC<ProductWebviewNodeFormProps> = ({
                 label="Size Options"
             />
             {enableSizeSelector && (
-                <div className="mb-3 pl-2 border-l-2 border-indigo-500/30">
-                    <label className="text-xs text-slate-400 block mb-1">Available Sizes (comma-separated)</label>
+                <div className={`mb-3 pl-2 border-l-2 ${isDark ? 'border-indigo-500/30' : 'border-indigo-500/50'}`}>
+                    <label className={labelClass(isDark)}>Available Sizes (comma-separated)</label>
                     <input
                         type="text"
                         value={sizeInputValue}
@@ -1231,7 +1252,7 @@ const ProductWebviewNodeForm: React.FC<ProductWebviewNodeFormProps> = ({
                             notifyChange({ sizeOptions: sizes.length > 0 ? sizes : ['S', 'M', 'L', 'XL'] });
                         }}
                         placeholder="S, M, L, XL, XXL or 32, 34, 36, 38"
-                        className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white"
+                        className={inputClass(isDark)}
                     />
                 </div>
             )}
@@ -1244,8 +1265,8 @@ const ProductWebviewNodeForm: React.FC<ProductWebviewNodeFormProps> = ({
         <CollapsibleSection title="Action Triggers" icon={MousePointer2} defaultOpen={false}>
             <div className="space-y-4">
                 {/* Add to Cart Action */}
-                <div className="p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
-                    <label className="text-sm font-medium text-green-300 block mb-2">🛒 When "Add to Cart" is Clicked</label>
+                <div className={`p-3 rounded-lg border ${isDark ? 'bg-green-500/10 border-green-500/30' : 'bg-green-50 border-green-200'}`}>
+                    <label className={`text-sm font-medium block mb-2 ${isDark ? 'text-green-300' : 'text-green-700'}`}>🛒 When "Add to Cart" is Clicked</label>
                     <select
                         value={onAddToCartAction}
                         onChange={(e) => {
@@ -1253,7 +1274,7 @@ const ProductWebviewNodeForm: React.FC<ProductWebviewNodeFormProps> = ({
                             setOnAddToCartAction(action);
                             notifyChange({ onAddToCartAction: action });
                         }}
-                        className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-sm text-white"
+                        className={inputClass(isDark)}
                     >
                         <option value="upsell">→ Go to Upsell Node</option>
                         <option value="downsell">→ Go to Downsell Node</option>
@@ -1266,27 +1287,27 @@ const ProductWebviewNodeForm: React.FC<ProductWebviewNodeFormProps> = ({
                             value={onAddToCartFlowId}
                             onChange={(e) => { setOnAddToCartFlowId(e.target.value); notifyChange({ onAddToCartFlowId: e.target.value }); }}
                             placeholder="Enter Flow ID"
-                            className="w-full mt-2 bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-sm text-white"
+                            className={`mt-2 ${inputClass(isDark)}`}
                         />
                     )}
                 </div>
 
                 {/* Follow-up Section (when user doesn't click) */}
-                <div className="pt-3 border-t border-white/10">
+                <div className={`pt-3 border-t ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
                     <Toggle
                         value={enableFollowup}
                         onChange={(v) => { setEnableFollowup(v); notifyChange({ enableFollowup: v }); }}
                         label="Enable Follow-up Reminder"
                     />
-                    <p className="text-[10px] text-slate-500 -mt-2">If buyer doesn't add to cart, send a follow-up</p>
+                    <p className={`text-[10px] ${isDark ? 'text-slate-500' : 'text-slate-400'} -mt-2`}>If buyer doesn't add to cart, send a follow-up</p>
 
                     {enableFollowup && (
                         <>
                             {/* Timeout Setting */}
-                            <div className="mt-3 p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg">
-                                <label className="text-sm font-medium text-amber-300 block mb-2">⏱️ Follow-up Timer</label>
+                            <div className={`mt-3 p-3 rounded-lg border ${isDark ? 'bg-amber-500/10 border-amber-500/30' : 'bg-amber-50 border-amber-200'}`}>
+                                <label className={`text-sm font-medium block mb-2 ${isDark ? 'text-amber-300' : 'text-amber-700'}`}>⏱️ Follow-up Timer</label>
                                 <div className="flex items-center gap-3">
-                                    <span className="text-xs text-slate-400">If not clicked within</span>
+                                    <span className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>If not clicked within</span>
                                     <input
                                         type="number"
                                         min="3"
@@ -1297,15 +1318,15 @@ const ProductWebviewNodeForm: React.FC<ProductWebviewNodeFormProps> = ({
                                             setFollowupTimeout(val);
                                             notifyChange({ followupTimeout: val });
                                         }}
-                                        className="w-16 bg-black/50 border border-white/10 rounded-lg px-2 py-1 text-sm text-white text-center"
+                                        className={`w-16 rounded-lg px-2 py-1 text-sm text-center border ${isDark ? 'bg-black/50 border-white/10 text-white' : 'bg-white border-slate-200 text-slate-900'}`}
                                     />
-                                    <span className="text-xs text-slate-400">minutes</span>
+                                    <span className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>minutes</span>
                                 </div>
                             </div>
 
                             {/* Follow-up Node Type Selection */}
-                            <div className="mt-3 p-3 bg-indigo-500/10 border border-indigo-500/30 rounded-lg">
-                                <label className="text-sm font-medium text-indigo-300 block mb-3">📍 Send Follow-up To</label>
+                            <div className={`mt-3 p-3 rounded-lg border ${isDark ? 'bg-indigo-500/10 border-indigo-500/30' : 'bg-indigo-50 border-indigo-200'}`}>
+                                <label className={`text-sm font-medium block mb-3 ${isDark ? 'text-indigo-300' : 'text-indigo-700'}`}>📍 Send Follow-up To</label>
                                 <div className="grid grid-cols-2 gap-2">
                                     <button
                                         onClick={() => {
@@ -1314,12 +1335,12 @@ const ProductWebviewNodeForm: React.FC<ProductWebviewNodeFormProps> = ({
                                         }}
                                         className={`p-3 rounded-lg border text-center transition-all ${followupNodeType === 'textNode'
                                             ? 'bg-blue-500/30 border-blue-500/60 ring-2 ring-blue-500/40'
-                                            : 'bg-black/30 border-white/10 hover:bg-white/5'
+                                            : isDark ? 'bg-black/30 border-white/10 hover:bg-white/5' : 'bg-white border-slate-200 hover:bg-slate-50'
                                             }`}
                                     >
                                         <MessageSquare className="w-5 h-5 mx-auto mb-1 text-blue-400" />
-                                        <div className="text-sm font-medium text-white">Text Node</div>
-                                        <div className="text-[10px] text-slate-400">Send message</div>
+                                        <div className={`text-sm font-medium ${isDark ? 'text-white' : 'text-slate-900'}`}>Text Node</div>
+                                        <div className={`text-[10px] ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Send message</div>
                                     </button>
                                     <button
                                         onClick={() => {
@@ -1328,15 +1349,15 @@ const ProductWebviewNodeForm: React.FC<ProductWebviewNodeFormProps> = ({
                                         }}
                                         className={`p-3 rounded-lg border text-center transition-all ${followupNodeType === 'followupNode'
                                             ? 'bg-rose-500/30 border-rose-500/60 ring-2 ring-rose-500/40'
-                                            : 'bg-black/30 border-white/10 hover:bg-white/5'
+                                            : isDark ? 'bg-black/30 border-white/10 hover:bg-white/5' : 'bg-white border-slate-200 hover:bg-slate-50'
                                             }`}
                                     >
                                         <RefreshCw className="w-5 h-5 mx-auto mb-1 text-rose-400" />
-                                        <div className="text-sm font-medium text-white">Follow-up</div>
-                                        <div className="text-[10px] text-slate-400">Reminder sequence</div>
+                                        <div className={`text-sm font-medium ${isDark ? 'text-white' : 'text-slate-900'}`}>Follow-up</div>
+                                        <div className={`text-[10px] ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Reminder sequence</div>
                                     </button>
                                 </div>
-                                <p className="text-[10px] text-indigo-300 mt-3">🔗 This will auto-connect and open the selected node in the flow builder</p>
+                                <p className={`text-[10px] mt-3 ${isDark ? 'text-indigo-300' : 'text-indigo-600'}`}>🔗 This will auto-connect and open the selected node in the flow builder</p>
                             </div>
                         </>
                     )}
@@ -1380,26 +1401,26 @@ const ProductWebviewNodeForm: React.FC<ProductWebviewNodeFormProps> = ({
     // Desktop: Responsive modal width based on device selector
     if (isDesktop) {
         return (
-            <div className="fixed inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 z-50 p-[15px] flex items-center justify-center">
-                <div className={`w-full ${modalWidths[previewDevice]} h-full max-h-full flex flex-col bg-slate-800/50 rounded-2xl border border-white/10 overflow-hidden transition-all duration-300`}>
+            <div className={`fixed inset-0 z-50 p-[15px] flex items-center justify-center ${isDark ? 'bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900' : 'bg-slate-100/50 backdrop-blur-sm'}`}>
+                <div className={`w-full ${modalWidths[previewDevice]} h-full max-h-full flex flex-col rounded-2xl border overflow-hidden transition-all duration-300 ${isDark ? 'bg-slate-800/50 border-white/10' : 'bg-white border-slate-200 shadow-xl'}`}>
                     {/* Header with Device Switcher */}
-                    <div className="flex-shrink-0 h-14 border-b border-white/10 flex items-center px-4 gap-4">
+                    <div className={`flex-shrink-0 h-14 border-b flex items-center px-4 gap-4 ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
                         {/* Left: Title */}
                         <div className="flex items-center gap-3 min-w-0 flex-shrink-0">
-                            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center relative">
+                            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center relative shadow-lg shadow-purple-500/20">
                                 <ShoppingBag className="w-4 h-4 text-white" />
                                 <Globe className="w-2.5 h-2.5 text-white absolute -bottom-0.5 -right-0.5 bg-indigo-600 rounded-full p-0.5" />
                             </div>
-                            <span className="text-base font-bold text-white whitespace-nowrap">Product Webview</span>
+                            <span className={`text-base font-bold whitespace-nowrap ${isDark ? 'text-white' : 'text-slate-900'}`}>Product Webview</span>
                         </div>
 
                         {/* Center: Device Switcher */}
                         <div className="flex-1 flex justify-center">
-                            <div className="flex items-center gap-1 bg-slate-700/50 rounded-lg p-1 border border-white/10">
+                            <div className={`flex items-center gap-1 rounded-lg p-1 border ${isDark ? 'bg-slate-700/50 border-white/10' : 'bg-slate-100 border-slate-200'}`}>
                                 <button
                                     type="button"
                                     onClick={() => setPreviewDevice('mobile')}
-                                    className={`p-2 rounded-md transition-all ${previewDevice === 'mobile' ? 'bg-teal-500 text-white' : 'text-slate-400 hover:text-white hover:bg-white/10'}`}
+                                    className={`p-2 rounded-md transition-all ${previewDevice === 'mobile' ? 'bg-teal-500 text-white shadow-sm' : isDark ? 'text-slate-400 hover:text-white hover:bg-white/10' : 'text-slate-500 hover:text-teal-600 hover:bg-white'}`}
                                     title="Mobile"
                                 >
                                     <Smartphone className="w-4 h-4" />
@@ -1407,7 +1428,7 @@ const ProductWebviewNodeForm: React.FC<ProductWebviewNodeFormProps> = ({
                                 <button
                                     type="button"
                                     onClick={() => setPreviewDevice('tablet')}
-                                    className={`p-2 rounded-md transition-all ${previewDevice === 'tablet' ? 'bg-teal-500 text-white' : 'text-slate-400 hover:text-white hover:bg-white/10'}`}
+                                    className={`p-2 rounded-md transition-all ${previewDevice === 'tablet' ? 'bg-teal-500 text-white shadow-sm' : isDark ? 'text-slate-400 hover:text-white hover:bg-white/10' : 'text-slate-500 hover:text-teal-600 hover:bg-white'}`}
                                     title="Tablet"
                                 >
                                     <Tablet className="w-4 h-4" />
@@ -1415,7 +1436,7 @@ const ProductWebviewNodeForm: React.FC<ProductWebviewNodeFormProps> = ({
                                 <button
                                     type="button"
                                     onClick={() => setPreviewDevice('desktop')}
-                                    className={`p-2 rounded-md transition-all ${previewDevice === 'desktop' ? 'bg-teal-500 text-white' : 'text-slate-400 hover:text-white hover:bg-white/10'}`}
+                                    className={`p-2 rounded-md transition-all ${previewDevice === 'desktop' ? 'bg-teal-500 text-white shadow-sm' : isDark ? 'text-slate-400 hover:text-white hover:bg-white/10' : 'text-slate-500 hover:text-teal-600 hover:bg-white'}`}
                                     title="Desktop"
                                 >
                                     <Monitor className="w-4 h-4" />
@@ -1428,7 +1449,7 @@ const ProductWebviewNodeForm: React.FC<ProductWebviewNodeFormProps> = ({
                             <button
                                 type="button"
                                 onClick={openLivePreview}
-                                className="flex items-center gap-1.5 px-3 py-1.5 bg-teal-500/20 hover:bg-teal-500/30 rounded-lg text-teal-400 text-xs transition-colors"
+                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-colors ${isDark ? 'bg-teal-500/20 hover:bg-teal-500/30 text-teal-400' : 'bg-teal-50 hover:bg-teal-100 text-teal-600'}`}
                                 title="Open Live Preview"
                             >
                                 <Eye className="w-3.5 h-3.5" />
@@ -1440,7 +1461,7 @@ const ProductWebviewNodeForm: React.FC<ProductWebviewNodeFormProps> = ({
                                     setSaveNotification(true);
                                     setTimeout(() => setSaveNotification(false), 3000);
                                 }}
-                                className="flex items-center gap-1.5 px-4 py-1.5 bg-teal-500 hover:bg-teal-600 rounded-lg text-white text-xs font-medium transition-colors"
+                                className="flex items-center gap-1.5 px-4 py-1.5 bg-teal-500 hover:bg-teal-600 rounded-lg text-white text-xs font-medium transition-colors shadow-lg shadow-teal-500/20"
                                 title="Save Configuration"
                             >
                                 <Save className="w-3.5 h-3.5" />
@@ -1450,7 +1471,7 @@ const ProductWebviewNodeForm: React.FC<ProductWebviewNodeFormProps> = ({
                                 <button
                                     type="button"
                                     onClick={onClose}
-                                    className="p-1.5 hover:bg-white/10 rounded-lg text-slate-400 hover:text-white transition-colors"
+                                    className={`p-1.5 rounded-lg transition-colors ${isDark ? 'hover:bg-white/10 text-slate-400 hover:text-white' : 'hover:bg-slate-100 text-slate-500 hover:text-slate-900'}`}
                                     title="Close"
                                 >
                                     <X className="w-4 h-4" />
@@ -1471,55 +1492,55 @@ const ProductWebviewNodeForm: React.FC<ProductWebviewNodeFormProps> = ({
                     {previewDevice === 'desktop' ? (
                         // Desktop: 3-Column Layout
                         <div className="flex-1 grid grid-cols-12 gap-0 overflow-hidden">
-                            <div className="col-span-4 border-r border-white/10 p-6 overflow-y-auto custom-scrollbar">
+                            <div className={`col-span-4 border-r p-6 overflow-y-auto custom-scrollbar ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
                                 {actionSection}
-                                <div className="mt-6 pt-6 border-t border-white/10">
+                                <div className={`mt-6 pt-6 border-t ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
                                     {basicSection}
                                 </div>
-                                <div className="mt-6 pt-6 border-t border-white/10">
+                                <div className={`mt-6 pt-6 border-t ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
                                     {imageSection}
                                 </div>
                             </div>
-                            <div className="col-span-4 border-r border-white/10 p-6 overflow-y-auto custom-scrollbar">
+                            <div className={`col-span-4 border-r p-6 overflow-y-auto custom-scrollbar ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
                                 {styleSection}
-                                <div className="mt-6 pt-6 border-t border-white/10">
+                                <div className={`mt-6 pt-6 border-t ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
                                     {productOptionsSection}
                                 </div>
-                                <div className="mt-6 pt-6 border-t border-white/10">
+                                <div className={`mt-6 pt-6 border-t ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
                                     {actionTriggersSection}
                                 </div>
                             </div>
-                            <div className="col-span-4 p-6 flex items-center justify-center bg-slate-950/50 overflow-auto">
+                            <div className={`col-span-4 p-6 flex items-center justify-center overflow-auto ${isDark ? 'bg-slate-950/50' : 'bg-slate-50'}`}>
                                 <DevicePreview />
                             </div>
                         </div>
                     ) : previewDevice === 'tablet' ? (
                         // Tablet: 2-Column Layout
                         <div className="flex-1 grid grid-cols-2 gap-0 overflow-hidden">
-                            <div className="border-r border-white/10 p-4 overflow-y-auto custom-scrollbar space-y-4">
+                            <div className={`border-r p-4 overflow-y-auto custom-scrollbar space-y-4 ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
                                 {actionSection}
-                                <div className="pt-4 border-t border-white/10">{basicSection}</div>
-                                <div className="pt-4 border-t border-white/10">{imageSection}</div>
-                                <div className="pt-4 border-t border-white/10">{styleSection}</div>
-                                <div className="pt-4 border-t border-white/10">{productOptionsSection}</div>
-                                <div className="pt-4 border-t border-white/10">{actionTriggersSection}</div>
+                                <div className={`pt-4 border-t ${isDark ? 'border-white/10' : 'border-slate-200'}`}>{basicSection}</div>
+                                <div className={`pt-4 border-t ${isDark ? 'border-white/10' : 'border-slate-200'}`}>{imageSection}</div>
+                                <div className={`pt-4 border-t ${isDark ? 'border-white/10' : 'border-slate-200'}`}>{styleSection}</div>
+                                <div className={`pt-4 border-t ${isDark ? 'border-white/10' : 'border-slate-200'}`}>{productOptionsSection}</div>
+                                <div className={`pt-4 border-t ${isDark ? 'border-white/10' : 'border-slate-200'}`}>{actionTriggersSection}</div>
                             </div>
-                            <div className="p-4 flex items-center justify-center bg-slate-950/50 overflow-auto">
+                            <div className={`p-4 flex items-center justify-center overflow-auto ${isDark ? 'bg-slate-950/50' : 'bg-slate-50'}`}>
                                 <DevicePreview />
                             </div>
                         </div>
                     ) : (
                         // Mobile: 2-Column Layout (same as tablet - side by side)
                         <div className="flex-1 grid grid-cols-2 gap-0 overflow-hidden">
-                            <div className="border-r border-white/10 p-4 overflow-y-auto custom-scrollbar space-y-4">
+                            <div className={`border-r p-4 overflow-y-auto custom-scrollbar space-y-4 ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
                                 {actionSection}
-                                <div className="pt-4 border-t border-white/10">{basicSection}</div>
-                                <div className="pt-4 border-t border-white/10">{imageSection}</div>
-                                <div className="pt-4 border-t border-white/10">{styleSection}</div>
-                                <div className="pt-4 border-t border-white/10">{productOptionsSection}</div>
-                                <div className="pt-4 border-t border-white/10">{actionTriggersSection}</div>
+                                <div className={`pt-4 border-t ${isDark ? 'border-white/10' : 'border-slate-200'}`}>{basicSection}</div>
+                                <div className={`pt-4 border-t ${isDark ? 'border-white/10' : 'border-slate-200'}`}>{imageSection}</div>
+                                <div className={`pt-4 border-t ${isDark ? 'border-white/10' : 'border-slate-200'}`}>{styleSection}</div>
+                                <div className={`pt-4 border-t ${isDark ? 'border-white/10' : 'border-slate-200'}`}>{productOptionsSection}</div>
+                                <div className={`pt-4 border-t ${isDark ? 'border-white/10' : 'border-slate-200'}`}>{actionTriggersSection}</div>
                             </div>
-                            <div className="p-4 flex items-center justify-center bg-slate-950/50 overflow-auto">
+                            <div className={`p-4 flex items-center justify-center overflow-auto ${isDark ? 'bg-slate-950/50' : 'bg-slate-50'}`}>
                                 <DevicePreview />
                             </div>
                         </div>
@@ -1544,14 +1565,14 @@ const ProductWebviewNodeForm: React.FC<ProductWebviewNodeFormProps> = ({
 
     if (showMobilePreview) {
         return (
-            <div className="min-h-screen bg-slate-900 p-4">
+            <div className={`min-h-screen p-4 ${isDark ? 'bg-slate-900' : 'bg-slate-50'}`}>
                 <div className="flex items-center justify-between mb-4">
                     <button onClick={() => setShowMobilePreview(false)}
-                        className="flex items-center gap-2 text-slate-400 text-sm">
+                        className={`flex items-center gap-2 text-sm ${isDark ? 'text-slate-400' : 'text-slate-500 hover:text-slate-800'}`}>
                         <ChevronLeft className="w-4 h-4" /> Back to Editor
                     </button>
                     <button onClick={openLivePreview}
-                        className="flex items-center gap-2 text-teal-400 text-sm bg-teal-500/20 px-3 py-1.5 rounded-lg hover:bg-teal-500/30 transition-colors">
+                        className={`flex items-center gap-2 text-sm px-3 py-1.5 rounded-lg transition-colors ${isDark ? 'text-teal-400 bg-teal-500/20 hover:bg-teal-500/30' : 'text-teal-600 bg-teal-50 hover:bg-teal-100'}`}>
                         <ExternalLink className="w-4 h-4" /> Open Live Preview
                     </button>
                 </div>
@@ -1563,29 +1584,29 @@ const ProductWebviewNodeForm: React.FC<ProductWebviewNodeFormProps> = ({
     }
 
     return (
-        <div className="min-h-screen bg-slate-900 flex flex-col">
+        <div className={`min-h-screen flex flex-col ${isDark ? 'bg-slate-900' : 'bg-slate-50'}`}>
             {/* Progress Bar */}
-            <div className="p-4 border-b border-white/10">
+            <div className={`p-4 border-b ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
                 <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-white font-medium">Step {mobileStep + 1} of {WIZARD_STEPS.length}</span>
+                    <span className={`text-sm font-medium ${isDark ? 'text-white' : 'text-slate-900'}`}>Step {mobileStep + 1} of {WIZARD_STEPS.length}</span>
                     <div className="flex items-center gap-2">
                         <button onClick={() => setShowMobilePreview(true)}
-                            className="flex items-center gap-1 text-xs text-teal-400 bg-teal-500/20 px-2 py-1 rounded-lg">
+                            className={`flex items-center gap-1 text-xs px-2 py-1 rounded-lg ${isDark ? 'text-teal-400 bg-teal-500/20' : 'text-teal-600 bg-teal-50'}`}>
                             <Eye className="w-3 h-3" /> Preview
                         </button>
                         <button onClick={openLivePreview}
-                            className="flex items-center gap-1 text-xs text-purple-400 bg-purple-500/20 px-2 py-1 rounded-lg"
+                            className={`flex items-center gap-1 text-xs px-2 py-1 rounded-lg ${isDark ? 'text-purple-400 bg-purple-500/20' : 'text-purple-600 bg-purple-50'}`}
                             title="Open Live Page Preview">
                             <ExternalLink className="w-3 h-3" />
                         </button>
                     </div>
                 </div>
-                <div className="h-1 bg-slate-700 rounded-full overflow-hidden">
+                <div className={`h-1 rounded-full overflow-hidden ${isDark ? 'bg-slate-700' : 'bg-slate-200'}`}>
                     <div className="h-full bg-teal-500 transition-all" style={{ width: `${((mobileStep + 1) / WIZARD_STEPS.length) * 100}%` }} />
                 </div>
                 <div className="flex mt-2">
                     {WIZARD_STEPS.map((step, i) => (
-                        <div key={step.id} className={`flex-1 text-center text-[10px] ${i <= mobileStep ? 'text-teal-400' : 'text-slate-500'}`}>
+                        <div key={step.id} className={`flex-1 text-center text-[10px] ${i <= mobileStep ? 'text-teal-500 font-medium' : isDark ? 'text-slate-500' : 'text-slate-400'}`}>
                             {step.title}
                         </div>
                     ))}
@@ -1598,19 +1619,19 @@ const ProductWebviewNodeForm: React.FC<ProductWebviewNodeFormProps> = ({
             </div>
 
             {/* Navigation */}
-            <div className="flex-shrink-0 p-4 border-t border-white/10 flex gap-3">
+            <div className={`flex-shrink-0 p-4 border-t flex gap-3 ${isDark ? 'border-white/10' : 'border-slate-200 bg-white'}`}>
                 <button onClick={() => setMobileStep(Math.max(0, mobileStep - 1))} disabled={mobileStep === 0}
-                    className={`flex-1 py-3 rounded-lg flex items-center justify-center gap-2 ${mobileStep === 0 ? 'bg-slate-700 text-slate-500' : 'bg-slate-700 text-white'}`}>
+                    className={`flex-1 py-3 rounded-lg flex items-center justify-center gap-2 ${mobileStep === 0 ? (isDark ? 'bg-slate-800 text-slate-600' : 'bg-slate-100 text-slate-400') : (isDark ? 'bg-slate-800 text-white' : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50')}`}>
                     <ChevronLeft className="w-4 h-4" /> Back
                 </button>
                 {mobileStep < WIZARD_STEPS.length - 1 ? (
                     <button onClick={() => setMobileStep(mobileStep + 1)}
-                        className="flex-1 py-3 rounded-lg bg-teal-500 text-white flex items-center justify-center gap-2">
+                        className="flex-1 py-3 rounded-lg bg-teal-500 text-white flex items-center justify-center gap-2 hover:bg-teal-600 shadow-md shadow-teal-500/20">
                         Next <ChevronRight className="w-4 h-4" />
                     </button>
                 ) : (
                     <button onClick={() => setShowMobilePreview(true)}
-                        className="flex-1 py-3 rounded-lg bg-green-500 text-white flex items-center justify-center gap-2">
+                        className="flex-1 py-3 rounded-lg bg-green-500 text-white flex items-center justify-center gap-2 hover:bg-green-600 shadow-md shadow-green-500/20">
                         <Check className="w-4 h-4" /> Done
                     </button>
                 )}

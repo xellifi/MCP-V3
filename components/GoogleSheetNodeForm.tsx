@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { HelpCircle, ExternalLink, Check, AlertCircle, Link, ShoppingCart, FileText, Package } from 'lucide-react';
+import { useTheme } from '../context/ThemeContext';
 
 interface GoogleSheetNodeFormProps {
     workspaceId: string;
@@ -10,6 +11,7 @@ interface GoogleSheetNodeFormProps {
 type SourceType = 'form' | 'checkout' | 'auto';
 
 const GoogleSheetNodeForm: React.FC<GoogleSheetNodeFormProps> = ({ workspaceId, initialConfig, onChange }) => {
+    const { isDark } = useTheme();
     const [spreadsheetId, setSpreadsheetId] = useState(initialConfig?.spreadsheetId || '');
     const [sheetName, setSheetName] = useState(initialConfig?.sheetName || 'Sheet1');
     const [webhookUrl, setWebhookUrl] = useState(initialConfig?.webhookUrl || '');
@@ -52,7 +54,18 @@ const GoogleSheetNodeForm: React.FC<GoogleSheetNodeFormProps> = ({ workspaceId, 
     const isValidWebhook = webhookUrl.includes('script.google.com') || webhookUrl.includes('macros/s/');
     const isFullyConfigured = isValidId && isValidWebhook;
 
-    const inputClass = "w-full px-3 py-2 bg-slate-800/60 border border-slate-600/50 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-green-500/50";
+    // Theme-aware styles
+    const inputClass = isDark
+        ? "w-full px-3 py-2 bg-slate-800/60 border border-slate-600/50 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-green-500/50"
+        : "w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-green-500/50";
+
+    const labelClass = isDark
+        ? "block text-sm font-medium text-slate-300 mb-1.5"
+        : "block text-sm font-bold text-slate-700 mb-1.5";
+
+    const mutedText = isDark ? "text-slate-400" : "text-slate-500";
+    const cardBg = isDark ? "bg-slate-800/40" : "bg-white";
+    const borderColor = isDark ? "border-slate-600/30" : "border-slate-200";
 
     const sourceOptions = [
         {
@@ -76,10 +89,10 @@ const GoogleSheetNodeForm: React.FC<GoogleSheetNodeFormProps> = ({ workspaceId, 
     ];
 
     return (
-        <div className="space-y-4">
+        <div className="space-y-6">
             {/* Header */}
-            <div className="flex items-center gap-3 mb-4">
-                <div className="p-2.5 bg-green-500/20 rounded-xl">
+            <div className={`flex items-center gap-3 p-4 rounded-xl border ${isDark ? 'bg-slate-800/40 border-slate-700' : 'bg-white border-slate-200 shadow-sm'}`}>
+                <div className={`p-2.5 rounded-xl ${isDark ? 'bg-green-500/20' : 'bg-green-50'}`}>
                     <svg viewBox="0 0 24 24" className="w-6 h-6" fill="none">
                         <rect x="3" y="3" width="18" height="18" rx="2" className="fill-green-500" />
                         <rect x="6" y="7" width="12" height="2" rx="0.5" className="fill-white" />
@@ -88,14 +101,14 @@ const GoogleSheetNodeForm: React.FC<GoogleSheetNodeFormProps> = ({ workspaceId, 
                     </svg>
                 </div>
                 <div>
-                    <h3 className="text-white font-semibold">Google Sheets Sync</h3>
-                    <p className="text-slate-400 text-xs">Sync form submissions to spreadsheet</p>
+                    <h3 className={`font-bold text-lg ${isDark ? 'text-white' : 'text-slate-900'}`}>Google Sheets Sync</h3>
+                    <p className={`text-xs ${mutedText}`}>Sync form submissions to spreadsheet</p>
                 </div>
             </div>
 
             {/* Source Type Selection */}
             <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">
+                <label className={labelClass}>
                     Data Source
                 </label>
                 <div className="space-y-2">
@@ -105,23 +118,27 @@ const GoogleSheetNodeForm: React.FC<GoogleSheetNodeFormProps> = ({ workspaceId, 
                             type="button"
                             onClick={() => setSourceType(option.value)}
                             className={`w-full p-3 rounded-xl border transition-all text-left flex items-start gap-3 ${sourceType === option.value
-                                    ? 'bg-green-500/20 border-green-500/50'
-                                    : 'bg-slate-800/40 border-slate-600/30 hover:border-slate-500/50'
+                                ? (isDark ? 'bg-green-500/20 border-green-500/50' : 'bg-green-50 border-green-200 shadow-sm')
+                                : (isDark ? 'bg-slate-800/40 border-slate-600/30 hover:border-slate-500/50' : 'bg-white border-slate-200 hover:border-slate-300')
                                 }`}
                         >
-                            <div className={`p-1.5 rounded-lg ${sourceType === option.value ? 'bg-green-500/30 text-green-400' : 'bg-slate-700/50 text-slate-400'
+                            <div className={`p-1.5 rounded-lg ${sourceType === option.value
+                                ? (isDark ? 'bg-green-500/30 text-green-400' : 'bg-green-100 text-green-700')
+                                : (isDark ? 'bg-slate-700/50 text-slate-400' : 'bg-slate-100 text-slate-500')
                                 }`}>
                                 {option.icon}
                             </div>
                             <div className="flex-1">
-                                <div className={`text-sm font-medium ${sourceType === option.value ? 'text-white' : 'text-slate-300'
+                                <div className={`text-sm font-medium ${sourceType === option.value
+                                    ? (isDark ? 'text-white' : 'text-slate-900')
+                                    : (isDark ? 'text-slate-300' : 'text-slate-600')
                                     }`}>
                                     {option.label}
                                 </div>
-                                <div className="text-xs text-slate-500">{option.desc}</div>
+                                <div className={`text-xs ${mutedText}`}>{option.desc}</div>
                             </div>
                             {sourceType === option.value && (
-                                <Check className="w-5 h-5 text-green-500 mt-0.5" />
+                                <Check className={`w-5 h-5 mt-0.5 ${isDark ? 'text-green-500' : 'text-green-600'}`} />
                             )}
                         </button>
                     ))}
@@ -129,95 +146,63 @@ const GoogleSheetNodeForm: React.FC<GoogleSheetNodeFormProps> = ({ workspaceId, 
             </div>
 
             {/* Connection Info Box */}
-            <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-xl">
+            <div className={`p-3 border rounded-xl ${isDark ? 'bg-blue-500/10 border-blue-500/30' : 'bg-blue-50 border-blue-100'}`}>
                 <div className="flex items-center gap-2">
-                    <Link className="w-4 h-4 text-blue-400" />
-                    <span className="text-blue-400 font-medium text-xs">How it works</span>
+                    <Link className={`w-4 h-4 ${isDark ? 'text-blue-400' : 'text-blue-500'}`} />
+                    <span className={`font-bold text-xs ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>How it works</span>
                 </div>
-                <p className="text-slate-400 text-[10px] mt-1 leading-relaxed">
+                <p className={`text-[11px] mt-1 leading-relaxed ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
                     {sourceType === 'form' ? (
-                        <>Connect this node to a <span className="text-purple-400 font-medium">Form</span> node. When the form is submitted, data will automatically sync to your Google Sheet.</>
+                        <>Connect this node to a <span className={`font-bold ${isDark ? 'text-purple-400' : 'text-purple-600'}`}>Form</span> node. When the form is submitted, data will automatically sync to your Google Sheet.</>
                     ) : sourceType === 'checkout' ? (
-                        <>Connect this node after <span className="text-orange-400 font-medium">Checkout</span> or <span className="text-indigo-400 font-medium">Invoice</span> node. Complete order data (main product + upsells + downsells) will sync to your Google Sheet.</>
+                        <>Connect this node after <span className={`font-bold ${isDark ? 'text-orange-400' : 'text-orange-600'}`}>Checkout</span> or <span className={`font-bold ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`}>Invoice</span> node. Complete order data (main product + upsells + downsells) will sync to your Google Sheet.</>
                     ) : (
-                        <>Connect to a <span className="text-purple-400 font-medium">Form</span> node for form data, or <span className="text-orange-400 font-medium">Checkout/Invoice</span> node for complete order data including upsells and downsells.</>
+                        <>Connect to a <span className={`font-bold ${isDark ? 'text-purple-400' : 'text-purple-600'}`}>Form</span> node for form data, or <span className={`font-bold ${isDark ? 'text-orange-400' : 'text-orange-600'}`}>Checkout/Invoice</span> node for complete order data including upsells and downsells.</>
                     )}
                 </p>
             </div>
 
             {/* Order-specific options - only show for checkout/auto */}
             {(sourceType === 'checkout' || sourceType === 'auto') && (
-                <div className="p-3 bg-slate-800/40 border border-slate-600/30 rounded-xl space-y-2">
+                <div className={`p-4 border rounded-xl space-y-3 ${isDark ? 'bg-slate-800/40 border-slate-600/30' : 'bg-slate-50 border-slate-200'}`}>
                     <div className="flex items-center gap-2 mb-2">
-                        <Package className="w-4 h-4 text-orange-400" />
-                        <span className="text-slate-300 font-medium text-xs">Order Data Options</span>
+                        <Package className={`w-4 h-4 ${isDark ? 'text-orange-400' : 'text-orange-500'}`} />
+                        <span className={`font-bold text-xs ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>Order Data Options</span>
                     </div>
 
-                    <label className="flex items-center gap-2 cursor-pointer">
-                        <input
-                            type="checkbox"
-                            checked={includeMainProduct}
-                            onChange={(e) => setIncludeMainProduct(e.target.checked)}
-                            className="w-4 h-4 rounded border-slate-600 bg-slate-700 text-green-500 focus:ring-green-500/50"
-                        />
-                        <span className="text-slate-300 text-xs">Include main product</span>
-                    </label>
-
-                    <label className="flex items-center gap-2 cursor-pointer">
-                        <input
-                            type="checkbox"
-                            checked={includeUpsells}
-                            onChange={(e) => setIncludeUpsells(e.target.checked)}
-                            className="w-4 h-4 rounded border-slate-600 bg-slate-700 text-green-500 focus:ring-green-500/50"
-                        />
-                        <span className="text-slate-300 text-xs">Include upsell products</span>
-                    </label>
-
-                    <label className="flex items-center gap-2 cursor-pointer">
-                        <input
-                            type="checkbox"
-                            checked={includeDownsells}
-                            onChange={(e) => setIncludeDownsells(e.target.checked)}
-                            className="w-4 h-4 rounded border-slate-600 bg-slate-700 text-green-500 focus:ring-green-500/50"
-                        />
-                        <span className="text-slate-300 text-xs">Include downsell products</span>
-                    </label>
-
-                    <label className="flex items-center gap-2 cursor-pointer">
-                        <input
-                            type="checkbox"
-                            checked={includeCustomerInfo}
-                            onChange={(e) => setIncludeCustomerInfo(e.target.checked)}
-                            className="w-4 h-4 rounded border-slate-600 bg-slate-700 text-green-500 focus:ring-green-500/50"
-                        />
-                        <span className="text-slate-300 text-xs">Include customer info (name, address, phone)</span>
-                    </label>
-
-                    <label className="flex items-center gap-2 cursor-pointer">
-                        <input
-                            type="checkbox"
-                            checked={includeTimestamp}
-                            onChange={(e) => setIncludeTimestamp(e.target.checked)}
-                            className="w-4 h-4 rounded border-slate-600 bg-slate-700 text-green-500 focus:ring-green-500/50"
-                        />
-                        <span className="text-slate-300 text-xs">Include order timestamp</span>
-                    </label>
+                    {[
+                        { label: 'Include main product', checked: includeMainProduct, onChange: setIncludeMainProduct },
+                        { label: 'Include upsell products', checked: includeUpsells, onChange: setIncludeUpsells },
+                        { label: 'Include downsell products', checked: includeDownsells, onChange: setIncludeDownsells },
+                        { label: 'Include customer info (name, address, phone)', checked: includeCustomerInfo, onChange: setIncludeCustomerInfo },
+                        { label: 'Include order timestamp', checked: includeTimestamp, onChange: setIncludeTimestamp },
+                    ].map((item, idx) => (
+                        <label key={idx} className="flex items-center gap-2 cursor-pointer group">
+                            <input
+                                type="checkbox"
+                                checked={item.checked}
+                                onChange={(e) => item.onChange(e.target.checked)}
+                                className={`w-4 h-4 rounded border-slate-300 text-green-500 focus:ring-green-500/50 transition-colors ${isDark ? 'bg-slate-700 border-slate-600' : 'bg-white'}`}
+                            />
+                            <span className={`text-xs transition-colors ${isDark ? 'text-slate-400 group-hover:text-slate-300' : 'text-slate-600 group-hover:text-slate-800'}`}>{item.label}</span>
+                        </label>
+                    ))}
                 </div>
             )}
 
             {/* Spreadsheet ID */}
             <div>
                 <div className="flex items-center justify-between mb-1.5">
-                    <label className="block text-sm font-medium text-slate-300">
+                    <label className={labelClass}>
                         Spreadsheet ID or URL
                     </label>
                     <button
                         type="button"
                         onClick={() => setShowGuide(!showGuide)}
-                        className="text-slate-400 hover:text-white transition"
+                        className={`transition text-xs font-medium flex items-center gap-1 ${isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-800'}`}
                         title="Setup Guide"
                     >
-                        <HelpCircle className="w-4 h-4" />
+                        <HelpCircle className="w-3.5 h-3.5" /> Setup Guide
                     </button>
                 </div>
                 <div className="relative">
@@ -242,7 +227,7 @@ const GoogleSheetNodeForm: React.FC<GoogleSheetNodeFormProps> = ({ workspaceId, 
 
             {/* Sheet Name */}
             <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1.5">
+                <label className={labelClass}>
                     Sheet Tab Name
                 </label>
                 <input
@@ -252,12 +237,12 @@ const GoogleSheetNodeForm: React.FC<GoogleSheetNodeFormProps> = ({ workspaceId, 
                     placeholder="Sheet1"
                     className={inputClass}
                 />
-                <p className="text-slate-500 text-xs mt-1">The tab name at the bottom of your spreadsheet</p>
+                <p className={`text-xs mt-1 ${mutedText}`}>The tab name at the bottom of your spreadsheet</p>
             </div>
 
             {/* Webhook URL */}
             <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1.5">
+                <label className={labelClass}>
                     Apps Script Webhook URL
                 </label>
                 <div className="relative">
@@ -272,28 +257,28 @@ const GoogleSheetNodeForm: React.FC<GoogleSheetNodeFormProps> = ({ workspaceId, 
                         <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-green-500" />
                     )}
                 </div>
-                <p className="text-slate-500 text-xs mt-1">
+                <p className={`text-xs mt-1 ${mutedText}`}>
                     Deploy an Apps Script to receive form data
                 </p>
             </div>
 
             {/* Setup Guide */}
             {showGuide && (
-                <div className="p-4 bg-slate-800/80 border border-green-500/30 rounded-xl space-y-3">
-                    <h4 className="text-green-400 font-semibold text-sm flex items-center gap-2">
+                <div className={`p-4 border rounded-xl space-y-4 shadow-sm ${isDark ? 'bg-slate-800/80 border-slate-700' : 'bg-white border-slate-200'}`}>
+                    <h4 className={`font-bold text-sm flex items-center gap-2 ${isDark ? 'text-green-400' : 'text-green-600'}`}>
                         📋 Setup Guide
                     </h4>
 
-                    <div className="space-y-2 text-sm">
+                    <div className="space-y-3 text-sm">
                         <div className="flex gap-2">
-                            <span className="text-green-400 font-bold">1.</span>
-                            <span className="text-slate-300">
+                            <span className={`font-bold ${isDark ? 'text-green-400' : 'text-green-600'}`}>1.</span>
+                            <span className={isDark ? 'text-slate-300' : 'text-slate-700'}>
                                 Open or create a Google Sheet
                                 <a
                                     href="https://sheets.google.com"
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="text-green-400 hover:underline ml-1 inline-flex items-center gap-0.5"
+                                    className={`font-medium hover:underline ml-1 inline-flex items-center gap-0.5 ${isDark ? 'text-green-400' : 'text-green-600'}`}
                                 >
                                     sheets.google.com <ExternalLink className="w-3 h-3" />
                                 </a>
@@ -301,27 +286,27 @@ const GoogleSheetNodeForm: React.FC<GoogleSheetNodeFormProps> = ({ workspaceId, 
                         </div>
 
                         <div className="flex gap-2">
-                            <span className="text-green-400 font-bold">2.</span>
-                            <span className="text-slate-300">
+                            <span className={`font-bold ${isDark ? 'text-green-400' : 'text-green-600'}`}>2.</span>
+                            <span className={isDark ? 'text-slate-300' : 'text-slate-700'}>
                                 Copy the spreadsheet URL from your browser
                             </span>
                         </div>
 
                         <div className="flex gap-2">
-                            <span className="text-green-400 font-bold">3.</span>
-                            <span className="text-slate-300">
-                                Go to <span className="text-green-400">Extensions → Apps Script</span>
+                            <span className={`font-bold ${isDark ? 'text-green-400' : 'text-green-600'}`}>3.</span>
+                            <span className={isDark ? 'text-slate-300' : 'text-slate-700'}>
+                                Go to <span className={`font-bold ${isDark ? 'text-green-400' : 'text-green-600'}`}>Extensions → Apps Script</span>
                             </span>
                         </div>
 
                         <div className="flex gap-2">
-                            <span className="text-green-400 font-bold">4.</span>
-                            <span className="text-slate-300">
+                            <span className={`font-bold ${isDark ? 'text-green-400' : 'text-green-600'}`}>4.</span>
+                            <span className={isDark ? 'text-slate-300' : 'text-slate-700'}>
                                 Paste this code:
                             </span>
                         </div>
 
-                        <div className="bg-slate-900/80 p-2 rounded-lg text-[10px] font-mono text-green-300 overflow-x-auto">
+                        <div className={`p-3 rounded-lg text-[10px] font-mono overflow-x-auto border ${isDark ? 'bg-slate-950 border-slate-800 text-green-300' : 'bg-slate-50 border-slate-200 text-slate-800'}`}>
                             <pre>{`function doPost(e) {
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
   var data = JSON.parse(e.postData.contents);
@@ -341,29 +326,29 @@ const GoogleSheetNodeForm: React.FC<GoogleSheetNodeFormProps> = ({ workspaceId, 
                         </div>
 
                         <div className="flex gap-2">
-                            <span className="text-green-400 font-bold">5.</span>
-                            <span className="text-slate-300">
-                                Click <span className="text-green-400">Deploy → New deployment → Web app</span>
+                            <span className={`font-bold ${isDark ? 'text-green-400' : 'text-green-600'}`}>5.</span>
+                            <span className={isDark ? 'text-slate-300' : 'text-slate-700'}>
+                                Click <span className={`font-bold ${isDark ? 'text-green-400' : 'text-green-600'}`}>Deploy → New deployment → Web app</span>
                             </span>
                         </div>
 
                         <div className="flex gap-2">
-                            <span className="text-green-400 font-bold">6.</span>
-                            <span className="text-slate-300">
-                                Set "Who has access" to <span className="text-green-400">Anyone</span>, then deploy
+                            <span className={`font-bold ${isDark ? 'text-green-400' : 'text-green-600'}`}>6.</span>
+                            <span className={isDark ? 'text-slate-300' : 'text-slate-700'}>
+                                Set "Who has access" to <span className={`font-bold ${isDark ? 'text-green-400' : 'text-green-600'}`}>Anyone</span>, then deploy
                             </span>
                         </div>
 
                         <div className="flex gap-2">
-                            <span className="text-green-400 font-bold">7.</span>
-                            <span className="text-slate-300">
+                            <span className={`font-bold ${isDark ? 'text-green-400' : 'text-green-600'}`}>7.</span>
+                            <span className={isDark ? 'text-slate-300' : 'text-slate-700'}>
                                 Copy the Web app URL and paste it above
                             </span>
                         </div>
                     </div>
 
-                    <div className="mt-3 p-2 bg-slate-900/50 rounded-lg">
-                        <p className="text-slate-500 text-xs">
+                    <div className={`mt-3 p-3 rounded-lg border ${isDark ? 'bg-slate-900/50 border-slate-800' : 'bg-slate-50 border-slate-100'}`}>
+                        <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
                             💡 <strong>Tip for Order Sync:</strong> Add these headers: "Order ID", "Customer Name", "Products", "Quantities", "Prices", "Total", "Timestamp", "Customer Phone", "Customer Address"
                         </p>
                     </div>
@@ -372,12 +357,12 @@ const GoogleSheetNodeForm: React.FC<GoogleSheetNodeFormProps> = ({ workspaceId, 
 
             {/* Status */}
             {isFullyConfigured ? (
-                <div className="p-3 bg-green-500/10 border border-green-500/30 rounded-xl">
+                <div className={`p-4 border rounded-xl ${isDark ? 'bg-green-500/10 border-green-500/30' : 'bg-green-50 border-green-200'}`}>
                     <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                        <span className="text-green-400 text-sm font-medium">Ready to sync!</span>
+                        <div className="w-2.5 h-2.5 bg-green-500 rounded-full animate-pulse"></div>
+                        <span className={`text-sm font-bold ${isDark ? 'text-green-400' : 'text-green-700'}`}>Ready to sync!</span>
                     </div>
-                    <p className="text-slate-400 text-xs mt-1">
+                    <p className={`text-xs mt-1 ${isDark ? 'text-slate-400' : 'text-green-800/70'}`}>
                         {sourceType === 'checkout'
                             ? `Complete order data will be added as new rows to "${sheetName}"`
                             : sourceType === 'form'
@@ -387,12 +372,12 @@ const GoogleSheetNodeForm: React.FC<GoogleSheetNodeFormProps> = ({ workspaceId, 
                     </p>
                 </div>
             ) : isValidId && !isValidWebhook ? (
-                <div className="p-3 bg-orange-500/10 border border-orange-500/30 rounded-xl">
+                <div className={`p-4 border rounded-xl ${isDark ? 'bg-orange-500/10 border-orange-500/30' : 'bg-orange-50 border-orange-200'}`}>
                     <div className="flex items-center gap-2">
-                        <AlertCircle className="w-4 h-4 text-orange-400" />
-                        <span className="text-orange-400 text-sm font-medium">Webhook URL required</span>
+                        <AlertCircle className={`w-4 h-4 ${isDark ? 'text-orange-400' : 'text-orange-600'}`} />
+                        <span className={`text-sm font-bold ${isDark ? 'text-orange-400' : 'text-orange-700'}`}>Webhook URL required</span>
                     </div>
-                    <p className="text-slate-400 text-xs mt-1">
+                    <p className={`text-xs mt-1 ${isDark ? 'text-slate-400' : 'text-orange-800/70'}`}>
                         Add the Apps Script webhook URL to enable sync
                     </p>
                 </div>

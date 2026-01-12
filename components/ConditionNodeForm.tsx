@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Trash2, GitBranch, AlertCircle, Check } from 'lucide-react';
+import { useTheme } from '../context/ThemeContext';
 
 interface ConditionNodeFormProps {
     workspaceId: string;
@@ -68,6 +69,7 @@ interface Condition {
 }
 
 const ConditionNodeForm: React.FC<ConditionNodeFormProps> = ({ workspaceId, initialConfig, onChange }) => {
+    const { isDark } = useTheme();
     const [conditionName, setConditionName] = useState(initialConfig?.conditionName || 'Check Condition');
     const [matchType, setMatchType] = useState<'all' | 'any'>(initialConfig?.matchType || 'all');
     const [conditions, setConditions] = useState<Condition[]>(initialConfig?.conditions || [
@@ -123,8 +125,8 @@ const ConditionNodeForm: React.FC<ConditionNodeFormProps> = ({ workspaceId, init
         return !['is_empty', 'is_not_empty', 'is_true', 'is_false'].includes(operator);
     };
 
-    const inputClass = "w-full px-3 py-2 bg-slate-800/60 border border-slate-600/50 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50";
-    const selectClass = "w-full px-3 py-2 bg-slate-800/60 border border-slate-600/50 rounded-xl text-white text-sm focus:outline-none cursor-pointer";
+    const inputClass = `w-full px-3 py-2 ${isDark ? 'bg-slate-800/60 border-slate-600/50 text-white' : 'bg-white border-slate-200 text-slate-900'} border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50`;
+    const selectClass = `w-full px-3 py-2 ${isDark ? 'bg-slate-800/60 border-slate-600/50 text-white' : 'bg-white border-slate-200 text-slate-900'} border rounded-xl text-sm focus:outline-none cursor-pointer`;
 
     return (
         <div className="space-y-4">
@@ -134,14 +136,14 @@ const ConditionNodeForm: React.FC<ConditionNodeFormProps> = ({ workspaceId, init
                     <GitBranch className="w-6 h-6 text-amber-400" />
                 </div>
                 <div>
-                    <h3 className="text-white font-semibold">Condition Node</h3>
+                    <h3 className={`${isDark ? 'text-white' : 'text-slate-900'} font-semibold`}>Condition Node</h3>
                     <p className="text-slate-400 text-xs">Branch flow based on conditions</p>
                 </div>
             </div>
 
             {/* Condition Name */}
             <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1.5">Condition Name</label>
+                <label className={`block text-xs font-medium ${isDark ? 'text-slate-400' : 'text-slate-600'} mb-1.5`}>Condition Name</label>
                 <input
                     type="text"
                     value={conditionName}
@@ -152,14 +154,14 @@ const ConditionNodeForm: React.FC<ConditionNodeFormProps> = ({ workspaceId, init
             </div>
 
             {/* Match Type */}
-            <div className="p-3 bg-slate-800/40 border border-slate-700/50 rounded-xl">
-                <label className="block text-xs font-medium text-slate-400 mb-2">When to take the TRUE path:</label>
+            <div className={`p-3 ${isDark ? 'bg-slate-800/40 border-slate-700/50' : 'bg-slate-50 border-slate-200'} border rounded-xl`}>
+                <label className={`block text-xs font-medium ${isDark ? 'text-slate-400' : 'text-slate-600'} mb-2`}>When to take the TRUE path:</label>
                 <div className="flex gap-2">
                     <button
                         onClick={() => setMatchType('all')}
                         className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all ${matchType === 'all'
                             ? 'bg-amber-500 text-white'
-                            : 'bg-slate-700/50 text-slate-400 hover:text-white'
+                            : (isDark ? 'bg-slate-700/50 text-slate-400 hover:text-white' : 'bg-white text-slate-500 border border-slate-200 hover:bg-slate-50')
                             }`}
                     >
                         ALL conditions match
@@ -168,7 +170,7 @@ const ConditionNodeForm: React.FC<ConditionNodeFormProps> = ({ workspaceId, init
                         onClick={() => setMatchType('any')}
                         className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all ${matchType === 'any'
                             ? 'bg-amber-500 text-white'
-                            : 'bg-slate-700/50 text-slate-400 hover:text-white'
+                            : (isDark ? 'bg-slate-700/50 text-slate-400 hover:text-white' : 'bg-white text-slate-500 border border-slate-200 hover:bg-slate-50')
                             }`}
                     >
                         ANY condition matches
@@ -178,7 +180,7 @@ const ConditionNodeForm: React.FC<ConditionNodeFormProps> = ({ workspaceId, init
 
             {/* Conditions List */}
             <div className="space-y-3">
-                <label className="block text-xs font-medium text-slate-400">Conditions:</label>
+                <label className={`block text-xs font-medium ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Conditions:</label>
 
                 {conditions.map((condition, index) => {
                     const varType = getVariableType(condition.variable);
@@ -187,7 +189,7 @@ const ConditionNodeForm: React.FC<ConditionNodeFormProps> = ({ workspaceId, init
                     const isCustom = condition.variable === 'custom';
 
                     return (
-                        <div key={condition.id} className="p-3 bg-slate-800/40 border border-slate-700/50 rounded-xl space-y-2">
+                        <div key={condition.id} className={`p-3 ${isDark ? 'bg-slate-800/40 border-slate-700/50' : 'bg-slate-50 border-slate-200'} border rounded-xl space-y-2`}>
                             {/* Condition header */}
                             <div className="flex items-center justify-between">
                                 <span className="text-xs text-slate-500">
@@ -275,8 +277,8 @@ const ConditionNodeForm: React.FC<ConditionNodeFormProps> = ({ workspaceId, init
             </div>
 
             {/* Output paths info */}
-            <div className="p-3 bg-slate-800/40 border border-slate-700/50 rounded-xl space-y-2">
-                <div className="text-xs font-medium text-slate-400 mb-2">Output Paths:</div>
+            <div className={`p-3 ${isDark ? 'bg-slate-800/40 border-slate-700/50' : 'bg-slate-50 border-slate-200'} border rounded-xl space-y-2`}>
+                <div className={`text-xs font-medium ${isDark ? 'text-slate-400' : 'text-slate-600'} mb-2`}>Output Paths:</div>
                 <div className="flex items-center gap-2">
                     <div className="w-3 h-3 bg-green-500 rounded-full"></div>
                     <span className="text-xs text-green-400">TRUE</span>
@@ -296,7 +298,7 @@ const ConditionNodeForm: React.FC<ConditionNodeFormProps> = ({ workspaceId, init
                         <Check className="w-4 h-4 text-amber-400" />
                         <span className="text-amber-400 font-medium text-xs">Condition Preview</span>
                     </div>
-                    <p className="text-slate-300 text-xs leading-relaxed">
+                    <p className={`text-xs leading-relaxed ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
                         If {conditions.map((c, i) => {
                             const varLabel = AVAILABLE_VARIABLES.find(v => v.value === c.variable)?.label || c.customVariable || c.variable;
                             const opLabel = Object.values(OPERATORS).flat().find(o => o.value === c.operator)?.label || c.operator;

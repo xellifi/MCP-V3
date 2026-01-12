@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Bot, Sparkles, AlertCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { useTheme } from '../context/ThemeContext';
 import CollapsibleTips from './CollapsibleTips';
 import ClickableVariables, { STANDARD_VARIABLES } from './ClickableVariables';
 
@@ -29,6 +30,7 @@ const CommentReplyNodeForm: React.FC<CommentReplyNodeFormProps> = ({
     initialConfig,
     onChange
 }) => {
+    const { isDark } = useTheme();
     const [replyTemplate, setReplyTemplate] = useState(initialConfig?.replyTemplate || '');
     const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -193,7 +195,7 @@ const CommentReplyNodeForm: React.FC<CommentReplyNodeFormProps> = ({
                         onClick={() => handleAiToggle(!useAiReply)}
                         className={`relative w-14 h-7 rounded-full transition-all duration-300 ${useAiReply
                             ? 'bg-gradient-to-r from-indigo-500 to-cyan-500'
-                            : 'bg-slate-600'
+                            : (isDark ? 'bg-slate-600' : 'bg-slate-300')
                             }`}
                     >
                         <div
@@ -212,7 +214,7 @@ const CommentReplyNodeForm: React.FC<CommentReplyNodeFormProps> = ({
                 <div className="space-y-4 animate-in fade-in slide-in-from-top-4 duration-300">
                     {/* AI Provider Selection */}
                     <div>
-                        <label className="block text-xs md:text-sm font-semibold text-slate-300 mb-3">
+                        <label className={`block text-xs md:text-sm font-semibold ${isDark ? 'text-slate-300' : 'text-slate-700'} mb-3`}>
                             Select AI Provider
                         </label>
 
@@ -240,10 +242,10 @@ const CommentReplyNodeForm: React.FC<CommentReplyNodeFormProps> = ({
                                         onClick={() => provider.available && handleAiProviderChange(provider.id)}
                                         disabled={!provider.available}
                                         className={`relative p-4 rounded-xl border-2 transition-all duration-200 ${!provider.available
-                                            ? 'opacity-40 cursor-not-allowed bg-black/10 border-white/5'
+                                            ? `opacity-40 cursor-not-allowed ${isDark ? 'bg-black/10 border-white/5' : 'bg-slate-100 border-slate-200'}`
                                             : aiProvider === provider.id
                                                 ? 'bg-gradient-to-br from-indigo-500/20 to-cyan-500/20 border-indigo-500 ring-2 ring-indigo-500/30'
-                                                : 'bg-black/20 border-white/10 hover:border-white/30 hover:bg-white/5'
+                                                : (isDark ? 'bg-black/20 border-white/10 hover:border-white/30 hover:bg-white/5' : 'bg-white border-slate-200 hover:border-indigo-300 hover:bg-indigo-50')
                                             }`}
                                     >
                                         <div className="flex flex-col items-center gap-2">
@@ -259,7 +261,7 @@ const CommentReplyNodeForm: React.FC<CommentReplyNodeFormProps> = ({
                                             </div>
                                             <span className={`text-xs md:text-sm font-medium ${aiProvider === provider.id && provider.available
                                                 ? 'text-white'
-                                                : 'text-slate-300'
+                                                : (isDark ? 'text-slate-300' : 'text-slate-600')
                                                 }`}>
                                                 {provider.name}
                                             </span>
@@ -279,7 +281,7 @@ const CommentReplyNodeForm: React.FC<CommentReplyNodeFormProps> = ({
                     {/* AI Prompt Configuration */}
                     {hasAvailableProviders && (
                         <div>
-                            <label className="block text-xs md:text-sm font-semibold text-slate-300 mb-2">
+                            <label className={`block text-xs md:text-sm font-semibold ${isDark ? 'text-slate-300' : 'text-slate-700'} mb-2`}>
                                 AI Instructions
                             </label>
                             <textarea
@@ -287,7 +289,7 @@ const CommentReplyNodeForm: React.FC<CommentReplyNodeFormProps> = ({
                                 onChange={(e) => handleAiPromptChange(e.target.value)}
                                 placeholder="Tell the AI how to reply to comments. Example: 'Be friendly and thankful. Acknowledge their comment and encourage engagement. Keep replies short and personable.'"
                                 rows={4}
-                                className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all placeholder-slate-500 resize-none"
+                                className={`w-full ${isDark ? 'bg-black/20 border-white/10 text-white placeholder-slate-500' : 'bg-white border-slate-200 text-slate-900 placeholder-slate-400'} border rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all resize-none`}
                             />
                             <div className="mt-2 space-y-1">
                                 <p className="text-xs text-slate-400">
@@ -300,43 +302,48 @@ const CommentReplyNodeForm: React.FC<CommentReplyNodeFormProps> = ({
                         </div>
                     )}
                 </div>
-            )}
+            )
+            }
 
             {/* Manual Reply Template - Only show when AI is OFF */}
-            {!useAiReply && (
-                <div className="animate-in fade-in slide-in-from-top-4 duration-300">
-                    <label className="block text-xs md:text-sm font-semibold text-slate-300 mb-2">
-                        Comment Reply Template
-                    </label>
-                    <textarea
-                        ref={textareaRef}
-                        value={replyTemplate}
-                        onChange={(e) => handleTemplateChange(e.target.value)}
-                        placeholder="Thank you for your comment!"
-                        rows={4}
-                        className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all placeholder-slate-500 resize-none"
-                    />
-                    <ClickableVariables
-                        variables={STANDARD_VARIABLES}
-                        onVariableClick={insertVariable}
-                        accentColor="indigo"
-                    />
-                </div>
-            )}
+            {
+                !useAiReply && (
+                    <div className="animate-in fade-in slide-in-from-top-4 duration-300">
+                        <label className={`block text-xs md:text-sm font-semibold ${isDark ? 'text-slate-300' : 'text-slate-700'} mb-2`}>
+                            Comment Reply Template
+                        </label>
+                        <textarea
+                            ref={textareaRef}
+                            value={replyTemplate}
+                            onChange={(e) => handleTemplateChange(e.target.value)}
+                            placeholder="Thank you for your comment!"
+                            rows={4}
+                            className={`w-full ${isDark ? 'bg-black/20 border-white/10 text-white placeholder-slate-500' : 'bg-white border-slate-200 text-slate-900 placeholder-slate-400'} border rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all resize-none`}
+                        />
+                        <ClickableVariables
+                            variables={STANDARD_VARIABLES}
+                            onVariableClick={insertVariable}
+                            accentColor="indigo"
+                        />
+                    </div>
+                )
+            }
 
             {/* Preview - Only for manual template */}
-            {!useAiReply && replyTemplate && (
-                <div className="p-4 bg-white/5 border border-white/10 rounded-xl">
-                    <h4 className="text-xs md:text-sm font-semibold text-slate-300 mb-2">Preview</h4>
-                    <p className="text-sm text-white">
-                        {replyTemplate
-                            .replace('{commenter_name}', 'John Doe')
-                            .replace('{comment_text}', 'Great post!')
-                            .replace('{page_name}', 'Your Page')
-                            .replace('{post_url}', 'https://facebook.com/...')}
-                    </p>
-                </div>
-            )}
+            {
+                !useAiReply && replyTemplate && (
+                    <div className={`p-4 ${isDark ? 'bg-white/5 border-white/10' : 'bg-slate-50 border-slate-200'} border rounded-xl`}>
+                        <h4 className={`text-xs md:text-sm font-semibold ${isDark ? 'text-slate-300' : 'text-slate-700'} mb-2`}>Preview</h4>
+                        <p className={`text-sm ${isDark ? 'text-white' : 'text-slate-600'}`}>
+                            {replyTemplate
+                                .replace('{commenter_name}', 'John Doe')
+                                .replace('{comment_text}', 'Great post!')
+                                .replace('{page_name}', 'Your Page')
+                                .replace('{post_url}', 'https://facebook.com/...')}
+                        </p>
+                    </div>
+                )
+            }
 
             {/* Info */}
             <CollapsibleTips title="Tips & Info" color="indigo">
@@ -352,7 +359,7 @@ const CommentReplyNodeForm: React.FC<CommentReplyNodeFormProps> = ({
                     )}
                 </p>
             </CollapsibleTips>
-        </div>
+        </div >
     );
 };
 

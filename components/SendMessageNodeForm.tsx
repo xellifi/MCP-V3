@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { MessageSquare, Bot, Sparkles, AlertCircle, ChevronDown, Zap } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { useTheme } from '../context/ThemeContext';
 import CollapsibleTips from './CollapsibleTips';
 import ClickableVariables, { STANDARD_VARIABLES } from './ClickableVariables';
 
@@ -38,6 +39,7 @@ const SendMessageNodeForm: React.FC<SendMessageNodeFormProps> = ({
     initialConfig,
     onChange
 }) => {
+    const { isDark } = useTheme();
     const [messageTemplate, setMessageTemplate] = useState(initialConfig?.messageTemplate || '');
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const [buttons, setButtons] = useState<Button[]>(
@@ -309,15 +311,15 @@ const SendMessageNodeForm: React.FC<SendMessageNodeFormProps> = ({
     return (
         <div className="space-y-6">
             {/* AI Reply Toggle */}
-            <div className="p-4 bg-gradient-to-r from-purple-500/10 to-blue-500/10 border border-purple-500/20 rounded-xl">
+            <div className={`p-4 bg-gradient-to-r from-purple-500/10 to-blue-500/10 border border-purple-500/20 rounded-xl`}>
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         <div className="p-2 bg-gradient-to-br from-purple-500 to-blue-500 rounded-lg">
                             <Bot className="w-5 h-5 text-white" />
                         </div>
                         <div>
-                            <h3 className="text-xs md:text-sm font-semibold text-white">AI-Powered Reply</h3>
-                            <p className="text-xs text-slate-400">Let AI generate contextual responses</p>
+                            <h3 className={`text-xs md:text-sm font-semibold ${isDark ? 'text-white' : 'text-slate-900'}`}>AI-Powered Reply</h3>
+                            <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Let AI generate contextual responses</p>
                         </div>
                     </div>
                     <button
@@ -325,7 +327,7 @@ const SendMessageNodeForm: React.FC<SendMessageNodeFormProps> = ({
                         onClick={() => handleAiToggle(!useAiReply)}
                         className={`relative w-14 h-7 rounded-full transition-all duration-300 ${useAiReply
                             ? 'bg-gradient-to-r from-purple-500 to-blue-500'
-                            : 'bg-slate-600'
+                            : (isDark ? 'bg-slate-600' : 'bg-slate-300')
                             }`}
                     >
                         <div
@@ -344,7 +346,7 @@ const SendMessageNodeForm: React.FC<SendMessageNodeFormProps> = ({
                 <div className="space-y-4 animate-in fade-in slide-in-from-top-4 duration-300">
                     {/* AI Provider Selection */}
                     <div>
-                        <label className="block text-xs md:text-sm font-semibold text-slate-300 mb-3">
+                        <label className={`block text-xs md:text-sm font-semibold mb-3 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
                             Select AI Provider
                         </label>
 
@@ -372,10 +374,10 @@ const SendMessageNodeForm: React.FC<SendMessageNodeFormProps> = ({
                                         onClick={() => provider.available && handleAiProviderChange(provider.id)}
                                         disabled={!provider.available}
                                         className={`relative p-4 rounded-xl border-2 transition-all duration-200 ${!provider.available
-                                            ? 'opacity-40 cursor-not-allowed bg-black/10 border-white/5'
+                                            ? `opacity-40 cursor-not-allowed ${isDark ? 'bg-black/10 border-white/5' : 'bg-slate-100 border-slate-200'}`
                                             : aiProvider === provider.id
                                                 ? 'bg-gradient-to-br from-purple-500/20 to-blue-500/20 border-purple-500 ring-2 ring-purple-500/30'
-                                                : 'bg-black/20 border-white/10 hover:border-white/30 hover:bg-white/5'
+                                                : (isDark ? 'bg-black/20 border-white/10 hover:border-white/30 hover:bg-white/5' : 'bg-white border-slate-200 hover:border-purple-300 hover:bg-purple-50')
                                             }`}
                                     >
                                         <div className="flex flex-col items-center gap-2">
@@ -391,8 +393,8 @@ const SendMessageNodeForm: React.FC<SendMessageNodeFormProps> = ({
                                                 />
                                             </div>
                                             <span className={`text-xs md:text-sm font-medium ${aiProvider === provider.id && provider.available
-                                                ? 'text-white'
-                                                : 'text-slate-300'
+                                                ? (isDark ? 'text-white' : 'text-purple-700')
+                                                : (isDark ? 'text-slate-300' : 'text-slate-600')
                                                 }`}>
                                                 {provider.name}
                                             </span>
@@ -412,7 +414,7 @@ const SendMessageNodeForm: React.FC<SendMessageNodeFormProps> = ({
                     {/* AI Prompt Configuration */}
                     {hasAvailableProviders && (
                         <div>
-                            <label className="block text-xs md:text-sm font-semibold text-slate-300 mb-2">
+                            <label className={`block text-xs md:text-sm font-semibold mb-2 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
                                 AI Instructions
                             </label>
                             <textarea
@@ -420,13 +422,15 @@ const SendMessageNodeForm: React.FC<SendMessageNodeFormProps> = ({
                                 onChange={(e) => handleAiPromptChange(e.target.value)}
                                 placeholder="Tell the AI how to respond. Example: 'Be friendly and helpful. Thank the user for their comment and invite them to learn more about our products. Keep responses under 100 words.'"
                                 rows={4}
-                                className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-purple-500/50 outline-none transition-all placeholder-slate-500 resize-none"
+                                className={`w-full rounded-xl px-4 py-3 focus:ring-2 focus:ring-purple-500/50 outline-none transition-all resize-none ${isDark
+                                    ? 'bg-black/20 border border-white/10 text-white placeholder-slate-500'
+                                    : 'bg-white border border-slate-200 text-slate-900 placeholder-slate-400'}`}
                             />
                             <div className="mt-2 space-y-1">
-                                <p className="text-xs text-slate-400">
+                                <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                                     The AI will automatically receive the commenter's name and comment text.
                                 </p>
-                                <p className="text-xs text-purple-300">
+                                <p className={`text-xs ${isDark ? 'text-purple-300' : 'text-purple-600'}`}>
                                     Tip: Be specific about tone, length, and what information to include.
                                 </p>
                             </div>
@@ -438,7 +442,7 @@ const SendMessageNodeForm: React.FC<SendMessageNodeFormProps> = ({
             {/* Manual Message Template - Only show when AI is OFF */}
             {!useAiReply && (
                 <div className="animate-in fade-in slide-in-from-top-4 duration-300">
-                    <label className="block text-xs md:text-sm font-semibold text-slate-300 mb-2">
+                    <label className={`block text-xs md:text-sm font-semibold mb-2 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
                         Direct Message Template
                     </label>
                     <textarea
@@ -447,7 +451,9 @@ const SendMessageNodeForm: React.FC<SendMessageNodeFormProps> = ({
                         onChange={(e) => handleTemplateChange(e.target.value)}
                         placeholder="Hi! Thanks for commenting on our post. We'd love to hear more about your thoughts..."
                         rows={5}
-                        className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-purple-500/50 outline-none transition-all placeholder-slate-500 resize-none"
+                        className={`w-full rounded-xl px-4 py-3 focus:ring-2 focus:ring-purple-500/50 outline-none transition-all resize-none ${isDark
+                            ? 'bg-black/20 border border-white/10 text-white placeholder-slate-500'
+                            : 'bg-white border border-slate-200 text-slate-900 placeholder-slate-400'}`}
                     />
                     <ClickableVariables
                         variables={STANDARD_VARIABLES}
@@ -460,7 +466,7 @@ const SendMessageNodeForm: React.FC<SendMessageNodeFormProps> = ({
             {/* Preview - Only for manual template */}
             {!useAiReply && messageTemplate && (
                 <div className="p-4 bg-white/5 border border-white/10 rounded-xl">
-                    <p className="text-xs font-semibold text-slate-400 mb-2">Preview:</p>
+                    <p className={`text-xs font-semibold mb-2 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Preview:</p>
                     <p className="text-sm text-white whitespace-pre-wrap">{messageTemplate}</p>
                 </div>
             )}
@@ -485,30 +491,32 @@ const SendMessageNodeForm: React.FC<SendMessageNodeFormProps> = ({
 
                 <div className="space-y-4">
                     {buttons.map((button, index) => (
-                        <div key={index} className="p-4 bg-black/20 border border-white/10 rounded-xl space-y-3">
+                        <div key={index} className={`p-4 rounded-xl border space-y-3 ${isDark ? 'bg-black/20 border-white/10' : 'bg-slate-50 border-slate-200'}`}>
                             {/* Button Title */}
                             <div>
-                                <label className="block text-xs text-slate-400 mb-1">Button Text</label>
+                                <label className={`block text-xs mb-1 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Button Text</label>
                                 <input
                                     type="text"
                                     value={button.title}
                                     onChange={(e) => updateButton(index, { title: e.target.value })}
                                     placeholder="e.g., Get Pricing"
-                                    className="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:ring-2 focus:ring-purple-500/50 outline-none"
+                                    className={`w-full rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500/50 outline-none ${isDark
+                                        ? 'bg-black/20 border border-white/10 text-white'
+                                        : 'bg-white border border-slate-200 text-slate-900'}`}
                                     maxLength={20}
                                 />
                             </div>
 
                             {/* Button Type */}
                             <div>
-                                <label className="block text-xs text-slate-400 mb-1">Button Type</label>
+                                <label className={`block text-xs mb-1 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Button Type</label>
                                 <div className="flex gap-2">
                                     <button
                                         type="button"
                                         onClick={() => updateButton(index, { type: 'startFlow', flowId: '', url: undefined, webviewType: undefined })}
                                         className={`flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-all ${button.type === 'startFlow'
                                             ? 'bg-purple-500 text-white'
-                                            : 'bg-white/5 text-slate-400 hover:bg-white/10'
+                                            : (isDark ? 'bg-white/5 text-slate-400 hover:bg-white/10' : 'bg-white border border-slate-200 text-slate-500 hover:bg-slate-50')
                                             }`}
                                     >
                                         Flows
@@ -518,7 +526,7 @@ const SendMessageNodeForm: React.FC<SendMessageNodeFormProps> = ({
                                         onClick={() => updateButton(index, { type: 'url', url: '', webviewType: 'full', flowId: undefined })}
                                         className={`flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-all ${button.type === 'url'
                                             ? 'bg-purple-500 text-white'
-                                            : 'bg-white/5 text-slate-400 hover:bg-white/10'
+                                            : (isDark ? 'bg-white/5 text-slate-400 hover:bg-white/10' : 'bg-white border border-slate-200 text-slate-500 hover:bg-slate-50')
                                             }`}
                                     >
                                         URL
@@ -529,13 +537,15 @@ const SendMessageNodeForm: React.FC<SendMessageNodeFormProps> = ({
                             {/* Flow Selector - Custom Dropdown */}
                             {button.type === 'startFlow' && (
                                 <div className="relative">
-                                    <label className="block text-xs text-slate-400 mb-1">Select Flow</label>
+                                    <label className={`block text-xs mb-1 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Select Flow</label>
 
                                     {/* Custom Dropdown Trigger */}
                                     <button
                                         type="button"
                                         onClick={() => setOpenFlowDropdown(openFlowDropdown === index ? null : index)}
-                                        className="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2.5 text-left text-sm focus:ring-2 focus:ring-purple-500/50 outline-none flex items-center justify-between hover:bg-white/5 transition-colors"
+                                        className={`w-full rounded-lg px-3 py-2.5 text-left text-sm focus:ring-2 focus:ring-purple-500/50 outline-none flex items-center justify-between transition-colors ${isDark
+                                            ? 'bg-black/20 border border-white/10 hover:bg-white/5'
+                                            : 'bg-white border border-slate-200 hover:border-purple-500/30'}`}
                                     >
                                         {button.flowId ? (
                                             <div className="flex items-center gap-2">
@@ -555,7 +565,7 @@ const SendMessageNodeForm: React.FC<SendMessageNodeFormProps> = ({
                                                                     <Zap className="w-3 h-3 text-purple-400" />
                                                                 </div>
                                                             )}
-                                                            <span className="text-white truncate">{selectedFlow.name}</span>
+                                                            <span className={`truncate ${isDark ? 'text-white' : 'text-slate-900'}`}>{selectedFlow.name}</span>
                                                         </>
                                                     ) : (
                                                         <span className="text-slate-400">Select a flow...</span>
@@ -570,7 +580,7 @@ const SendMessageNodeForm: React.FC<SendMessageNodeFormProps> = ({
 
                                     {/* Custom Dropdown Options */}
                                     {openFlowDropdown === index && (
-                                        <div className="absolute z-50 w-full mt-1 bg-slate-800 border border-white/10 rounded-lg shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                                        <div className={`absolute z-50 w-full mt-1 rounded-lg shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200 border ${isDark ? 'bg-slate-800 border-white/10' : 'bg-white border-slate-200'}`}>
                                             <div className="max-h-48 overflow-y-auto">
                                                 {startFlows.length === 0 ? (
                                                     <div className="px-3 py-4 text-center">
@@ -586,7 +596,9 @@ const SendMessageNodeForm: React.FC<SendMessageNodeFormProps> = ({
                                                                 updateButton(index, { flowId: flow.id });
                                                                 setOpenFlowDropdown(null);
                                                             }}
-                                                            className={`w-full px-3 py-2.5 flex items-center gap-3 hover:bg-white/10 transition-colors text-left ${button.flowId === flow.id ? 'bg-purple-500/20' : ''
+                                                            className={`w-full px-3 py-2.5 flex items-center gap-3 transition-colors text-left ${button.flowId === flow.id
+                                                                ? 'bg-purple-500/20'
+                                                                : (isDark ? 'hover:bg-white/10' : 'hover:bg-slate-50')
                                                                 }`}
                                                         >
                                                             {/* Image with fallback - always show fallback, image overlays if valid */}
@@ -606,7 +618,7 @@ const SendMessageNodeForm: React.FC<SendMessageNodeFormProps> = ({
                                                                 )}
                                                             </div>
                                                             <div className="flex-1 min-w-0">
-                                                                <p className={`text-sm font-medium truncate ${button.flowId === flow.id ? 'text-purple-300' : 'text-white'}`}>
+                                                                <p className={`text-sm font-medium truncate ${button.flowId === flow.id ? 'text-purple-500' : (isDark ? 'text-white' : 'text-slate-900')}`}>
                                                                     {flow.name}
                                                                 </p>
                                                                 <p className="text-xs text-slate-500 truncate">{flow.pageName}</p>
@@ -627,26 +639,28 @@ const SendMessageNodeForm: React.FC<SendMessageNodeFormProps> = ({
                             {button.type === 'url' && (
                                 <>
                                     <div>
-                                        <label className="block text-xs text-slate-400 mb-1">URL</label>
+                                        <label className={`block text-xs mb-1 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>URL</label>
                                         <input
                                             type="url"
                                             value={button.url || ''}
                                             onChange={(e) => updateButton(index, { url: e.target.value })}
                                             placeholder="https://example.com"
-                                            className="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:ring-2 focus:ring-purple-500/50 outline-none"
+                                            className={`w-full rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500/50 outline-none ${isDark
+                                                ? 'bg-black/20 border border-white/10 text-white'
+                                                : 'bg-white border border-slate-200 text-slate-900'}`}
                                         />
                                     </div>
 
                                     {/* Webview Type */}
                                     <div>
-                                        <label className="block text-xs text-slate-400 mb-1">Webview Type</label>
+                                        <label className={`block text-xs mb-1 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Webview Type</label>
                                         <div className="grid grid-cols-3 gap-2">
                                             <button
                                                 type="button"
                                                 onClick={() => updateButton(index, { webviewType: 'full' })}
                                                 className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${button.webviewType === 'full'
                                                     ? 'bg-blue-500 text-white'
-                                                    : 'bg-white/5 text-slate-400 hover:bg-white/10'
+                                                    : (isDark ? 'bg-white/5 text-slate-400 hover:bg-white/10' : 'bg-white border border-slate-200 text-slate-500 hover:bg-slate-50')
                                                     }`}
                                             >
                                                 FULL
@@ -656,7 +670,7 @@ const SendMessageNodeForm: React.FC<SendMessageNodeFormProps> = ({
                                                 onClick={() => updateButton(index, { webviewType: 'compact' })}
                                                 className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${button.webviewType === 'compact'
                                                     ? 'bg-blue-500 text-white'
-                                                    : 'bg-white/5 text-slate-400 hover:bg-white/10'
+                                                    : (isDark ? 'bg-white/5 text-slate-400 hover:bg-white/10' : 'bg-white border border-slate-200 text-slate-500 hover:bg-slate-50')
                                                     }`}
                                             >
                                                 COMPACT
@@ -666,7 +680,7 @@ const SendMessageNodeForm: React.FC<SendMessageNodeFormProps> = ({
                                                 onClick={() => updateButton(index, { webviewType: 'tall' })}
                                                 className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${button.webviewType === 'tall'
                                                     ? 'bg-blue-500 text-white'
-                                                    : 'bg-white/5 text-slate-400 hover:bg-white/10'
+                                                    : (isDark ? 'bg-white/5 text-slate-400 hover:bg-white/10' : 'bg-white border border-slate-200 text-slate-500 hover:bg-slate-50')
                                                     }`}
                                             >
                                                 TALL

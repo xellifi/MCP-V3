@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Plus, X, SquareMousePointer } from 'lucide-react';
 import CollapsibleTips from './CollapsibleTips';
+import { useTheme } from '../context/ThemeContext';
 
 interface ButtonsOnlyNodeFormProps {
     userId: string;
@@ -15,6 +16,7 @@ const ButtonsOnlyNodeForm: React.FC<ButtonsOnlyNodeFormProps> = ({
     initialConfig,
     onChange
 }) => {
+    const { isDark } = useTheme();
     const [buttons, setButtons] = useState<Array<{ title: string; payload: string }>>(
         initialConfig?.buttons && initialConfig.buttons.length > 0
             ? initialConfig.buttons
@@ -52,7 +54,7 @@ const ButtonsOnlyNodeForm: React.FC<ButtonsOnlyNodeFormProps> = ({
             {/* Buttons */}
             <div>
                 <div className="flex items-center justify-between mb-3">
-                    <label className="text-sm font-semibold text-slate-300">
+                    <label className={`text-sm font-semibold ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
                         <SquareMousePointer className="w-4 h-4 inline mr-2" />
                         Quick Reply Buttons (max 13)
                     </label>
@@ -75,14 +77,14 @@ const ButtonsOnlyNodeForm: React.FC<ButtonsOnlyNodeFormProps> = ({
                                 onChange={(e) => updateButton(index, 'title', e.target.value)}
                                 placeholder="Button text"
                                 maxLength={20}
-                                className="flex-1 bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:ring-2 focus:ring-indigo-500/50 outline-none"
+                                className={`flex-1 ${isDark ? 'bg-black/20 border-white/10 text-white' : 'bg-white border-slate-200 text-slate-900'} border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500/50 outline-none`}
                             />
                             <input
                                 type="text"
                                 value={button.payload}
                                 onChange={(e) => updateButton(index, 'payload', e.target.value)}
                                 placeholder="Payload (e.g., BUTTON_1)"
-                                className="flex-1 bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:ring-2 focus:ring-indigo-500/50 outline-none"
+                                className={`flex-1 ${isDark ? 'bg-black/20 border-white/10 text-white' : 'bg-white border-slate-200 text-slate-900'} border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500/50 outline-none`}
                             />
                             <button
                                 onClick={() => removeButton(index)}

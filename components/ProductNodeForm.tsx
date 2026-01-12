@@ -3,9 +3,10 @@ import {
     ShoppingBag, Package, Tag, Upload, X, Image as ImageIcon,
     DollarSign, Layers, Eye, Edit3, Plus, Check, Search, Globe,
     ChevronDown, Sparkles, AlertCircle, Smartphone, Tablet, Monitor, ChevronLeft, ChevronRight,
-    Save, ExternalLink
+    Save, ExternalLink, ArrowRight
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { useTheme } from '../context/ThemeContext';
 
 interface ProductNodeFormProps {
     workspaceId: string;
@@ -68,6 +69,8 @@ const ProductNodeForm: React.FC<ProductNodeFormProps> = ({
     onChange,
     onClose
 }) => {
+    const { isDark } = useTheme();
+
     // Form state - If we have initial config with productId or productName, start in create mode for editing
     const hasExistingConfig = !!(initialConfig?.productId || initialConfig?.productName);
     const [mode, setMode] = useState<'select' | 'create'>(hasExistingConfig ? 'create' : 'select');
@@ -357,31 +360,70 @@ const ProductNodeForm: React.FC<ProductNodeFormProps> = ({
 
     const currencySymbol = storeData?.currency === 'USD' ? '$' : storeData?.currency === 'EUR' ? '€' : '₱';
 
+    // Theme helpers
+    const inputClass = isDark
+        ? "w-full px-4 py-3 bg-slate-800/60 border border-slate-600/50 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-emerald-500/50 outline-none transition-all hover:bg-slate-800/80"
+        : "w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-emerald-500/50 outline-none transition-all hover:border-slate-300 shadow-sm";
+
+    const labelClass = isDark
+        ? "block text-sm font-medium text-slate-300 mb-2"
+        : "block text-sm font-bold text-slate-700 mb-2";
+
+    const sectionClass = isDark
+        ? "bg-slate-800/40 p-1 rounded-xl flex gap-1 border border-slate-700/50"
+        : "bg-slate-100/80 p-1 rounded-xl flex gap-1 border border-slate-200";
+
+    const dividerClass = isDark ? "bg-slate-700" : "bg-slate-200";
+
     // Product preview component - Mobile Device Mockup
     const ProductPreview = () => {
         const deviceSizes = {
-            mobile: { width: 280, height: 520 },
-            tablet: { width: 380, height: 520 },
-            desktop: { width: 500, height: 340 }
+            mobile: { width: 280, height: 480, radius: 40, notch: true },
+            tablet: { width: 340, height: 440, radius: 24, notch: false },
+            desktop: { width: 480, height: 280, radius: 8, notch: false }
         };
         const size = deviceSizes[previewDevice];
+
+        // Desktop has white background, others have dark
+        const getScreenBg = () => {
+            return previewDevice === 'desktop' ? 'bg-white' : 'bg-slate-50';
+        };
+
+        const getStatusBarStyle = () => {
+            return previewDevice === 'desktop'
+                ? 'text-slate-500 bg-slate-100 border-b border-slate-200'
+                : 'text-slate-900';
+        };
 
         return (
             <div className="flex justify-center">
                 <div className="relative" style={{ width: size.width, height: size.height }}>
                     {/* Device Frame */}
-                    <div className="w-full h-full shadow-2xl border-4 flex flex-col bg-slate-900 border-slate-700" style={{ borderRadius: previewDevice === 'desktop' ? 12 : 36 }}>
+                    <div className={`w-full h-full shadow-2xl border-4 flex flex-col ${previewDevice === 'desktop' ? 'bg-slate-200 border-slate-400' : 'bg-white border-slate-200'}`} style={{ borderRadius: size.radius }}>
                         {/* Notch - only for mobile */}
-                        {previewDevice === 'mobile' && (
-                            <div className="absolute top-2 left-1/2 -translate-x-1/2 w-20 h-5 bg-black rounded-full z-10" />
+                        {size.notch && (
+                            <div className="absolute top-2 left-1/2 -translate-x-1/2 w-20 h-5 bg-slate-200 rounded-full z-10" />
                         )}
                         {/* Screen */}
-                        <div className="w-full h-full overflow-hidden flex flex-col bg-white" style={{ borderRadius: previewDevice === 'desktop' ? 8 : 30 }}>
+                        <div className={`w-full h-full overflow-hidden flex flex-col ${getScreenBg()}`} style={{ borderRadius: Math.max(size.radius - 6, 4) }}>
                             {/* Status bar */}
-                            <div className="h-6 flex-shrink-0 flex items-center justify-between px-4 text-xs text-slate-500 bg-slate-100 border-b border-slate-200">
-                                <span>9:41</span>
-                                <span className="font-semibold truncate max-w-[150px]">{productName || 'Product'}</span>
-                                <span>⚡ 100%</span>
+                            <div className={`h-6 flex-shrink-0 flex items-center justify-between px-4 text-xs ${getStatusBarStyle()}`}>
+                                {previewDevice === 'desktop' ? (
+                                    <>
+                                        <div className="flex items-center gap-1">
+                                            <div className="w-2 h-2 rounded-full bg-red-400"></div>
+                                            <div className="w-2 h-2 rounded-full bg-yellow-400"></div>
+                                            <div className="w-2 h-2 rounded-full bg-green-400"></div>
+                                        </div>
+                                        <span className="text-[8px] text-slate-400">mystore.com/product</span>
+                                        <div></div>
+                                    </>
+                                ) : (
+                                    <>
+                                        <span>9:41</span>
+                                        <span>⚡ 100%</span>
+                                    </>
+                                )}
                             </div>
                             {/* Content */}
                             <div className="flex-1 overflow-y-auto">
@@ -429,10 +471,12 @@ const ProductNodeForm: React.FC<ProductNodeFormProps> = ({
                                     </button>
                                 </div>
                             </div>
-                            {/* Home indicator */}
-                            <div className="h-5 flex-shrink-0 flex items-center justify-center bg-white">
-                                <div className="w-24 h-1 bg-slate-300 rounded-full" />
-                            </div>
+                            {/* Home indicator - only for mobile/tablet */}
+                            {previewDevice !== 'desktop' && (
+                                <div className="h-5 flex-shrink-0 flex items-center justify-center bg-white">
+                                    <div className="w-24 h-1 bg-slate-300 rounded-full" />
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -444,12 +488,12 @@ const ProductNodeForm: React.FC<ProductNodeFormProps> = ({
     const formContent = (
         <div className="space-y-5">
             {/* Mode Selector */}
-            <div className="bg-slate-800/50 rounded-xl p-1 flex gap-1">
+            <div className={sectionClass}>
                 <button
                     onClick={() => setMode('select')}
                     className={`flex-1 py-2.5 px-4 rounded-lg font-medium text-sm transition-all flex items-center justify-center gap-2 ${mode === 'select'
-                        ? 'bg-emerald-500 text-white'
-                        : 'text-slate-400 hover:text-white hover:bg-slate-700'
+                        ? 'bg-emerald-500 text-white shadow-sm'
+                        : isDark ? 'text-slate-400 hover:text-white hover:bg-slate-700/50' : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
                         }`}
                 >
                     <Layers className="w-4 h-4" />
@@ -458,8 +502,8 @@ const ProductNodeForm: React.FC<ProductNodeFormProps> = ({
                 <button
                     onClick={() => { setMode('create'); setSelectedProductId(''); }}
                     className={`flex-1 py-2.5 px-4 rounded-lg font-medium text-sm transition-all flex items-center justify-center gap-2 ${mode === 'create'
-                        ? 'bg-emerald-500 text-white'
-                        : 'text-slate-400 hover:text-white hover:bg-slate-700'
+                        ? 'bg-emerald-500 text-white shadow-sm'
+                        : isDark ? 'text-slate-400 hover:text-white hover:bg-slate-700/50' : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
                         }`}
                 >
                     <Plus className="w-4 h-4" />
@@ -471,17 +515,17 @@ const ProductNodeForm: React.FC<ProductNodeFormProps> = ({
             {mode === 'select' && (
                 <div className="space-y-3">
                     <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                        <Search className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${isDark ? 'text-slate-500' : 'text-slate-400'}`} />
                         <input
                             type="text"
                             value={productSearch}
                             onChange={(e) => setProductSearch(e.target.value)}
                             placeholder="Search products..."
-                            className="w-full pl-10 pr-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-emerald-500/50 outline-none"
+                            className={`pl-10 pr-4 ${inputClass}`}
                         />
                     </div>
 
-                    <div className="max-h-64 overflow-y-auto space-y-2 rounded-xl">
+                    <div className={`max-h-64 overflow-y-auto space-y-2 rounded-xl custom-scrollbar ${isDark ? '' : 'pr-1'}`}>
                         {loadingProducts ? (
                             <div className="text-center py-8 text-slate-500">Loading products...</div>
                         ) : filteredProducts.length === 0 ? (
@@ -490,7 +534,7 @@ const ProductNodeForm: React.FC<ProductNodeFormProps> = ({
                                 <p className="text-slate-500 text-sm">No products found</p>
                                 <button
                                     onClick={() => setMode('create')}
-                                    className="mt-2 text-emerald-400 text-sm hover:underline"
+                                    className="mt-2 text-emerald-500 font-medium text-sm hover:underline"
                                 >
                                     Create a new product
                                 </button>
@@ -500,26 +544,30 @@ const ProductNodeForm: React.FC<ProductNodeFormProps> = ({
                                 <button
                                     key={product.id}
                                     onClick={() => selectProduct(product)}
-                                    className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all ${selectedProductId === product.id
-                                        ? 'bg-emerald-500/20 border-2 border-emerald-500'
-                                        : 'bg-slate-800 border-2 border-transparent hover:border-slate-600'
+                                    className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all border ${selectedProductId === product.id
+                                        ? 'bg-emerald-500/10 border-emerald-500 ring-1 ring-emerald-500/50'
+                                        : isDark
+                                            ? 'bg-slate-800/60 border-slate-700/50 hover:border-slate-600'
+                                            : 'bg-white border-slate-200 hover:border-emerald-300 hover:shadow-sm'
                                         }`}
                                 >
-                                    <div className="w-12 h-12 rounded-lg bg-slate-700 overflow-hidden flex-shrink-0">
+                                    <div className={`w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 border ${isDark ? 'bg-slate-700 border-slate-600' : 'bg-slate-100 border-slate-200'}`}>
                                         {product.images?.[0] ? (
                                             <img src={product.images[0]} alt="" className="w-full h-full object-cover" />
                                         ) : (
                                             <div className="w-full h-full flex items-center justify-center">
-                                                <Package className="w-5 h-5 text-slate-500" />
+                                                <Package className="w-5 h-5 text-slate-400" />
                                             </div>
                                         )}
                                     </div>
                                     <div className="flex-1 text-left min-w-0">
-                                        <div className="font-medium text-white truncate">{product.name}</div>
-                                        <div className="text-sm text-emerald-400">{currencySymbol}{product.price.toLocaleString()}</div>
+                                        <div className={`font-semibold truncate ${isDark ? 'text-white' : 'text-slate-800'}`}>{product.name}</div>
+                                        <div className="text-sm text-emerald-500 font-medium">{currencySymbol}{product.price.toLocaleString()}</div>
                                     </div>
                                     {selectedProductId === product.id && (
-                                        <Check className="w-5 h-5 text-emerald-400" />
+                                        <div className="w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center shadow-sm">
+                                            <Check className="w-3.5 h-3.5 text-white" />
+                                        </div>
                                     )}
                                 </button>
                             ))
@@ -533,7 +581,7 @@ const ProductNodeForm: React.FC<ProductNodeFormProps> = ({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {/* Product Name */}
                     <div className="md:col-span-2">
-                        <label className="block text-sm font-medium text-slate-300 mb-2">
+                        <label className={labelClass}>
                             Product Name *
                         </label>
                         <input
@@ -541,64 +589,67 @@ const ProductNodeForm: React.FC<ProductNodeFormProps> = ({
                             value={productName}
                             onChange={(e) => setProductName(e.target.value)}
                             placeholder="Enter product name"
-                            className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-emerald-500/50 outline-none"
+                            className={inputClass}
                         />
                     </div>
 
                     {/* Price */}
                     <div>
-                        <label className="block text-sm font-medium text-slate-300 mb-2">
+                        <label className={labelClass}>
                             Price *
                         </label>
                         <div className="relative">
-                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">{currencySymbol}</span>
+                            <span className={`absolute left-3 top-1/2 -translate-y-1/2 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>{currencySymbol}</span>
                             <input
                                 type="number"
                                 value={productPrice}
                                 onChange={(e) => setProductPrice(e.target.value)}
                                 placeholder="0.00"
-                                className="w-full pl-8 pr-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-emerald-500/50 outline-none"
+                                className={`pl-8 ${inputClass}`}
                             />
                         </div>
                     </div>
 
                     {/* Compare at Price */}
                     <div>
-                        <label className="block text-sm font-medium text-slate-300 mb-2">
+                        <label className={labelClass}>
                             Compare Price
                         </label>
                         <div className="relative">
-                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">{currencySymbol}</span>
+                            <span className={`absolute left-3 top-1/2 -translate-y-1/2 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>{currencySymbol}</span>
                             <input
                                 type="number"
                                 value={productComparePrice}
                                 onChange={(e) => setProductComparePrice(e.target.value)}
                                 placeholder="Original price"
-                                className="w-full pl-8 pr-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-emerald-500/50 outline-none"
+                                className={`pl-8 ${inputClass}`}
                             />
                         </div>
                     </div>
 
                     {/* Category */}
                     <div>
-                        <label className="block text-sm font-medium text-slate-300 mb-2">
+                        <label className={labelClass}>
                             Category
                         </label>
-                        <select
-                            value={productCategory}
-                            onChange={(e) => setProductCategory(e.target.value)}
-                            className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white focus:ring-2 focus:ring-emerald-500/50 outline-none appearance-none cursor-pointer"
-                        >
-                            <option value="">Select category</option>
-                            {DEFAULT_CATEGORIES.map(cat => (
-                                <option key={cat} value={cat}>{cat}</option>
-                            ))}
-                        </select>
+                        <div className="relative">
+                            <select
+                                value={productCategory}
+                                onChange={(e) => setProductCategory(e.target.value)}
+                                className={`${inputClass} appearance-none cursor-pointer`}
+                            >
+                                <option value="">Select category</option>
+                                {DEFAULT_CATEGORIES.map(cat => (
+                                    <option key={cat} value={cat}>{cat}</option>
+                                ))}
+                            </select>
+                            <ChevronDown className={`absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none ${isDark ? 'text-slate-500' : 'text-slate-400'}`} />
+                        </div>
                     </div>
 
                     {/* Stock */}
                     <div>
-                        <label className="block text-sm font-medium text-slate-300 mb-2">
+                        <label className={labelClass}>
                             Stock Quantity
                         </label>
                         <input
@@ -606,13 +657,13 @@ const ProductNodeForm: React.FC<ProductNodeFormProps> = ({
                             value={productStock}
                             onChange={(e) => setProductStock(e.target.value)}
                             placeholder="0"
-                            className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-emerald-500/50 outline-none"
+                            className={inputClass}
                         />
                     </div>
 
                     {/* Description */}
                     <div className="md:col-span-2">
-                        <label className="block text-sm font-medium text-slate-300 mb-2">
+                        <label className={labelClass}>
                             Description
                         </label>
                         <textarea
@@ -620,13 +671,13 @@ const ProductNodeForm: React.FC<ProductNodeFormProps> = ({
                             onChange={(e) => setProductDescription(e.target.value)}
                             placeholder="Product description..."
                             rows={3}
-                            className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-emerald-500/50 outline-none resize-none"
+                            className={`${inputClass} resize-none`}
                         />
                     </div>
 
                     {/* Image Upload */}
                     <div className="md:col-span-2">
-                        <label className="block text-sm font-medium text-slate-300 mb-2">
+                        <label className={labelClass}>
                             Product Image
                         </label>
                         <input
@@ -637,13 +688,13 @@ const ProductNodeForm: React.FC<ProductNodeFormProps> = ({
                             className="hidden"
                         />
                         {productImage ? (
-                            <div className="relative w-32 h-32 rounded-xl overflow-hidden group">
+                            <div className="relative w-32 h-32 rounded-xl overflow-hidden group shadow-md border border-slate-200 dark:border-slate-700">
                                 <img src={productImage} alt="" className="w-full h-full object-cover" />
                                 <button
                                     onClick={() => setProductImage('')}
-                                    className="absolute top-2 right-2 p-1 bg-red-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                                    className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600 shadow-sm"
                                 >
-                                    <X className="w-3 h-3 text-white" />
+                                    <X className="w-3.5 h-3.5" />
                                 </button>
                             </div>
                         ) : (
@@ -653,7 +704,7 @@ const ProductNodeForm: React.FC<ProductNodeFormProps> = ({
                                     <input
                                         type="url"
                                         placeholder="Enter image URL..."
-                                        className="flex-1 bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 placeholder-slate-500"
+                                        className={inputClass}
                                         onBlur={(e) => {
                                             if (e.target.value && e.target.value.startsWith('http')) {
                                                 setProductImage(e.target.value);
@@ -669,23 +720,33 @@ const ProductNodeForm: React.FC<ProductNodeFormProps> = ({
 
                                 {/* Divider */}
                                 <div className="flex items-center gap-3">
-                                    <div className="flex-1 h-px bg-slate-700"></div>
-                                    <span className="text-xs text-slate-500">or</span>
-                                    <div className="flex-1 h-px bg-slate-700"></div>
+                                    <div className={`flex-1 h-px ${dividerClass}`}></div>
+                                    <span className={`text-xs font-medium uppercase tracking-wider ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>or</span>
+                                    <div className={`flex-1 h-px ${dividerClass}`}></div>
                                 </div>
 
                                 {/* Upload Button */}
                                 <button
                                     onClick={() => fileInputRef.current?.click()}
                                     disabled={uploading}
-                                    className="w-full py-6 border-2 border-dashed border-slate-600 rounded-xl text-slate-400 hover:text-white hover:border-emerald-500/50 transition-all flex flex-col items-center gap-2"
+                                    className={`w-full py-8 border-2 border-dashed rounded-xl transition-all flex flex-col items-center gap-3 group ${isDark
+                                        ? 'border-slate-700 text-slate-400 hover:border-emerald-500/50 hover:bg-slate-800'
+                                        : 'border-slate-300 text-slate-500 hover:border-emerald-500/50 hover:bg-emerald-50/30'
+                                        }`}
                                 >
                                     {uploading ? (
-                                        <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+                                        <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
                                     ) : (
                                         <>
-                                            <Upload className="w-6 h-6" />
-                                            <span className="text-sm">Upload from device</span>
+                                            <div className="p-3 rounded-full bg-emerald-500/10 text-emerald-500 group-hover:scale-110 transition-transform">
+                                                <Upload className="w-6 h-6" />
+                                            </div>
+                                            <div className="text-center">
+                                                <span className="text-sm font-semibold text-emerald-500">Click to upload</span>
+                                                <span className="text-sm text-slate-500"> or drag and drop</span>
+                                                <br />
+                                                <span className="text-xs text-slate-400 mt-1 block">SVG, PNG, JPG or GIF (max. 3MB)</span>
+                                            </div>
                                         </>
                                     )}
                                 </button>
@@ -694,66 +755,68 @@ const ProductNodeForm: React.FC<ProductNodeFormProps> = ({
                     </div>
 
                     {/* Status & Inventory Toggle */}
-                    <div className="md:col-span-2 flex items-center justify-between py-3 px-4 bg-slate-800 rounded-xl">
+                    <div className={`md:col-span-2 flex items-center justify-between py-4 px-5 rounded-xl border ${isDark ? 'bg-slate-800/60 border-slate-700/50' : 'bg-slate-50 border-slate-200'}`}>
                         <div>
-                            <div className="font-medium text-white">Product Status</div>
-                            <div className="text-xs text-slate-400">Active products are visible in store</div>
+                            <div className={`font-medium ${isDark ? 'text-white' : 'text-slate-800'}`}>Product Status</div>
+                            <div className="text-xs text-slate-500 mt-0.5">Active products are visible in store</div>
                         </div>
                         <button
                             onClick={() => setProductStatus(productStatus === 'active' ? 'draft' : 'active')}
-                            className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${productStatus === 'active'
-                                ? 'bg-emerald-500 text-white'
-                                : 'bg-slate-700 text-slate-400'
-                                }`}
+                            className={`relative w-12 h-6 rounded-full transition-colors ${productStatus === 'active' ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-600'}`}
                         >
-                            {productStatus === 'active' ? 'Active' : 'Draft'}
+                            <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform shadow-sm ${productStatus === 'active' ? 'translate-x-6' : 'translate-x-0'}`} />
                         </button>
                     </div>
 
                     {/* Button Action */}
                     <div className="md:col-span-2 space-y-3">
-                        <label className="block text-sm font-medium text-slate-300">
+                        <label className={labelClass}>
                             🛒 "Add to Cart" Button Action
                         </label>
-                        <div className="grid grid-cols-1 gap-2">
+                        <div className="grid grid-cols-1 gap-3">
                             <button
                                 type="button"
                                 onClick={() => setButtonAction('store_page')}
-                                className={`p-3 rounded-xl border text-left transition-all ${buttonAction === 'store_page'
-                                    ? 'bg-emerald-500/20 border-emerald-500/50 text-white'
-                                    : 'bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-600'
+                                className={`p-4 rounded-xl border text-left transition-all group ${buttonAction === 'store_page'
+                                    ? 'bg-emerald-500/10 border-emerald-500 ring-1 ring-emerald-500/20'
+                                    : isDark
+                                        ? 'bg-slate-800/60 border-slate-700/50 hover:bg-slate-800'
+                                        : 'bg-white border-slate-200 hover:border-emerald-300 hover:shadow-sm'
                                     }`}
                             >
-                                <div className="flex items-center justify-between">
-                                    <div className="font-medium">🏪 Open Store Page (Default)</div>
-                                    {buttonAction === 'store_page' && <Check className="w-5 h-5 text-emerald-400" />}
+                                <div className="flex items-center justify-between mb-1">
+                                    <div className={`font-semibold ${isDark ? 'text-white' : 'text-slate-800'}`}>🏪 Open Store Page (Default)</div>
+                                    {buttonAction === 'store_page' && <Check className="w-5 h-5 text-emerald-500" />}
                                 </div>
-                                <div className="text-xs mt-1 opacity-70">
-                                    Opens your public store product page where buyers can checkout
+                                <div className="text-xs text-slate-500 leading-relaxed">
+                                    Opens your public store product page where buyers can checkout securely.
                                 </div>
                             </button>
+
                             <button
                                 type="button"
                                 onClick={() => setButtonAction('continue_flow')}
-                                className={`p-3 rounded-xl border text-left transition-all ${buttonAction === 'continue_flow'
-                                    ? 'bg-blue-500/20 border-blue-500/50 text-white'
-                                    : 'bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-600'
+                                className={`p-4 rounded-xl border text-left transition-all group ${buttonAction === 'continue_flow'
+                                    ? 'bg-blue-500/10 border-blue-500 ring-1 ring-blue-500/20'
+                                    : isDark
+                                        ? 'bg-slate-800/60 border-slate-700/50 hover:bg-slate-800'
+                                        : 'bg-white border-slate-200 hover:border-blue-300 hover:shadow-sm'
                                     }`}
                             >
-                                <div className="flex items-center justify-between">
-                                    <div className="font-medium">🔗 Continue Flow (Connect Node)</div>
-                                    {buttonAction === 'continue_flow' && <Check className="w-5 h-5 text-blue-400" />}
+                                <div className="flex items-center justify-between mb-1">
+                                    <div className={`font-semibold ${isDark ? 'text-white' : 'text-slate-800'}`}>🔗 Continue Flow (Connect Node)</div>
+                                    {buttonAction === 'continue_flow' && <Check className="w-5 h-5 text-blue-500" />}
                                 </div>
-                                <div className="text-xs mt-1 opacity-70">
-                                    Connect to the next node in your flow for custom checkout experience
+                                <div className="text-xs text-slate-500 leading-relaxed">
+                                    Connect to the next node in your flow for custom checkout experience.
                                 </div>
                             </button>
                         </div>
                         {buttonAction === 'continue_flow' && (
-                            <div className="flex items-start gap-2 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
-                                <AlertCircle className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" />
-                                <div className="text-xs text-blue-300">
-                                    Connect the Product Node's output to another node (e.g., Form, Text) to continue the flow when users tap "Add to Cart"
+                            <div className="flex items-start gap-3 p-4 bg-blue-50 dark:bg-blue-500/10 border border-blue-100 dark:border-blue-500/20 rounded-xl">
+                                <AlertCircle className="w-5 h-5 text-blue-500 mt-0.5 flex-shrink-0" />
+                                <div className="text-sm text-blue-600 dark:text-blue-200 leading-relaxed">
+                                    Connect the Product Node's output to another node (e.g., Form, Text) to continue the flow when users tap "Add to Cart".
                                 </div>
                             </div>
                         )}
@@ -762,11 +825,11 @@ const ProductNodeForm: React.FC<ProductNodeFormProps> = ({
             )}
 
             {/* Info Message */}
-            <div className="flex items-start gap-3 p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-xl">
-                <Sparkles className="w-5 h-5 text-emerald-400 mt-0.5" />
-                <div className="text-sm text-slate-300">
-                    <p className="font-medium text-emerald-400 mb-1">Pro Tip</p>
-                    <p>Products created here will be synced to your Store page and visible on your public storefront.</p>
+            <div className={`flex items-start gap-3 p-4 rounded-xl border ${isDark ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-emerald-50 border-emerald-100'}`}>
+                <Sparkles className="w-5 h-5 text-emerald-500 mt-0.5 flex-shrink-0" />
+                <div className="text-sm">
+                    <p className="font-semibold text-emerald-600 dark:text-emerald-400 mb-1">Pro Tip</p>
+                    <p className={isDark ? 'text-slate-300' : 'text-slate-600'}>Products created here will be synced to your Store page and visible on your public storefront.</p>
                 </div>
             </div>
         </div>
@@ -775,41 +838,50 @@ const ProductNodeForm: React.FC<ProductNodeFormProps> = ({
     // Desktop: Fullscreen responsive layout
     if (isDesktop) {
         return (
-            <div className="fixed inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 z-50 p-[15px] flex items-center justify-center">
-                <div className="w-full max-w-7xl h-full max-h-full flex flex-col bg-slate-800/50 rounded-2xl border border-white/10 overflow-hidden transition-all duration-300">
+            <div className="fixed inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 z-50 p-[15px] flex items-center justify-center font-sans antialiased">
+                <div className={`w-full max-w-7xl h-full max-h-full flex flex-col rounded-2xl border overflow-hidden transition-all duration-300 shadow-2xl ${isDark ? 'bg-slate-900 border-white/10' : 'bg-slate-50 border-white text-slate-900'}`}>
                     {/* Header with Device Switcher */}
-                    <div className="flex-shrink-0 h-14 border-b border-white/10 flex items-center px-4 gap-4">
+                    <div className={`flex-shrink-0 h-16 border-b flex items-center px-6 gap-6 ${isDark ? 'bg-slate-800/50 border-white/10' : 'bg-white border-slate-200'}`}>
                         {/* Left: Title */}
                         <div className="flex items-center gap-3 min-w-0 flex-shrink-0">
-                            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
-                                <ShoppingBag className="w-4 h-4 text-white" />
+                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                                <ShoppingBag className="w-5 h-5 text-white" />
                             </div>
-                            <span className="text-base font-bold text-white whitespace-nowrap">Product</span>
+                            <div>
+                                <h1 className={`text-lg font-bold leading-none ${isDark ? 'text-white' : 'text-slate-900'}`}>Product</h1>
+                                <p className={`text-xs mt-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Configure product display</p>
+                            </div>
                         </div>
 
                         {/* Center: Device Switcher */}
                         <div className="flex-1 flex justify-center">
-                            <div className="flex items-center gap-1 bg-slate-700/50 rounded-lg p-1 border border-white/10">
+                            <div className={`flex items-center gap-1 p-1 rounded-xl border ${isDark ? 'bg-slate-900/50 border-white/10' : 'bg-slate-100 border-slate-200'}`}>
                                 <button
-                                    type="button"
                                     onClick={() => setPreviewDevice('mobile')}
-                                    className={`p-2 rounded-md transition-all ${previewDevice === 'mobile' ? 'bg-teal-500 text-white' : 'text-slate-400 hover:text-white hover:bg-white/10'}`}
+                                    className={`p-2 rounded-lg transition-all ${previewDevice === 'mobile'
+                                        ? 'bg-emerald-500 text-white shadow-sm'
+                                        : isDark ? 'text-slate-400 hover:text-white hover:bg-white/5' : 'text-slate-500 hover:text-slate-900 hover:bg-white'
+                                        }`}
                                     title="Mobile"
                                 >
                                     <Smartphone className="w-4 h-4" />
                                 </button>
                                 <button
-                                    type="button"
                                     onClick={() => setPreviewDevice('tablet')}
-                                    className={`p-2 rounded-md transition-all ${previewDevice === 'tablet' ? 'bg-teal-500 text-white' : 'text-slate-400 hover:text-white hover:bg-white/10'}`}
+                                    className={`p-2 rounded-lg transition-all ${previewDevice === 'tablet'
+                                        ? 'bg-emerald-500 text-white shadow-sm'
+                                        : isDark ? 'text-slate-400 hover:text-white hover:bg-white/5' : 'text-slate-500 hover:text-slate-900 hover:bg-white'
+                                        }`}
                                     title="Tablet"
                                 >
                                     <Tablet className="w-4 h-4" />
                                 </button>
                                 <button
-                                    type="button"
                                     onClick={() => setPreviewDevice('desktop')}
-                                    className={`p-2 rounded-md transition-all ${previewDevice === 'desktop' ? 'bg-teal-500 text-white' : 'text-slate-400 hover:text-white hover:bg-white/10'}`}
+                                    className={`p-2 rounded-lg transition-all ${previewDevice === 'desktop'
+                                        ? 'bg-emerald-500 text-white shadow-sm'
+                                        : isDark ? 'text-slate-400 hover:text-white hover:bg-white/5' : 'text-slate-500 hover:text-slate-900 hover:bg-white'
+                                        }`}
                                     title="Desktop"
                                 >
                                     <Monitor className="w-4 h-4" />
@@ -817,281 +889,152 @@ const ProductNodeForm: React.FC<ProductNodeFormProps> = ({
                             </div>
                         </div>
 
-                        {/* Right: Save + Live Preview + Close */}
-                        <div className="flex items-center gap-2 flex-shrink-0">
+                        {/* Right: Actions */}
+                        <div className="flex items-center gap-3">
                             <button
-                                type="button"
-                                onClick={handleManualSave}
-                                className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 rounded-lg text-white text-sm font-medium transition-colors"
-                                title="Save Product"
-                            >
-                                <Save className="w-4 h-4" />
-                                Save
-                            </button>
-                            <button
-                                type="button"
                                 onClick={openLivePreview}
-                                className="p-1.5 hover:bg-white/10 rounded-lg text-slate-400 hover:text-teal-400 transition-colors"
-                                title="Open Live Preview"
+                                className={`px-4 py-2 text-sm font-semibold rounded-xl border transition-all flex items-center gap-2 ${isDark
+                                    ? 'border-white/10 hover:bg-white/5 text-slate-300 hover:text-white'
+                                    : 'bg-white border-slate-200 hover:bg-slate-50 text-slate-600 hover:text-slate-900'
+                                    }`}
                             >
                                 <ExternalLink className="w-4 h-4" />
+                                Live Preview
                             </button>
-                            {onClose && (
-                                <button
-                                    type="button"
-                                    onClick={onClose}
-                                    className="p-1.5 hover:bg-red-500/20 rounded-lg text-slate-400 hover:text-red-400 transition-colors"
-                                    title="Close"
-                                >
-                                    <X className="w-5 h-5" />
-                                </button>
-                            )}
+
+                            <button
+                                onClick={onClose}
+                                className={`p-2 rounded-xl transition-all ${isDark ? 'hover:bg-white/10 text-slate-400 hover:text-white' : 'hover:bg-slate-100 text-slate-500 hover:text-slate-900'}`}
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+
+                            <div className={`w-px h-8 ${isDark ? 'bg-white/10' : 'bg-slate-200'}`} />
+
+                            <button
+                                onClick={handleManualSave}
+                                className="px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-xl transition-all flex items-center gap-2 shadow-lg shadow-blue-500/20"
+                            >
+                                <Save className="w-4 h-4" />
+                                Save & Close
+                            </button>
                         </div>
                     </div>
 
-                    {/* Content */}
-                    <div className="flex-1 grid grid-cols-2 gap-0 overflow-hidden">
-                        {/* Left: Form */}
-                        <div className="border-r border-white/10 p-6 overflow-y-auto custom-scrollbar">
-                            {formContent}
-                        </div>
-                        {/* Right: Preview */}
-                        <div className="p-6 flex items-center justify-center bg-slate-950/50 overflow-auto">
-                            <ProductPreview />
+                    {/* Main Content */}
+                    <div className="flex-1 overflow-hidden relative">
+                        <div className="absolute inset-0 flex">
+                            {/* Configuration Panel */}
+                            <div className={`w-[480px] h-full overflow-y-auto border-r ${isDark ? 'bg-slate-800/30 border-white/5 scrollbar-thin scrollbar-thumb-white/10' : 'bg-white border-slate-200 scrollbar-thin scrollbar-thumb-slate-200'}`}>
+                                <div className="p-6">
+                                    {formContent}
+                                </div>
+                            </div>
+
+                            {/* Preview Area */}
+                            <div className={`flex-1 overflow-hidden relative flex flex-col items-center justify-center p-8 transition-colors duration-500 ${isDark ? 'bg-black/20' : 'bg-slate-50/50'}`}>
+                                {/* Use radial gradient for a sophisticated background effect */}
+                                <div className={`absolute inset-0 opacity-40 pointer-events-none ${isDark
+                                    ? 'bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-indigo-900/20 via-slate-900/0 to-slate-900/0'
+                                    : 'bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-indigo-100/40 via-white/0 to-white/0'
+                                    }`} />
+
+                                <div className="z-10 w-full transform transition-all duration-500">
+                                    <ProductPreview />
+                                </div>
+
+                                <div className={`absolute bottom-6 left-1/2 -translate-x-1/2 px-4 py-2 rounded-full backdrop-blur-md border text-xs font-medium flex items-center gap-2 ${isDark
+                                    ? 'bg-slate-900/50 border-white/10 text-slate-400'
+                                    : 'bg-white/50 border-slate-200 text-slate-500'
+                                    }`}>
+                                    <Eye className="w-3.5 h-3.5" />
+                                    Preview Mode
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
                 {/* Toast Notification */}
                 {showToast && (
-                    <div className="fixed top-6 right-6 z-[60] animate-slide-in">
-                        <div className="bg-emerald-500 text-white px-5 py-3 rounded-xl shadow-2xl flex items-center gap-2">
+                    <div className="fixed bottom-6 right-6 z-[60] animate-fade-in-up">
+                        <div className="bg-emerald-500 text-white px-6 py-3 rounded-xl shadow-lg shadow-emerald-500/30 flex items-center gap-3 font-medium">
                             <Check className="w-5 h-5" />
-                            <span className="font-medium">{toastMessage}</span>
+                            {toastMessage}
                         </div>
                     </div>
                 )}
-
-                <style>{`
-                    @keyframes slide-in {
-                        from { opacity: 0; transform: translateX(20px); }
-                        to { opacity: 1; transform: translateX(0); }
-                    }
-                    .animate-slide-in { animation: slide-in 0.3s ease-out; }
-                `}</style>
             </div>
         );
     }
 
-    // ================== MOBILE: Step-by-Step Wizard ==================
-    const WIZARD_STEPS = [
-        { title: 'Mode', description: 'Select or Create' },
-        { title: 'Details', description: 'Product Info' },
-        { title: 'Image', description: 'Product Image' },
-        { title: 'Settings', description: 'Status & Action' }
-    ];
-
-    // Step content for mobile wizard
-    const getMobileStepContent = () => {
-        switch (mobileStep) {
-            case 0: // Mode
-                return (
-                    <div className="space-y-4">
-                        <h3 className="text-sm font-semibold text-white">Mode Selection</h3>
-                        <div className="bg-slate-800/50 rounded-xl p-1 flex gap-1">
-                            <button onClick={() => setMode('select')}
-                                className={`flex-1 py-2.5 px-4 rounded-lg font-medium text-sm transition-all flex items-center justify-center gap-2 ${mode === 'select' ? 'bg-emerald-500 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-700'}`}>
-                                <Layers className="w-4 h-4" /> Choose Existing
-                            </button>
-                            <button onClick={() => { setMode('create'); setSelectedProductId(''); }}
-                                className={`flex-1 py-2.5 px-4 rounded-lg font-medium text-sm transition-all flex items-center justify-center gap-2 ${mode === 'create' ? 'bg-emerald-500 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-700'}`}>
-                                <Plus className="w-4 h-4" /> Create New
-                            </button>
-                        </div>
-                        {mode === 'select' && (
-                            <div className="space-y-3">
-                                <div className="relative">
-                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                                    <input type="text" value={productSearch} onChange={(e) => setProductSearch(e.target.value)} placeholder="Search products..."
-                                        className="w-full pl-10 pr-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-emerald-500/50 outline-none" />
-                                </div>
-                                <div className="max-h-48 overflow-y-auto space-y-2">
-                                    {filteredProducts.map(product => (
-                                        <button key={product.id} onClick={() => selectProduct(product)}
-                                            className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all ${selectedProductId === product.id ? 'bg-emerald-500/20 border-2 border-emerald-500' : 'bg-slate-800 border-2 border-transparent hover:border-slate-600'}`}>
-                                            <div className="w-10 h-10 rounded-lg bg-slate-700 overflow-hidden">
-                                                {product.images?.[0] ? <img src={product.images[0]} alt="" className="w-full h-full object-cover" /> : <Package className="w-5 h-5 text-slate-500 m-auto mt-2" />}
-                                            </div>
-                                            <div className="flex-1 text-left">
-                                                <div className="font-medium text-white text-sm truncate">{product.name}</div>
-                                                <div className="text-xs text-emerald-400">{currencySymbol}{product.price}</div>
-                                            </div>
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                );
-            case 1: // Details
-                return (
-                    <div className="space-y-4">
-                        <h3 className="text-sm font-semibold text-white">Product Details</h3>
-                        <div>
-                            <label className="block text-xs text-slate-400 mb-1">Product Name *</label>
-                            <input type="text" value={productName} onChange={(e) => setProductName(e.target.value)} placeholder="Enter product name"
-                                className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white placeholder-slate-500" />
-                        </div>
-                        <div className="grid grid-cols-2 gap-3">
-                            <div>
-                                <label className="block text-xs text-slate-400 mb-1">Price *</label>
-                                <div className="relative">
-                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">{currencySymbol}</span>
-                                    <input type="number" value={productPrice} onChange={(e) => setProductPrice(e.target.value)} placeholder="0.00"
-                                        className="w-full pl-8 pr-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white" />
-                                </div>
-                            </div>
-                            <div>
-                                <label className="block text-xs text-slate-400 mb-1">Compare Price</label>
-                                <div className="relative">
-                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">{currencySymbol}</span>
-                                    <input type="number" value={productComparePrice} onChange={(e) => setProductComparePrice(e.target.value)} placeholder="Original"
-                                        className="w-full pl-8 pr-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white" />
-                                </div>
-                            </div>
-                        </div>
-                        <div>
-                            <label className="block text-xs text-slate-400 mb-1">Description</label>
-                            <textarea value={productDescription} onChange={(e) => setProductDescription(e.target.value)} placeholder="Product description..." rows={3}
-                                className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white resize-none" />
-                        </div>
-                        <div>
-                            <label className="block text-xs text-slate-400 mb-1">Category</label>
-                            <select value={productCategory} onChange={(e) => setProductCategory(e.target.value)}
-                                className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white">
-                                <option value="">Select category</option>
-                                {DEFAULT_CATEGORIES.map(cat => (<option key={cat} value={cat}>{cat}</option>))}
-                            </select>
-                        </div>
-                    </div>
-                );
-            case 2: // Image
-                return (
-                    <div className="space-y-4">
-                        <h3 className="text-sm font-semibold text-white">Product Image</h3>
-                        <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
-                        {productImage ? (
-                            <div className="relative w-32 h-32 rounded-xl overflow-hidden group mx-auto">
-                                <img src={productImage} alt="" className="w-full h-full object-cover" />
-                                <button onClick={() => setProductImage('')} className="absolute top-2 right-2 p-1 bg-red-500 rounded-full">
-                                    <X className="w-3 h-3 text-white" />
-                                </button>
-                            </div>
-                        ) : (
-                            <div className="space-y-3">
-                                <input type="url" placeholder="Enter image URL..." className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm"
-                                    onBlur={(e) => { if (e.target.value?.startsWith('http')) setProductImage(e.target.value); }} />
-                                <div className="text-center text-xs text-slate-500">or</div>
-                                <button onClick={() => fileInputRef.current?.click()} disabled={uploading}
-                                    className="w-full py-6 border-2 border-dashed border-slate-600 rounded-xl text-slate-400 flex flex-col items-center gap-2">
-                                    {uploading ? <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" /> : <><Upload className="w-6 h-6" /><span className="text-sm">Upload from device</span></>}
-                                </button>
-                            </div>
-                        )}
-                    </div>
-                );
-            case 3: // Settings
-                return (
-                    <div className="space-y-4">
-                        <h3 className="text-sm font-semibold text-white">Product Settings</h3>
-                        <div className="flex items-center justify-between py-3 px-4 bg-slate-800 rounded-xl">
-                            <div>
-                                <div className="font-medium text-white text-sm">Product Status</div>
-                                <div className="text-xs text-slate-400">Active products are visible in store</div>
-                            </div>
-                            <button onClick={() => setProductStatus(productStatus === 'active' ? 'draft' : 'active')}
-                                className={`px-4 py-2 rounded-lg font-medium text-sm ${productStatus === 'active' ? 'bg-emerald-500 text-white' : 'bg-slate-700 text-slate-400'}`}>
-                                {productStatus === 'active' ? 'Active' : 'Draft'}
-                            </button>
-                        </div>
-                        <div>
-                            <label className="block text-xs text-slate-400 mb-1">Stock Quantity</label>
-                            <input type="number" value={productStock} onChange={(e) => setProductStock(e.target.value)} placeholder="0"
-                                className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white" />
-                        </div>
-                        <div className="space-y-2">
-                            <label className="block text-xs text-slate-400">Button Action</label>
-                            <button type="button" onClick={() => setButtonAction('store_page')}
-                                className={`w-full p-3 rounded-xl border text-left ${buttonAction === 'store_page' ? 'bg-emerald-500/20 border-emerald-500/50 text-white' : 'bg-slate-800 border-slate-700 text-slate-400'}`}>
-                                <div className="font-medium text-sm">🏪 Open Store Page</div>
-                            </button>
-                            <button type="button" onClick={() => setButtonAction('continue_flow')}
-                                className={`w-full p-3 rounded-xl border text-left ${buttonAction === 'continue_flow' ? 'bg-blue-500/20 border-blue-500/50 text-white' : 'bg-slate-800 border-slate-700 text-slate-400'}`}>
-                                <div className="font-medium text-sm">🔗 Continue Flow</div>
-                            </button>
-                        </div>
-                    </div>
-                );
-            default: return null;
-        }
-    };
-
-    if (showPreview) {
-        return (
-            <div className="min-h-screen bg-slate-900 p-4 nodrag nopan" onMouseDown={e => e.stopPropagation()}>
-                <button onClick={() => setShowPreview(false)} className="flex items-center gap-2 text-slate-400 mb-4">
-                    <ChevronLeft className="w-4 h-4" /> Back to Editor
-                </button>
-                <div className="flex justify-center"><ProductPreview /></div>
-            </div>
-        );
-    }
-
+    // Mobile: Simplified layout
     return (
-        <div className="min-h-screen bg-slate-900 flex flex-col nodrag nopan" onMouseDown={e => e.stopPropagation()}>
-            {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b border-white/10">
-                <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
-                        <ShoppingBag className="w-4 h-4 text-white" />
-                    </div>
-                    <span className="font-bold text-white">Product</span>
+        <div className="fixed inset-0 bg-slate-50 dark:bg-slate-900 z-50 flex flex-col font-sans">
+            {/* Mobile Header */}
+            <div className={`flex-shrink-0 h-14 border-b flex items-center justify-between px-4 ${isDark ? 'bg-slate-900 border-white/10' : 'bg-white border-slate-200'}`}>
+                <div className="flex items-center gap-3">
+                    <button
+                        onClick={onClose}
+                        className={`p-2 -ml-2 rounded-lg ${isDark ? 'text-slate-400' : 'text-slate-500'}`}
+                    >
+                        <ChevronLeft className="w-5 h-5" />
+                    </button>
+                    <span className={`font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>Edit Product</span>
                 </div>
-                <button onClick={() => setShowPreview(true)} className="text-xs text-teal-400 flex items-center gap-1">
-                    <Eye className="w-3 h-3" /> Preview
+                <button
+                    onClick={handleManualSave}
+                    className="text-sm font-semibold text-blue-500"
+                >
+                    Save
                 </button>
             </div>
 
-            {/* Step Indicators */}
-            <div className="flex justify-center gap-2 p-4">
-                {WIZARD_STEPS.map((step, idx) => (
-                    <button key={idx} onClick={() => setMobileStep(idx)}
-                        className={`w-2 h-2 rounded-full transition-all ${idx === mobileStep ? 'bg-teal-500 w-6' : 'bg-slate-600'}`} />
-                ))}
+            {/* Mobile Content */}
+            <div className="flex-1 overflow-y-auto">
+                <div className="p-4 space-y-6">
+                    {/* Preview Toggle Card */}
+                    <div className={`rounded-xl border p-1 ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200 shadow-sm'}`}>
+                        <div className="grid grid-cols-2 gap-1">
+                            <button
+                                onClick={() => setShowPreview(false)}
+                                className={`py-2 text-sm font-medium rounded-lg transition-all ${!showPreview
+                                    ? 'bg-blue-500 text-white shadow-sm'
+                                    : isDark ? 'text-slate-400' : 'text-slate-500'
+                                    }`}
+                            >
+                                Edit Check
+                            </button>
+                            <button
+                                onClick={() => setShowPreview(true)}
+                                className={`py-2 text-sm font-medium rounded-lg transition-all ${showPreview
+                                    ? 'bg-blue-500 text-white shadow-sm'
+                                    : isDark ? 'text-slate-400' : 'text-slate-500'
+                                    }`}
+                            >
+                                Preview
+                            </button>
+                        </div>
+                    </div>
+
+                    {showPreview ? (
+                        <div className="py-4">
+                            <ProductPreview />
+                        </div>
+                    ) : (
+                        formContent
+                    )}
+                </div>
             </div>
 
-            {/* Step Title */}
-            <div className="text-center px-4 mb-4">
-                <div className="text-white font-semibold">{WIZARD_STEPS[mobileStep]?.title}</div>
-                <div className="text-xs text-slate-400">{WIZARD_STEPS[mobileStep]?.description}</div>
-            </div>
-
-            {/* Step Content */}
-            <div className="flex-1 overflow-y-auto px-4 pb-24">
-                {getMobileStepContent()}
-            </div>
-
-            {/* Navigation */}
-            <div className="fixed bottom-0 left-0 right-0 p-4 bg-slate-900 border-t border-white/10 flex gap-3">
-                <button onClick={() => setMobileStep(Math.max(0, mobileStep - 1))} disabled={mobileStep === 0}
-                    className={`flex-1 py-3 rounded-xl font-medium text-sm flex items-center justify-center gap-2 ${mobileStep === 0 ? 'bg-slate-800 text-slate-500' : 'bg-slate-700 text-white'}`}>
-                    <ChevronLeft className="w-4 h-4" /> Previous
-                </button>
-                <button onClick={() => setMobileStep(Math.min(WIZARD_STEPS.length - 1, mobileStep + 1))} disabled={mobileStep === WIZARD_STEPS.length - 1}
-                    className={`flex-1 py-3 rounded-xl font-medium text-sm flex items-center justify-center gap-2 ${mobileStep === WIZARD_STEPS.length - 1 ? 'bg-teal-600 text-white' : 'bg-teal-500 text-white'}`}>
-                    {mobileStep === WIZARD_STEPS.length - 1 ? 'Done' : 'Next'} <ChevronRight className="w-4 h-4" />
-                </button>
-            </div>
+            {/* Toast Notification (Mobile) */}
+            {showToast && (
+                <div className="fixed bottom-6 left-4 right-4 z-[60] animate-fade-in-up">
+                    <div className="bg-emerald-500 text-white px-4 py-3 rounded-xl shadow-lg text-center font-medium text-sm">
+                        {toastMessage}
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

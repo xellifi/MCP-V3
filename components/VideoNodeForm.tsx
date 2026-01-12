@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Video, Link, AlertCircle, Clock, Loader2 } from 'lucide-react';
 import CollapsibleTips from './CollapsibleTips';
+import { useTheme } from '../context/ThemeContext';
 
 interface VideoNodeFormProps {
     workspaceId: string;
@@ -18,6 +19,7 @@ const VideoNodeForm: React.FC<VideoNodeFormProps> = ({
     initialConfig,
     onChange
 }) => {
+    const { isDark } = useTheme();
     const [videoUrl, setVideoUrl] = useState(initialConfig?.videoUrl || '');
     const [caption, setCaption] = useState(initialConfig?.caption || '');
     const [delaySeconds, setDelaySeconds] = useState(initialConfig?.delaySeconds || 0);
@@ -100,7 +102,7 @@ const VideoNodeForm: React.FC<VideoNodeFormProps> = ({
         <div className="space-y-6">
             {/* Video URL Input */}
             <div>
-                <label className="block text-xs md:text-sm font-semibold text-slate-300 mb-2">
+                <label className={`block text-xs md:text-sm font-semibold ${isDark ? 'text-slate-300' : 'text-slate-700'} mb-2`}>
                     <Video className="w-4 h-4 inline mr-2" />
                     Video URL
                 </label>
@@ -109,9 +111,9 @@ const VideoNodeForm: React.FC<VideoNodeFormProps> = ({
                     value={videoUrl}
                     onChange={(e) => handleUrlChange(e.target.value)}
                     placeholder="https://web.facebook.com/yourpage/videos/123456789"
-                    className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-cyan-500/50 outline-none transition-all placeholder-slate-500"
+                    className={`w-full ${isDark ? 'bg-black/20 border-white/10 text-white placeholder-slate-500' : 'bg-white border-slate-200 text-slate-900 placeholder-slate-400'} border rounded-xl px-4 py-3 focus:ring-2 focus:ring-cyan-500/50 outline-none transition-all`}
                 />
-                <p className="mt-2 text-xs text-slate-400">
+                <p className={`mt-2 text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                     Paste a Facebook video URL from your page (e.g., facebook.com/page/videos/...)
                 </p>
             </div>
@@ -127,10 +129,10 @@ const VideoNodeForm: React.FC<VideoNodeFormProps> = ({
             {/* Video Preview */}
             {videoUrl && isValidVideoUrl(videoUrl) && (
                 <div>
-                    <label className="block text-xs md:text-sm font-semibold text-slate-300 mb-2">
+                    <label className={`block text-xs md:text-sm font-semibold ${isDark ? 'text-slate-300' : 'text-slate-700'} mb-2`}>
                         Preview
                     </label>
-                    <div className="bg-black/20 border border-white/10 rounded-xl p-4 overflow-hidden">
+                    <div className={`${isDark ? 'bg-black/20 border-white/10' : 'bg-slate-50 border-slate-200'} border rounded-xl p-4 overflow-hidden`}>
                         {previewError ? (
                             <div className="flex flex-col items-center justify-center py-8 text-slate-400">
                                 <AlertCircle className="w-8 h-8 mb-2 text-amber-400" />
@@ -194,7 +196,7 @@ const VideoNodeForm: React.FC<VideoNodeFormProps> = ({
 
             {/* Caption */}
             <div>
-                <label className="block text-xs md:text-sm font-semibold text-slate-300 mb-2">
+                <label className={`block text-xs md:text-sm font-semibold ${isDark ? 'text-slate-300' : 'text-slate-700'} mb-2`}>
                     Caption (Optional)
                 </label>
                 <input
@@ -203,16 +205,16 @@ const VideoNodeForm: React.FC<VideoNodeFormProps> = ({
                     onChange={(e) => handleCaptionChange(e.target.value)}
                     placeholder="Add a caption to send with the video..."
                     maxLength={200}
-                    className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-cyan-500/50 outline-none transition-all placeholder-slate-500"
+                    className={`w-full ${isDark ? 'bg-black/20 border-white/10 text-white placeholder-slate-500' : 'bg-white border-slate-200 text-slate-900 placeholder-slate-400'} border rounded-xl px-4 py-3 focus:ring-2 focus:ring-cyan-500/50 outline-none transition-all`}
                 />
-                <p className="mt-2 text-xs text-slate-400">
+                <p className={`mt-2 text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                     Optional text sent as a separate message after the video
                 </p>
             </div>
 
             {/* Delay Before Sending */}
             <div>
-                <label className="block text-xs md:text-sm font-semibold text-slate-300 mb-2">
+                <label className={`block text-xs md:text-sm font-semibold ${isDark ? 'text-slate-300' : 'text-slate-700'} mb-2`}>
                     <Clock className="w-4 h-4 inline mr-2" />
                     Delay Before Sending
                 </label>
@@ -223,13 +225,13 @@ const VideoNodeForm: React.FC<VideoNodeFormProps> = ({
                         max="30"
                         value={delaySeconds}
                         onChange={(e) => handleDelayChange(parseInt(e.target.value))}
-                        className="flex-1 h-2 bg-white/10 rounded-lg appearance-none cursor-pointer accent-cyan-500"
+                        className={`flex-1 h-2 ${isDark ? 'bg-white/10' : 'bg-slate-200'} rounded-lg appearance-none cursor-pointer accent-cyan-500`}
                     />
-                    <span className="text-white font-medium min-w-[60px] text-right">
+                    <span className={`font-medium min-w-[60px] text-right ${isDark ? 'text-white' : 'text-slate-900'}`}>
                         {delaySeconds}s
                     </span>
                 </div>
-                <p className="mt-2 text-xs text-slate-400">
+                <p className={`mt-2 text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                     Wait time before sending this video (shows typing indicator)
                 </p>
             </div>

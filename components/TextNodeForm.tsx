@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Clock, MessageSquare, Plus, X, Link, ChevronDown, Zap, PlusCircle, Tag, TrendingUp, TrendingDown, ArrowRight, ShoppingBag, Smartphone, Tablet, Monitor, Save, Check, Eye, ChevronLeft, ChevronRight, ChevronUp } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { api } from '../services/api';
+import { useTheme } from '../context/ThemeContext';
 
 interface Button {
     title: string;
@@ -40,9 +41,10 @@ const CollapsibleSection = ({
     defaultOpen?: boolean;
 }) => {
     const [isOpen, setIsOpen] = useState(defaultOpen);
+    const { isDark } = useTheme();
 
     return (
-        <div className="bg-black/20 rounded-xl overflow-hidden border border-white/5">
+        <div className={`${isDark ? 'bg-black/20 border-white/5' : 'bg-slate-50 border-slate-200'} rounded-xl overflow-hidden border`}>
             <button
                 type="button"
                 onClick={() => setIsOpen(!isOpen)}
@@ -50,7 +52,7 @@ const CollapsibleSection = ({
             >
                 <div className="flex items-center gap-2">
                     {Icon && <Icon className="w-4 h-4 text-amber-400" />}
-                    <span className="text-sm font-semibold text-white">{title}</span>
+                    <span className={`text-sm font-semibold ${isDark ? 'text-white' : 'text-slate-900'}`}>{title}</span>
                 </div>
                 {isOpen ? (
                     <ChevronUp className="w-4 h-4 text-slate-400" />
@@ -59,7 +61,7 @@ const CollapsibleSection = ({
                 )}
             </button>
             {isOpen && (
-                <div className="px-4 pb-4 space-y-4 border-t border-white/5">
+                <div className={`px-4 pb-4 space-y-4 border-t ${isDark ? 'border-white/5' : 'border-slate-200'}`}>
                     {children}
                 </div>
             )}
@@ -85,6 +87,7 @@ const TextNodeForm: React.FC<TextNodeFormProps> = ({
     const [openFlowDropdown, setOpenFlowDropdown] = useState<number | null>(null);
     const [openLabelDropdown, setOpenLabelDropdown] = useState<number | null>(null);
     const [workspaceLabels, setWorkspaceLabels] = useState<string[]>([]);
+    const { isDark } = useTheme();
 
     // UI State
     const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1024);
@@ -390,7 +393,7 @@ const TextNodeForm: React.FC<TextNodeFormProps> = ({
                     onChange={(e) => handleTextChange(e.target.value)}
                     placeholder="Enter the message you want to send to users..."
                     rows={4}
-                    className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-amber-500/50 outline-none transition-all placeholder-slate-500 resize-y min-h-[100px] text-sm"
+                    className={`w-full ${isDark ? 'bg-black/20 border-white/10 text-white placeholder-slate-500' : 'bg-white border-slate-200 text-slate-900 placeholder-slate-400'} border rounded-xl px-4 py-3 focus:ring-2 focus:ring-amber-500/50 outline-none transition-all resize-y min-h-[100px] text-sm`}
                 />
                 <p className="mt-2 text-xs text-green-400">
                     ✓ This text message will be sent to users when this node is executed.
@@ -407,7 +410,7 @@ const TextNodeForm: React.FC<TextNodeFormProps> = ({
                     max="300"
                     value={delaySeconds}
                     onChange={(e) => handleDelayChange(parseInt(e.target.value) || 0)}
-                    className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-2.5 text-white focus:ring-2 focus:ring-amber-500/50 outline-none transition-all text-sm"
+                    className={`w-full ${isDark ? 'bg-black/20 border-white/10 text-white' : 'bg-white border-slate-200 text-slate-900'} border rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-amber-500/50 outline-none transition-all text-sm`}
                 />
                 <p className="mt-1.5 text-xs text-slate-500">
                     Wait this many seconds before sending the message (0-300 seconds).
@@ -434,7 +437,7 @@ const TextNodeForm: React.FC<TextNodeFormProps> = ({
 
                 <div className="space-y-3">
                     {buttons.map((button, index) => (
-                        <div key={index} className="p-3 bg-black/20 border border-white/10 rounded-xl space-y-3">
+                        <div key={index} className={`p-3 ${isDark ? 'bg-black/20 border-white/10' : 'bg-white border-slate-200'} border rounded-xl space-y-3`}>
                             {/* Button Title */}
                             <div>
                                 <label className="block text-xs text-slate-400 mb-1">Button Text</label>
@@ -443,7 +446,7 @@ const TextNodeForm: React.FC<TextNodeFormProps> = ({
                                     value={button.title}
                                     onChange={(e) => updateButton(index, { title: e.target.value })}
                                     placeholder="e.g., Learn More"
-                                    className="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:ring-2 focus:ring-amber-500/50 outline-none"
+                                    className={`w-full ${isDark ? 'bg-black/20 border-white/10 text-white' : 'bg-slate-50 border-slate-200 text-slate-900'} border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500/50 outline-none`}
                                     maxLength={20}
                                 />
                             </div>
@@ -463,7 +466,7 @@ const TextNodeForm: React.FC<TextNodeFormProps> = ({
                                             flowName: newType === 'newFlow' ? '' : undefined
                                         });
                                     }}
-                                    className="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:ring-2 focus:ring-amber-500/50 outline-none"
+                                    className={`w-full ${isDark ? 'bg-black/20 border-white/10 text-white' : 'bg-slate-50 border-slate-200 text-slate-900'} border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500/50 outline-none`}
                                 >
                                     <option value="startFlow">⚡ Trigger Saved Flow</option>
                                     <option value="url">🔗 Open URL (Webview)</option>
@@ -477,6 +480,7 @@ const TextNodeForm: React.FC<TextNodeFormProps> = ({
                             </div>
 
                             {/* Flow Selector - Custom Dropdown */}
+                            {/* Flow Selector - Custom Dropdown */}
                             {button.type === 'startFlow' && (
                                 <div className="relative">
                                     <label className="block text-xs text-slate-400 mb-1">Select Flow</label>
@@ -485,10 +489,10 @@ const TextNodeForm: React.FC<TextNodeFormProps> = ({
                                     <button
                                         type="button"
                                         onClick={() => setOpenFlowDropdown(openFlowDropdown === index ? null : index)}
-                                        className="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2.5 text-left text-sm focus:ring-2 focus:ring-amber-500/50 outline-none flex items-center justify-between hover:bg-white/5 transition-colors"
+                                        className={`w-full ${isDark ? 'bg-black/20 border-white/10 hover:bg-white/5' : 'bg-slate-50 border-slate-200 hover:bg-slate-100'} border rounded-lg px-3 py-2.5 text-left text-sm focus:ring-2 focus:ring-amber-500/50 outline-none flex items-center justify-between transition-colors`}
                                     >
                                         {button.flowId ? (
-                                            <div className="flex items-center gap-2">
+                                            <div className="flex items-center gap-2 truncate">
                                                 {(() => {
                                                     const selectedFlow = startFlows.find(f => f.id === button.flowId);
                                                     return selectedFlow ? (
@@ -497,14 +501,14 @@ const TextNodeForm: React.FC<TextNodeFormProps> = ({
                                                                 <img
                                                                     src={selectedFlow.pageImageUrl}
                                                                     alt={selectedFlow.pageName}
-                                                                    className="w-6 h-6 rounded-full object-cover border border-white/20"
+                                                                    className="w-6 h-6 rounded-full object-cover border border-white/20 flex-shrink-0"
                                                                 />
                                                             ) : (
-                                                                <div className="w-6 h-6 rounded-full bg-amber-500/20 border border-amber-500/30 flex items-center justify-center">
+                                                                <div className="w-6 h-6 rounded-full bg-amber-500/20 border border-amber-500/30 flex items-center justify-center flex-shrink-0">
                                                                     <Zap className="w-3 h-3 text-amber-400" />
                                                                 </div>
                                                             )}
-                                                            <span className="text-white truncate">{selectedFlow.name}</span>
+                                                            <span className={`${isDark ? 'text-white' : 'text-slate-900'} truncate`}>{selectedFlow.name}</span>
                                                         </>
                                                     ) : (
                                                         <span className="text-slate-400">Select a flow...</span>
@@ -519,7 +523,7 @@ const TextNodeForm: React.FC<TextNodeFormProps> = ({
 
                                     {/* Custom Dropdown Options */}
                                     {openFlowDropdown === index && (
-                                        <div className="absolute z-50 w-full mt-1 bg-slate-800 border border-white/10 rounded-lg shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                                        <div className={`absolute z-50 w-full mt-1 ${isDark ? 'bg-slate-800 border-white/10' : 'bg-white border-slate-200'} border rounded-lg shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200`}>
                                             <div className="max-h-48 overflow-y-auto">
                                                 {startFlows.length === 0 ? (
                                                     <div className="px-3 py-4 text-center">
@@ -535,8 +539,7 @@ const TextNodeForm: React.FC<TextNodeFormProps> = ({
                                                                 updateButton(index, { flowId: flow.id });
                                                                 setOpenFlowDropdown(null);
                                                             }}
-                                                            className={`w-full px-3 py-2.5 flex items-center gap-3 hover:bg-white/10 transition-colors text-left ${button.flowId === flow.id ? 'bg-amber-500/20' : ''
-                                                                }`}
+                                                            className={`w-full px-3 py-2.5 flex items-center gap-3 ${isDark ? 'hover:bg-white/10' : 'hover:bg-slate-50'} transition-colors text-left ${button.flowId === flow.id ? 'bg-amber-500/20' : ''}`}
                                                         >
                                                             {flow.pageImageUrl ? (
                                                                 <img
@@ -550,7 +553,7 @@ const TextNodeForm: React.FC<TextNodeFormProps> = ({
                                                                 </div>
                                                             )}
                                                             <div className="flex-1 min-w-0">
-                                                                <p className={`text-sm font-medium truncate ${button.flowId === flow.id ? 'text-amber-300' : 'text-white'}`}>
+                                                                <p className={`text-sm font-medium truncate ${button.flowId === flow.id ? 'text-amber-500' : (isDark ? 'text-white' : 'text-slate-900')}`}>
                                                                     {flow.name}
                                                                 </p>
                                                                 <p className="text-xs text-slate-500 truncate">{flow.pageName}</p>
@@ -577,7 +580,7 @@ const TextNodeForm: React.FC<TextNodeFormProps> = ({
                                             value={button.url || ''}
                                             onChange={(e) => updateButton(index, { url: e.target.value })}
                                             placeholder="https://example.com"
-                                            className="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:ring-2 focus:ring-amber-500/50 outline-none"
+                                            className={`w-full ${isDark ? 'bg-black/20 border-white/10 text-white' : 'bg-slate-50 border-slate-200 text-slate-900'} border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500/50 outline-none`}
                                         />
                                     </div>
 
@@ -618,7 +621,7 @@ const TextNodeForm: React.FC<TextNodeFormProps> = ({
                                             value={button.flowName || ''}
                                             onChange={(e) => updateButton(index, { flowName: e.target.value })}
                                             placeholder="e.g., Pricing Flow, FAQ Response"
-                                            className="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:ring-2 focus:ring-green-500/50 outline-none"
+                                            className={`w-full ${isDark ? 'bg-black/20 border-white/10 text-white' : 'bg-slate-50 border-slate-200 text-slate-900'} border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500/50 outline-none`}
                                         />
                                     </div>
                                     <div className="p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
@@ -648,7 +651,7 @@ const TextNodeForm: React.FC<TextNodeFormProps> = ({
                                             value={button.addLabel || ''}
                                             onChange={(e) => updateButton(index, { addLabel: e.target.value })}
                                             placeholder="e.g., 50% Interested"
-                                            className="w-full bg-black/20 border border-white/10 rounded-lg px-2 py-1.5 text-white text-xs focus:ring-2 focus:ring-purple-500/50 outline-none"
+                                            className={`w-full ${isDark ? 'bg-black/20 border-white/10 text-white' : 'bg-slate-50 border-slate-200 text-slate-900'} border rounded-lg px-2 py-1.5 text-xs focus:ring-2 focus:ring-purple-500/50 outline-none`}
                                         />
                                     </div>
                                     <div className="relative">
@@ -657,9 +660,9 @@ const TextNodeForm: React.FC<TextNodeFormProps> = ({
                                         <button
                                             type="button"
                                             onClick={() => setOpenLabelDropdown(openLabelDropdown === index ? null : index)}
-                                            className="w-full bg-black/20 border border-white/10 rounded-lg px-2 py-1.5 text-left text-xs focus:ring-2 focus:ring-purple-500/50 outline-none flex items-center justify-between hover:bg-white/5 transition-colors"
+                                            className={`w-full ${isDark ? 'bg-black/20 border-white/10 hover:bg-white/5' : 'bg-slate-50 border-slate-200 hover:bg-slate-100'} border rounded-lg px-2 py-1.5 text-left text-xs focus:ring-2 focus:ring-purple-500/50 outline-none flex items-center justify-between transition-colors`}
                                         >
-                                            <span className={button.removeLabel ? 'text-white' : 'text-slate-400'}>
+                                            <span className={button.removeLabel ? (isDark ? 'text-white' : 'text-slate-900') : 'text-slate-400'}>
                                                 {button.removeLabel || 'None'}
                                             </span>
                                             <ChevronDown className={`w-3 h-3 text-slate-400 transition-transform ${openLabelDropdown === index ? 'rotate-180' : ''}`} />
@@ -667,7 +670,7 @@ const TextNodeForm: React.FC<TextNodeFormProps> = ({
 
                                         {/* Custom Dropdown Options */}
                                         {openLabelDropdown === index && (
-                                            <div className="absolute z-50 w-full mt-1 bg-slate-800 border border-white/10 rounded-lg shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                                            <div className={`absolute z-50 w-full mt-1 ${isDark ? 'bg-slate-800 border-white/10' : 'bg-white border-slate-200'} border rounded-lg shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200`}>
                                                 <div className="max-h-32 overflow-y-auto">
                                                     {/* None option */}
                                                     <button
@@ -676,7 +679,7 @@ const TextNodeForm: React.FC<TextNodeFormProps> = ({
                                                             updateButton(index, { removeLabel: '' });
                                                             setOpenLabelDropdown(null);
                                                         }}
-                                                        className={`w-full px-2 py-1.5 text-left text-xs hover:bg-white/10 transition-colors flex items-center gap-2 ${!button.removeLabel ? 'bg-purple-500/20 text-purple-300' : 'text-slate-300'}`}
+                                                        className={`w-full px-2 py-1.5 text-left text-xs ${isDark ? 'hover:bg-white/10' : 'hover:bg-slate-100'} transition-colors flex items-center gap-2 ${!button.removeLabel ? 'bg-purple-500/20 text-purple-300' : (isDark ? 'text-slate-300' : 'text-slate-600')}`}
                                                     >
                                                         <X className="w-3 h-3" />
                                                         <span>None</span>
@@ -690,7 +693,7 @@ const TextNodeForm: React.FC<TextNodeFormProps> = ({
                                                                 updateButton(index, { removeLabel: label });
                                                                 setOpenLabelDropdown(null);
                                                             }}
-                                                            className={`w-full px-2 py-1.5 text-left text-xs hover:bg-white/10 transition-colors flex items-center gap-2 ${button.removeLabel === label ? 'bg-purple-500/20 text-purple-300' : 'text-slate-300'}`}
+                                                            className={`w-full px-2 py-1.5 text-left text-xs ${isDark ? 'hover:bg-white/10' : 'hover:bg-slate-100'} transition-colors flex items-center gap-2 ${button.removeLabel === label ? 'bg-purple-500/20 text-purple-300' : (isDark ? 'text-slate-300' : 'text-slate-600')}`}
                                                         >
                                                             <Tag className="w-3 h-3 text-purple-400" />
                                                             <span>{label}</span>
@@ -723,13 +726,15 @@ const TextNodeForm: React.FC<TextNodeFormProps> = ({
                     ))}
                 </div>
 
-                {buttons.length === 0 && (
-                    <p className="text-xs text-slate-500 mt-2">
-                        Optionally add buttons. Buttons can link to existing flows, URLs, or create new flows.
-                    </p>
-                )}
-            </div>
-        </CollapsibleSection>
+                {
+                    buttons.length === 0 && (
+                        <p className="text-xs text-slate-500 mt-2">
+                            Optionally add buttons. Buttons can link to existing flows, URLs, or create new flows.
+                        </p>
+                    )
+                }
+            </div >
+        </CollapsibleSection >
     );
 
     // WIZARD STEPS for mobile
@@ -741,25 +746,25 @@ const TextNodeForm: React.FC<TextNodeFormProps> = ({
     // ================== DESKTOP: 3-Column Layout ==================
     if (isDesktop) {
         return (
-            <div className="w-full h-full bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-[15px] flex items-center justify-center">
-                <div className="w-full max-w-7xl h-full max-h-full flex flex-col bg-slate-800/50 rounded-2xl border border-white/10 overflow-hidden transition-all duration-300">
+            <div className={`w-full h-full ${isDark ? 'bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900' : 'bg-slate-50'} p-[15px] flex items-center justify-center`}>
+                <div className={`w-full max-w-7xl h-full max-h-full flex flex-col ${isDark ? 'bg-slate-800/50 border-white/10' : 'bg-white border-slate-200'} rounded-2xl border overflow-hidden transition-all duration-300`}>
                     {/* Header with Device Switcher */}
-                    <div className="flex-shrink-0 h-14 border-b border-white/10 flex items-center px-4 gap-4">
+                    <div className={`flex-shrink-0 h-14 border-b ${isDark ? 'border-white/10' : 'border-slate-100'} flex items-center px-4 gap-4`}>
                         {/* Left: Title */}
                         <div className="flex items-center gap-3 min-w-0 flex-shrink-0">
                             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center">
                                 <MessageSquare className="w-4 h-4 text-white" />
                             </div>
-                            <span className="text-base font-bold text-white whitespace-nowrap">Text Message</span>
+                            <span className={`text-base font-bold ${isDark ? 'text-white' : 'text-slate-900'} whitespace-nowrap`}>Text Message</span>
                         </div>
 
                         {/* Center: Device Switcher */}
                         <div className="flex-1 flex justify-center">
-                            <div className="flex items-center gap-1 bg-slate-700/50 rounded-lg p-1 border border-white/10">
+                            <div className={`flex items-center gap-1 ${isDark ? 'bg-slate-700/50 border-white/10' : 'bg-slate-100 border-slate-200'} rounded-lg p-1 border`}>
                                 <button
                                     type="button"
                                     onClick={() => setPreviewDevice('mobile')}
-                                    className={`p-2 rounded-md transition-all ${previewDevice === 'mobile' ? 'bg-amber-500 text-white' : 'text-slate-400 hover:text-white hover:bg-white/10'}`}
+                                    className={`p-2 rounded-md transition-all ${previewDevice === 'mobile' ? 'bg-amber-500 text-white' : (isDark ? 'text-slate-400 hover:text-white hover:bg-white/10' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-200')}`}
                                     title="Mobile"
                                 >
                                     <Smartphone className="w-4 h-4" />
@@ -767,7 +772,7 @@ const TextNodeForm: React.FC<TextNodeFormProps> = ({
                                 <button
                                     type="button"
                                     onClick={() => setPreviewDevice('tablet')}
-                                    className={`p-2 rounded-md transition-all ${previewDevice === 'tablet' ? 'bg-amber-500 text-white' : 'text-slate-400 hover:text-white hover:bg-white/10'}`}
+                                    className={`p-2 rounded-md transition-all ${previewDevice === 'tablet' ? 'bg-amber-500 text-white' : (isDark ? 'text-slate-400 hover:text-white hover:bg-white/10' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-200')}`}
                                     title="Tablet"
                                 >
                                     <Tablet className="w-4 h-4" />
@@ -775,7 +780,7 @@ const TextNodeForm: React.FC<TextNodeFormProps> = ({
                                 <button
                                     type="button"
                                     onClick={() => setPreviewDevice('desktop')}
-                                    className={`p-2 rounded-md transition-all ${previewDevice === 'desktop' ? 'bg-amber-500 text-white' : 'text-slate-400 hover:text-white hover:bg-white/10'}`}
+                                    className={`p-2 rounded-md transition-all ${previewDevice === 'desktop' ? 'bg-amber-500 text-white' : (isDark ? 'text-slate-400 hover:text-white hover:bg-white/10' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-200')}`}
                                     title="Desktop"
                                 >
                                     <Monitor className="w-4 h-4" />
@@ -827,35 +832,35 @@ const TextNodeForm: React.FC<TextNodeFormProps> = ({
                     {previewDevice === 'desktop' ? (
                         // Desktop: 3-Column Layout
                         <div className="flex-1 grid grid-cols-12 gap-0 overflow-hidden">
-                            <div className="col-span-4 border-r border-white/10 p-6 overflow-y-auto custom-scrollbar">
+                            <div className={`col-span-4 border-r p-6 overflow-y-auto custom-scrollbar ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
                                 {messageSection}
                             </div>
-                            <div className="col-span-4 border-r border-white/10 p-6 overflow-y-auto custom-scrollbar">
+                            <div className={`col-span-4 border-r p-6 overflow-y-auto custom-scrollbar ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
                                 {buttonsSection}
                             </div>
-                            <div className="col-span-4 p-6 flex items-center justify-center bg-slate-950/50 overflow-auto">
+                            <div className={`col-span-4 p-6 flex items-center justify-center overflow-auto ${isDark ? 'bg-slate-950/50' : 'bg-slate-100/50'}`}>
                                 <DevicePreview />
                             </div>
                         </div>
                     ) : previewDevice === 'tablet' ? (
                         // Tablet: 2-Column Layout
                         <div className="flex-1 grid grid-cols-2 gap-0 overflow-hidden">
-                            <div className="border-r border-white/10 p-4 overflow-y-auto custom-scrollbar space-y-4">
+                            <div className={`border-r p-4 overflow-y-auto custom-scrollbar space-y-4 ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
                                 {messageSection}
-                                <div className="pt-4 border-t border-white/10">{buttonsSection}</div>
+                                <div className={`pt-4 border-t ${isDark ? 'border-white/10' : 'border-slate-200'}`}>{buttonsSection}</div>
                             </div>
-                            <div className="p-4 flex items-center justify-center bg-slate-950/50 overflow-auto">
+                            <div className={`p-4 flex items-center justify-center overflow-auto ${isDark ? 'bg-slate-950/50' : 'bg-slate-100/50'}`}>
                                 <DevicePreview />
                             </div>
                         </div>
                     ) : (
                         // Mobile: 2-Column Layout (same as tablet - side by side)
                         <div className="flex-1 grid grid-cols-2 gap-0 overflow-hidden">
-                            <div className="border-r border-white/10 p-4 overflow-y-auto custom-scrollbar space-y-4">
+                            <div className={`border-r p-4 overflow-y-auto custom-scrollbar space-y-4 ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
                                 {messageSection}
-                                <div className="pt-4 border-t border-white/10">{buttonsSection}</div>
+                                <div className={`pt-4 border-t ${isDark ? 'border-white/10' : 'border-slate-200'}`}>{buttonsSection}</div>
                             </div>
-                            <div className="p-4 flex items-center justify-center bg-slate-950/50 overflow-auto">
+                            <div className={`p-4 flex items-center justify-center overflow-auto ${isDark ? 'bg-slate-950/50' : 'bg-slate-100/50'}`}>
                                 <DevicePreview />
                             </div>
                         </div>

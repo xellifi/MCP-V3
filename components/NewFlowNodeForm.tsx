@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Play, Edit3 } from 'lucide-react';
 import CollapsibleTips from './CollapsibleTips';
+import { useTheme } from '../context/ThemeContext';
 
 interface NewFlowNodeFormProps {
     workspaceId: string;
@@ -17,6 +18,7 @@ const NewFlowNodeForm: React.FC<NewFlowNodeFormProps> = ({
     initialConfig,
     onChange
 }) => {
+    const { isDark } = useTheme();
     const [flowName, setFlowName] = useState(initialConfig?.flowName || '');
 
     // Notify parent of changes
@@ -28,7 +30,7 @@ const NewFlowNodeForm: React.FC<NewFlowNodeFormProps> = ({
         <div className="space-y-6">
             {/* Flow Name Input */}
             <div>
-                <label className="block text-sm font-semibold text-slate-300 mb-2">
+                <label className={`block text-sm font-semibold ${isDark ? 'text-slate-300' : 'text-slate-700'} mb-2`}>
                     <Edit3 className="w-4 h-4 inline mr-2" />
                     Flow Name
                 </label>
@@ -37,7 +39,7 @@ const NewFlowNodeForm: React.FC<NewFlowNodeFormProps> = ({
                     value={flowName}
                     onChange={(e) => setFlowName(e.target.value)}
                     placeholder="e.g., Pricing Flow, FAQ Response"
-                    className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-green-500/50 focus:border-transparent outline-none transition-all"
+                    className={`w-full ${isDark ? 'bg-black/20 border-white/10 text-white' : 'bg-white border-slate-200 text-slate-900'} border rounded-xl px-4 py-3 focus:ring-2 focus:ring-green-500/50 focus:border-transparent outline-none transition-all`}
                 />
                 <p className="text-xs text-slate-500 mt-2">
                     This name will be used when saving the flow to the database.

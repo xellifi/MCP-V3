@@ -3,6 +3,7 @@ import { Plus, X, Play, Facebook, ChevronDown, AlertCircle, Tag } from 'lucide-r
 import { api } from '../services/api';
 import { ConnectedPage } from '../types';
 import CollapsibleTips from './CollapsibleTips';
+import { useTheme } from '../context/ThemeContext';
 
 interface StartNodeFormProps {
     workspaceId: string;
@@ -24,6 +25,7 @@ const StartNodeForm: React.FC<StartNodeFormProps> = ({
     initialConfig,
     onChange
 }) => {
+    const { isDark } = useTheme();
     const [pages, setPages] = useState<ConnectedPage[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedPageId, setSelectedPageId] = useState<string>(flowPageId || initialConfig?.pageId || '');
@@ -136,8 +138,8 @@ const StartNodeForm: React.FC<StartNodeFormProps> = ({
         return (
             <div className="text-center py-12">
                 <AlertCircle className="w-12 h-12 text-amber-500 mx-auto mb-4" />
-                <h3 className="text-lg font-bold text-white mb-2">No Pages with Automation</h3>
-                <p className="text-slate-400 mb-4">
+                <h3 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-slate-900'} mb-2`}>No Pages with Automation</h3>
+                <p className={`${isDark ? 'text-slate-400' : 'text-slate-500'} mb-4`}>
                     You need to enable automation on at least one Facebook page.
                 </p>
                 <a
@@ -154,7 +156,7 @@ const StartNodeForm: React.FC<StartNodeFormProps> = ({
         <div className="space-y-6">
             {/* Page Selection Dropdown */}
             <div>
-                <label className="block text-sm font-semibold text-slate-300 mb-2">
+                <label className={`block text-sm font-semibold ${isDark ? 'text-slate-300' : 'text-slate-700'} mb-2`}>
                     <Facebook className="w-4 h-4 inline mr-2" />
                     Select Facebook Page
                 </label>
@@ -163,7 +165,7 @@ const StartNodeForm: React.FC<StartNodeFormProps> = ({
                     <button
                         type="button"
                         onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                        className="w-full flex items-center gap-3 bg-black/20 border border-white/10 text-white rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-transparent transition-all cursor-pointer hover:border-emerald-500/30"
+                        className={`w-full flex items-center gap-3 ${isDark ? 'bg-black/20 border-white/10 text-white' : 'bg-white border-slate-200 text-slate-900'} border rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-transparent transition-all cursor-pointer hover:border-emerald-500/30`}
                     >
                         {selectedPage ? (
                             <>
@@ -173,8 +175,8 @@ const StartNodeForm: React.FC<StartNodeFormProps> = ({
                                     className="w-8 h-8 rounded-full object-cover flex-shrink-0"
                                 />
                                 <div className="flex-1 text-left">
-                                    <div className="text-white font-medium">{selectedPage.name}</div>
-                                    <div className="text-xs text-slate-400">{selectedPage.pageFollowers?.toLocaleString() || 0} followers</div>
+                                    <div className={`font-medium ${isDark ? 'text-white' : 'text-slate-900'}`}>{selectedPage.name}</div>
+                                    <div className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{selectedPage.pageFollowers?.toLocaleString() || 0} followers</div>
                                 </div>
                             </>
                         ) : (
@@ -185,13 +187,13 @@ const StartNodeForm: React.FC<StartNodeFormProps> = ({
 
                     {/* Custom Dropdown Menu */}
                     {isDropdownOpen && (
-                        <div className="absolute z-50 w-full mt-2 bg-slate-800 border border-white/10 rounded-xl shadow-2xl max-h-64 overflow-y-auto">
+                        <div className={`absolute z-50 w-full mt-2 ${isDark ? 'bg-slate-800 border-white/10' : 'bg-white border-slate-200'} border rounded-xl shadow-2xl max-h-64 overflow-y-auto`}>
                             {pages.map((page) => (
                                 <button
                                     key={page.id}
                                     type="button"
                                     onClick={() => handlePageChange(page.id)}
-                                    className={`w-full flex items-center gap-3 p-3 hover:bg-white/5 transition-colors ${selectedPageId === page.id ? 'bg-emerald-500/20' : ''
+                                    className={`w-full flex items-center gap-3 p-3 ${isDark ? 'hover:bg-white/5' : 'hover:bg-slate-50'} transition-colors ${selectedPageId === page.id ? 'bg-emerald-500/20' : ''
                                         }`}
                                 >
                                     <img
@@ -200,8 +202,8 @@ const StartNodeForm: React.FC<StartNodeFormProps> = ({
                                         className="w-8 h-8 rounded-full object-cover flex-shrink-0"
                                     />
                                     <div className="flex-1 text-left">
-                                        <div className="text-white font-medium text-sm">{page.name}</div>
-                                        <div className="text-xs text-slate-400">{page.pageFollowers?.toLocaleString() || 0} followers</div>
+                                        <div className={`font-medium text-sm ${isDark ? 'text-white' : 'text-slate-900'}`}>{page.name}</div>
+                                        <div className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{page.pageFollowers?.toLocaleString() || 0} followers</div>
                                     </div>
                                     {selectedPageId === page.id && (
                                         <div className="w-5 h-5 bg-emerald-500 rounded-full flex items-center justify-center flex-shrink-0">
@@ -219,7 +221,7 @@ const StartNodeForm: React.FC<StartNodeFormProps> = ({
 
             {/* Match Type */}
             <div>
-                <label className="block text-sm font-semibold text-slate-300 mb-3">
+                <label className={`block text-sm font-semibold ${isDark ? 'text-slate-300' : 'text-slate-700'} mb-3`}>
                     Keyword Match Type
                 </label>
                 <div className="flex gap-3">
@@ -228,7 +230,7 @@ const StartNodeForm: React.FC<StartNodeFormProps> = ({
                         onClick={() => handleMatchTypeChange('exact')}
                         className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-all ${matchType === 'exact'
                             ? 'bg-emerald-500 text-white'
-                            : 'bg-white/5 text-slate-400 hover:bg-white/10'
+                            : (isDark ? 'bg-white/5 text-slate-400 hover:bg-white/10' : 'bg-slate-100 text-slate-600 hover:bg-slate-200')
                             }`}
                     >
                         Exact Match
@@ -238,7 +240,7 @@ const StartNodeForm: React.FC<StartNodeFormProps> = ({
                         onClick={() => handleMatchTypeChange('contains')}
                         className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-all ${matchType === 'contains'
                             ? 'bg-emerald-500 text-white'
-                            : 'bg-white/5 text-slate-400 hover:bg-white/10'
+                            : (isDark ? 'bg-white/5 text-slate-400 hover:bg-white/10' : 'bg-slate-100 text-slate-600 hover:bg-slate-200')
                             }`}
                     >
                         Contains
@@ -254,7 +256,7 @@ const StartNodeForm: React.FC<StartNodeFormProps> = ({
             {/* Keywords */}
             <div>
                 <div className="flex items-center justify-between mb-3">
-                    <label className="text-sm font-semibold text-slate-300">
+                    <label className={`text-sm font-semibold ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
                         <Play className="w-4 h-4 inline mr-2" />
                         Trigger Keywords
                     </label>
@@ -276,7 +278,7 @@ const StartNodeForm: React.FC<StartNodeFormProps> = ({
                                 value={keyword}
                                 onChange={(e) => updateKeyword(index, e.target.value)}
                                 placeholder="e.g., pricing, get_started, HELP"
-                                className="flex-1 bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:ring-2 focus:ring-emerald-500/50 outline-none"
+                                className={`flex-1 ${isDark ? 'bg-black/20 border-white/10 text-white' : 'bg-white border-slate-200 text-slate-900'} border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/50 outline-none`}
                             />
                             {keywords.length > 1 && (
                                 <button
@@ -294,7 +296,7 @@ const StartNodeForm: React.FC<StartNodeFormProps> = ({
 
             {/* Entry Label */}
             <div>
-                <label className="block text-sm font-semibold text-slate-300 mb-2">
+                <label className={`block text-sm font-semibold ${isDark ? 'text-slate-300' : 'text-slate-700'} mb-2`}>
                     <Tag className="w-4 h-4 inline mr-2" />
                     Label on Entry (optional)
                 </label>
@@ -303,7 +305,7 @@ const StartNodeForm: React.FC<StartNodeFormProps> = ({
                     value={entryLabel}
                     onChange={(e) => setEntryLabel(e.target.value)}
                     placeholder="e.g., New Lead, 10% Interested"
-                    className="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:ring-2 focus:ring-emerald-500/50 outline-none"
+                    className={`w-full ${isDark ? 'bg-black/20 border-white/10 text-white' : 'bg-white border-slate-200 text-slate-900'} border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500/50 outline-none`}
                 />
                 <p className="text-xs text-slate-500 mt-1">
                     This label will be added to subscribers when they trigger this flow

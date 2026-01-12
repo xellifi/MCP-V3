@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { ConnectedPage } from '../types';
 import { api } from '../services/api';
 import { AlertCircle, CheckCircle2, ChevronDown, Heart } from 'lucide-react';
+import { useTheme } from '../context/ThemeContext';
 import CollapsibleTips from './CollapsibleTips';
 
 interface TriggerNodeFormProps {
@@ -24,6 +25,7 @@ const TriggerNodeForm: React.FC<TriggerNodeFormProps> = ({
     initialConfig,
     onChange
 }) => {
+    const { isDark } = useTheme();
     const [pages, setPages] = useState<ConnectedPage[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedPageId, setSelectedPageId] = useState(flowPageId || initialConfig?.pageId || '');
@@ -146,7 +148,7 @@ const TriggerNodeForm: React.FC<TriggerNodeFormProps> = ({
         <div className="space-y-6">
             {/* Page Selection */}
             <div>
-                <label className="block text-xs md:text-sm font-semibold text-slate-300 mb-2">
+                <label className={`block text-xs md:text-sm font-semibold mb-2 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
                     Select Facebook Page
                 </label>
                 <div className="relative" ref={dropdownRef}>
@@ -154,7 +156,10 @@ const TriggerNodeForm: React.FC<TriggerNodeFormProps> = ({
                     <button
                         type="button"
                         onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                        className="w-full flex items-center gap-3 bg-black/20 border border-white/10 text-white rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-transparent transition-all cursor-pointer hover:border-indigo-500/30"
+                        className={`w-full flex items-center gap-3 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-transparent transition-all cursor-pointer ${isDark
+                            ? 'bg-black/20 border border-white/10 text-white hover:border-indigo-500/30'
+                            : 'bg-white border border-slate-200 text-slate-900 hover:border-indigo-500/50 hover:shadow-sm'
+                            }`}
                     >
                         {selectedPage ? (
                             <>
@@ -164,7 +169,7 @@ const TriggerNodeForm: React.FC<TriggerNodeFormProps> = ({
                                     className="w-8 h-8 rounded-full object-cover flex-shrink-0"
                                 />
                                 <div className="flex-1 text-left">
-                                    <div className="text-white font-medium">{selectedPage.name}</div>
+                                    <div className={`font-medium ${isDark ? 'text-white' : 'text-slate-900'}`}>{selectedPage.name}</div>
                                     <div className="text-xs text-slate-400">{selectedPage.pageFollowers?.toLocaleString() || 0} followers</div>
                                 </div>
                             </>
@@ -176,13 +181,15 @@ const TriggerNodeForm: React.FC<TriggerNodeFormProps> = ({
 
                     {/* Custom Dropdown Menu */}
                     {isDropdownOpen && (
-                        <div className="absolute z-50 w-full mt-2 bg-slate-800 border border-white/10 rounded-xl shadow-2xl max-h-64 overflow-y-auto">
+                        <div className={`absolute z-50 w-full mt-2 rounded-xl shadow-2xl max-h-64 overflow-y-auto border ${isDark ? 'bg-slate-800 border-white/10' : 'bg-white border-slate-200'}`}>
                             {pages.map((page) => (
                                 <button
                                     key={page.id}
                                     type="button"
                                     onClick={() => handlePageSelect(page.id)}
-                                    className={`w-full flex items-center gap-3 p-3 hover:bg-white/5 transition-colors ${selectedPageId === page.id ? 'bg-indigo-500/20' : ''
+                                    className={`w-full flex items-center gap-3 p-3 transition-colors ${selectedPageId === page.id
+                                        ? 'bg-indigo-500/20'
+                                        : (isDark ? 'hover:bg-white/5' : 'hover:bg-slate-50')
                                         }`}
                                 >
                                     <img
@@ -191,7 +198,7 @@ const TriggerNodeForm: React.FC<TriggerNodeFormProps> = ({
                                         className="w-8 h-8 rounded-full object-cover flex-shrink-0"
                                     />
                                     <div className="flex-1 text-left">
-                                        <div className="text-white font-medium text-xs md:text-sm">{page.name}</div>
+                                        <div className={`font-medium text-xs md:text-sm ${isDark ? 'text-white' : 'text-slate-900'}`}>{page.name}</div>
                                         <div className="text-xs text-slate-400">{page.pageFollowers?.toLocaleString() || 0} followers</div>
                                     </div>
                                     {selectedPageId === page.id && (
@@ -212,13 +219,13 @@ const TriggerNodeForm: React.FC<TriggerNodeFormProps> = ({
             </div>
 
             {/* Comment Reply Toggle */}
-            <div className="flex items-start gap-4 p-4 bg-white/5 rounded-xl border border-white/10">
+            <div className={`flex items-start gap-4 p-4 rounded-xl border ${isDark ? 'bg-white/5 border-white/10' : 'bg-slate-50 border-slate-200'}`}>
                 <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
                         <CheckCircle2 className="w-4 h-4 text-green-400" />
-                        <h4 className="font-bold text-white">Auto-Reply to Comments</h4>
+                        <h4 className={`font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>Auto-Reply to Comments</h4>
                     </div>
-                    <p className="text-xs md:text-sm text-slate-400">
+                    <p className={`text-xs md:text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                         Automatically reply to new comments on this page's posts
                     </p>
                 </div>
@@ -229,18 +236,18 @@ const TriggerNodeForm: React.FC<TriggerNodeFormProps> = ({
                         onChange={(e) => setEnableCommentReply(e.target.checked)}
                         className="sr-only peer"
                     />
-                    <div className="w-14 h-7 bg-white/10 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-500/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-indigo-600"></div>
+                    <div className={`w-14 h-7 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-500/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-indigo-600 ${isDark ? 'bg-white/10' : 'bg-slate-300'}`}></div>
                 </label>
             </div>
 
             {/* Send Message Toggle */}
-            <div className="flex items-start gap-4 p-4 bg-white/5 rounded-xl border border-white/10">
+            <div className={`flex items-start gap-4 p-4 rounded-xl border ${isDark ? 'bg-white/5 border-white/10' : 'bg-slate-50 border-slate-200'}`}>
                 <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
                         <CheckCircle2 className="w-4 h-4 text-purple-400" />
-                        <h4 className="font-bold text-white">Send Direct Message</h4>
+                        <h4 className={`font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>Send Direct Message</h4>
                     </div>
-                    <p className="text-xs md:text-sm text-slate-400">
+                    <p className={`text-xs md:text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                         Send a private message to users who comment
                     </p>
                 </div>
@@ -251,18 +258,18 @@ const TriggerNodeForm: React.FC<TriggerNodeFormProps> = ({
                         onChange={(e) => setEnableSendMessage(e.target.checked)}
                         className="sr-only peer"
                     />
-                    <div className="w-14 h-7 bg-white/10 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-500/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-purple-600"></div>
+                    <div className={`w-14 h-7 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-500/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-purple-600 ${isDark ? 'bg-white/10' : 'bg-slate-300'}`}></div>
                 </label>
             </div>
 
             {/* Auto Like Toggle */}
-            <div className="flex items-start gap-4 p-4 bg-white/5 rounded-xl border border-white/10">
+            <div className={`flex items-start gap-4 p-4 rounded-xl border ${isDark ? 'bg-white/5 border-white/10' : 'bg-slate-50 border-slate-200'}`}>
                 <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
                         <Heart className="w-4 h-4 text-pink-400" />
-                        <h4 className="font-bold text-white">Auto Like Comments</h4>
+                        <h4 className={`font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>Auto Like Comments</h4>
                     </div>
-                    <p className="text-xs md:text-sm text-slate-400">
+                    <p className={`text-xs md:text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                         Automatically like new comments on your posts
                     </p>
                 </div>
@@ -273,7 +280,7 @@ const TriggerNodeForm: React.FC<TriggerNodeFormProps> = ({
                         onChange={(e) => setEnableAutoReact(e.target.checked)}
                         className="sr-only peer"
                     />
-                    <div className="w-14 h-7 bg-white/10 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-pink-500/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-pink-600"></div>
+                    <div className={`w-14 h-7 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-pink-500/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-pink-600 ${isDark ? 'bg-white/10' : 'bg-slate-300'}`}></div>
                 </label>
             </div>
 

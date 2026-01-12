@@ -1,5 +1,6 @@
 import React from 'react';
 import { X } from 'lucide-react';
+import { useTheme } from '../context/ThemeContext';
 
 interface NodeConfigModalProps {
     isOpen: boolean;
@@ -20,6 +21,8 @@ const NodeConfigModal: React.FC<NodeConfigModalProps> = ({
     onSave,
     fullscreen = false
 }) => {
+    const { isDark } = useTheme();
+
     if (!isOpen) {
         return null;
     }
@@ -27,7 +30,7 @@ const NodeConfigModal: React.FC<NodeConfigModalProps> = ({
     // Fullscreen mode - render children directly, let form handle close/save
     if (fullscreen) {
         return (
-            <div className="fixed inset-0 z-50 bg-slate-900">
+            <div className={`fixed inset-0 z-50 ${isDark ? 'bg-slate-900' : 'bg-slate-50'}`}>
                 {/* Fullscreen content - form handles its own close and save buttons */}
                 <div className="w-full h-full overflow-hidden">
                     {React.cloneElement(children as React.ReactElement, { onClose })}
@@ -41,36 +44,53 @@ const NodeConfigModal: React.FC<NodeConfigModalProps> = ({
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             {/* Backdrop */}
             <div
-                className="absolute inset-0 bg-black/80 backdrop-blur-md"
+                className={`absolute inset-0 backdrop-blur-md ${isDark ? 'bg-black/80' : 'bg-slate-900/40'}`}
                 onClick={onClose}
             />
 
             {/* Modal */}
-            <div className="relative glass-panel border border-white/10 rounded-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl animate-fade-in">
+            <div className={`
+                relative rounded-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl animate-fade-in
+                ${isDark ? 'glass-panel border border-white/10' : 'bg-white border border-slate-200'}
+            `}>
                 {/* Header */}
-                <div className="flex items-center justify-between p-6 border-b border-white/10 bg-white/5">
+                <div className={`
+                    flex items-center justify-between p-6 border-b 
+                    ${isDark ? 'border-white/10 bg-white/5' : 'border-slate-100 bg-slate-50/50'}
+                `}>
                     <div>
-                        <h2 className="text-lg md:text-xl font-bold text-white text-glow">Configure {nodeLabel}</h2>
-                        <p className="text-xs md:text-sm text-slate-400 mt-1">Set up your {nodeType} node settings</p>
+                        <h2 className={`text-lg md:text-xl font-bold ${isDark ? 'text-white text-glow' : 'text-slate-900'}`}>
+                            Configure {nodeLabel}
+                        </h2>
+                        <p className={`text-xs md:text-sm mt-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                            Set up your {nodeType} node settings
+                        </p>
                     </div>
                     <button
                         onClick={onClose}
-                        className="p-2 hover:bg-white/10 rounded-lg text-slate-400 hover:text-white transition-colors"
+                        className={`p-2 rounded-lg transition-colors ${isDark
+                            ? 'hover:bg-white/10 text-slate-400 hover:text-white'
+                            : 'hover:bg-slate-100 text-slate-500 hover:text-slate-900'}`}
                     >
                         <X className="w-5 h-5" />
                     </button>
                 </div>
 
                 {/* Content */}
-                <div className="flex-1 overflow-y-auto p-6 bg-black/20">
+                <div className={`flex-1 overflow-y-auto p-6 ${isDark ? 'bg-black/20' : 'bg-white'}`}>
                     {children}
                 </div>
 
                 {/* Footer */}
-                <div className="flex items-center justify-end gap-3 p-6 border-t border-white/10 bg-white/5">
+                <div className={`
+                    flex items-center justify-end gap-3 p-6 border-t 
+                    ${isDark ? 'border-white/10 bg-white/5' : 'border-slate-100 bg-slate-50/50'}
+                `}>
                     <button
                         onClick={onClose}
-                        className="px-5 py-2.5 text-xs md:text-sm font-medium text-slate-300 hover:bg-white/5 rounded-xl border border-white/10 hover:border-white/20 transition-colors"
+                        className={`px-5 py-2.5 text-xs md:text-sm font-medium rounded-xl border transition-colors ${isDark
+                            ? 'text-slate-300 hover:bg-white/5 border-white/10 hover:border-white/20'
+                            : 'text-slate-700 hover:bg-white border-slate-200 hover:border-slate-300 shadow-sm bg-white'}`}
                     >
                         Cancel
                     </button>
