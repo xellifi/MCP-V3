@@ -17,8 +17,8 @@ const VisualAINode = ({ data }: { data: any }) => {
 
             {/* Node Container - Rectangular */}
             <div className={`w-[200px] h-20 border-2 rounded-xl shadow-lg flex items-center justify-center gap-3 relative group/node transition-colors ${isDark
-                    ? 'bg-[#1e1e1e] border-slate-500'
-                    : 'bg-white border-slate-300 hover:border-violet-500 hover:shadow-violet-500/20'
+                ? 'bg-[#1e1e1e] border-slate-500'
+                : 'bg-white border-slate-300 hover:border-violet-500 hover:shadow-violet-500/20'
                 }`}>
 
                 {/* Controls */}
@@ -26,8 +26,8 @@ const VisualAINode = ({ data }: { data: any }) => {
                     <button
                         onClick={(e) => { e.stopPropagation(); data.onConfigure?.(); }}
                         className={`w-7 h-7 rounded-full flex items-center justify-center border shadow-md transform hover:scale-110 transition-all ${isDark
-                                ? 'bg-slate-800 hover:bg-slate-700 border-white/10'
-                                : 'bg-white hover:bg-slate-50 border-slate-200'
+                            ? 'bg-slate-800 hover:bg-slate-700 border-white/10'
+                            : 'bg-white hover:bg-slate-50 border-slate-200'
                             }`}
                         title="Configure"
                     >
@@ -36,8 +36,8 @@ const VisualAINode = ({ data }: { data: any }) => {
                     <button
                         onClick={(e) => { e.stopPropagation(); data.onDelete?.(); }}
                         className={`w-7 h-7 rounded-full flex items-center justify-center border shadow-md transform hover:scale-110 transition-all group/delete ${isDark
-                                ? 'bg-slate-800 hover:bg-red-900/50 border-white/10'
-                                : 'bg-white hover:bg-red-50 border-slate-200'
+                            ? 'bg-slate-800 hover:bg-red-900/50 border-white/10'
+                            : 'bg-white hover:bg-red-50 border-slate-200'
                             }`}
                         title="Delete"
                     >
@@ -46,7 +46,9 @@ const VisualAINode = ({ data }: { data: any }) => {
                 </div>
 
                 {/* Content: Icon + Text */}
-                <Bot className={`w-8 h-8 ${isDark ? 'text-white' : 'text-violet-600'}`} />
+                <div className={`w-10 h-10 rounded-lg flex items-center justify-center shadow-md bg-gradient-to-br from-violet-500 to-indigo-600 ${isDark ? 'shadow-indigo-900/40' : 'shadow-indigo-500/30'}`}>
+                    <Bot className="w-6 h-6 text-white" />
+                </div>
                 <div className="flex flex-col">
                     <span className={`font-bold text-sm ${isDark ? 'text-white' : 'text-slate-900'}`}>AI Agent</span>
                     <span className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Tools Agent</span>

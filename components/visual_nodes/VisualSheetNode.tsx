@@ -47,7 +47,9 @@ const VisualSheetNode = ({ data }: { data: any }) => {
                     </button>
                 </div>
 
-                <Table className={`w-10 h-10 ${isDark ? 'text-emerald-500' : 'text-emerald-600'}`} />
+                <div className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-lg bg-gradient-to-br from-emerald-500 to-green-600 ${isDark ? 'shadow-emerald-900/40' : 'shadow-emerald-500/30'}`}>
+                    <Table className="w-7 h-7 text-white" />
+                </div>
             </div>
 
             {/* Label Below */}

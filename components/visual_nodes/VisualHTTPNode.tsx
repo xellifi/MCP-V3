@@ -47,7 +47,9 @@ const VisualHTTPNode = ({ data }: { data: any }) => {
                     </button>
                 </div>
 
-                <Globe className={`w-10 h-10 ${isDark ? 'text-cyan-500' : 'text-cyan-600'}`} />
+                <div className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-lg bg-gradient-to-br from-cyan-500 to-blue-600 ${isDark ? 'shadow-cyan-900/40' : 'shadow-cyan-500/30'}`}>
+                    <Globe className="w-7 h-7 text-white" />
+                </div>
             </div>
 
             {/* Label Below */}

@@ -17,11 +17,11 @@ const VisualToolNode = ({ data }: { data: any }) => {
 
             {/* Node Container - Circle */}
             <div className={`w-20 h-20 border-2 rounded-full shadow-lg flex flex-col items-center justify-center gap-1 transition-all hover:scale-105 relative z-0 overflow-hidden ${isDark
-                ? 'bg-slate-900 border-slate-600 hover:shadow-blue-500/20'
-                : 'bg-white border-slate-200 hover:border-blue-400 hover:shadow-blue-500/20'
+                ? 'bg-gradient-to-br from-blue-600 to-indigo-700 border-white/20'
+                : 'bg-gradient-to-br from-blue-500 to-indigo-600 border-white/20 shadow-blue-500/30'
                 }`}>
-                <div className={`absolute inset-0 pointer-events-none ${isDark ? 'bg-blue-500/5' : 'bg-blue-50/50'}`} />
-                <Wrench className={`w-8 h-8 ${isDark ? 'text-blue-500' : 'text-blue-600'}`} />
+                <div className="absolute inset-0 bg-white/10 pointer-events-none" />
+                <Wrench className="w-8 h-8 text-white drop-shadow-md" />
             </div>
 
             {/* Controls - Outside circle, positioned to right */}

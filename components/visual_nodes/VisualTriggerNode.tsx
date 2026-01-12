@@ -13,17 +13,17 @@ const VisualTriggerNode = ({ data }: { data: any }) => {
                 type="source"
                 position={Position.Right}
                 className={`!w-3 !h-3 !border-2 !rounded-full !-right-1.5 transition-colors z-10 ${isDark
-                        ? '!bg-cyan-500 !border-slate-900 hover:!bg-cyan-400'
-                        : '!bg-cyan-500 !border-white hover:!bg-cyan-600'
+                    ? '!bg-cyan-500 !border-slate-900 hover:!bg-cyan-400'
+                    : '!bg-cyan-500 !border-white hover:!bg-cyan-600'
                     }`}
             />
 
             {/* Node Container - Circle */}
-            <div className={`w-[60px] h-[60px] border-2 rounded-full shadow-lg flex flex-col items-center justify-center relative z-0 overflow-visible transition-all duration-200 group-hover:shadow-[0_0_20px_rgba(6,182,212,0.3)] ${isDark
-                    ? 'bg-slate-900 border-slate-700 hover:border-cyan-500/50'
-                    : 'bg-white border-slate-200 hover:border-cyan-400 hover:shadow-cyan-500/20'
+            <div className={`w-[60px] h-20 border-2 rounded-full shadow-lg flex flex-col items-center justify-center relative z-0 overflow-visible transition-all duration-200 group-hover:shadow-[0_0_20px_rgba(249,115,22,0.4)] hover:scale-105 ${isDark
+                    ? 'bg-gradient-to-br from-orange-600 to-pink-700 border-white/20'
+                    : 'bg-gradient-to-br from-orange-500 to-pink-600 border-white/20 shadow-orange-500/30'
                 }`}>
-                <div className={`absolute inset-0 pointer-events-none rounded-full ${isDark ? 'bg-cyan-500/5' : 'bg-cyan-50/50'}`} />
+                <div className="absolute inset-0 bg-white/10 pointer-events-none rounded-full" />
 
                 {/* Left Badge: Blue Lightning (Satellite) */}
                 <div className="absolute -left-[34px] top-1/2 -translate-y-1/2 z-10">
@@ -36,7 +36,7 @@ const VisualTriggerNode = ({ data }: { data: any }) => {
                 </div>
 
                 {/* Main Icon */}
-                <AlarmClock className={`w-7 h-7 ${isDark ? 'text-cyan-400' : 'text-cyan-600'}`} strokeWidth={1.5} />
+                <AlarmClock className="w-8 h-8 text-white drop-shadow-md" strokeWidth={1.5} />
             </div>
 
             {/* Controls - Outside circle, positioned to top-right like Memory node */}
@@ -44,8 +44,8 @@ const VisualTriggerNode = ({ data }: { data: any }) => {
                 <button
                     onClick={(e) => { e.stopPropagation(); data.onConfigure?.(); }}
                     className={`w-7 h-7 rounded-full flex items-center justify-center border shadow-md transform hover:scale-110 transition-all ${isDark
-                            ? 'bg-slate-800 hover:bg-slate-700 border-white/10'
-                            : 'bg-white hover:bg-slate-50 border-slate-200'
+                        ? 'bg-slate-800 hover:bg-slate-700 border-white/10'
+                        : 'bg-white hover:bg-slate-50 border-slate-200'
                         }`}
                     title="Configure"
                 >
@@ -54,8 +54,8 @@ const VisualTriggerNode = ({ data }: { data: any }) => {
                 <button
                     onClick={(e) => { e.stopPropagation(); data.onDelete?.(); }}
                     className={`w-7 h-7 rounded-full flex items-center justify-center border shadow-md transform hover:scale-110 transition-all group/delete ${isDark
-                            ? 'bg-slate-800 hover:bg-red-900/50 border-white/10'
-                            : 'bg-white hover:bg-red-50 border-slate-200'
+                        ? 'bg-slate-800 hover:bg-red-900/50 border-white/10'
+                        : 'bg-white hover:bg-red-50 border-slate-200'
                         }`}
                     title="Delete"
                 >

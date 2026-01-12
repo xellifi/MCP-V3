@@ -20,12 +20,12 @@ const VisualPreviewNode = ({ data }: { data: any }) => {
 
             {/* Node Container - Light card */}
             <div className={`w-[180px] border rounded-2xl shadow-lg flex items-center gap-3 p-3 relative group/node transition-all hover:shadow-xl ${isDark
-                    ? 'bg-slate-900 border-white/10'
-                    : 'bg-white border-slate-200'
+                ? 'bg-slate-900 border-white/10'
+                : 'bg-white border-slate-200'
                 }`}>
 
                 {/* Pink Icon Square */}
-                <div className="w-10 h-10 bg-pink-500 rounded-xl flex items-center justify-center flex-shrink-0 shadow-md">
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 shadow-md bg-gradient-to-br from-pink-500 to-rose-600 ${isDark ? 'shadow-pink-900/40' : 'shadow-pink-500/30'}`}>
                     <Eye className="w-5 h-5 text-white" />
                 </div>
 
@@ -40,8 +40,8 @@ const VisualPreviewNode = ({ data }: { data: any }) => {
                     <button
                         onClick={(e) => { e.stopPropagation(); data.onConfigure?.(); }}
                         className={`w-6 h-6 rounded-full flex items-center justify-center border shadow-sm transform hover:scale-110 transition-all ${isDark
-                                ? 'bg-slate-800 hover:bg-slate-700 border-white/10'
-                                : 'bg-white hover:bg-slate-50 border-slate-200'
+                            ? 'bg-slate-800 hover:bg-slate-700 border-white/10'
+                            : 'bg-white hover:bg-slate-50 border-slate-200'
                             }`}
                         title="Configure"
                     >
@@ -50,8 +50,8 @@ const VisualPreviewNode = ({ data }: { data: any }) => {
                     <button
                         onClick={(e) => { e.stopPropagation(); data.onDelete?.(); }}
                         className={`w-6 h-6 rounded-full flex items-center justify-center border shadow-sm transform hover:scale-110 transition-all group/delete ${isDark
-                                ? 'bg-slate-800 hover:bg-red-900/50 border-white/10'
-                                : 'bg-white hover:bg-red-50 border-slate-200'
+                            ? 'bg-slate-800 hover:bg-red-900/50 border-white/10'
+                            : 'bg-white hover:bg-red-50 border-slate-200'
                             }`}
                         title="Delete"
                     >
