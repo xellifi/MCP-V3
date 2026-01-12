@@ -186,7 +186,7 @@ const CommentReplyNodeForm: React.FC<CommentReplyNodeFormProps> = ({
                             <Bot className="w-5 h-5 text-white" />
                         </div>
                         <div>
-                            <h3 className="text-xs md:text-sm font-semibold text-white">AI-Powered Reply</h3>
+                            <h3 className={`text-xs md:text-sm font-semibold ${isDark ? 'text-white' : 'text-slate-900'}`}>AI-Powered Reply</h3>
                             <p className="text-xs text-slate-400">Let AI generate comment replies</p>
                         </div>
                     </div>
@@ -260,7 +260,7 @@ const CommentReplyNodeForm: React.FC<CommentReplyNodeFormProps> = ({
                                                 />
                                             </div>
                                             <span className={`text-xs md:text-sm font-medium ${aiProvider === provider.id && provider.available
-                                                ? 'text-white'
+                                                ? (isDark ? 'text-white' : 'text-indigo-900')
                                                 : (isDark ? 'text-slate-300' : 'text-slate-600')
                                                 }`}>
                                                 {provider.name}

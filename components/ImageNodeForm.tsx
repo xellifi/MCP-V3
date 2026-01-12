@@ -267,12 +267,15 @@ const ImageNodeForm: React.FC<ImageNodeFormProps> = ({
         desktop: { width: 480, height: 280, radius: 8, notch: false }
     };
 
+    const cols = isDesktop ? 2 : 1;
+
     const DevicePreview = () => {
         const size = deviceSizes[previewDevice];
-        const getScreenBg = () => previewDevice === 'desktop' ? 'bg-white' : 'bg-gradient-to-b from-slate-800 to-slate-900';
+        // Match UpsellNode preview styles
+        const getScreenBg = () => previewDevice === 'desktop' ? 'bg-white' : 'bg-slate-50';
         const getStatusBarStyle = () => previewDevice === 'desktop'
             ? 'text-slate-500 bg-slate-100 border-b border-slate-200'
-            : 'text-white/60';
+            : 'text-slate-900';
 
         return (
             <div className="flex flex-col items-center">
@@ -280,14 +283,14 @@ const ImageNodeForm: React.FC<ImageNodeFormProps> = ({
                     {/* Device Frame */}
                     <div
                         className={`w-full h-full shadow-2xl border-4 flex flex-col ${previewDevice === 'desktop'
-                            ? (isDark ? 'bg-slate-800 border-slate-600' : 'bg-slate-200 border-slate-300')
-                            : (isDark ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200')
+                            ? 'bg-slate-200 border-slate-400'
+                            : 'bg-white border-slate-200'
                             }`}
                         style={{ borderRadius: size.radius }}
                     >
                         {/* Notch (mobile only) */}
                         {size.notch && (
-                            <div className="absolute top-2 left-1/2 -translate-x-1/2 w-20 h-5 bg-black rounded-full z-10" />
+                            <div className="absolute top-2 left-1/2 -translate-x-1/2 w-20 h-5 bg-slate-200 rounded-full z-10" />
                         )}
                         {/* Screen */}
                         <div
@@ -380,8 +383,8 @@ const ImageNodeForm: React.FC<ImageNodeFormProps> = ({
 
                             {/* Home indicator (mobile only) */}
                             {size.notch && (
-                                <div className="h-4 flex-shrink-0 flex items-center justify-center bg-white">
-                                    <div className="w-24 h-1 bg-slate-200 rounded-full" />
+                                <div className="h-4 flex-shrink-0 flex items-center justify-center">
+                                    <div className="w-20 h-1 bg-slate-900/20 rounded-full" />
                                 </div>
                             )}
                         </div>

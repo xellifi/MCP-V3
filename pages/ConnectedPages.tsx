@@ -316,12 +316,12 @@ const ConnectedPages: React.FC<ConnectedPagesProps> = ({ workspace }) => {
                   <button
                     onClick={() => handleToggleAutomation(page.id, page.isAutomationEnabled)}
                     disabled={toggling === page.id || page.status !== 'CONNECTED'}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-all focus:outline-none ring-2 ring-transparent focus:ring-indigo-500/50 ${page.isAutomationEnabled ? 'bg-emerald-500' : 'bg-slate-400'
-                      } ${page.status !== 'CONNECTED' ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:scale-105 active:scale-95'}`}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-all focus:outline-none ring-0 focus:ring-0 shadow-none ${page.isAutomationEnabled ? 'bg-emerald-500' : 'bg-slate-300'
+                      } ${page.status !== 'CONNECTED' ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer active:scale-95'}`}
                   >
                     <span
                       className={`${page.isAutomationEnabled ? 'translate-x-[22px]' : 'translate-x-0.5'
-                        } inline-block h-5 w-5 transform rounded-full bg-white transition-transform`}
+                        } inline-block h-5 w-5 transform rounded-full bg-white transition-transform shadow-none border-none`}
                     />
                   </button>
                 </div>

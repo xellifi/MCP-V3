@@ -274,6 +274,8 @@ const TextNodeForm: React.FC<TextNodeFormProps> = ({
         desktop: { width: 600, height: 400, radius: 12, notch: false }
     };
 
+    const cols = isDesktop ? 2 : 1;
+
     const DevicePreview = () => {
         const size = deviceSizes[previewDevice];
         const getFontSize = () => {
@@ -283,12 +285,12 @@ const TextNodeForm: React.FC<TextNodeFormProps> = ({
             return previewDevice === 'desktop' ? 'text-[8px]' : 'text-xs';
         };
         const getScreenBg = () => {
-            return previewDevice === 'desktop' ? 'bg-white' : 'bg-gradient-to-b from-slate-100 to-slate-200';
+            return previewDevice === 'desktop' ? 'bg-white' : 'bg-slate-50';
         };
         const getStatusBarStyle = () => {
             return previewDevice === 'desktop'
                 ? 'text-slate-500 bg-slate-100 border-b border-slate-200'
-                : 'text-slate-600';
+                : 'text-slate-900';
         };
 
         return (
@@ -296,12 +298,12 @@ const TextNodeForm: React.FC<TextNodeFormProps> = ({
                 <div className="relative" style={{ width: size.width, height: size.height }}>
                     {/* Device Frame */}
                     <div
-                        className={`w-full h-full shadow-2xl border-4 flex flex-col ${previewDevice === 'desktop' ? 'bg-slate-200 border-slate-400' : 'bg-slate-900 border-slate-700'}`}
+                        className={`w-full h-full shadow-2xl border-4 flex flex-col ${previewDevice === 'desktop' ? 'bg-slate-200 border-slate-400' : 'bg-white border-slate-200'}`}
                         style={{ borderRadius: size.radius }}
                     >
                         {/* Notch (mobile only) */}
                         {size.notch && (
-                            <div className="absolute top-2 left-1/2 -translate-x-1/2 w-20 h-5 bg-black rounded-full z-10" />
+                            <div className="absolute top-2 left-1/2 -translate-x-1/2 w-20 h-5 bg-slate-200 rounded-full z-10" />
                         )}
                         {/* Screen */}
                         <div
@@ -371,7 +373,7 @@ const TextNodeForm: React.FC<TextNodeFormProps> = ({
                             {/* Home indicator (mobile only) */}
                             {size.notch && (
                                 <div className="h-4 flex-shrink-0 flex items-center justify-center">
-                                    <div className="w-20 h-1 bg-slate-400/50 rounded-full" />
+                                    <div className="w-20 h-1 bg-slate-900/20 rounded-full" />
                                 </div>
                             )}
                         </div>
@@ -896,24 +898,24 @@ const TextNodeForm: React.FC<TextNodeFormProps> = ({
     }
 
     return (
-        <div className="min-h-screen bg-slate-900 flex flex-col">
+        <div className={`min-h-screen flex flex-col ${isDark ? 'bg-slate-900' : 'bg-slate-50'}`}>
             {/* Progress Bar */}
-            <div className="p-4 border-b border-white/10">
+            <div className={`p-4 border-b ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
                 <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-white font-medium">Step {mobileStep + 1} of {WIZARD_STEPS.length}</span>
+                    <span className={`text-sm font-medium ${isDark ? 'text-white' : 'text-slate-900'}`}>Step {mobileStep + 1} of {WIZARD_STEPS.length}</span>
                     <div className="flex items-center gap-2">
                         <button onClick={() => setShowMobilePreview(true)}
-                            className="flex items-center gap-1 text-xs text-amber-400 bg-amber-500/20 px-2 py-1 rounded-lg">
+                            className="flex items-center gap-1 text-xs text-amber-500 bg-amber-500/20 px-2 py-1 rounded-lg font-medium">
                             <Eye className="w-3 h-3" /> Preview
                         </button>
                     </div>
                 </div>
-                <div className="h-1 bg-slate-700 rounded-full overflow-hidden">
+                <div className={`h-1 rounded-full overflow-hidden ${isDark ? 'bg-slate-700' : 'bg-slate-200'}`}>
                     <div className="h-full bg-amber-500 transition-all" style={{ width: `${((mobileStep + 1) / WIZARD_STEPS.length) * 100}%` }} />
                 </div>
                 <div className="flex mt-2">
                     {WIZARD_STEPS.map((step, i) => (
-                        <div key={step.id} className={`flex-1 text-center text-[10px] ${i <= mobileStep ? 'text-amber-400' : 'text-slate-500'}`}>
+                        <div key={step.id} className={`flex-1 text-center text-[10px] ${i <= mobileStep ? 'text-amber-500 font-medium' : (isDark ? 'text-slate-500' : 'text-slate-400')}`}>
                             {step.title}
                         </div>
                     ))}
@@ -926,19 +928,22 @@ const TextNodeForm: React.FC<TextNodeFormProps> = ({
             </div>
 
             {/* Navigation */}
-            <div className="flex-shrink-0 p-4 border-t border-white/10 flex gap-3">
+            <div className={`flex-shrink-0 p-4 pb-8 border-t flex gap-3 ${isDark ? 'border-white/10 bg-slate-900' : 'border-slate-200 bg-white'}`}>
                 <button onClick={() => setMobileStep(Math.max(0, mobileStep - 1))} disabled={mobileStep === 0}
-                    className={`flex-1 py-3 rounded-lg flex items-center justify-center gap-2 ${mobileStep === 0 ? 'bg-slate-700 text-slate-500' : 'bg-slate-700 text-white'}`}>
+                    className={`flex-1 py-3 rounded-xl flex items-center justify-center gap-2 font-medium transition-colors ${mobileStep === 0
+                        ? (isDark ? 'bg-slate-800 text-slate-600' : 'bg-slate-100 text-slate-400')
+                        : (isDark ? 'bg-slate-800 text-white hover:bg-slate-700' : 'bg-slate-100 text-slate-900 hover:bg-slate-200')
+                        }`}>
                     <ChevronLeft className="w-4 h-4" /> Back
                 </button>
                 {mobileStep < WIZARD_STEPS.length - 1 ? (
                     <button onClick={() => setMobileStep(mobileStep + 1)}
-                        className="flex-1 py-3 rounded-lg bg-amber-500 text-white flex items-center justify-center gap-2">
+                        className="flex-1 py-3 rounded-xl bg-amber-500 hover:bg-amber-600 text-white flex items-center justify-center gap-2 font-bold shadow-lg shadow-amber-500/20 transition-all">
                         Next <ChevronRight className="w-4 h-4" />
                     </button>
                 ) : (
                     <button onClick={() => setShowMobilePreview(true)}
-                        className="flex-1 py-3 rounded-lg bg-green-500 text-white flex items-center justify-center gap-2">
+                        className="flex-1 py-3 rounded-xl bg-green-500 hover:bg-green-600 text-white flex items-center justify-center gap-2 font-bold shadow-lg shadow-green-500/20 transition-all">
                         <Check className="w-4 h-4" /> Done
                     </button>
                 )}
