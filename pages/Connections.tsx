@@ -389,8 +389,8 @@ const Connections: React.FC<ConnectionsProps> = ({ workspace }) => {
 
         {connections.map(connection => (
           <div key={connection.id} className={`p-6 rounded-2xl border transition-all duration-300 relative overflow-hidden group ${isDark
-              ? 'glass-panel border-white/10 hover:border-blue-500/30'
-              : 'bg-white border-slate-200 shadow-sm hover:shadow-xl hover:border-blue-400'
+            ? 'glass-panel border-white/10 hover:border-blue-500/30'
+            : 'bg-white border-slate-200 shadow-sm hover:shadow-xl hover:border-blue-400'
             }`}>
             <div className={`absolute top-0 right-0 w-32 h-32 rounded-full blur-3xl -mr-16 -mt-16 transition-opacity group-hover:opacity-75 ${isDark ? 'bg-blue-500/10' : 'bg-blue-500/5'
               }`}></div>
@@ -418,15 +418,15 @@ const Connections: React.FC<ConnectionsProps> = ({ workspace }) => {
                     }`}>{connection.name}</h3>
                   <div className="flex items-center gap-2 mt-1">
                     <span className={`text-xs font-mono px-2 py-0.5 rounded border ${isDark
-                        ? 'text-slate-500 bg-white/5 border-white/5'
-                        : 'text-slate-500 bg-slate-100 border-slate-200'
+                      ? 'text-slate-500 bg-white/5 border-white/5'
+                      : 'text-slate-500 bg-slate-100 border-slate-200'
                       }`}>ID: {connection.externalId}</span>
                   </div>
                 </div>
               </div>
 
               <div className="flex items-center gap-2 mb-6">
-                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shadow-sm shadow-emerald-500/5">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-emerald-500 text-white">
                   <CheckCircle className="w-3.5 h-3.5" />
                   Connected
                 </div>
@@ -440,8 +440,8 @@ const Connections: React.FC<ConnectionsProps> = ({ workspace }) => {
                 <button
                   onClick={() => handleReconnect(connection.id)}
                   className={`flex-1 py-3 px-4 text-sm font-bold rounded-xl transition-all border flex items-center justify-center gap-2 group/btn ${isDark
-                      ? 'text-blue-300 bg-blue-500/10 hover:bg-blue-500/20 hover:text-blue-200 border-blue-500/20'
-                      : 'text-blue-600 bg-blue-50 hover:bg-blue-100 hover:text-blue-700 border-blue-100'
+                    ? 'text-blue-300 bg-blue-500/10 hover:bg-blue-500/20 hover:text-blue-200 border-blue-500/20'
+                    : 'text-blue-600 bg-blue-50 hover:bg-blue-100 hover:text-blue-700 border-blue-100'
                     }`}
                   title="Reconnect to update pages and permissions"
                 >
@@ -451,8 +451,8 @@ const Connections: React.FC<ConnectionsProps> = ({ workspace }) => {
                 <button
                   onClick={handleRefresh}
                   className={`py-3 px-4 text-sm font-bold rounded-xl transition-all border flex items-center justify-center gap-2 group/btn ${isDark
-                      ? 'text-slate-300 bg-white/5 hover:bg-white/10 hover:text-white border-white/5'
-                      : 'text-slate-600 bg-slate-100 hover:bg-slate-200 hover:text-slate-900 border-slate-200'
+                    ? 'text-slate-300 bg-white/5 hover:bg-white/10 hover:text-white border-white/5'
+                    : 'text-slate-600 bg-slate-100 hover:bg-slate-200 hover:text-slate-900 border-slate-200'
                     }`}
                   title="Refresh connection status"
                 >
@@ -461,8 +461,8 @@ const Connections: React.FC<ConnectionsProps> = ({ workspace }) => {
                 <button
                   onClick={() => handleDeleteClick(connection.id, connection.name)}
                   className={`py-3 px-4 text-sm font-bold rounded-xl transition-colors flex items-center justify-center border ${isDark
-                      ? 'text-red-400 bg-red-500/10 hover:bg-red-500/20 hover:text-red-300 border-red-500/10'
-                      : 'text-red-600 bg-red-50 hover:bg-red-100 hover:text-red-700 border-red-100'
+                    ? 'text-red-400 bg-red-500/10 hover:bg-red-500/20 hover:text-red-300 border-red-500/10'
+                    : 'text-red-600 bg-red-50 hover:bg-red-100 hover:text-red-700 border-red-100'
                     }`}
                   title="Remove Connection"
                 >

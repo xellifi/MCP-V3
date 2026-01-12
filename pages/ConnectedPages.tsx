@@ -308,7 +308,7 @@ const ConnectedPages: React.FC<ConnectedPagesProps> = ({ workspace }) => {
 
               {/* Automation Toggle & Status */}
               <div className={`flex flex-col items-center ${viewMode === 'list' ? 'md:items-end min-w-[200px]' : 'w-full'} gap-3`}>
-                <div className={`flex ${viewMode === 'list' ? 'flex-row' : 'flex-col'} items-center gap-2 p-2.5 rounded-xl border shadow-inner w-full justify-center ${isDark ? 'bg-white/5 border-white/5' : 'bg-slate-50 border-slate-200'
+                <div className={`flex ${viewMode === 'list' ? 'flex-row' : 'flex-col'} items-center gap-2 p-2.5 rounded-xl border w-full justify-center ${isDark ? 'bg-white/5 border-white/5' : 'bg-slate-50 border-slate-200'
                   }`}>
                   <span className={`text-xs font-semibold text-center ${page.isAutomationEnabled ? 'text-indigo-500' : 'text-slate-500'}`}>
                     {page.isAutomationEnabled ? 'Automation On' : 'Automation Off'}
@@ -316,24 +316,24 @@ const ConnectedPages: React.FC<ConnectedPagesProps> = ({ workspace }) => {
                   <button
                     onClick={() => handleToggleAutomation(page.id, page.isAutomationEnabled)}
                     disabled={toggling === page.id || page.status !== 'CONNECTED'}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-all focus:outline-none ring-2 ring-transparent focus:ring-indigo-500/50 ${page.isAutomationEnabled ? 'bg-gradient-to-r from-emerald-400 to-emerald-600 shadow-[0_0_10px_rgba(52,211,153,0.5)]' : 'bg-slate-400'
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-all focus:outline-none ring-2 ring-transparent focus:ring-indigo-500/50 ${page.isAutomationEnabled ? 'bg-emerald-500' : 'bg-slate-400'
                       } ${page.status !== 'CONNECTED' ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:scale-105 active:scale-95'}`}
                   >
                     <span
                       className={`${page.isAutomationEnabled ? 'translate-x-[22px]' : 'translate-x-0.5'
-                        } inline-block h-5 w-5 transform rounded-full bg-white transition-transform shadow-md`}
+                        } inline-block h-5 w-5 transform rounded-full bg-white transition-transform`}
                     />
                   </button>
                 </div>
 
                 <div className="flex items-center gap-2 mt-1">
                   {page.status === 'CONNECTED' ? (
-                    <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                    <span className="inline-flex items-center gap-1.5 text-xs font-bold text-white bg-emerald-500 px-2 py-0.5 rounded-full">
                       <CheckCircle className="w-3.5 h-3.5" />
                       Active
                     </span>
                   ) : (
-                    <span className="inline-flex items-center gap-1.5 text-xs font-bold text-red-500 bg-red-500/10 px-2 py-0.5 rounded-full border border-red-500/20">
+                    <span className="inline-flex items-center gap-1.5 text-xs font-bold text-white bg-red-500 px-2 py-0.5 rounded-full">
                       <AlertTriangle className="w-3.5 h-3.5" />
                       Disconnected
                     </span>
