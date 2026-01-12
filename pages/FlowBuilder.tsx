@@ -2509,17 +2509,16 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
 
       {/* Flow Name Dialog */}
       {showNameDialog && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          {/* Backdrop */}
-          <div
-            className="absolute inset-0 bg-black/80 backdrop-blur-md"
-            onClick={() => setShowNameDialog(false)}
-          />
-
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
           {/* Dialog */}
-          <div className="relative glass-panel border border-white/10 rounded-2xl w-full max-w-md p-6 shadow-2xl animate-fade-in">
-            <h2 className="text-xl font-bold text-white text-glow mb-2">Save Flow</h2>
-            <p className="text-sm text-slate-400 mb-6">Enter a name for your automation flow</p>
+          <div className={`relative border rounded-2xl w-full max-w-md p-6 shadow-2xl animate-fade-in ${isDark
+              ? 'glass-panel border-white/10 bg-slate-900/90'
+              : 'bg-white border-gray-200'
+            }`}>
+            <h2 className={`text-xl font-bold mb-2 ${isDark ? 'text-white text-glow' : 'text-slate-900'
+              }`}>Save Flow</h2>
+            <p className={`text-sm mb-6 ${isDark ? 'text-slate-400' : 'text-slate-500'
+              }`}>Enter a name for your automation flow</p>
 
             <input
               type="text"
@@ -2527,21 +2526,27 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
               onChange={(e) => setFlowName(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleSaveWithName()}
               placeholder="e.g., Welcome Message Flow"
-              className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all placeholder-slate-500 mb-6"
+              className={`w-full border rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all mb-6 ${isDark
+                  ? 'bg-black/20 border-white/10 text-white placeholder-slate-500'
+                  : 'bg-slate-50 border-slate-200 text-slate-900 placeholder-slate-400'
+                }`}
               autoFocus
               disabled={isSaving}
             />
 
             {/* Saving Animation */}
             {isSaving && (
-              <div className="mb-6 p-4 bg-indigo-500/10 border border-indigo-500/20 rounded-xl">
+              <div className={`mb-6 p-4 border rounded-xl ${isDark ? 'bg-indigo-500/10 border-indigo-500/20' : 'bg-indigo-50 border-indigo-200'
+                }`}>
                 <div className="flex items-center gap-3">
                   <div className="w-5 h-5 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
                   <div className="flex-1">
-                    <p className="text-indigo-300 text-sm font-medium animate-pulse">
+                    <p className={`text-sm font-medium animate-pulse ${isDark ? 'text-indigo-300' : 'text-indigo-700'
+                      }`}>
                       Saving your settings...
                     </p>
-                    <p className="text-slate-500 text-xs mt-1">Please wait while we configure your automation</p>
+                    <p className={`text-xs mt-1 ${isDark ? 'text-slate-500' : 'text-slate-500'
+                      }`}>Please wait while we configure your automation</p>
                   </div>
                 </div>
               </div>
@@ -2554,7 +2559,10 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
                   setFlowName('');
                 }}
                 disabled={isSaving}
-                className="px-5 py-2.5 text-sm font-medium text-slate-300 hover:bg-white/5 rounded-xl border border-white/10 hover:border-white/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className={`px-5 py-2.5 text-sm font-medium rounded-xl border transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${isDark
+                    ? 'text-slate-300 hover:bg-white/5 border-white/10 hover:border-white/20'
+                    : 'text-slate-600 hover:bg-slate-50 border-gray-200 hover:border-gray-300'
+                  }`}
               >
                 Cancel
               </button>
