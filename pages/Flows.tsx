@@ -36,10 +36,11 @@ interface SortableFlowCardProps {
   onEdit: (flowId: string) => void;
   onDelete: (flowId: string, flowName: string) => void;
   isDragging?: boolean;
+  isDark: boolean;
 }
 
 // Sortable Flow Card component for drag-and-drop
-const SortableFlowCard: React.FC<SortableFlowCardProps> = ({ flow, flowPage, onEdit, onDelete, isDragging }) => {
+const SortableFlowCard: React.FC<SortableFlowCardProps> = ({ flow, flowPage, onEdit, onDelete, isDragging, isDark }) => {
   const {
     attributes,
     listeners,
@@ -60,7 +61,12 @@ const SortableFlowCard: React.FC<SortableFlowCardProps> = ({ flow, flowPage, onE
     <div
       ref={setNodeRef}
       style={style}
-      className={`relative glass-panel rounded-2xl border border-white/10 overflow-hidden group hover:border-indigo-500/50 hover:shadow-[0_0_30px_rgba(99,102,241,0.2)] hover:scale-[1.03] hover:bg-white/10 transition-all duration-300 ease-out flex flex-col items-center p-6 text-center ${isBeingDragged ? 'shadow-2xl ring-2 ring-indigo-500/50' : ''}`}
+      className={`relative rounded-2xl border overflow-hidden group hover:shadow-[0_0_30px_rgba(99,102,241,0.2)] hover:scale-[1.03] transition-all duration-300 ease-out flex flex-col items-center p-6 text-center 
+        ${isDark
+          ? 'glass-panel border-white/10 hover:border-indigo-500/50 hover:bg-white/10'
+          : 'bg-white border-gray-200 shadow-sm hover:border-indigo-400 hover:shadow-xl'
+        }
+        ${isBeingDragged ? 'shadow-2xl ring-2 ring-indigo-500/50' : ''}`}
     >
       {/* Drag Handle */}
       <div
@@ -79,24 +85,24 @@ const SortableFlowCard: React.FC<SortableFlowCardProps> = ({ flow, flowPage, onE
             <img
               src={flowPage.pageImageUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(flowPage.name)}&background=1877F2&color=fff`}
               alt={flowPage.name}
-              className="w-20 h-20 rounded-full border-4 border-slate-900 shadow-xl object-cover bg-slate-800"
+              className={`w-20 h-20 rounded-full shadow-md object-cover ${isDark ? 'bg-slate-800' : 'bg-gray-100'}`}
             />
-            <div className="absolute bottom-0 right-0 bg-slate-900 rounded-full p-1 shadow-md z-30 ring-2 ring-slate-900">
+            <div className={`absolute bottom-0 right-0 rounded-full p-1 shadow-md z-30 ring-2 ${isDark ? 'bg-slate-900 ring-slate-900' : 'bg-white ring-white'}`}>
               <div className="bg-[#1877F2] text-white rounded-full p-1 flex items-center justify-center">
                 <Facebook className="w-3 h-3 fill-current" />
               </div>
             </div>
           </div>
         ) : (
-          <div className="w-20 h-20 rounded-full border-4 border-slate-900 shadow-xl bg-slate-800 flex items-center justify-center">
+          <div className={`w-20 h-20 rounded-full shadow-md flex items-center justify-center ${isDark ? 'bg-slate-800 border-4 border-slate-900' : 'bg-gray-100 border-4 border-white'}`}>
             <Zap className="w-8 h-8 text-slate-500" />
           </div>
         )}
       </div>
 
       {/* Flow Details */}
-      <h3 className="text-lg font-bold text-white mb-1 truncate w-full">{flow.name}</h3>
-      <div className="text-sm text-slate-400 mb-4 h-5">
+      <h3 className={`text-lg font-bold mb-1 truncate w-full ${isDark ? 'text-white' : 'text-slate-900'}`}>{flow.name}</h3>
+      <div className={`text-sm mb-4 h-5 ${isDark ? 'text-slate-400' : 'text-slate-500 font-medium'}`}>
         {flowPage ? (
           <span className="truncate max-w-[150px] block mx-auto">{flowPage.name}</span>
         ) : (
@@ -115,17 +121,19 @@ const SortableFlowCard: React.FC<SortableFlowCardProps> = ({ flow, flowPage, onE
       </div>
 
       {/* Actions */}
-      <div className="flex items-center gap-2 w-full mt-auto pt-4 border-t border-white/5 justify-center">
+      <div className={`flex items-center gap-2 w-full mt-auto pt-4 justify-center border-t ${isDark ? 'border-white/5' : 'border-slate-100'}`}>
         <button
           onClick={() => onEdit(flow.id)}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors border border-transparent hover:border-white/10"
+          className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors border border-transparent 
+            ${isDark ? 'text-slate-300 hover:text-white hover:bg-white/10 hover:border-white/10' : 'text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 border-slate-200 hover:border-indigo-100'}`}
         >
           <Edit className="w-3.5 h-3.5" />
           Edit
         </button>
         <button
           onClick={() => onDelete(flow.id, flow.name)}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-300 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors border border-transparent hover:border-red-500/20"
+          className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors border border-transparent 
+            ${isDark ? 'text-slate-300 hover:text-red-400 hover:bg-red-500/10 hover:border-red-500/20' : 'text-slate-500 hover:text-red-600 hover:bg-red-50 border-slate-200 hover:border-red-100'}`}
         >
           <Trash className="w-3.5 h-3.5" />
           Delete
@@ -495,6 +503,7 @@ const Flows: React.FC<FlowsProps> = ({ workspace }) => {
                         flowPage={flowPage}
                         onEdit={(flowId) => navigate(`/flows/${flowId}`)}
                         onDelete={openDeleteModal}
+                        isDark={isDark}
                       />
                     );
                   })}
@@ -505,7 +514,8 @@ const Flows: React.FC<FlowsProps> = ({ workspace }) => {
             {/* Drag Overlay - shows the dragged item */}
             <DragOverlay>
               {activeFlow ? (
-                <div className="relative glass-panel rounded-2xl border-2 border-indigo-500/70 overflow-hidden flex flex-col items-center p-6 text-center shadow-2xl opacity-100 scale-105">
+                <div className={`relative rounded-2xl border-2 border-indigo-500/70 overflow-hidden flex flex-col items-center p-6 text-center shadow-2xl opacity-100 scale-105 
+                  ${isDark ? 'glass-panel' : 'bg-white'}`}>
                   {/* Page Logo Section */}
                   <div className="relative mb-4">
                     {activeFlowPage ? (
@@ -513,24 +523,24 @@ const Flows: React.FC<FlowsProps> = ({ workspace }) => {
                         <img
                           src={activeFlowPage.pageImageUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(activeFlowPage.name)}&background=1877F2&color=fff`}
                           alt={activeFlowPage.name}
-                          className="w-20 h-20 rounded-full border-4 border-slate-900 shadow-xl object-cover bg-slate-800"
+                          className={`w-20 h-20 rounded-full shadow-md object-cover ${isDark ? 'bg-slate-800' : 'bg-gray-100'}`}
                         />
-                        <div className="absolute bottom-0 right-0 bg-slate-900 rounded-full p-1 shadow-md z-30 ring-2 ring-slate-900">
+                        <div className={`absolute bottom-0 right-0 rounded-full p-1 shadow-md z-30 ring-2 ${isDark ? 'bg-slate-900 ring-slate-900' : 'bg-white ring-white'}`}>
                           <div className="bg-[#1877F2] text-white rounded-full p-1 flex items-center justify-center">
                             <Facebook className="w-3 h-3 fill-current" />
                           </div>
                         </div>
                       </div>
                     ) : (
-                      <div className="w-20 h-20 rounded-full border-4 border-slate-900 shadow-xl bg-slate-800 flex items-center justify-center">
+                      <div className={`w-20 h-20 rounded-full shadow-md flex items-center justify-center ${isDark ? 'bg-slate-800 border-4 border-slate-900' : 'bg-gray-100 border-4 border-white'}`}>
                         <Zap className="w-8 h-8 text-slate-500" />
                       </div>
                     )}
                   </div>
 
                   {/* Flow Details */}
-                  <h3 className="text-lg font-bold text-white mb-1 truncate w-full">{activeFlow.name}</h3>
-                  <div className="text-sm text-slate-400 mb-4 h-5">
+                  <h3 className={`text-lg font-bold mb-1 truncate w-full ${isDark ? 'text-white' : 'text-slate-900'}`}>{activeFlow.name}</h3>
+                  <div className={`text-sm mb-4 h-5 ${isDark ? 'text-slate-400' : 'text-slate-500 font-medium'}`}>
                     {activeFlowPage ? (
                       <span className="truncate max-w-[150px] block mx-auto">{activeFlowPage.name}</span>
                     ) : (
