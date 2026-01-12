@@ -76,57 +76,69 @@
 }
 
 /* CRITICAL: Force all text inside React Flow nodes to be visible in both modes */
-.react-flow__node * {
+/* BUT preserve colored badges and icons */
+.react-flow__node *:not([class*="bg-"]):not([class*="text-green"]):not([class*="text-blue"]):not([class*="text-red"]):not([class*="text-yellow"]):not([class*="text-orange"]):not([class*="text-purple"]):not([class*="text-pink"]):not([class*="text-indigo"]):not([class*="text-emerald"]) {
   color: #111827 !important;
   /* Gray-900 for light mode */
 }
 
-.dark .react-flow__node * {
+.dark .react-flow__node *:not([class*="bg-"]):not([class*="text-green"]):not([class*="text-blue"]):not([class*="text-red"]):not([class*="text-yellow"]):not([class*="text-orange"]):not([class*="text-purple"]):not([class*="text-pink"]):not([class*="text-indigo"]):not([class*="text-emerald"]) {
   color: #f1f5f9 !important;
   /* Slate-100 for dark mode */
 }
 
-/* Ensure node labels are always visible */
+/* Ensure node labels are visible but preserve badge colors */
 .react-flow__node-default,
-.react-flow__node label,
-.react-flow__node span,
-.react-flow__node p,
-.react-flow__node h1,
-.react-flow__node h2,
-.react-flow__node h3,
-.react-flow__node h4,
-.react-flow__node h5,
-.react-flow__node h6,
-.react-flow__node div {
+.react-flow__node label:not([class*="bg-"]),
+.react-flow__node span:not([class*="bg-"]):not([class*="text-green"]):not([class*="text-blue"]):not([class*="text-red"]):not([class*="text-yellow"]):not([class*="text-orange"]):not([class*="text-purple"]):not([class*="text-pink"]):not([class*="text-indigo"]):not([class*="text-emerald"]),
+.react-flow__node p:not([class*="bg-"]),
+.react-flow__node h1:not([class*="bg-"]),
+.react-flow__node h2:not([class*="bg-"]),
+.react-flow__node h3:not([class*="bg-"]),
+.react-flow__node h4:not([class*="bg-"]),
+.react-flow__node h5:not([class*="bg-"]),
+.react-flow__node h6:not([class*="bg-"]),
+.react-flow__node div:not([class*="bg-"]) {
   color: #111827 !important;
   /* Gray-900 for light mode */
 }
 
 .dark .react-flow__node-default,
-.dark .react-flow__node label,
-.dark .react-flow__node span,
-.dark .react-flow__node p,
-.dark .react-flow__node h1,
-.dark .react-flow__node h2,
-.dark .react-flow__node h3,
-.dark .react-flow__node h4,
-.dark .react-flow__node h5,
-.dark .react-flow__node h6,
-.dark .react-flow__node div {
+.dark .react-flow__node label:not([class*="bg-"]),
+.dark .react-flow__node span:not([class*="bg-"]):not([class*="text-green"]):not([class*="text-blue"]):not([class*="text-red"]):not([class*="text-yellow"]):not([class*="text-orange"]):not([class*="text-purple"]):not([class*="text-pink"]):not([class*="text-indigo"]):not([class*="text-emerald"]),
+.dark .react-flow__node p:not([class*="bg-"]),
+.dark .react-flow__node h1:not([class*="bg-"]),
+.dark .react-flow__node h2:not([class*="bg-"]),
+.dark .react-flow__node h3:not([class*="bg-"]),
+.dark .react-flow__node h4:not([class*="bg-"]),
+.dark .react-flow__node h5:not([class*="bg-"]),
+.dark .react-flow__node h6:not([class*="bg-"]),
+.dark .react-flow__node div:not([class*="bg-"]) {
   color: #f1f5f9 !important;
   /* Slate-100 for dark mode */
 }
 
-/* Override any inline styles or component-level colors */
-.react-flow__node [class*="text-white"],
-.react-flow__node [class*="text-slate"] {
+/* Override white text but preserve colored text */
+.react-flow__node [class*="text-white"]:not([class*="bg-"]) {
   color: #111827 !important;
 }
 
-.dark .react-flow__node [class*="text-white"],
-.dark .react-flow__node [class*="text-slate"],
-.dark .react-flow__node [class*="text-gray"] {
+.dark .react-flow__node [class*="text-white"]:not([class*="bg-"]) {
   color: #f1f5f9 !important;
+}
+
+/* Preserve colored badges - they should keep their original colors */
+.react-flow__node [class*="bg-green"],
+.react-flow__node [class*="bg-blue"],
+.react-flow__node [class*="bg-red"],
+.react-flow__node [class*="bg-yellow"],
+.react-flow__node [class*="bg-orange"],
+.react-flow__node [class*="bg-purple"],
+.react-flow__node [class*="bg-pink"],
+.react-flow__node [class*="bg-indigo"],
+.react-flow__node [class*="bg-emerald"] {
+  /* Keep their original text color (usually white) */
+  color: inherit !important;
 }
 
 /* Circular nodes - ensure transparent background */
