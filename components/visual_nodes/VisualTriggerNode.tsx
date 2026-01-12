@@ -13,30 +13,30 @@ const VisualTriggerNode = ({ data }: { data: any }) => {
                 type="source"
                 position={Position.Right}
                 className={`!w-3 !h-3 !border-2 !rounded-full !-right-1.5 transition-colors z-10 ${isDark
-                    ? '!bg-cyan-500 !border-slate-900 hover:!bg-cyan-400'
-                    : '!bg-cyan-500 !border-white hover:!bg-cyan-600'
+                    ? '!bg-orange-500 !border-slate-900 hover:!bg-orange-400'
+                    : '!bg-orange-500 !border-white hover:!bg-orange-600'
                     }`}
             />
 
             {/* Node Container - Circle */}
-            <div className={`w-20 h-20 border-2 rounded-full shadow-lg flex flex-col items-center justify-center relative z-0 overflow-visible transition-all duration-200 group-hover:shadow-[0_0_20px_rgba(6,182,212,0.3)] ${isDark
-                ? 'bg-slate-900 border-slate-700 hover:border-cyan-500/50'
-                : 'bg-white border-slate-200 hover:border-cyan-400 hover:shadow-cyan-500/20'
+            <div className={`w-20 h-20 border-2 rounded-full shadow-lg flex flex-col items-center justify-center relative z-0 overflow-visible transition-all duration-200 group-hover:shadow-[0_0_20px_rgba(249,115,22,0.3)] ${isDark
+                ? 'bg-slate-900 border-orange-500/50 hover:border-orange-500'
+                : 'bg-orange-50/50 border-orange-200 hover:border-orange-400 hover:shadow-orange-500/20'
                 }`}>
-                <div className={`absolute inset-0 pointer-events-none rounded-full ${isDark ? 'bg-cyan-500/5' : 'bg-cyan-50/50'}`} />
+                <div className={`absolute inset-0 pointer-events-none rounded-full ${isDark ? 'bg-orange-500/10' : 'bg-orange-100/50'}`} />
 
                 {/* Left Badge: Blue Lightning (Satellite) */}
                 <div className="absolute -left-[34px] top-1/2 -translate-y-1/2 z-10">
-                    <div className={`rounded-full p-1 border shadow-[0_0_10px_rgba(59,130,246,0.4)] ${isDark
-                        ? 'bg-slate-900 border-blue-500/30'
-                        : 'bg-white border-blue-200 shadow-blue-500/20'
+                    <div className={`rounded-full p-1 border shadow-[0_0_10px_rgba(236,72,153,0.4)] ${isDark
+                        ? 'bg-slate-900 border-pink-500/50'
+                        : 'bg-white border-pink-200 shadow-pink-500/20'
                         }`}>
-                        <Zap className={`w-3 h-3 ${isDark ? 'text-blue-500 fill-blue-500' : 'text-blue-600 fill-blue-600'}`} />
+                        <Zap className={`w-3 h-3 ${isDark ? 'text-pink-500 fill-pink-500' : 'text-pink-600 fill-pink-600'}`} />
                     </div>
                 </div>
 
                 {/* Main Icon */}
-                <AlarmClock className={`w-8 h-8 ${isDark ? 'text-cyan-400' : 'text-cyan-600'}`} strokeWidth={1.5} />
+                <AlarmClock className={`w-8 h-8 ${isDark ? 'text-orange-400' : 'text-orange-600'}`} strokeWidth={1.5} />
             </div>
 
             {/* Controls - Outside circle, positioned to top-right like Memory node */}

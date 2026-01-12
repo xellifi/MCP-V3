@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { User, UserRole, AdminSettings as AdminSettingsType } from '../types';
 import { api } from '../services/api';
-import { Lock, Save, ShieldAlert, Eye, EyeOff, Server, ChevronDown, ChevronUp, Mail, List, MoveUp, MoveDown, Send, Banknote, Key, Copy, Check, RefreshCw } from 'lucide-react';
+import { Lock, Save, ShieldAlert, Eye, EyeOff, Server, ChevronDown, ChevronUp, Mail, List, MoveUp, MoveDown, Send, Banknote, Key, Copy, Check, RefreshCw, Sun, Moon } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import { useTheme } from '../context/ThemeContext';
 
@@ -105,9 +105,9 @@ const CollapsibleCard: React.FC<CollapsibleCardProps> = ({
   isDark
 }) => {
   return (
-    <div className="glass-panel rounded-2xl overflow-hidden transition-all duration-300">
+    <div className="bg-white dark:glass-panel border border-slate-200 dark:border-none shadow-sm dark:shadow-none rounded-2xl overflow-hidden transition-all duration-300">
       <div
-        className={`p-6 border-b border-white/10 flex items-center justify-between cursor-pointer transition-colors ${isOpen ? 'bg-white/10' : 'hover:bg-white/5'}`}
+        className={`p-6 border-b border-slate-100 dark:border-white/10 flex items-center justify-between cursor-pointer transition-colors ${isOpen ? 'bg-slate-50 dark:bg-white/10' : 'hover:bg-slate-50 dark:hover:bg-white/5'}`}
         onClick={onToggle}
       >
         <div className="flex items-center gap-4">
@@ -115,8 +115,8 @@ const CollapsibleCard: React.FC<CollapsibleCardProps> = ({
             <Icon className="w-5 h-5 drop-shadow-glow" />
           </div>
           <div>
-            <h3 className="font-bold text-white text-lg">{title}</h3>
-            <p className="text-sm text-slate-400">{subtitle}</p>
+            <h3 className="font-bold text-slate-900 dark:text-white text-lg">{title}</h3>
+            <p className="text-sm text-slate-600 dark:text-slate-400">{subtitle}</p>
           </div>
         </div>
         <div className={`text-slate-400 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`}>
@@ -124,7 +124,7 @@ const CollapsibleCard: React.FC<CollapsibleCardProps> = ({
         </div>
       </div>
       <div className={`transition-all duration-300 ease-in-out ${isOpen ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0 overflow-hidden'}`}>
-        <div className="p-6 md:p-8 bg-black/20">
+        <div className="p-6 md:p-8 bg-white dark:bg-black/20">
           {children}
         </div>
       </div>
@@ -139,7 +139,8 @@ const SystemSettings: React.FC<SystemSettingsProps> = ({ user }) => {
     facebookVerifyToken: '',
     openaiApiKey: '',
     geminiApiKey: '',
-    menuSequence: DEFAULT_MENU_ORDER.map(i => i.id)
+    menuSequence: DEFAULT_MENU_ORDER.map(i => i.id),
+    defaultTheme: 'dark'
   });
 
   const [loading, setLoading] = useState(true);
@@ -150,6 +151,7 @@ const SystemSettings: React.FC<SystemSettingsProps> = ({ user }) => {
   const [savingAffiliate, setSavingAffiliate] = useState(false);
   const [savingMenu, setSavingMenu] = useState(false);
   const [savingSmtp, setSavingSmtp] = useState(false);
+  const [savingTheme, setSavingTheme] = useState(false);
 
   const [showSecret, setShowSecret] = useState(false);
   const [showOpenAi, setShowOpenAi] = useState(false);
@@ -163,7 +165,8 @@ const SystemSettings: React.FC<SystemSettingsProps> = ({ user }) => {
     apiKeys: false,
     menu: false,
     smtp: false,
-    affiliate: false
+    affiliate: false,
+    theme: false
   });
 
   // Test Email State
@@ -289,20 +292,87 @@ const SystemSettings: React.FC<SystemSettingsProps> = ({ user }) => {
     );
   }
 
-  const inputClasses = "w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all placeholder-slate-500";
-  const labelClasses = "block text-sm font-semibold text-slate-300 mb-2";
+
+
+  // Adaptive Input Classes: Light mode (slate-100) vs Dark mode (black/20)
+  const inputClasses = "w-full bg-slate-100 dark:bg-black/20 border border-slate-300 dark:border-white/10 rounded-xl px-4 py-3 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all placeholder-slate-400 dark:placeholder-slate-500";
+  const labelClasses = "block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2";
   const buttonPrimary = "flex items-center gap-2 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-indigo-500/20 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed border border-white/20";
 
   return (
     <div className="space-y-8 pb-12 animate-fade-in">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-white tracking-tight text-glow">System Settings</h1>
-          <p className="text-slate-400 mt-2 text-lg">Configure global application settings and integrations.</p>
+          <div>
+            <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight dark:text-glow">System Settings</h1>
+            <p className="text-slate-600 dark:text-slate-400 mt-2 text-lg">Configure global application settings and integrations.</p>
+          </div>
         </div>
+
       </div>
 
-      {/* 1. Facebook App Config */}
+      {/* 0. Theme & Appearance */}
+      <CollapsibleCard
+        title="General Appearance"
+        subtitle="Set the global default theme for new users"
+        icon={isDark ? Moon : Sun}
+        colorClass="bg-purple-500/10 text-purple-600 dark:bg-purple-500/20 dark:text-purple-400 border border-purple-500/20 dark:border-purple-500/30"
+        isOpen={openSections.theme}
+        onToggle={() => toggleSection('theme')}
+        isDark={isDark}
+      >
+        <div className="space-y-6">
+          <div className="flex items-center justify-between p-5 bg-slate-50 dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10">
+            <div>
+              <h4 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                Global Default Theme
+                <span className="text-xs font-normal px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
+                  Currently: {settings.defaultTheme === 'light' ? 'Light' : 'Dark'}
+                </span>
+              </h4>
+              <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                This theme will be applied to all pages (including Login and Home) for users who haven't set a preference.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2 bg-slate-200 dark:bg-black/40 p-1 rounded-lg">
+              <button
+                type="button"
+                onClick={() => setSettings({ ...settings, defaultTheme: 'light' })}
+                className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all ${settings.defaultTheme === 'light'
+                  ? 'bg-white text-indigo-600 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+                  }`}
+              >
+                <Sun className="w-4 h-4" />
+                Light
+              </button>
+              <button
+                type="button"
+                onClick={() => setSettings({ ...settings, defaultTheme: 'dark' })}
+                className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all ${settings.defaultTheme === 'dark'
+                  ? 'bg-slate-700 text-white shadow-sm'
+                  : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+                  }`}
+              >
+                <Moon className="w-4 h-4" />
+                Dark
+              </button>
+            </div>
+          </div>
+
+          <div className="flex justify-end pt-6 border-t border-slate-200 dark:border-white/10">
+            <button
+              onClick={() => handleSaveSection('Theme Settings', setSavingTheme)}
+              disabled={savingTheme}
+              className={buttonPrimary}
+            >
+              <Save className="w-4 h-4" />
+              {savingTheme ? 'Saving...' : 'Save Theme Settings'}
+            </button>
+          </div>
+        </div>
+      </CollapsibleCard>
       <CollapsibleCard
         title="Facebook App Configuration"
         subtitle="Credentials for OAuth and Webhooks"
@@ -337,7 +407,7 @@ const SystemSettings: React.FC<SystemSettingsProps> = ({ user }) => {
               <button
                 type="button"
                 onClick={() => setShowSecret(!showSecret)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors"
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors"
               >
                 {showSecret ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
@@ -357,7 +427,7 @@ const SystemSettings: React.FC<SystemSettingsProps> = ({ user }) => {
                   type="text"
                   value={settings.facebookVerifyToken}
                   readOnly
-                  className={`${inputClasses} border-green-500/30 bg-green-500/10 text-green-300 font-mono text-sm cursor-default select-all pr-12`}
+                  className={`${inputClasses} border-green-500/30 bg-green-500/10 text-green-700 dark:text-green-300 font-mono text-sm cursor-default select-all pr-12`}
                   placeholder="Generating..."
                 />
                 <CopyButton text={settings.facebookVerifyToken} label="Verify Token" />
@@ -382,9 +452,9 @@ const SystemSettings: React.FC<SystemSettingsProps> = ({ user }) => {
                 Generate New
               </button>
             </div>
-            <p className="mt-2 text-xs text-slate-400 flex items-center gap-1">
+            <p className="mt-2 text-xs text-slate-600 dark:text-slate-400 flex items-center gap-1">
               <ShieldAlert className="w-3 h-3 text-amber-500" />
-              This token is auto-generated for security. <strong className="text-white">Copy and paste</strong> it into Facebook Developer Portal.
+              This token is auto-generated for security. <strong className="text-slate-900 dark:text-white">Copy and paste</strong> it into Facebook Developer Portal.
             </p>
           </div>
 
@@ -396,12 +466,12 @@ const SystemSettings: React.FC<SystemSettingsProps> = ({ user }) => {
               </span>
             </label>
             <div className="relative">
-              <div className="bg-black/30 border border-white/10 text-slate-300 px-4 py-3 pr-12 rounded-xl font-mono text-sm overflow-x-auto">
+              <div className="bg-slate-100 dark:bg-black/30 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 px-4 py-3 pr-12 rounded-xl font-mono text-sm overflow-x-auto">
                 {webhookUrl}
               </div>
               <CopyButton text={webhookUrl} label="Webhook URL" />
             </div>
-            <p className="mt-2 text-xs text-slate-400">
+            <p className="mt-2 text-xs text-slate-600 dark:text-slate-400">
               Add this URL to your Facebook App's <strong>Webhooks</strong> settings.
             </p>
           </div>
@@ -414,12 +484,12 @@ const SystemSettings: React.FC<SystemSettingsProps> = ({ user }) => {
               </span>
             </label>
             <div className="relative">
-              <div className="bg-black/30 border border-white/10 text-slate-300 px-4 py-3 pr-12 rounded-xl font-mono text-sm overflow-x-auto shadow-inner">
+              <div className="bg-slate-100 dark:bg-black/30 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 px-4 py-3 pr-12 rounded-xl font-mono text-sm overflow-x-auto shadow-inner">
                 {appDomain}/connections
               </div>
               <CopyButton text={`${appDomain}/connections`} label="OAuth Redirect URL" />
             </div>
-            <p className="mt-2 text-xs text-slate-400">
+            <p className="mt-2 text-xs text-slate-600 dark:text-slate-400">
               Add this URL to your Facebook App's <strong>Valid OAuth Redirect URIs</strong> in Facebook Login settings.
             </p>
           </div>
@@ -432,17 +502,17 @@ const SystemSettings: React.FC<SystemSettingsProps> = ({ user }) => {
               </span>
             </label>
             <div className="relative">
-              <div className="bg-black/30 border border-white/10 text-slate-300 px-4 py-3 pr-12 rounded-xl font-mono text-sm overflow-x-auto">
+              <div className="bg-slate-100 dark:bg-black/30 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 px-4 py-3 pr-12 rounded-xl font-mono text-sm overflow-x-auto">
                 {appDomain}
               </div>
               <CopyButton text={appDomain} label="Domain URL" />
             </div>
-            <p className="mt-2 text-xs text-slate-400">
+            <p className="mt-2 text-xs text-slate-600 dark:text-slate-400">
               Your application's base domain. Use this in Facebook App Settings for <strong>App Domains</strong>.
             </p>
           </div>
 
-          <div className="md:col-span-2 flex justify-end pt-6 border-t border-white/10">
+          <div className="md:col-span-2 flex justify-end pt-6 border-t border-slate-200 dark:border-white/10">
             <button
               onClick={() => handleSaveSection('Facebook Settings', setSavingFacebook)}
               disabled={savingFacebook}
@@ -482,7 +552,7 @@ const SystemSettings: React.FC<SystemSettingsProps> = ({ user }) => {
               <button
                 type="button"
                 onClick={() => setShowOpenAi(!showOpenAi)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors"
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors"
               >
                 {showOpenAi ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
@@ -505,14 +575,14 @@ const SystemSettings: React.FC<SystemSettingsProps> = ({ user }) => {
               <button
                 type="button"
                 onClick={() => setShowGemini(!showGemini)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors"
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors"
               >
                 {showGemini ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
             </div>
           </div>
 
-          <div className="flex justify-end pt-6 border-t border-white/10">
+          <div className="flex justify-end pt-6 border-t border-slate-200 dark:border-white/10">
             <button
               onClick={() => handleSaveSection('API Keys', setSavingApiKeys)}
               disabled={savingApiKeys}
@@ -536,10 +606,10 @@ const SystemSettings: React.FC<SystemSettingsProps> = ({ user }) => {
         isDark={isDark}
       >
         <div className="space-y-6">
-          <div className="flex items-center gap-4 p-5 bg-white/5 rounded-xl border border-white/10">
+          <div className="flex items-center gap-4 p-5 bg-slate-50 dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10">
             <div className="flex-1">
-              <h4 className="font-bold text-white">Enable Affiliate System</h4>
-              <p className="text-sm text-slate-400">Allow users to refer others and earn commissions.</p>
+              <h4 className="font-bold text-slate-900 dark:text-white">Enable Affiliate System</h4>
+              <p className="text-sm text-slate-600 dark:text-slate-400">Allow users to refer others and earn commissions.</p>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
               <input
@@ -548,7 +618,7 @@ const SystemSettings: React.FC<SystemSettingsProps> = ({ user }) => {
                 onChange={e => setSettings({ ...settings, affiliateEnabled: e.target.checked })}
                 className="sr-only peer"
               />
-              <div className="w-14 h-7 bg-white/10 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-500/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-indigo-600"></div>
+              <div className="w-14 h-7 bg-slate-200 dark:bg-white/10 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-500/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-indigo-600"></div>
             </label>
           </div>
 
@@ -577,7 +647,7 @@ const SystemSettings: React.FC<SystemSettingsProps> = ({ user }) => {
                 <select
                   value={settings.affiliateCurrency}
                   onChange={e => setSettings({ ...settings, affiliateCurrency: e.target.value })}
-                  className={`${inputClasses} appearance-none bg-slate-900`}
+                  className={`${inputClasses} appearance-none`}
                 >
                   <option value="USD">USD ($)</option>
                   <option value="EUR">EUR (€)</option>
@@ -610,20 +680,20 @@ const SystemSettings: React.FC<SystemSettingsProps> = ({ user }) => {
 
             <div>
               <label className={labelClasses}>Allowed Withdrawal Days</label>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-black/20 p-3 rounded-xl border border-white/10">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-100 dark:bg-black/20 p-3 rounded-xl border border-slate-200 dark:border-white/10">
                 {DAYS_OF_WEEK.map(day => (
-                  <label key={day.id} className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer hover:opacity-80 transition-opacity select-none">
+                  <label key={day.id} className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300 cursor-pointer hover:opacity-80 transition-opacity select-none">
                     <input
                       type="checkbox"
                       checked={(settings.affiliateWithdrawalDays || []).includes(day.id)}
                       onChange={() => handleDayToggle(day.id)}
-                      className="rounded border-white/20 bg-white/5 text-indigo-500 focus:ring-indigo-500 h-4 w-4"
+                      className="rounded border-slate-300 dark:border-white/20 bg-white dark:bg-white/5 text-indigo-500 focus:ring-indigo-500 h-4 w-4"
                     />
                     {day.label}
                   </label>
                 ))}
               </div>
-              <p className="mt-2 text-xs text-slate-400">Days when the "Withdraw" button is active for users.</p>
+              <p className="mt-2 text-xs text-slate-600 dark:text-slate-400">Days when the "Withdraw" button is active for users.</p>
             </div>
 
             <div className="md:col-span-2 flex justify-end pt-6 border-t border-white/10">
@@ -650,41 +720,48 @@ const SystemSettings: React.FC<SystemSettingsProps> = ({ user }) => {
         onToggle={() => toggleSection('menu')}
         isDark={isDark}
       >
-        <div className="space-y-5 max-w-lg">
-          <div className="space-y-3">
+        <div className="space-y-5">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {settings.menuSequence?.map((itemId, index) => {
               const itemDef = DEFAULT_MENU_ORDER.find(i => i.id === itemId);
               if (!itemDef) return null; // Skip unknown items
               return (
-                <div key={itemId} className="flex items-center justify-between p-4 bg-white/5 border border-white/10 rounded-xl hover:border-indigo-500/50 transition-colors">
-                  <span className="font-bold text-white">{itemDef.label}</span>
-                  <div className="flex gap-2">
+                <div key={itemId} className="flex items-center justify-between p-4 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl hover:border-indigo-500/50 transition-colors group">
+                  <div className="flex items-center gap-3">
+                    <span className="flex items-center justify-center w-6 h-6 rounded-full bg-slate-200 dark:bg-white/10 text-xs font-bold text-slate-500 dark:text-slate-400">
+                      {index + 1}
+                    </span>
+                    <span className="font-bold text-slate-900 dark:text-white truncate">{itemDef.label}</span>
+                  </div>
+                  <div className="flex gap-1 ml-2">
                     <button
                       type="button"
                       onClick={() => moveMenuItem(index, 'up')}
                       disabled={index === 0}
-                      className="p-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-lg disabled:opacity-30 disabled:hover:bg-transparent transition-colors shadow-sm"
+                      className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-white/10 rounded-lg disabled:opacity-30 disabled:hover:bg-transparent transition-colors shadow-sm"
+                      title="Move Backward"
                     >
-                      <MoveUp className="w-4 h-4" />
+                      <ChevronUp className="w-4 h-4 md:rotate-[-90deg]" />
                     </button>
                     <button
                       type="button"
                       onClick={() => moveMenuItem(index, 'down')}
                       disabled={index === (settings.menuSequence?.length || 0) - 1}
-                      className="p-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-lg disabled:opacity-30 disabled:hover:bg-transparent transition-colors shadow-sm"
+                      className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-white/10 rounded-lg disabled:opacity-30 disabled:hover:bg-transparent transition-colors shadow-sm"
+                      title="Move Forward"
                     >
-                      <MoveDown className="w-4 h-4" />
+                      <ChevronDown className="w-4 h-4 md:rotate-[-90deg]" />
                     </button>
                   </div>
                 </div>
               );
             })}
           </div>
-          <p className="text-xs text-slate-400 italic">
-            The changes will reflect on the sidebar after saving and refreshing the page.
+          <p className="text-xs text-slate-600 dark:text-slate-400 italic">
+            The changes will reflect on the sidebar after saving and refreshing the page. Use arrows to reorder.
           </p>
 
-          <div className="flex justify-end pt-6 border-t border-white/10">
+          <div className="flex justify-end pt-6 border-t border-slate-200 dark:border-white/10">
             <button
               onClick={() => handleSaveSection('Menu Sequence', setSavingMenu)}
               disabled={savingMenu}
@@ -760,24 +837,24 @@ const SystemSettings: React.FC<SystemSettingsProps> = ({ user }) => {
           </div>
 
           {/* Test Email Section */}
-          <div className="md:col-span-2 pt-6 border-t border-white/10">
-            <h4 className="text-sm font-bold text-white mb-3">Test Configuration</h4>
+          <div className="md:col-span-2 pt-6 border-t border-slate-200 dark:border-white/10">
+            <h4 className="text-sm font-bold text-slate-900 dark:text-white mb-3">Test Configuration</h4>
             <div className="flex gap-3">
               <input
                 type="email"
                 value={testEmail}
                 onChange={e => setTestEmail(e.target.value)}
                 placeholder="Enter email to test..."
-                className="flex-1 bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500/50 outline-none"
+                className="flex-1 bg-slate-100 dark:bg-black/20 border border-slate-300 dark:border-white/10 rounded-xl px-4 py-3 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500/50 outline-none"
               />
               <button
                 type="button"
                 onClick={handleTestEmail}
                 disabled={!testEmail || sendingTest}
-                className="flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white px-6 py-3 rounded-xl font-bold transition-colors disabled:opacity-50 border border-white/10"
+                className="flex items-center gap-2 bg-slate-200 hover:bg-slate-300 dark:bg-white/10 dark:hover:bg-white/20 text-slate-700 dark:text-white px-6 py-3 rounded-xl font-bold transition-colors disabled:opacity-50 border border-slate-300 dark:border-white/10"
               >
                 {sendingTest ? (
-                  <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                  <span className="w-5 h-5 border-2 border-slate-500 dark:border-white border-t-transparent rounded-full animate-spin"></span>
                 ) : (
                   <Send className="w-5 h-5" />
                 )}
@@ -786,7 +863,7 @@ const SystemSettings: React.FC<SystemSettingsProps> = ({ user }) => {
             </div>
           </div>
 
-          <div className="md:col-span-2 flex justify-end pt-6 border-t border-white/10">
+          <div className="md:col-span-2 flex justify-end pt-6 border-t border-slate-200 dark:border-white/10">
             <button
               onClick={() => handleSaveSection('SMTP Settings', setSavingSmtp)}
               disabled={savingSmtp}

@@ -2103,8 +2103,8 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
     <div className={`${isFullscreen ? 'fixed inset-0 z-50' : 'h-[calc(100vh-60px)] w-full -m-6 relative'} ${isDark ? 'bg-slate-950' : 'bg-gray-50'
       } overflow-hidden`}>
 
-      {/* Header Overlay (Title & Back) - Hidden on Mobile to save space, or kept minimal */}
-      <div className="absolute top-6 left-6 z-10 hidden md:block">
+      {/* Header Overlay (Title & Back) - Always visible now */}
+      <div className="absolute top-6 left-6 z-10 block">
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigate('/flows')}
@@ -2153,19 +2153,13 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
       </div>
 
       {/* Top Right Controls (Save / Publish) */}
-      <div className="absolute top-4 left-1/2 -translate-x-1/2 md:translate-x-0 md:left-auto md:right-6 md:top-6 z-10 flex gap-2 md:gap-3 w-max items-center">
-        {/* Mobile Tools Toggle */}
-        <button
-          onClick={() => setIsToolsOpen(!isToolsOpen)}
-          className="md:hidden w-8 h-8 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-lg flex items-center justify-center text-white border border-white/10 shadow-lg active:scale-95 transition-all"
-        >
-          {isToolsOpen ? <X className="w-4 h-4" /> : <Wrench className="w-4 h-4" />}
-        </button>
+      <div className="absolute top-4 left-auto right-6 md:top-6 z-10 flex gap-2 md:gap-3 w-max items-center">
+        {/* Mobile Tools Toggle - REMOVED since we are using desktop toolbar now */}
 
         {/* Fullscreen Toggle */}
         <button
           onClick={() => setIsFullscreen(!isFullscreen)}
-          className={`group relative hidden md:flex w-10 h-10 items-center justify-center backdrop-blur-md rounded-xl transition-all border shadow-lg active:scale-95 ${isDark
+          className={`group relative flex w-10 h-10 items-center justify-center backdrop-blur-md rounded-xl transition-all border shadow-lg active:scale-95 ${isDark
             ? 'bg-white/10 border-white/10 text-white hover:bg-white/20'
             : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
             }`}
@@ -2215,14 +2209,13 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
         </button>
       </div>
 
-      {/* Floating Toolbar - Horizontal for Desktop, Vertical for Mobile - Always Visible */}
+      {/* Floating Toolbar - Horizontal for Desktop AND Mobile - Always Visible */}
       <div className={`absolute z-10 transition-all duration-300 ease-out
         opacity-100 pointer-events-auto
-        md:left-1/2 md:-translate-x-1/2 md:top-6
-        left-6 top-20
+        left-1/2 -translate-x-1/2 top-20 md:top-6
       `}>
         <div className={`
-          hidden md:flex
+          flex
           glass-panel px-3 py-2 rounded-2xl border border-white/10 shadow-2xl backdrop-blur-xl
           items-center gap-2
           transition-all duration-300 origin-top
@@ -2342,77 +2335,7 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
           </div>
         </div>
 
-        {/* Mobile: Vertical toolbar on left */}
-        <div className={`md:hidden glass-panel p-3 rounded-2xl border border-white/10 shadow-2xl space-y-3 backdrop-blur-xl transition-all duration-300 origin-top-left ${isToolsOpen ? 'scale-100' : 'scale-95'}`}>
-          <p className="text-xs font-bold text-slate-500 uppercase tracking-wider text-center mb-2">Build</p>
-          <div draggable onDragStart={(e) => onDragStart(e, 'startNode', 'Start')} onClick={() => addNode('startNode', 'Start')}
-            className="w-12 h-12 bg-emerald-500/20 hover:bg-emerald-500/40 border border-emerald-500/30 rounded-xl flex items-center justify-center text-emerald-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing" title="Start">
-            <Play className="w-6 h-6 fill-current" />
-          </div>
-          <div draggable onDragStart={(e) => { e.dataTransfer.setData('application/reactflow-template', 'commentReply'); e.dataTransfer.effectAllowed = 'move'; }} onClick={() => addCommentReplyTemplate()}
-            className="w-12 h-12 bg-blue-500/20 hover:bg-blue-500/40 border border-blue-500/30 rounded-xl flex items-center justify-center text-blue-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing" title="Comment Reply">
-            <MessageCircle className="w-6 h-6" />
-          </div>
-          <div draggable onDragStart={(e) => onDragStart(e, 'textNode', 'Text')} onClick={() => addNode('textNode', 'Text')}
-            className="w-12 h-12 bg-amber-500/20 hover:bg-amber-500/40 border border-amber-500/30 rounded-xl flex items-center justify-center text-amber-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing" title="Text">
-            <MessageSquare className="w-6 h-6" />
-          </div>
-          <div draggable onDragStart={(e) => onDragStart(e, 'imageNode', 'Image')} onClick={() => addNode('imageNode', 'Image')}
-            className="w-12 h-12 bg-rose-500/20 hover:bg-rose-500/40 border border-rose-500/30 rounded-xl flex items-center justify-center text-rose-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing" title="Image">
-            <Image className="w-6 h-6" />
-          </div>
-          <div draggable onDragStart={(e) => onDragStart(e, 'videoNode', 'Video')} onClick={() => addNode('videoNode', 'Video')}
-            className="w-12 h-12 bg-cyan-500/20 hover:bg-cyan-500/40 border border-cyan-500/30 rounded-xl flex items-center justify-center text-cyan-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing" title="Video">
-            <Video className="w-6 h-6" />
-          </div>
-          <div draggable onDragStart={(e) => onDragStart(e, 'aiNode', 'AI Agent')} onClick={() => addNode('aiNode', 'AI Agent')}
-            className="w-12 h-12 bg-indigo-500/20 hover:bg-indigo-500/40 border border-indigo-500/30 rounded-xl flex items-center justify-center text-indigo-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing" title="AI Agent">
-            <Sparkles className="w-6 h-6" />
-          </div>
-          <div draggable onDragStart={(e) => onDragStart(e, 'conditionNode', 'Condition')} onClick={() => addNode('conditionNode', 'Condition')}
-            className="w-12 h-12 bg-orange-500/20 hover:bg-orange-500/40 border border-orange-500/30 rounded-xl flex items-center justify-center text-orange-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing" title="Condition">
-            <GitBranch className="w-6 h-6" />
-          </div>
-          <div draggable onDragStart={(e) => onDragStart(e, 'formNode', 'Form')} onClick={() => addNode('formNode', 'Form')}
-            className="w-12 h-12 bg-purple-500/20 hover:bg-purple-500/40 border border-purple-500/30 rounded-xl flex items-center justify-center text-purple-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing" title="Form">
-            <FileText className="w-6 h-6" />
-          </div>
-          <div draggable onDragStart={(e) => onDragStart(e, 'sheetsNode', 'Google Sheets')} onClick={() => addNode('sheetsNode', 'Google Sheets')}
-            className="w-12 h-12 bg-green-500/20 hover:bg-green-500/40 border border-green-500/30 rounded-xl flex items-center justify-center text-green-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing" title="Google Sheets">
-            <Table className="w-6 h-6" />
-          </div>
-          <div draggable onDragStart={(e) => onDragStart(e, 'followupNode', 'Follow-up')} onClick={() => addNode('followupNode', 'Follow-up')}
-            className="w-12 h-12 bg-rose-500/20 hover:bg-rose-500/40 border border-rose-500/30 rounded-xl flex items-center justify-center text-rose-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing" title="Follow-up">
-            <RefreshCw className="w-6 h-6" />
-          </div>
-          <div draggable onDragStart={(e) => onDragStart(e, 'productWebviewNode', 'Product Webview')} onClick={() => addNode('productWebviewNode', 'Product Webview')}
-            className="w-12 h-12 bg-indigo-500/20 hover:bg-indigo-500/40 border border-indigo-500/30 rounded-xl flex items-center justify-center text-indigo-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing relative" title="Product Webview">
-            <ShoppingBag className="w-6 h-6" />
-            <Globe className="w-3 h-3 text-white absolute -bottom-0.5 -right-0.5 bg-indigo-600 rounded-full p-0.5" />
-          </div>
-          <div draggable onDragStart={(e) => onDragStart(e, 'upsellNode', 'Upsell')} onClick={() => addNode('upsellNode', 'Upsell')}
-            className="w-12 h-12 bg-teal-500/20 hover:bg-teal-500/40 border border-teal-500/30 rounded-xl flex items-center justify-center text-teal-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing relative" title="Upsell">
-            <ShoppingCart className="w-6 h-6" />
-            <ArrowUp className="w-3 h-3 text-white absolute -bottom-0.5 -right-0.5 bg-teal-600 rounded-full p-0.5" />
-          </div>
-          <div draggable onDragStart={(e) => onDragStart(e, 'downsellNode', 'Downsell')} onClick={() => addNode('downsellNode', 'Downsell')}
-            className="w-12 h-12 bg-orange-500/20 hover:bg-orange-500/40 border border-orange-500/30 rounded-xl flex items-center justify-center text-orange-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing relative" title="Downsell">
-            <ShoppingCart className="w-6 h-6" />
-            <ArrowDown className="w-3 h-3 text-white absolute -bottom-0.5 -right-0.5 bg-orange-600 rounded-full p-0.5" />
-          </div>
-          <div draggable onDragStart={(e) => onDragStart(e, 'invoiceNode', 'Invoice')} onClick={() => addNode('invoiceNode', 'Invoice')}
-            className="w-12 h-12 bg-violet-500/20 hover:bg-violet-500/40 border border-violet-500/30 rounded-xl flex items-center justify-center text-violet-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing" title="Invoice">
-            <Receipt className="w-6 h-6" />
-          </div>
-          <div draggable onDragStart={(e) => onDragStart(e, 'productNode', 'Product')} onClick={() => addNode('productNode', 'Product')}
-            className="w-12 h-12 bg-emerald-500/20 hover:bg-emerald-500/40 border border-emerald-500/30 rounded-xl flex items-center justify-center text-emerald-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing" title="Product">
-            <Package className="w-6 h-6" />
-          </div>
-          <div draggable onDragStart={(e) => onDragStart(e, 'checkoutNode', 'Checkout')} onClick={() => addNode('checkoutNode', 'Checkout')}
-            className="w-12 h-12 bg-emerald-500/20 hover:bg-emerald-500/40 border border-emerald-500/30 rounded-xl flex items-center justify-center text-emerald-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing" title="Checkout">
-            <ShoppingCart className="w-6 h-6" />
-          </div>
-        </div>
+        {/* Mobile: Vertical toolbar on left - REMOVED */}
       </div>
 
       <div className={`flex-1 h-full relative ${isDark ? 'bg-slate-950' : 'bg-gray-50'
@@ -2455,12 +2378,12 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
               gap={25}
               size={2}
             />
-            <Controls className={`hidden md:block !shadow-xl border ${isDark
+            <Controls className={`!shadow-xl border ${isDark
               ? '!bg-slate-800 !border-white/10 [&>button]:!fill-slate-400 [&>button:hover]:!fill-white'
               : '!bg-white !border-gray-300 [&>button]:!fill-gray-600 [&>button:hover]:!fill-gray-900'
               }`} />
             <MiniMap
-              className={`hidden md:block !backdrop-blur-sm !shadow-xl !rounded-lg overflow-hidden border ${isDark ? '!bg-slate-900/80 !border-slate-700' : '!bg-white/80 !border-gray-300'
+              className={`!backdrop-blur-sm !shadow-xl !rounded-lg overflow-hidden border ${isDark ? '!bg-slate-900/80 !border-slate-700' : '!bg-white/80 !border-gray-300'
                 }`}
               style={{ width: 120, height: 80 }}
               maskColor={isDark ? "rgba(15, 23, 42, 0.7)" : "rgba(248, 250, 252, 0.7)"}

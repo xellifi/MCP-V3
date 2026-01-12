@@ -233,6 +233,20 @@ export const api = {
     }
   },
 
+  public: {
+    getSystemTheme: async (): Promise<'dark' | 'light'> => {
+      try {
+        const { data } = await supabase
+          .from('admin_settings')
+          .select('default_theme')
+          .single();
+        return (data?.default_theme as 'dark' | 'light') || 'dark';
+      } catch {
+        return 'dark';
+      }
+    }
+  },
+
   user: {
     getPayoutSettings: async (userId: string): Promise<PayoutSettings> => {
       await delay(300);
@@ -1699,7 +1713,8 @@ export const api = {
             affiliateCommission: data.affiliate_commission,
             affiliateCurrency: data.affiliate_currency,
             affiliateMinWithdrawal: data.affiliate_min_withdrawal,
-            affiliateWithdrawalDays: data.affiliate_withdrawal_days
+            affiliateWithdrawalDays: data.affiliate_withdrawal_days,
+            defaultTheme: data.default_theme || 'dark'
           };
         }
       } catch (e) {
@@ -1733,7 +1748,9 @@ export const api = {
         affiliate_commission: settings.affiliateCommission,
         affiliate_currency: settings.affiliateCurrency,
         affiliate_min_withdrawal: settings.affiliateMinWithdrawal,
-        affiliate_withdrawal_days: settings.affiliateWithdrawalDays
+        affiliate_min_withdrawal: settings.affiliateMinWithdrawal,
+        affiliate_withdrawal_days: settings.affiliateWithdrawalDays,
+        default_theme: settings.defaultTheme
       };
 
       console.log('Attempting to save admin settings:', dbPayload);

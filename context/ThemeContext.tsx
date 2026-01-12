@@ -11,26 +11,47 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+    // Initial state from localStorage or system, fallback to 'dark' temporarily
     const [theme, setTheme] = useState<Theme>(() => {
-        // Check localStorage first
         const stored = localStorage.getItem('theme');
         if (stored === 'dark' || stored === 'light') {
             return stored as Theme;
         }
-
-        // Fall back to system preference
-        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-            return 'dark';
-        }
-
-        // Default to light mode
-        return 'light';
+        return 'dark'; // Default to dark while we check global settings
     });
 
     useEffect(() => {
-        // Save to localStorage
-        localStorage.setItem('theme', theme);
+        const initTheme = async () => {
+            // Check localStorage first
+            const stored = localStorage.getItem('theme');
+            if (stored === 'dark' || stored === 'light') {
+                setTheme(stored as Theme);
+                return;
+            }
 
+            // If no local preference, fetch global default
+            try {
+                // Dynamically import API to avoid circular dependencies if any
+                const { api } = await import('../services/api');
+                const globalDefault = await api.public.getSystemTheme();
+
+                // Only if still no local override (race condition check)
+                if (!localStorage.getItem('theme')) {
+                    setTheme(globalDefault);
+                }
+            } catch (e) {
+                console.error("Failed to fetch global theme:", e);
+                // Fallback to system preference
+                if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+                    setTheme('light');
+                }
+            }
+        };
+
+        initTheme();
+    }, []);
+
+    useEffect(() => {
         // Apply theme class to document root immediately
         const root = document.documentElement;
 
@@ -49,7 +70,9 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     }, [theme]);
 
     const toggleTheme = () => {
-        setTheme(prev => prev === 'dark' ? 'light' : 'dark');
+        const newTheme = theme === 'dark' ? 'light' : 'dark';
+        setTheme(newTheme);
+        localStorage.setItem('theme', newTheme);
     };
 
     return (

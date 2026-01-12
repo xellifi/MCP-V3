@@ -151,6 +151,7 @@ export interface AdminSettings {
   affiliateCurrency?: string; // e.g. 'USD'
   affiliateMinWithdrawal?: number;
   affiliateWithdrawalDays?: number[]; // 0=Sun, 1=Mon...
+  defaultTheme?: 'dark' | 'light';
 }
 
 export interface IntegrationSettings {

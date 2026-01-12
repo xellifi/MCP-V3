@@ -190,8 +190,8 @@ const SchedulerBuilder: React.FC<SchedulerBuilderProps> = ({ workspace, onBack }
         <button
           onClick={handleBack}
           className={`p-2 backdrop-blur-md rounded-lg border shadow-lg transition-all ${isDark
-              ? 'bg-white/10 hover:bg-white/20 text-white border-white/10'
-              : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200'
+            ? 'bg-white/10 hover:bg-white/20 text-white border-white/10'
+            : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200'
             }`}
           title={isFullScreen ? "Exit Full Screen" : "Back"}
         >
@@ -206,8 +206,8 @@ const SchedulerBuilder: React.FC<SchedulerBuilderProps> = ({ workspace, onBack }
       {/* Floating Toolbar - Top Center */}
       <div className="absolute top-20 md:top-6 left-1/2 -translate-x-1/2 z-20 flex gap-2">
         <div className={`p-1.5 rounded-xl border shadow-2xl flex items-center gap-1.5 backdrop-blur-xl ${isDark
-            ? 'glass-panel border-white/10'
-            : 'bg-white/80 border-white/20 shadow-slate-200/50'
+          ? 'glass-panel border-white/10'
+          : 'bg-white/80 border-white/20 shadow-slate-200/50'
           }`}>
           <div onDragStart={(event) => onDragStart(event, 'visualTrigger')} draggable onClick={() => addNode('visualTrigger')} className="group relative w-9 h-9 bg-gradient-to-br from-orange-500 to-pink-600 rounded-lg flex items-center justify-center text-white shadow-lg hover:scale-105 transition-transform cursor-grab active:cursor-grabbing">
             <Zap className="w-5 h-5" />
@@ -249,8 +249,8 @@ const SchedulerBuilder: React.FC<SchedulerBuilderProps> = ({ workspace, onBack }
         <button
           onClick={() => setIsFullScreen(!isFullScreen)}
           className={`group relative p-2.5 backdrop-blur-md rounded-xl border shadow-lg transition-all ${isDark
-              ? 'bg-white/5 hover:bg-white/10 text-white border-white/10'
-              : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200 shadow-slate-200/50'
+            ? 'bg-white/5 hover:bg-white/10 text-white border-white/10'
+            : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200 shadow-slate-200/50'
             }`}
           title={isFullScreen ? "Exit Full Screen (Esc)" : "Full Screen"}
         >
@@ -261,8 +261,8 @@ const SchedulerBuilder: React.FC<SchedulerBuilderProps> = ({ workspace, onBack }
         </button>
         <button
           className={`group relative p-2.5 backdrop-blur-md rounded-xl border shadow-lg transition-all ${isDark
-              ? 'bg-white/5 hover:bg-white/10 text-white border-white/10'
-              : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200 shadow-slate-200/50'
+            ? 'bg-white/5 hover:bg-white/10 text-white border-white/10'
+            : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200 shadow-slate-200/50'
             }`}
           title="Save Flow"
         >

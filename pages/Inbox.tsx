@@ -6,11 +6,14 @@ import { Search, Send, User, Facebook, Instagram, Image as ImageIcon, Smile, Mor
 import { supabase } from '../lib/supabase';
 
 
+import { useTheme } from '../context/ThemeContext';
+
 interface InboxProps {
   workspace: Workspace;
 }
 
 const Inbox: React.FC<InboxProps> = ({ workspace }) => {
+  const { isDark } = useTheme();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -313,16 +316,20 @@ const Inbox: React.FC<InboxProps> = ({ workspace }) => {
   const selectedSubscriber = selectedConversation ? subscribers[selectedConversation.subscriberId] : null;
 
   return (
-    <div className="h-[calc(100dvh-6rem)] md:h-[calc(100vh-8rem)] glass-panel rounded-2xl border border-white/10 flex overflow-hidden animate-fade-in shadow-2xl shadow-black/20">
+    <div className={`h-[calc(100dvh-6rem)] md:h-[calc(100vh-8rem)] rounded-2xl border flex overflow-hidden animate-fade-in shadow-2xl ${isDark
+      ? 'glass-panel border-white/10 shadow-black/20'
+      : 'bg-white border-slate-200 shadow-slate-200/50'
+      }`}>
 
       {/* Sidebar List - Hidden on mobile if conversation selected */}
       <div className={`
-        w-full md:w-80 lg:w-96 border-r border-white/10 flex-col bg-slate-900/50 backdrop-blur-sm
+        w-full md:w-80 lg:w-96 border-r flex-col backdrop-blur-sm
         ${selectedConversationId ? 'hidden md:flex' : 'flex'}
+        ${isDark ? 'border-white/10 bg-slate-900/50' : 'border-slate-200 bg-slate-50/80'}
       `}>
-        <div className="p-4 border-b border-white/10 flex-shrink-0">
+        <div className={`p-4 border-b flex-shrink-0 ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
           <div className="flex items-center justify-between mb-4 px-1">
-            <h2 className="text-xl font-bold text-white">Inbox</h2>
+            <h2 className={`text-xl font-bold ${isDark ? 'text-white' : 'text-slate-800'}`}>Inbox</h2>
             <button
               onClick={syncMessages}
               disabled={syncing}
@@ -337,14 +344,17 @@ const Inbox: React.FC<InboxProps> = ({ workspace }) => {
           {/* Page Selector */}
           <div className="mb-3">
             {loadingPages ? (
-              <div className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-sm text-slate-400 flex items-center justify-center">
+              <div className={`w-full px-4 py-2.5 border rounded-xl text-sm flex items-center justify-center ${isDark ? 'bg-white/5 border-white/10 text-slate-400' : 'bg-white border-slate-200 text-slate-500'}`}>
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-indigo-500"></div>
               </div>
             ) : (
               <div className="relative">
                 <button
                   onClick={() => setShowPageDropdown(!showPageDropdown)}
-                  className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-xl text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all cursor-pointer flex items-center gap-2 hover:bg-white/10"
+                  className={`w-full px-3 py-2.5 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all cursor-pointer flex items-center gap-2 ${isDark
+                    ? 'bg-white/5 border-white/10 text-slate-200 hover:bg-white/10'
+                    : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                    }`}
                 >
                   {selectedPageId ? (
                     <>
@@ -352,7 +362,7 @@ const Inbox: React.FC<InboxProps> = ({ workspace }) => {
                         <img
                           src={connectedPages.find(p => p.pageId === selectedPageId)?.pageImageUrl}
                           alt=""
-                          className="w-8 h-8 rounded-full object-cover ring-2 ring-white/10"
+                          className={`w-8 h-8 rounded-full object-cover ring-2 ${isDark ? 'ring-white/10' : 'ring-slate-100'}`}
                         />
                       ) : (
                         <Facebook className="w-6 h-6 text-blue-500" />
@@ -363,27 +373,32 @@ const Inbox: React.FC<InboxProps> = ({ workspace }) => {
                     </>
                   ) : (
                     <>
-                      <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400 ring-2 ring-white/10">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-blue-400 ring-2 ${isDark ? 'bg-blue-500/20 ring-white/10' : 'bg-blue-50 ring-slate-100'}`}>
                         <Facebook className="w-5 h-5" />
                       </div>
                       <span className="flex-1 text-left font-medium">All Pages ({connectedPages.length})</span>
                     </>
                   )}
-                  <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${showPageDropdown ? 'rotate-180' : ''}`} />
+                  <ChevronDown className={`w-4 h-4 transition-transform ${showPageDropdown ? 'rotate-180' : ''} ${isDark ? 'text-slate-400' : 'text-slate-500'}`} />
                 </button>
 
                 {showPageDropdown && (
-                  <div className="absolute z-50 w-full mt-2 bg-slate-900 border border-white/10 rounded-xl shadow-2xl max-h-64 overflow-y-auto custom-scrollbar backdrop-blur-xl">
+                  <div className={`absolute z-50 w-full mt-2 border rounded-xl shadow-2xl max-h-64 overflow-y-auto custom-scrollbar backdrop-blur-xl ${isDark
+                    ? 'bg-slate-900 border-white/10'
+                    : 'bg-white border-slate-200'
+                    }`}>
                     {/* All Pages Option */}
                     <button
                       onClick={() => {
                         setSelectedPageId(null);
                         setShowPageDropdown(false);
                       }}
-                      className={`w-full px-3 py-2.5 text-left hover:bg-white/5 transition-colors flex items-center gap-2 ${!selectedPageId ? 'bg-indigo-500/20 text-indigo-300' : 'text-slate-300'
+                      className={`w-full px-3 py-2.5 text-left transition-colors flex items-center gap-2 ${!selectedPageId
+                        ? 'bg-indigo-500/20 text-indigo-300'
+                        : isDark ? 'text-slate-300 hover:bg-white/5' : 'text-slate-600 hover:bg-slate-50'
                         }`}
                     >
-                      <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-blue-400 ${isDark ? 'bg-blue-500/20' : 'bg-blue-50'}`}>
                         <Facebook className="w-5 h-5" />
                       </div>
                       <span className="flex-1 text-sm font-medium">All Pages ({connectedPages.length})</span>
@@ -397,7 +412,9 @@ const Inbox: React.FC<InboxProps> = ({ workspace }) => {
                           setSelectedPageId(page.pageId);
                           setShowPageDropdown(false);
                         }}
-                        className={`w-full px-3 py-2.5 text-left hover:bg-white/5 transition-colors flex items-center gap-2 ${selectedPageId === page.pageId ? 'bg-indigo-500/20 text-indigo-300' : 'text-slate-300'
+                        className={`w-full px-3 py-2.5 text-left transition-colors flex items-center gap-2 ${selectedPageId === page.pageId
+                          ? 'bg-indigo-500/20 text-indigo-300'
+                          : isDark ? 'text-slate-300 hover:bg-white/5' : 'text-slate-600 hover:bg-slate-50'
                           }`}
                       >
                         {page.pageImageUrl ? (
@@ -430,7 +447,10 @@ const Inbox: React.FC<InboxProps> = ({ workspace }) => {
             <input
               type="text"
               placeholder="Search conversations..."
-              className="w-full pl-10 pr-4 py-2 bg-white/5 border border-transparent focus:border-indigo-500/50 focus:bg-white/10 rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all placeholder-slate-500"
+              className={`w-full pl-10 pr-4 py-2 border focus:border-indigo-500/50 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all ${isDark
+                ? 'bg-white/5 border-transparent focus:bg-white/10 text-white placeholder-slate-500'
+                : 'bg-white border-slate-200 focus:bg-white text-slate-800 placeholder-slate-400'
+                }`}
             />
           </div>
         </div>
@@ -456,13 +476,13 @@ const Inbox: React.FC<InboxProps> = ({ workspace }) => {
                     onClick={() => setSelectedConversationId(conv.id)}
                     className={`w-full p-4 flex items-start gap-3 transition-all duration-200 text-left border-l-[3px] ${isSelected
                       ? 'bg-indigo-500/10 border-indigo-500 shadow-[inset_0_0_20px_rgba(99,102,241,0.1)]'
-                      : 'border-transparent hover:bg-white/5'}`}
+                      : `border-transparent ${isDark ? 'hover:bg-white/5' : 'hover:bg-slate-100'}`}`}
                   >
                     <div className="relative flex-shrink-0">
                       {sub.avatarUrl ? (
-                        <img src={sub.avatarUrl} alt={sub.name} className="w-12 h-12 rounded-full object-cover border border-white/10 shadow-sm" />
+                        <img src={sub.avatarUrl} alt={sub.name} className={`w-12 h-12 rounded-full object-cover shadow-sm ${isDark ? 'border border-white/10' : 'border border-slate-200'}`} />
                       ) : (
-                        <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center text-slate-400 border border-white/10">
+                        <div className={`w-12 h-12 rounded-full flex items-center justify-center text-slate-400 border ${isDark ? 'bg-white/5 border-white/10' : 'bg-slate-100 border-slate-200'}`}>
                           <User className="w-6 h-6" />
                         </div>
                       )}
@@ -488,12 +508,12 @@ const Inbox: React.FC<InboxProps> = ({ workspace }) => {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex justify-between items-baseline mb-1">
-                        <span className={`font-semibold truncate ${isSelected ? 'text-white' : 'text-slate-200'}`}>{sub.name}</span>
+                        <span className={`font-semibold truncate ${isSelected ? (isDark ? 'text-white' : 'text-indigo-900') : (isDark ? 'text-slate-200' : 'text-slate-800')}`}>{sub.name}</span>
                         <span className="text-xs text-slate-500 flex-shrink-0 ml-2 font-medium">
                           {format(new Date(conv.updatedAt), 'MMM d')}
                         </span>
                       </div>
-                      <p className={`text-sm truncate ${conv.unreadCount > 0 ? 'font-semibold text-white' : 'text-slate-500'}`}>
+                      <p className={`text-sm truncate ${conv.unreadCount > 0 ? (isDark ? 'font-semibold text-white' : 'font-semibold text-slate-900') : 'text-slate-500'}`}>
                         {conv.lastMessagePreview}
                       </p>
                     </div>
@@ -507,10 +527,10 @@ const Inbox: React.FC<InboxProps> = ({ workspace }) => {
               })}
               {conversations.length === 0 && (
                 <div className="p-12 text-center text-slate-500 flex flex-col items-center">
-                  <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mb-4 border border-white/10">
+                  <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-4 border ${isDark ? 'bg-white/5 border-white/10' : 'bg-slate-100 border-slate-200'}`}>
                     <MessageSquare className="w-8 h-8 opacity-40" />
                   </div>
-                  <h3 className="text-white font-medium mb-1">No conversations</h3>
+                  <h3 className={`font-medium mb-1 ${isDark ? 'text-white' : 'text-slate-800'}`}>No conversations</h3>
                   <p className="text-sm">When you receive messages, they will appear here.</p>
                 </div>
               )}
@@ -521,17 +541,21 @@ const Inbox: React.FC<InboxProps> = ({ workspace }) => {
 
       {/* Chat Area - Hidden on mobile if no conversation selected */}
       <div className={`
-        flex-1 flex-col min-w-0 bg-slate-900/50 backdrop-blur-md
+        flex-1 flex-col min-w-0 transition-colors
         ${selectedConversationId ? 'flex' : 'hidden md:flex'}
+        ${isDark ? 'bg-slate-900/50 backdrop-blur-md' : 'bg-white'}
       `}>
         {selectedConversationId ? (
           <>
             {/* Chat Header */}
-            <div className="h-16 px-4 md:px-6 border-b border-white/10 flex items-center justify-between flex-shrink-0 bg-slate-900/80 backdrop-blur-xl z-10 shadow-lg relative">
+            <div className={`h-16 px-4 md:px-6 border-b flex items-center justify-between flex-shrink-0 z-10 shadow-lg relative ${isDark
+              ? 'border-white/10 bg-slate-900/80 backdrop-blur-xl'
+              : 'border-slate-200 bg-white/90 backdrop-blur-xl'
+              }`}>
               <div className="flex items-center gap-3 min-w-0">
                 <button
                   onClick={() => setSelectedConversationId(null)}
-                  className="md:hidden p-2 -ml-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-full transition-colors"
+                  className={`md:hidden p-2 -ml-2 rounded-full transition-colors ${isDark ? 'text-slate-400 hover:text-white hover:bg-white/10' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100'}`}
                 >
                   <ArrowLeft className="w-5 h-5" />
                 </button>
@@ -540,18 +564,21 @@ const Inbox: React.FC<InboxProps> = ({ workspace }) => {
                   <div className="flex items-center gap-3 overflow-hidden">
                     <div className="relative flex-shrink-0">
                       {selectedSubscriber.avatarUrl ? (
-                        <img src={selectedSubscriber.avatarUrl} alt={selectedSubscriber.name} className="w-10 h-10 rounded-full object-cover border border-white/10 shadow-sm" />
+                        <img src={selectedSubscriber.avatarUrl} alt={selectedSubscriber.name} className={`w-10 h-10 rounded-full object-cover shadow-sm ${isDark ? 'border border-white/10' : 'border border-slate-200'}`} />
                       ) : (
-                        <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-slate-400">
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center text-slate-400 ${isDark ? 'bg-white/10' : 'bg-slate-100'}`}>
                           <User className="w-5 h-5" />
                         </div>
                       )}
                     </div>
                     <div className="min-w-0">
-                      <h3 className="font-bold text-white truncate text-sm md:text-base">{selectedSubscriber.name}</h3>
+                      <h3 className={`font-bold truncate text-sm md:text-base ${isDark ? 'text-white' : 'text-slate-900'}`}>{selectedSubscriber.name}</h3>
                       <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
                         {selectedSubscriber.tags.map(tag => (
-                          <span key={tag} className="px-1.5 py-0.5 bg-white/5 text-slate-400 text-[10px] uppercase tracking-wide rounded font-semibold flex-shrink-0 border border-white/10">
+                          <span key={tag} className={`px-1.5 py-0.5 text-[10px] uppercase tracking-wide rounded font-semibold flex-shrink-0 border ${isDark
+                            ? 'bg-white/5 text-slate-400 border-white/10'
+                            : 'bg-slate-100 text-slate-600 border-slate-200'
+                            }`}>
                             {tag}
                           </span>
                         ))}
@@ -564,14 +591,20 @@ const Inbox: React.FC<InboxProps> = ({ workspace }) => {
                 <div className="relative">
                   <button
                     onClick={() => setShowConversationMenu(!showConversationMenu)}
-                    className="p-2 text-slate-400 hover:text-white hover:bg-white/5 rounded-full transition-colors"
+                    className={`p-2 rounded-full transition-colors ${isDark
+                      ? 'text-slate-400 hover:text-white hover:bg-white/5'
+                      : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100'
+                      }`}
                   >
                     <MoreVertical className="w-5 h-5" />
                   </button>
 
                   {showConversationMenu && (
-                    <div className="absolute right-0 mt-2 w-56 bg-slate-900 border border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden ring-1 ring-black/5 animate-fade-in origin-top-right">
-                      <div className="p-3 border-b border-white/10 bg-white/5">
+                    <div className={`absolute right-0 mt-2 w-56 border rounded-xl shadow-2xl z-50 overflow-hidden ring-1 ring-black/5 animate-fade-in origin-top-right ${isDark
+                      ? 'bg-slate-900 border-white/10'
+                      : 'bg-white border-slate-200'
+                      }`}>
+                      <div className={`p-3 border-b ${isDark ? 'border-white/10 bg-white/5' : 'border-slate-100 bg-slate-50'}`}>
                         <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Options</p>
                       </div>
                       <button
@@ -611,7 +644,9 @@ const Inbox: React.FC<InboxProps> = ({ workspace }) => {
                         <div className={`max-w-[75%] md:max-w-[65%] leading-relaxed ${isOutbound ? 'ml-auto' : 'mr-auto'}`}>
                           <div className={`px-4 py-3 shadow-lg text-sm md:text-[15px] backdrop-blur-sm ${isOutbound
                             ? 'bg-gradient-to-br from-indigo-600 to-purple-600 text-white rounded-2xl rounded-tr-sm border border-indigo-500/20'
-                            : 'glass-panel bg-slate-800/80 text-slate-200 border-white/10 rounded-2xl rounded-tl-sm'
+                            : isDark
+                              ? 'glass-panel bg-slate-800/80 text-slate-200 border-white/10 rounded-2xl rounded-tl-sm'
+                              : 'bg-white text-slate-800 border border-slate-200 shadow-sm rounded-2xl rounded-tl-sm'
                             }`}>
                             {msg.type === 'IMAGE' && msg.attachmentUrl && (
                               <img
@@ -707,7 +742,7 @@ const Inbox: React.FC<InboxProps> = ({ workspace }) => {
             )}
 
             {/* Input */}
-            <div className="p-4 bg-slate-900/80 backdrop-blur-xl border-t border-white/10 flex-shrink-0 z-20">
+            <div className={`p-4 border-t flex-shrink-0 z-20 ${isDark ? 'bg-slate-900/80 backdrop-blur-xl border-white/10' : 'bg-white border-slate-200'}`}>
               <form onSubmit={handleSendMessage} className="flex items-end gap-2 p-1 relative">
                 <div className="flex gap-2 mb-2">
                   <input
@@ -722,17 +757,23 @@ const Inbox: React.FC<InboxProps> = ({ workspace }) => {
                     onClick={() => fileInputRef.current?.click()}
                     className={`p-3 rounded-full transition-all ${selectedFile
                       ? 'text-white bg-indigo-500/20'
-                      : 'text-slate-400 hover:text-white hover:bg-white/10'}`}
+                      : isDark ? 'text-slate-400 hover:text-white hover:bg-white/10' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'}`}
                     title="Attach file"
                   >
                     <Paperclip className="w-5 h-5" />
                   </button>
-                  <button type="button" className="p-3 text-slate-400 hover:text-amber-400 rounded-full hover:bg-white/10 transition-colors">
+                  <button type="button" className={`p-3 rounded-full transition-colors ${isDark
+                    ? 'text-slate-400 hover:text-amber-400 hover:bg-white/10'
+                    : 'text-slate-400 hover:text-amber-500 hover:bg-slate-100'
+                    }`}>
                     <Smile className="w-5 h-5" />
                   </button>
                 </div>
 
-                <div className="flex-1 bg-white/5 rounded-2xl flex items-center border border-white/5 focus-within:border-indigo-500/50 focus-within:bg-white/10 focus-within:ring-2 focus-within:ring-indigo-500/20 transition-all">
+                <div className={`flex-1 rounded-2xl flex items-center border transition-all ${isDark
+                  ? 'bg-white/5 border-white/5 focus-within:border-indigo-500/50 focus-within:bg-white/10'
+                  : 'bg-slate-50 border-slate-200 focus-within:border-indigo-500/50 focus-within:bg-white'
+                  } focus-within:ring-2 focus-within:ring-indigo-500/20`}>
                   <textarea
                     value={inputText}
                     onChange={e => setInputText(e.target.value)}
@@ -743,7 +784,7 @@ const Inbox: React.FC<InboxProps> = ({ workspace }) => {
                       }
                     }}
                     placeholder={selectedFile ? "Add a caption..." : "Type a message..."}
-                    className="flex-1 bg-transparent border-none focus:ring-0 text-white placeholder:text-slate-500 resize-none py-3 px-4 max-h-32 text-sm leading-relaxed"
+                    className={`flex-1 bg-transparent border-none focus:ring-0 resize-none py-3 px-4 max-h-32 text-sm leading-relaxed ${isDark ? 'text-white placeholder:text-slate-500' : 'text-slate-900 placeholder:text-slate-400'}`}
                     rows={1}
                     style={{ minHeight: '3rem' }}
                   />
@@ -763,12 +804,15 @@ const Inbox: React.FC<InboxProps> = ({ workspace }) => {
           </>
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center p-8 text-center animate-fade-in">
-            <div className="w-24 h-24 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-6 shadow-2xl rotate-3 hover:rotate-6 transition-transform duration-500">
+            <div className={`w-24 h-24 rounded-full border flex items-center justify-center mb-6 shadow-2xl rotate-3 hover:rotate-6 transition-transform duration-500 ${isDark
+              ? 'bg-white/5 border-white/10'
+              : 'bg-white border-slate-200 shadow-slate-200'
+              }`}>
               <div className="absolute inset-0 bg-gradient-to-tr from-indigo-500/20 to-transparent rounded-full" />
               <MessageSquare className="w-12 h-12 text-indigo-400 drop-shadow-glow" />
             </div>
-            <h3 className="text-2xl font-bold text-white mb-2">Your Inbox</h3>
-            <p className="text-slate-400 max-w-xs mx-auto leading-relaxed text-lg">
+            <h3 className={`text-2xl font-bold mb-2 ${isDark ? 'text-white' : 'text-slate-800'}`}>Your Inbox</h3>
+            <p className={`max-w-xs mx-auto leading-relaxed text-lg ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
               Select a conversation from the sidebar to start chatting with your subscribers.
             </p>
           </div>
