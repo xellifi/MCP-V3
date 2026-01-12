@@ -2396,7 +2396,7 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
             panOnScroll={false}
             panOnDrag={true}
           >
-            <Background color="#1e293b" gap={20} />
+            <Background color={isDark ? "#1e293b" : "#d1d5db"} gap={20} />
             <Controls className="hidden md:block !bg-slate-800 !border-white/10 !shadow-xl [&>button]:!fill-slate-400 [&>button:hover]:!fill-white" />
             <MiniMap
               className="hidden md:block !bg-slate-900/80 !backdrop-blur-sm !border-slate-700 !shadow-xl !rounded-lg overflow-hidden"
