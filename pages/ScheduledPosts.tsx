@@ -16,6 +16,7 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 import { Workspace } from '../types';
 import { Plus, Zap, Sparkles, Table, Globe, Save, Play, Settings, Wrench, X, Eye, Database, BrainCircuit, CalendarDays, ArrowLeft, Clock, MoreHorizontal, Edit, Trash, LayoutGrid, List, Maximize2, Minimize2 } from 'lucide-react';
+import { useTheme } from '../context/ThemeContext';
 import VisualTriggerNode from '../components/visual_nodes/VisualTriggerNode';
 import VisualAINode from '../components/visual_nodes/VisualAINode';
 import VisualSheetNode from '../components/visual_nodes/VisualSheetNode';
@@ -292,6 +293,7 @@ const SchedulerBuilder: React.FC<SchedulerBuilderProps> = ({ workspace, onBack }
 // --- Main Component ---
 
 const ScheduledPosts: React.FC<ScheduledPostsProps> = ({ workspace }) => {
+  const { isDark } = useTheme();
   const [view, setView] = useState<'list' | 'builder'>('list');
   const [scheduledItems, setScheduledItems] = useState<any[]>([]); // Start empty to show empty state
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid');
@@ -303,21 +305,27 @@ const ScheduledPosts: React.FC<ScheduledPostsProps> = ({ workspace }) => {
           {/* Header */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-white tracking-tight text-glow">Scheduler</h1>
-              <p className="text-slate-400 mt-1 text-lg">Plan and automate your content</p>
+              <h1 className={`text-3xl font-bold tracking-tight mb-1 ${isDark ? 'text-white text-glow' : 'text-slate-900'}`}>Scheduler</h1>
+              <p className={`text-lg ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Plan and automate your content</p>
             </div>
             <div className="flex items-center gap-3">
-              <div className="flex bg-white/5 p-1 rounded-lg border border-white/10">
+              <div className={`flex p-1 rounded-xl border ${isDark ? 'bg-white/5 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
                 <button
                   onClick={() => setViewMode('list')}
-                  className={`p-2 rounded-md transition-all ${viewMode === 'list' ? 'bg-indigo-500 text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
+                  className={`p-2 rounded-lg transition-all ${viewMode === 'list'
+                      ? 'bg-indigo-500 text-white shadow-md'
+                      : isDark ? 'text-slate-400 hover:text-white hover:bg-white/5' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-50'
+                    }`}
                   title="List View"
                 >
                   <List className="w-5 h-5" />
                 </button>
                 <button
                   onClick={() => setViewMode('grid')}
-                  className={`p-2 rounded-md transition-all ${viewMode === 'grid' ? 'bg-indigo-500 text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
+                  className={`p-2 rounded-lg transition-all ${viewMode === 'grid'
+                      ? 'bg-indigo-500 text-white shadow-md'
+                      : isDark ? 'text-slate-400 hover:text-white hover:bg-white/5' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-50'
+                    }`}
                   title="Grid View"
                 >
                   <LayoutGrid className="w-5 h-5" />
@@ -334,15 +342,17 @@ const ScheduledPosts: React.FC<ScheduledPostsProps> = ({ workspace }) => {
           </div>
 
           {/* Main Content Area */}
-          <div className="glass-panel rounded-2xl border border-white/10 min-h-[60vh] flex items-center justify-center p-8">
+          <div className={`rounded-2xl border min-h-[60vh] flex items-center justify-center p-8 ${isDark ? 'glass-panel border-white/10' : 'bg-white border-slate-200 shadow-sm'
+            }`}>
             {scheduledItems.length === 0 ? (
               /* Empty State */
               <div className="flex flex-col items-center justify-center text-center">
-                <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mb-6 border border-white/10 shadow-inner">
-                  <CalendarDays className="w-8 h-8 text-slate-500" />
+                <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-6 border shadow-inner ${isDark ? 'bg-white/5 border-white/10' : 'bg-slate-50 border-slate-200'
+                  }`}>
+                  <CalendarDays className={`w-8 h-8 ${isDark ? 'text-slate-500' : 'text-indigo-500'}`} />
                 </div>
-                <h3 className="text-xl font-bold text-white mb-2">No scheduled posts yet</h3>
-                <p className="text-slate-400 max-w-sm mb-8 text-lg">
+                <h3 className={`text-xl font-bold mb-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>No scheduled posts yet</h3>
+                <p className={`max-w-sm mb-8 text-lg ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                   Create your first automated schedule to publish content automatically.
                 </p>
                 <button
@@ -357,7 +367,8 @@ const ScheduledPosts: React.FC<ScheduledPostsProps> = ({ workspace }) => {
               /* List View (Mocked) */
               <div className="w-full self-start">
                 <table className="w-full text-left">
-                  <thead className="bg-white/5 text-slate-400 text-xs uppercase font-bold border-b border-white/10">
+                  <thead className={`text-xs uppercase font-bold border-b ${isDark ? 'bg-white/5 text-slate-400 border-white/10' : 'bg-slate-50 text-slate-500 border-slate-200'
+                    }`}>
                     <tr>
                       <th className="px-6 py-4">Name</th>
                       <th className="px-6 py-4">Channels</th>
@@ -366,10 +377,10 @@ const ScheduledPosts: React.FC<ScheduledPostsProps> = ({ workspace }) => {
                       <th className="px-6 py-4 text-right">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-white/5">
+                  <tbody className={`divide-y ${isDark ? 'divide-white/5' : 'divide-slate-100'}`}>
                     {scheduledItems.map(item => (
-                      <tr key={item.id} className="hover:bg-white/5 transition-colors">
-                        <td className="px-6 py-4 text-white font-medium">{item.name}</td>
+                      <tr key={item.id} className={`transition-colors ${isDark ? 'hover:bg-white/5' : 'hover:bg-slate-50'}`}>
+                        <td className={`px-6 py-4 font-medium ${isDark ? 'text-white' : 'text-slate-900'}`}>{item.name}</td>
                         <td className="px-6 py-4 text-slate-400">{item.channels}</td>
                         <td className="px-6 py-4 text-slate-400 flex items-center gap-2">
                           <Clock className="w-4 h-4" /> {item.nextRun}
@@ -378,7 +389,8 @@ const ScheduledPosts: React.FC<ScheduledPostsProps> = ({ workspace }) => {
                           <span className="inline-flex px-2 py-1 rounded-full text-xs font-bold bg-green-500/20 text-green-400 border border-green-500/30">Active</span>
                         </td>
                         <td className="px-6 py-4 text-right">
-                          <button className="p-2 text-slate-400 hover:text-white transition-colors">
+                          <button className={`p-2 transition-colors ${isDark ? 'text-slate-400 hover:text-white' : 'text-slate-400 hover:text-slate-700'
+                            }`}>
                             <MoreHorizontal className="w-5 h-5" />
                           </button>
                         </td>
