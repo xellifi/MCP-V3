@@ -2094,8 +2094,8 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
           <button
             onClick={() => navigate('/flows')}
             className={`p-2 backdrop-blur-md border rounded-xl transition-all shadow-lg ${isDark
-                ? 'bg-white/5 border-white/10 text-slate-400 hover:text-white hover:bg-white/10'
-                : 'bg-white border-gray-300 text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+              ? 'bg-white/5 border-white/10 text-slate-400 hover:text-white hover:bg-white/10'
+              : 'bg-white border-gray-300 text-gray-600 hover:text-gray-900 hover:bg-gray-50'
               }`}
           >
             <ArrowLeft className="w-5 h-5" />
@@ -2151,8 +2151,8 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
         <button
           onClick={() => setIsFullscreen(!isFullscreen)}
           className={`group relative hidden md:flex w-10 h-10 items-center justify-center backdrop-blur-md rounded-xl transition-all border shadow-lg active:scale-95 ${isDark
-              ? 'bg-white/10 border-white/10 text-white hover:bg-white/20'
-              : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
+            ? 'bg-white/10 border-white/10 text-white hover:bg-white/20'
+            : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
             }`}
           title={isFullscreen ? 'Exit Fullscreen (ESC)' : 'Fullscreen'}
         >
@@ -2166,8 +2166,8 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
           onClick={handleSave}
           disabled={isSaving}
           className={`group relative w-10 h-10 flex items-center justify-center backdrop-blur-md rounded-xl transition-all border shadow-lg disabled:opacity-50 ${isDark
-              ? 'bg-white/10 border-white/10 text-white hover:bg-white/20'
-              : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
+            ? 'bg-white/10 border-white/10 text-white hover:bg-white/20'
+            : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
             }`}
         >
           <Save className="w-4 h-4" />
@@ -2177,10 +2177,10 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
         </button>
 
         <button
-          onClick={autoRearrangeNodes}
+          onClick={handleResetLayout}
           className={`group relative w-10 h-10 flex items-center justify-center backdrop-blur-md rounded-xl transition-all border shadow-lg ${isDark
-              ? 'bg-white/10 border-white/10 text-white hover:bg-white/20'
-              : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
+            ? 'bg-white/10 border-white/10 text-white hover:bg-white/20'
+            : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
             }`}
         >
           <RotateCcw className="w-4 h-4" />
