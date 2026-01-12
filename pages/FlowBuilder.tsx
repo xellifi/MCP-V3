@@ -20,6 +20,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Workspace, ConnectedPage } from '../types';
 import { Save, ArrowLeft, PlayCircle, Menu, X, Grid3x3, MessageCircle, Play, Bot, Send, Clock, MousePointer2, SquareMousePointer, Sparkles, GitBranch, MessageSquare, RectangleEllipsis, Plus, Minus, Maximize, Maximize2, Minimize2, Wrench, RotateCcw, Image, Video, FileText, Table, RefreshCw, ShoppingBag, Tag, Receipt, Package, ShoppingCart, Table2, ClipboardList, ArrowUp, ArrowDown, Globe } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
+import { useTheme } from '../context/ThemeContext';
 import NodeConfigModal from '../components/NodeConfigModal';
 import TriggerNodeForm from '../components/TriggerNodeForm';
 import CommentReplyNodeForm from '../components/CommentReplyNodeForm';
@@ -2081,8 +2082,11 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
     toast.success('Nodes rearranged');
   }, [nodes, edges, setNodes, reactFlowInstance, toast]);
 
+  const { isDark } = useTheme();
+
   return (
-    <div className={`${isFullscreen ? 'fixed inset-0 z-50' : 'h-[calc(100vh-60px)] w-full -m-6 relative'} bg-slate-950 overflow-hidden`}>
+    <div className={`${isFullscreen ? 'fixed inset-0 z-50' : 'h-[calc(100vh-60px)] w-full -m-6 relative'} ${isDark ? 'bg-slate-950' : 'bg-gray-50'
+      } overflow-hidden`}>
 
       {/* Header Overlay (Title & Back) - Hidden on Mobile to save space, or kept minimal */}
       <div className="absolute top-6 left-6 z-10 hidden md:block">
@@ -2358,7 +2362,8 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
         </div>
       </div>
 
-      <div className="flex-1 h-full bg-slate-950 relative">
+      <div className={`flex-1 h-full relative ${isDark ? 'bg-slate-950' : 'bg-gray-50'
+        }`}>
         <div
           ref={reactFlowWrapper}
           className="w-full h-full"
@@ -2377,7 +2382,7 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
             nodeTypes={nodeTypes}
             edgeTypes={edgeTypes}
             fitView={nodes.length === 0}
-            className="bg-slate-950"
+            className={isDark ? 'bg-slate-950' : 'bg-gray-50'}
             defaultEdgeOptions={{
               type: 'custom',
               animated: true,
