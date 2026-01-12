@@ -215,7 +215,7 @@ const ConnectedPages: React.FC<ConnectedPagesProps> = ({ workspace }) => {
         </button>
       </div>
 
-      <div className={`grid gap-4 ${viewMode === 'grid' ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5' : 'grid-cols-1'}`}>
+      <div className={`grid gap-4 ${viewMode === 'grid' ? 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5' : 'grid-cols-1'}`}>
         {currentItems.map(page => (
           <div key={page.id} className={`relative rounded-2xl border overflow-hidden group hover:shadow-[0_0_30px_rgba(99,102,241,0.2)] transition-all duration-300 ease-out isolate ${isDark
             ? 'glass-panel border-white/10 hover:border-indigo-500/50'
