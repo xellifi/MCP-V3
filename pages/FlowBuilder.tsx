@@ -2411,15 +2411,19 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
           >
             <Background
               variant={BackgroundVariant.Dots}
-              color={isDark ? "#334155" : "#cbd5e1"}
-              gap={20}
-              size={1}
+              color={isDark ? "#475569" : "#94a3b8"}
+              gap={25}
+              size={2}
             />
-            <Controls className="hidden md:block !bg-slate-800 !border-white/10 !shadow-xl [&>button]:!fill-slate-400 [&>button:hover]:!fill-white" />
+            <Controls className={`hidden md:block !shadow-xl border ${isDark
+                ? '!bg-slate-800 !border-white/10 [&>button]:!fill-slate-400 [&>button:hover]:!fill-white'
+                : '!bg-white !border-gray-300 [&>button]:!fill-gray-600 [&>button:hover]:!fill-gray-900'
+              }`} />
             <MiniMap
-              className="hidden md:block !bg-slate-900/80 !backdrop-blur-sm !border-slate-700 !shadow-xl !rounded-lg overflow-hidden"
+              className={`hidden md:block !backdrop-blur-sm !shadow-xl !rounded-lg overflow-hidden border ${isDark ? '!bg-slate-900/80 !border-slate-700' : '!bg-white/80 !border-gray-300'
+                }`}
               style={{ width: 120, height: 80 }}
-              maskColor="rgba(15, 23, 42, 0.7)"
+              maskColor={isDark ? "rgba(15, 23, 42, 0.7)" : "rgba(248, 250, 252, 0.7)"}
               nodeColor={(n) => {
                 if (n.type === 'triggerNode') return '#10b981';
                 if (n.type === 'actionNode') return '#06b6d4';
