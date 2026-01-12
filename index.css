@@ -77,12 +77,12 @@
 
 /* CRITICAL: Force all text inside React Flow nodes to be visible in both modes */
 /* BUT preserve colored badges and icons */
-.react-flow__node *:not([class*="bg-"]):not([class*="text-green"]):not([class*="text-blue"]):not([class*="text-red"]):not([class*="text-yellow"]):not([class*="text-orange"]):not([class*="text-purple"]):not([class*="text-pink"]):not([class*="text-indigo"]):not([class*="text-emerald"]) {
+.react-flow__node *:not([class*="bg-"]):not([class*="text-green"]):not([class*="text-blue"]):not([class*="text-red"]):not([class*="text-yellow"]):not([class*="text-orange"]):not([class*="text-purple"]):not([class*="text-pink"]):not([class*="text-indigo"]):not([class*="text-emerald"]):not([class*="text-sky"]):not([class*="text-rose"]):not([class*="text-cyan"]):not([class*="text-teal"]):not([class*="text-amber"]) {
   color: #111827 !important;
   /* Gray-900 for light mode */
 }
 
-.dark .react-flow__node *:not([class*="bg-"]):not([class*="text-green"]):not([class*="text-blue"]):not([class*="text-red"]):not([class*="text-yellow"]):not([class*="text-orange"]):not([class*="text-purple"]):not([class*="text-pink"]):not([class*="text-indigo"]):not([class*="text-emerald"]) {
+.dark .react-flow__node *:not([class*="bg-"]):not([class*="text-green"]):not([class*="text-blue"]):not([class*="text-red"]):not([class*="text-yellow"]):not([class*="text-orange"]):not([class*="text-purple"]):not([class*="text-pink"]):not([class*="text-indigo"]):not([class*="text-emerald"]):not([class*="text-sky"]):not([class*="text-rose"]):not([class*="text-cyan"]):not([class*="text-teal"]):not([class*="text-amber"]) {
   color: #f1f5f9 !important;
   /* Slate-100 for dark mode */
 }
@@ -90,7 +90,7 @@
 /* Ensure node labels are visible but preserve badge colors */
 .react-flow__node-default,
 .react-flow__node label:not([class*="bg-"]),
-.react-flow__node span:not([class*="bg-"]):not([class*="text-green"]):not([class*="text-blue"]):not([class*="text-red"]):not([class*="text-yellow"]):not([class*="text-orange"]):not([class*="text-purple"]):not([class*="text-pink"]):not([class*="text-indigo"]):not([class*="text-emerald"]),
+.react-flow__node span:not([class*="bg-"]):not([class*="text-green"]):not([class*="text-blue"]):not([class*="text-red"]):not([class*="text-yellow"]):not([class*="text-orange"]):not([class*="text-purple"]):not([class*="text-pink"]):not([class*="text-indigo"]):not([class*="text-emerald"]):not([class*="text-sky"]):not([class*="text-rose"]):not([class*="text-cyan"]):not([class*="text-teal"]):not([class*="text-amber"]),
 .react-flow__node p:not([class*="bg-"]),
 .react-flow__node h1:not([class*="bg-"]),
 .react-flow__node h2:not([class*="bg-"]),
@@ -105,7 +105,7 @@
 
 .dark .react-flow__node-default,
 .dark .react-flow__node label:not([class*="bg-"]),
-.dark .react-flow__node span:not([class*="bg-"]):not([class*="text-green"]):not([class*="text-blue"]):not([class*="text-red"]):not([class*="text-yellow"]):not([class*="text-orange"]):not([class*="text-purple"]):not([class*="text-pink"]):not([class*="text-indigo"]):not([class*="text-emerald"]),
+.dark .react-flow__node span:not([class*="bg-"]):not([class*="text-green"]):not([class*="text-blue"]):not([class*="text-red"]):not([class*="text-yellow"]):not([class*="text-orange"]):not([class*="text-purple"]):not([class*="text-pink"]):not([class*="text-indigo"]):not([class*="text-emerald"]):not([class*="text-sky"]):not([class*="text-rose"]):not([class*="text-cyan"]):not([class*="text-teal"]):not([class*="text-amber"]),
 .dark .react-flow__node p:not([class*="bg-"]),
 .dark .react-flow__node h1:not([class*="bg-"]),
 .dark .react-flow__node h2:not([class*="bg-"]),
