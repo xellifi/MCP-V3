@@ -119,6 +119,81 @@
     @apply bg-slate-900/60 backdrop-blur-2xl border border-white/5 shadow-lg;
   }
 
+  /* ========================================
+     UNIVERSAL LIGHT/DARK THEME UTILITIES
+     Use these classes for automatic theme support
+     ======================================== */
+
+  /* Text Colors - Primary (Headings) */
+  .text-primary {
+    @apply text-gray-900 dark:text-white;
+  }
+
+  /* Text Colors - Secondary (Descriptions) */
+  .text-secondary {
+    @apply text-gray-600 dark:text-slate-400;
+  }
+
+  /* Text Colors - Tertiary (Muted) */
+  .text-tertiary {
+    @apply text-gray-500 dark:text-slate-500;
+  }
+
+  /* Card/Panel Backgrounds */
+  .card-bg {
+    @apply bg-white dark:bg-white/5 border border-gray-300 dark:border-white/10;
+  }
+
+  /* Hover Card */
+  .card-hover {
+    @apply bg-white dark:bg-white/5 border border-gray-300 dark:border-white/10 hover:border-blue-400 dark:hover:border-indigo-500/50 transition-all;
+  }
+
+  /* Input Fields */
+  .input-field {
+    @apply bg-white dark:bg-black/20 border border-gray-300 dark:border-white/10 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-slate-500;
+  }
+
+  /* Buttons - Primary */
+  .btn-primary {
+    @apply bg-blue-600 hover:bg-blue-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-white;
+  }
+
+  /* Buttons - Secondary */
+  .btn-secondary {
+    @apply bg-gray-200 hover:bg-gray-300 dark:bg-white/5 dark:hover:bg-white/10 text-gray-700 dark:text-slate-300;
+  }
+
+  /* Icon Containers */
+  .icon-container {
+    @apply bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10;
+  }
+
+  /* Dividers */
+  .divider {
+    @apply border-gray-200 dark:border-white/10;
+  }
+
+  /* Page Header */
+  .page-header {
+    @apply text-3xl md:text-4xl font-bold tracking-tight text-gray-900 dark:text-white;
+  }
+
+  /* Page Description */
+  .page-description {
+    @apply text-base md:text-lg text-gray-600 dark:text-slate-400;
+  }
+
+  /* Stat Card Value */
+  .stat-value {
+    @apply text-2xl md:text-3xl font-bold text-gray-900 dark:text-white;
+  }
+
+  /* Stat Card Label */
+  .stat-label {
+    @apply text-xs md:text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-400;
+  }
+
   /* Premium gradient text */
   .gradient-text {
     background: linear-gradient(135deg, #a78bfa 0%, #818cf8 25%, #c084fc 50%, #f472b6 75%, #a78bfa 100%);

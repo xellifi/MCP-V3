@@ -28,8 +28,8 @@ const StatCard = ({ title, value, icon: Icon, gradient, loading }: any) => {
   const { isDark } = useTheme();
   return (
     <div className={`p-6 rounded-2xl border transition-all duration-300 hover:-translate-y-1 group relative overflow-hidden ${isDark
-      ? 'glass-panel border-white/10 hover:border-indigo-500/30'
-      : 'bg-white border-gray-300 hover:border-blue-400'
+        ? 'glass-panel border-white/10 hover:border-indigo-500/30'
+        : 'bg-white border-gray-300 hover:border-blue-400'
       }`}>
       <div className={`absolute -inset-1 bg-gradient-to-br ${gradient} opacity-0 group-hover:opacity-10 transition-opacity duration-500 blur-xl`}></div>
       <div className="relative z-10">
@@ -39,14 +39,12 @@ const StatCard = ({ title, value, icon: Icon, gradient, loading }: any) => {
           </div>
         </div>
         <div>
-          <p className={`text-sm font-semibold uppercase tracking-wide ${isDark ? 'text-slate-400' : 'text-gray-500'
-            }`}>{title}</p>
+          <p className="stat-label">{title}</p>
           {loading ? (
             <div className={`h-8 w-24 animate-pulse rounded mt-1 ${isDark ? 'bg-white/10' : 'bg-gray-200'
               }`}></div>
           ) : (
-            <h3 className={`text-3xl font-bold tracking-tight mt-1 ${isDark ? 'text-white' : 'text-gray-900'
-              }`}>{value.toLocaleString()}</h3>
+            <h3 className="stat-value mt-1">{value.toLocaleString()}</h3>
           )}
         </div>
       </div>
@@ -155,16 +153,15 @@ const Dashboard: React.FC<DashboardProps> = ({ workspace }) => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
-          <h1 className={`text-4xl font-bold tracking-tight mb-2 ${isDark ? 'text-white' : 'text-gray-900'
-            }`}>Dashboard</h1>
-          <p className={isDark ? 'text-slate-400 text-lg' : 'text-gray-600 text-lg'}>
+          <h1 className="page-header mb-2">Dashboard</h1>
+          <p className="page-description">
             Overview for <span className={`font-semibold ${isDark ? 'text-indigo-400' : 'text-blue-600'
               }`}>{workspace.name}</span>
           </p>
         </div>
         <div className={`px-4 py-2 rounded-xl border flex items-center gap-3 text-sm font-medium ${isDark
-            ? 'glass-panel border-white/10 text-slate-300'
-            : 'bg-white border-gray-300 text-gray-700'
+          ? 'glass-panel border-white/10 text-slate-300'
+          : 'bg-white border-gray-300 text-gray-700'
           }`}>
           <div className={`p-1.5 rounded-lg ${isDark ? 'bg-indigo-500/20' : 'bg-blue-50'
             }`}>
