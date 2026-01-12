@@ -309,17 +309,23 @@ const Flows: React.FC<FlowsProps> = ({ workspace }) => {
             }`}>Build flows to automate conversations</p>
         </div>
         <div className="flex items-center gap-3">
-          <div className="flex bg-white/5 p-1 rounded-lg border border-white/10">
+          <div className={`flex p-1 rounded-xl border ${isDark ? 'bg-white/5 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
             <button
               onClick={() => setViewMode('list')}
-              className={`p-2 rounded-md transition-all ${viewMode === 'list' ? 'bg-indigo-500 text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
+              className={`p-2 rounded-lg transition-all ${viewMode === 'list'
+                  ? 'bg-indigo-500 text-white shadow-md'
+                  : isDark ? 'text-slate-400 hover:text-white hover:bg-white/5' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-50'
+                }`}
               title="List View"
             >
               <List className="w-5 h-5" />
             </button>
             <button
               onClick={() => setViewMode('grid')}
-              className={`p-2 rounded-md transition-all ${viewMode === 'grid' ? 'bg-indigo-500 text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
+              className={`p-2 rounded-lg transition-all ${viewMode === 'grid'
+                  ? 'bg-indigo-500 text-white shadow-md'
+                  : isDark ? 'text-slate-400 hover:text-white hover:bg-white/5' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-50'
+                }`}
               title="Grid View"
             >
               <LayoutGrid className="w-5 h-5" />
@@ -336,17 +342,23 @@ const Flows: React.FC<FlowsProps> = ({ workspace }) => {
       </div>
 
       {viewMode === 'list' ? (
-        <div className="glass-panel rounded-2xl overflow-hidden text-slate-100">
-          <div className="p-4 border-b border-white/10 flex flex-col md:flex-row gap-4 bg-white/5 backdrop-blur-sm">
+        <div className={`rounded-2xl overflow-hidden border ${isDark ? 'glass-panel border-white/10 text-slate-100' : 'bg-white border-gray-200 shadow-sm text-slate-900'}`}>
+          <div className={`p-4 border-b flex flex-col md:flex-row gap-4 ${isDark ? 'bg-white/5 border-white/10' : 'bg-slate-50/50 border-slate-100'}`}>
             <div className="relative flex-1 max-w-md">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
               <input
                 type="text"
                 placeholder="Search flows..."
-                className="w-full pl-10 pr-4 py-2.5 text-sm bg-black/20 border border-white/10 text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-transparent placeholder-slate-500 transition-all"
+                className={`w-full pl-10 pr-4 py-2.5 text-sm rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-transparent transition-all border ${isDark
+                    ? 'bg-black/20 border-white/10 text-white placeholder-slate-500'
+                    : 'bg-white border-slate-200 text-slate-900 placeholder-slate-400 focus:bg-white'
+                  }`}
               />
             </div>
-            <select className="px-4 py-2.5 text-sm bg-black/20 border border-white/10 text-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all">
+            <select className={`px-4 py-2.5 text-sm rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all border ${isDark
+                ? 'bg-black/20 border-white/10 text-slate-300'
+                : 'bg-white border-slate-200 text-slate-700'
+              }`}>
               <option>All Status</option>
               <option>Active</option>
               <option>Draft</option>
@@ -355,7 +367,10 @@ const Flows: React.FC<FlowsProps> = ({ workspace }) => {
 
           <div className="overflow-x-auto">
             <table className="w-full text-left">
-              <thead className="bg-white/5 text-slate-400 text-xs uppercase font-bold border-b border-white/10">
+              <thead className={`text-xs uppercase font-bold border-b ${isDark
+                  ? 'bg-white/5 text-slate-400 border-white/10'
+                  : 'bg-slate-50 text-slate-500 border-slate-200'
+                }`}>
                 <tr>
                   <th className="px-6 py-4">Name</th>
                   <th className="px-6 py-4">Page</th>
@@ -364,7 +379,7 @@ const Flows: React.FC<FlowsProps> = ({ workspace }) => {
                   <th className="px-6 py-4 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/5">
+              <tbody className={`divide-y ${isDark ? 'divide-white/5' : 'divide-slate-100'}`}>
                 {loading ? (
                   <tr>
                     <td colSpan={5} className="px-6 py-12 text-center text-slate-500">
@@ -376,13 +391,16 @@ const Flows: React.FC<FlowsProps> = ({ workspace }) => {
                 ) : flows.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE).map(flow => {
                   const flowPage = getFlowPage(flow);
                   return (
-                    <tr key={flow.id} className="hover:bg-white/5 transition-colors group">
+                    <tr key={flow.id} className={`transition-colors group ${isDark ? 'hover:bg-white/5' : 'hover:bg-slate-50'}`}>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-4">
-                          <div className="w-10 h-10 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center shadow-lg shadow-indigo-500/10 border border-indigo-500/20">
-                            <Zap className="w-5 h-5 drop-shadow-glow" />
+                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-lg border ${isDark
+                              ? 'bg-indigo-500/20 text-indigo-400 shadow-indigo-500/10 border-indigo-500/20'
+                              : 'bg-indigo-50 text-indigo-600 border-indigo-100'
+                            }`}>
+                            <Zap className="w-5 h-5" />
                           </div>
-                          <span className="font-semibold text-white">{flow.name}</span>
+                          <span className={`font-semibold ${isDark ? 'text-white' : 'text-slate-900'}`}>{flow.name}</span>
                         </div>
                       </td>
                       <td className="px-6 py-4">
@@ -391,10 +409,10 @@ const Flows: React.FC<FlowsProps> = ({ workspace }) => {
                             <img
                               src={flowPage.pageImageUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(flowPage.name)}&background=1877F2&color=fff`}
                               alt={flowPage.name}
-                              className="w-8 h-8 rounded-full object-cover border-2 border-blue-500/30"
+                              className={`w-8 h-8 rounded-full object-cover border-2 shadow-sm ${isDark ? 'border-blue-500/30' : 'border-white'}`}
                             />
                             <div className="flex flex-col">
-                              <span className="text-sm font-medium text-white truncate max-w-[150px]">{flowPage.name}</span>
+                              <span className={`text-sm font-medium truncate max-w-[150px] ${isDark ? 'text-white' : 'text-slate-900'}`}>{flowPage.name}</span>
                               <span className="text-xs text-slate-500">Facebook Page</span>
                             </div>
                           </div>
@@ -413,21 +431,27 @@ const Flows: React.FC<FlowsProps> = ({ workspace }) => {
                           {flow.status}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-sm text-slate-400">
+                      <td className="px-6 py-4 text-sm text-slate-500">
                         {format(new Date(flow.updatedAt), 'MMM d, yyyy HH:mm')}
                       </td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex justify-end gap-2">
                           <button
                             onClick={() => navigate(`/flows/${flow.id}`)}
-                            className="p-2 text-slate-400 hover:text-indigo-400 hover:bg-white/5 rounded-lg transition-colors border border-transparent hover:border-white/10"
+                            className={`p-2 rounded-lg transition-colors border ${isDark
+                                ? 'text-slate-400 hover:text-indigo-400 hover:bg-white/5 border-transparent hover:border-white/10'
+                                : 'text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 border-transparent hover:border-indigo-100'
+                              }`}
                             title="Edit Flow"
                           >
                             <Edit className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => openDeleteModal(flow.id, flow.name)}
-                            className="p-2 text-slate-400 hover:text-red-400 hover:bg-white/5 rounded-lg transition-colors border border-transparent hover:border-white/10"
+                            className={`p-2 rounded-lg transition-colors border ${isDark
+                                ? 'text-slate-400 hover:text-red-400 hover:bg-white/5 border-transparent hover:border-white/10'
+                                : 'text-slate-400 hover:text-red-600 hover:bg-red-50 border-transparent hover:border-red-100'
+                              }`}
                             title="Delete Flow"
                           >
                             <Trash className="w-4 h-4" />
@@ -623,8 +647,8 @@ const Flows: React.FC<FlowsProps> = ({ workspace }) => {
 
           {/* Modal */}
           <div className={`relative rounded-2xl border shadow-2xl max-w-md w-full p-6 animate-fade-in ${isDark
-              ? 'bg-slate-800 border-white/10'
-              : 'bg-white border-gray-200'
+            ? 'bg-slate-800 border-white/10'
+            : 'bg-white border-gray-200'
             }`}>
             {/* Close button */}
             <button
@@ -652,8 +676,8 @@ const Flows: React.FC<FlowsProps> = ({ workspace }) => {
               <button
                 onClick={closeDeleteModal}
                 className={`flex-1 px-4 py-3 rounded-xl font-semibold transition-colors border ${isDark
-                    ? 'bg-white/5 hover:bg-white/10 text-white border-white/10'
-                    : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200'
+                  ? 'bg-white/5 hover:bg-white/10 text-white border-white/10'
+                  : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200'
                   }`}
               >
                 Cancel
