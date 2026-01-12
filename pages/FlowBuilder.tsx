@@ -19,7 +19,7 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Workspace, ConnectedPage } from '../types';
-import { Save, ArrowLeft, PlayCircle, Menu, X, Grid3x3, MessageCircle, Play, Bot, Send, Clock, MousePointer2, SquareMousePointer, Sparkles, GitBranch, MessageSquare, RectangleEllipsis, Plus, Minus, Maximize, Maximize2, Minimize2, Wrench, RotateCcw, Image, Video, FileText, Table, RefreshCw, ShoppingBag, Tag, Receipt, Package, ShoppingCart, Table2, ClipboardList, ArrowUp, ArrowDown, Globe } from 'lucide-react';
+import { Save, ArrowLeft, PlayCircle, Menu, X, Grid3x3, MessageCircle, Play, Bot, Send, Clock, MousePointer2, SquareMousePointer, Sparkles, GitBranch, MessageSquare, RectangleEllipsis, Plus, Minus, Maximize, Maximize2, Minimize2, Wrench, RotateCcw, Image, Video, FileText, Table, RefreshCw, ShoppingBag, Tag, Receipt, Package, ShoppingCart, Table2, ClipboardList, ArrowUp, ArrowDown, Globe, MoreHorizontal, ChevronDown } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import { useTheme } from '../context/ThemeContext';
 import NodeConfigModal from '../components/NodeConfigModal';
@@ -138,6 +138,7 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
   const [nodeConfigs, setNodeConfigs] = useState<NodeConfig>({});
   const [currentConfig, setCurrentConfig] = useState<any>({});
   const initialConfigRef = useRef<any>({});
+  const ecommerceToolsRef = useRef<HTMLDivElement>(null);
 
   // Ref to always have the latest nodeConfigs (avoids stale closure issues)
   const nodeConfigsRef = useRef<NodeConfig>({});
@@ -145,6 +146,17 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
   useEffect(() => {
     nodeConfigsRef.current = nodeConfigs;
   }, [nodeConfigs]);
+
+  // Handle click outside for toolbar dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (ecommerceToolsRef.current && !ecommerceToolsRef.current.contains(event.target as Node)) {
+        setShowEcommerceTools(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Stable callback for form onChange - auto-saves to nodeConfigs on every change
   // This ensures data is preserved even if modal is accidentally closed
@@ -1947,6 +1959,8 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
   );
 
   // Mobile tools operations (shown by default)
+  // Toolbar grouping state
+  const [showEcommerceTools, setShowEcommerceTools] = useState(false);
   const [isToolsOpen, setIsToolsOpen] = useState(true);
 
   // Reset/Rearrange nodes function - arranges nodes following edge connections horizontally
@@ -2207,97 +2221,123 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
         md:left-1/2 md:-translate-x-1/2 md:top-6
         left-6 top-20
       `}>
-        {/* Desktop: Horizontal toolbar at top center */}
         <div className={`
           hidden md:flex
-          glass-panel px-4 py-2 rounded-2xl border border-white/10 shadow-2xl backdrop-blur-xl
+          glass-panel px-3 py-2 rounded-2xl border border-white/10 shadow-2xl backdrop-blur-xl
           items-center gap-2
           transition-all duration-300 origin-top
           ${isToolsOpen ? 'scale-100' : 'scale-95'}
         `}>
-          <div className="flex items-center gap-2">
-            <div draggable onDragStart={(e) => onDragStart(e, 'startNode', 'Start')} onClick={() => addNode('startNode', 'Start')}
-              className="group relative w-10 h-10 bg-emerald-500/20 hover:bg-emerald-500/40 border border-emerald-500/30 rounded-xl flex items-center justify-center text-emerald-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
-              <Play className="w-5 h-5 fill-current" />
-              <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">Start</span>
+          <div className="flex items-center gap-1.5">
+            {/* Core Messages Group */}
+            <div className="flex items-center gap-1.5 pr-2 border-r border-gray-300 dark:border-white/10">
+              <div draggable onDragStart={(e) => onDragStart(e, 'startNode', 'Start')} onClick={() => addNode('startNode', 'Start')}
+                className="group relative w-9 h-9 bg-emerald-500/20 hover:bg-emerald-500/40 border border-emerald-500/30 rounded-xl flex items-center justify-center text-emerald-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
+                <Play className="w-4.5 h-4.5 fill-current" />
+                <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">Start</span>
+              </div>
+              <div draggable onDragStart={(e) => { e.dataTransfer.setData('application/reactflow-template', 'commentReply'); e.dataTransfer.effectAllowed = 'move'; }} onClick={() => addCommentReplyTemplate()}
+                className="group relative w-9 h-9 bg-blue-500/20 hover:bg-blue-500/40 border border-blue-500/30 rounded-xl flex items-center justify-center text-blue-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
+                <MessageCircle className="w-4.5 h-4.5" />
+                <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">Comment</span>
+              </div>
+              <div draggable onDragStart={(e) => onDragStart(e, 'textNode', 'Text')} onClick={() => addNode('textNode', 'Text')}
+                className="group relative w-9 h-9 bg-amber-500/20 hover:bg-amber-500/40 border border-amber-500/30 rounded-xl flex items-center justify-center text-amber-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
+                <MessageSquare className="w-4.5 h-4.5" />
+                <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">Text</span>
+              </div>
+              <div draggable onDragStart={(e) => onDragStart(e, 'imageNode', 'Image')} onClick={() => addNode('imageNode', 'Image')}
+                className="group relative w-9 h-9 bg-rose-500/20 hover:bg-rose-500/40 border border-rose-500/30 rounded-xl flex items-center justify-center text-rose-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
+                <Image className="w-4.5 h-4.5" />
+                <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">Image</span>
+              </div>
+              <div draggable onDragStart={(e) => onDragStart(e, 'videoNode', 'Video')} onClick={() => addNode('videoNode', 'Video')}
+                className="group relative w-9 h-9 bg-cyan-500/20 hover:bg-cyan-500/40 border border-cyan-500/30 rounded-xl flex items-center justify-center text-cyan-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
+                <Video className="w-4.5 h-4.5" />
+                <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">Video</span>
+              </div>
             </div>
-            <div draggable onDragStart={(e) => { e.dataTransfer.setData('application/reactflow-template', 'commentReply'); e.dataTransfer.effectAllowed = 'move'; }} onClick={() => addCommentReplyTemplate()}
-              className="group relative w-10 h-10 bg-blue-500/20 hover:bg-blue-500/40 border border-blue-500/30 rounded-xl flex items-center justify-center text-blue-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
-              <MessageCircle className="w-5 h-5" />
-              <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">Comment</span>
+
+            {/* Automation Group */}
+            <div className="flex items-center gap-1.5 pr-2 border-r border-gray-300 dark:border-white/10">
+              <div draggable onDragStart={(e) => onDragStart(e, 'aiNode', 'AI Agent')} onClick={() => addNode('aiNode', 'AI Agent')}
+                className="group relative w-9 h-9 bg-indigo-500/20 hover:bg-indigo-500/40 border border-indigo-500/30 rounded-xl flex items-center justify-center text-indigo-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
+                <Sparkles className="w-4.5 h-4.5" />
+                <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">AI Agent</span>
+              </div>
+              <div draggable onDragStart={(e) => onDragStart(e, 'conditionNode', 'Condition')} onClick={() => addNode('conditionNode', 'Condition')}
+                className="group relative w-9 h-9 bg-orange-500/20 hover:bg-orange-500/40 border border-orange-500/30 rounded-xl flex items-center justify-center text-orange-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
+                <GitBranch className="w-4.5 h-4.5" />
+                <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">Condition</span>
+              </div>
+              <div draggable onDragStart={(e) => onDragStart(e, 'followupNode', 'Follow-up')} onClick={() => addNode('followupNode', 'Follow-up')}
+                className="group relative w-9 h-9 bg-rose-500/20 hover:bg-rose-500/40 border border-rose-500/30 rounded-xl flex items-center justify-center text-rose-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
+                <RefreshCw className="w-4.5 h-4.5" />
+                <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">Follow-up</span>
+              </div>
             </div>
-            <div draggable onDragStart={(e) => onDragStart(e, 'textNode', 'Text')} onClick={() => addNode('textNode', 'Text')}
-              className="group relative w-10 h-10 bg-amber-500/20 hover:bg-amber-500/40 border border-amber-500/30 rounded-xl flex items-center justify-center text-amber-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
-              <MessageSquare className="w-5 h-5" />
-              <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">Text</span>
-            </div>
-            <div draggable onDragStart={(e) => onDragStart(e, 'imageNode', 'Image')} onClick={() => addNode('imageNode', 'Image')}
-              className="group relative w-10 h-10 bg-rose-500/20 hover:bg-rose-500/40 border border-rose-500/30 rounded-xl flex items-center justify-center text-rose-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
-              <Image className="w-5 h-5" />
-              <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">Image</span>
-            </div>
-            <div draggable onDragStart={(e) => onDragStart(e, 'videoNode', 'Video')} onClick={() => addNode('videoNode', 'Video')}
-              className="group relative w-10 h-10 bg-cyan-500/20 hover:bg-cyan-500/40 border border-cyan-500/30 rounded-xl flex items-center justify-center text-cyan-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
-              <Video className="w-5 h-5" />
-              <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">Video</span>
-            </div>
-            <div draggable onDragStart={(e) => onDragStart(e, 'aiNode', 'AI Agent')} onClick={() => addNode('aiNode', 'AI Agent')}
-              className="group relative w-10 h-10 bg-indigo-500/20 hover:bg-indigo-500/40 border border-indigo-500/30 rounded-xl flex items-center justify-center text-indigo-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
-              <Sparkles className="w-5 h-5" />
-              <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">AI Agent</span>
-            </div>
-            <div draggable onDragStart={(e) => onDragStart(e, 'conditionNode', 'Condition')} onClick={() => addNode('conditionNode', 'Condition')}
-              className="group relative w-10 h-10 bg-orange-500/20 hover:bg-orange-500/40 border border-orange-500/30 rounded-xl flex items-center justify-center text-orange-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
-              <GitBranch className="w-5 h-5" />
-              <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">Condition</span>
-            </div>
-            <div draggable onDragStart={(e) => onDragStart(e, 'formNode', 'Form')} onClick={() => addNode('formNode', 'Form')}
-              className="group relative w-10 h-10 bg-purple-500/20 hover:bg-purple-500/40 border border-purple-500/30 rounded-xl flex items-center justify-center text-purple-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
-              <FileText className="w-5 h-5" />
-              <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">Form</span>
-            </div>
-            <div draggable onDragStart={(e) => onDragStart(e, 'sheetsNode', 'Google Sheets')} onClick={() => addNode('sheetsNode', 'Google Sheets')}
-              className="group relative w-10 h-10 bg-green-500/20 hover:bg-green-500/40 border border-green-500/30 rounded-xl flex items-center justify-center text-green-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
-              <Table className="w-5 h-5" />
-              <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">Sheets</span>
-            </div>
-            <div draggable onDragStart={(e) => onDragStart(e, 'followupNode', 'Follow-up')} onClick={() => addNode('followupNode', 'Follow-up')}
-              className="group relative w-10 h-10 bg-rose-500/20 hover:bg-rose-500/40 border border-rose-500/30 rounded-xl flex items-center justify-center text-rose-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
-              <RefreshCw className="w-5 h-5" />
-              <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">Follow-up</span>
-            </div>
-            <div draggable onDragStart={(e) => onDragStart(e, 'productWebviewNode', 'Product Webview')} onClick={() => addNode('productWebviewNode', 'Product Webview')}
-              className="group relative w-10 h-10 bg-indigo-500/20 hover:bg-indigo-500/40 border border-indigo-500/30 rounded-xl flex items-center justify-center text-indigo-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
-              <ShoppingBag className="w-5 h-5" />
-              <Globe className="w-2.5 h-2.5 text-white absolute -bottom-0.5 -right-0.5 bg-indigo-600 rounded-full p-0.5" />
-              <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">Product Webview</span>
-            </div>
-            <div draggable onDragStart={(e) => onDragStart(e, 'upsellNode', 'Upsell')} onClick={() => addNode('upsellNode', 'Upsell')}
-              className="group relative w-10 h-10 bg-teal-500/20 hover:bg-teal-500/40 border border-teal-500/30 rounded-xl flex items-center justify-center text-teal-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
-              <ShoppingCart className="w-5 h-5" />
-              <ArrowUp className="w-2.5 h-2.5 text-white absolute -bottom-0.5 -right-0.5 bg-teal-600 rounded-full p-0.5" />
-              <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">Upsell</span>
-            </div>
-            <div draggable onDragStart={(e) => onDragStart(e, 'downsellNode', 'Downsell')} onClick={() => addNode('downsellNode', 'Downsell')}
-              className="group relative w-10 h-10 bg-orange-500/20 hover:bg-orange-500/40 border border-orange-500/30 rounded-xl flex items-center justify-center text-orange-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
-              <ShoppingCart className="w-5 h-5" />
-              <ArrowDown className="w-2.5 h-2.5 text-white absolute -bottom-0.5 -right-0.5 bg-orange-600 rounded-full p-0.5" />
-              <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">Downsell</span>
-            </div>
-            <div draggable onDragStart={(e) => onDragStart(e, 'invoiceNode', 'Invoice')} onClick={() => addNode('invoiceNode', 'Invoice')}
-              className="group relative w-10 h-10 bg-violet-500/20 hover:bg-violet-500/40 border border-violet-500/30 rounded-xl flex items-center justify-center text-violet-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
-              <Receipt className="w-5 h-5" />
-              <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">Invoice</span>
-            </div>
-            <div draggable onDragStart={(e) => onDragStart(e, 'productNode', 'Product')} onClick={() => addNode('productNode', 'Product')}
-              className="group relative w-10 h-10 bg-emerald-500/20 hover:bg-emerald-500/40 border border-emerald-500/30 rounded-xl flex items-center justify-center text-emerald-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
-              <Package className="w-5 h-5" />
-              <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">Product</span>
-            </div>
-            <div draggable onDragStart={(e) => onDragStart(e, 'checkoutNode', 'Checkout')} onClick={() => addNode('checkoutNode', 'Checkout')}
-              className="group relative w-10 h-10 bg-emerald-500/20 hover:bg-emerald-500/40 border border-emerald-500/30 rounded-xl flex items-center justify-center text-emerald-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
-              <ShoppingCart className="w-5 h-5" />
-              <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">Checkout</span>
+
+            {/* Shop & Data Dropdown */}
+            <div className="relative" ref={ecommerceToolsRef}>
+              <button
+                onClick={() => setShowEcommerceTools(!showEcommerceTools)}
+                className={`flex items-center gap-1 px-3 py-1.5 rounded-xl border transition-all ${showEcommerceTools
+                  ? 'bg-indigo-500/20 border-indigo-500/40 text-indigo-400'
+                  : 'bg-white/5 border-gray-300 dark:border-white/10 text-slate-400 hover:bg-white/10 hover:text-white'
+                  }`}
+              >
+                <ShoppingBag className="w-4 h-4" />
+                <span className="text-xs font-bold uppercase tracking-wider">Store</span>
+                <ChevronDown className={`w-3 h-3 transition-transform ${showEcommerceTools ? 'rotate-180' : ''}`} />
+              </button>
+
+              {showEcommerceTools && (
+                <div className="absolute top-12 left-0 glass-panel p-2 rounded-2xl border border-white/10 shadow-2xl backdrop-blur-2xl flex items-center gap-2 z-50 animate-in fade-in zoom-in duration-200">
+                  <div draggable onDragStart={(e) => onDragStart(e, 'productWebviewNode', 'Product Webview')} onClick={() => { addNode('productWebviewNode', 'Product Webview'); setShowEcommerceTools(false); }}
+                    className="group relative w-10 h-10 bg-indigo-500/20 hover:bg-indigo-500/40 border border-indigo-500/30 rounded-xl flex items-center justify-center text-indigo-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
+                    <ShoppingBag className="w-5 h-5" />
+                    <Globe className="w-2.5 h-2.5 text-white absolute -bottom-0.5 -right-0.5 bg-indigo-600 rounded-full p-0.5" />
+                    <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Product Webview</span>
+                  </div>
+                  <div draggable onDragStart={(e) => onDragStart(e, 'upsellNode', 'Upsell')} onClick={() => { addNode('upsellNode', 'Upsell'); setShowEcommerceTools(false); }}
+                    className="group relative w-10 h-10 bg-teal-500/20 hover:bg-teal-500/40 border border-teal-500/30 rounded-xl flex items-center justify-center text-teal-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
+                    <ShoppingCart className="w-5 h-5" />
+                    <ArrowUp className="w-2.5 h-2.5 text-white absolute -bottom-0.5 -right-0.5 bg-teal-600 rounded-full p-0.5" />
+                    <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Upsell</span>
+                  </div>
+                  <div draggable onDragStart={(e) => onDragStart(e, 'downsellNode', 'Downsell')} onClick={() => { addNode('downsellNode', 'Downsell'); setShowEcommerceTools(false); }}
+                    className="group relative w-10 h-10 bg-orange-500/20 hover:bg-orange-500/40 border border-orange-500/30 rounded-xl flex items-center justify-center text-orange-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
+                    <ShoppingCart className="w-5 h-5" />
+                    <ArrowDown className="w-2.5 h-2.5 text-white absolute -bottom-0.5 -right-0.5 bg-orange-600 rounded-full p-0.5" />
+                    <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Downsell</span>
+                  </div>
+                  <div draggable onDragStart={(e) => onDragStart(e, 'formNode', 'Form')} onClick={() => { addNode('formNode', 'Form'); setShowEcommerceTools(false); }}
+                    className="group relative w-10 h-10 bg-purple-500/20 hover:bg-purple-500/40 border border-purple-500/30 rounded-xl flex items-center justify-center text-purple-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
+                    <FileText className="w-5 h-5" />
+                    <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Form</span>
+                  </div>
+                  <div draggable onDragStart={(e) => onDragStart(e, 'sheetsNode', 'Google Sheets')} onClick={() => { addNode('sheetsNode', 'Google Sheets'); setShowEcommerceTools(false); }}
+                    className="group relative w-10 h-10 bg-green-500/20 hover:bg-green-500/40 border border-green-500/30 rounded-xl flex items-center justify-center text-green-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
+                    <Table className="w-5 h-5" />
+                    <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Sheets</span>
+                  </div>
+                  <div draggable onDragStart={(e) => onDragStart(e, 'invoiceNode', 'Invoice')} onClick={() => { addNode('invoiceNode', 'Invoice'); setShowEcommerceTools(false); }}
+                    className="group relative w-10 h-10 bg-violet-500/20 hover:bg-violet-500/40 border border-violet-500/30 rounded-xl flex items-center justify-center text-violet-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
+                    <Receipt className="w-5 h-5" />
+                    <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Invoice</span>
+                  </div>
+                  <div draggable onDragStart={(e) => onDragStart(e, 'productNode', 'Product')} onClick={() => { addNode('productNode', 'Product'); setShowEcommerceTools(false); }}
+                    className="group relative w-10 h-10 bg-emerald-500/20 hover:bg-emerald-500/40 border border-emerald-500/30 rounded-xl flex items-center justify-center text-emerald-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
+                    <Package className="w-5 h-5" />
+                    <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Product</span>
+                  </div>
+                  <div draggable onDragStart={(e) => onDragStart(e, 'checkoutNode', 'Checkout')} onClick={() => { addNode('checkoutNode', 'Checkout'); setShowEcommerceTools(false); }}
+                    className="group relative w-10 h-10 bg-emerald-500/20 hover:bg-emerald-500/40 border border-emerald-500/30 rounded-xl flex items-center justify-center text-emerald-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
+                    <ShoppingCart className="w-5 h-5" />
+                    <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Checkout</span>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -2416,8 +2456,8 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
               size={2}
             />
             <Controls className={`hidden md:block !shadow-xl border ${isDark
-                ? '!bg-slate-800 !border-white/10 [&>button]:!fill-slate-400 [&>button:hover]:!fill-white'
-                : '!bg-white !border-gray-300 [&>button]:!fill-gray-600 [&>button:hover]:!fill-gray-900'
+              ? '!bg-slate-800 !border-white/10 [&>button]:!fill-slate-400 [&>button:hover]:!fill-white'
+              : '!bg-white !border-gray-300 [&>button]:!fill-gray-600 [&>button:hover]:!fill-gray-900'
               }`} />
             <MiniMap
               className={`hidden md:block !backdrop-blur-sm !shadow-xl !rounded-lg overflow-hidden border ${isDark ? '!bg-slate-900/80 !border-slate-700' : '!bg-white/80 !border-gray-300'
