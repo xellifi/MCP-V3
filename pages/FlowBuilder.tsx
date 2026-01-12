@@ -811,8 +811,8 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
             const startNodeId = `start-${timestamp}`;
             const textNodeId = `text-${timestamp + 1}`;
 
-            // Calculate offset position (to the right of current node, stacked if multiple)
-            const offsetX = 200;
+            // Calculate offset position (to the right of current node with proper distance gap)
+            const offsetX = 250;  // Distance from original node to Start Node
             const offsetY = index * 200;
 
             // Use flowName if provided, otherwise fall back to title
@@ -846,10 +846,10 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
                 onDelete: () => handleDeleteNode(textNodeId),
                 onClone: () => handleCloneNode(textNodeId)
               },
-              position: { x: baseX + offsetX + 250, y: baseY + offsetY }
+              position: { x: baseX + offsetX + 250, y: baseY + offsetY }  // 250px from Start Node
             };
 
-            // Create edge from ORIGINAL Text Node to the new Start Node
+            // Create edge from ORIGINAL node to the new Start Node
             const edgeFromOriginal: Edge = {
               id: `edge-${selectedNode.id}-${startNodeId}`,
               source: selectedNode.id,
@@ -870,7 +870,7 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
             };
 
             newNodes.push(startNode, textNode);
-            newEdges.push(edgeFromOriginal, edgeToText);
+            newEdges.push(edgeFromOriginal, edgeToText);  // Add both edges for full chain connection
           });
 
           // Add the new nodes and edges
@@ -903,6 +903,105 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
             }));
           }
         }
+      }
+
+      // Check if this is an Image Node with 'newFlow' button action - create connected nodes
+      const isImageNode = selectedNode.type === 'imageNode' ||
+        selectedNode.data?.nodeType === 'imageNode' ||
+        selectedNode.data?.label?.toLowerCase().includes('image');
+
+      console.log('[FlowBuilder.handleSaveConfig] Is Image Node:', isImageNode);
+      console.log('[FlowBuilder.handleSaveConfig] configToSave.buttonAction:', configToSave.buttonAction);
+      console.log('[FlowBuilder.handleSaveConfig] configToSave.flowName:', configToSave.flowName);
+
+      if (isImageNode && configToSave.showButton && configToSave.buttonAction === 'newFlow' && configToSave.flowName && !configToSave.flowProcessed) {
+        console.log('[FlowBuilder.handleSaveConfig] Creating nodes for Image Node newFlow button');
+
+        // Get the current node position
+        const currentNode = nodes.find(n => n.id === selectedNode.id);
+        const baseX = currentNode?.position?.x || 300;
+        const baseY = currentNode?.position?.y || 200;
+
+        const timestamp = Date.now();
+        const startNodeId = `start-${timestamp}`;
+        const textNodeId = `text-${timestamp + 1}`;
+
+        const flowLabel = configToSave.flowName || 'New Flow';
+
+        // Create Start Node for the new flow - marked as a sub-flow node
+        const startNode: Node = {
+          id: startNodeId,
+          type: 'startNode',
+          data: {
+            label: `New Flow: ${flowLabel}`,
+            nodeType: 'startNode',
+            isNewFlowNode: true,
+            flowName: flowLabel,
+            parentNodeId: selectedNode.id,
+            onConfigure: () => handleConfigureNode({ id: startNodeId, data: { label: `New Flow: ${flowLabel}`, nodeType: 'startNode', isNewFlowNode: true, flowName: flowLabel } } as any),
+            onDelete: () => handleDeleteNode(startNodeId),
+            onClone: () => handleCloneNode(startNodeId)
+          },
+          position: { x: baseX + 250, y: baseY }  // 250px distance from Image Node
+        };
+
+        // Create Text Node connected to the start node
+        const textNode: Node = {
+          id: textNodeId,
+          type: 'textNode',
+          data: {
+            label: 'Text',
+            nodeType: 'textNode',
+            onConfigure: () => handleConfigureNode({ id: textNodeId, data: { label: 'Text', nodeType: 'textNode' } } as any),
+            onDelete: () => handleDeleteNode(textNodeId),
+            onClone: () => handleCloneNode(textNodeId)
+          },
+          position: { x: baseX + 500, y: baseY }  // 250px from Start Node
+        };
+
+        // Create edge from ORIGINAL Image Node to the new Start Node
+        const edgeFromOriginal: Edge = {
+          id: `edge-${selectedNode.id}-${startNodeId}`,
+          source: selectedNode.id,
+          target: startNodeId,
+          type: 'custom',
+          animated: true,
+          style: { stroke: '#64748b', strokeWidth: 2 }
+        };
+
+        // Create edge connecting new start node to new text node
+        const edgeToText: Edge = {
+          id: `edge-${startNodeId}-${textNodeId}`,
+          source: startNodeId,
+          target: textNodeId,
+          type: 'custom',
+          animated: true,
+          style: { stroke: '#64748b', strokeWidth: 2 }
+        };
+
+        // Add the new nodes and edges, and mark the original node as processed
+        setNodes((nds) => {
+          // First add the new nodes
+          const updatedNodes = nds.concat([startNode, textNode]);
+          // Then mark the original node as processed
+          return updatedNodes.map((node) => {
+            if (node.id === selectedNode.id) {
+              return {
+                ...node,
+                data: {
+                  ...node.data,
+                  flowProcessed: true
+                }
+              };
+            }
+            return node;
+          });
+        });
+        setEdges((eds) => eds.concat([edgeFromOriginal, edgeToText]));  // Add both edges for full chain
+        toast.success(`Created new flow "${flowLabel}" with connected nodes!`);
+
+        // Mark that this newFlow has been processed (don't create nodes again)
+        configToSave.flowProcessed = true;
       }
 
       // Auto-save configurations to database in background (non-blocking for instant UI response)

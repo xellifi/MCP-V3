@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import {
     Image, Link, Upload, X, AlertCircle, Clock, MousePointer2, ExternalLink,
     ChevronDown, ChevronUp, Smartphone, Monitor, Tablet, ArrowUp, ArrowDown,
-    Workflow, Plus, ShoppingBag, Save, Check, GalleryHorizontal
+    Workflow, Plus, ShoppingBag, Save, Check, GalleryHorizontal, Trash2
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import CollapsibleTips from './CollapsibleTips';
@@ -16,11 +16,12 @@ interface ImageNodeFormProps {
         delaySeconds?: number;
         showButton?: boolean;
         buttonText?: string;
-        buttonAction?: 'existing_flow' | 'url' | 'create_flow';
+        buttonAction?: 'startFlow' | 'url' | 'newFlow';
         buttonUrl?: string;
         webviewHeight?: 'compact' | 'tall' | 'full';
         buttonFlowId?: string;
         buttonFlowName?: string;
+        flowName?: string; // For newFlow type - name of the flow to create
     };
     onChange: (config: any) => void;
     onSave?: () => void; // Callback to trigger FlowBuilder's handleSaveConfig
@@ -85,8 +86,15 @@ const ImageNodeForm: React.FC<ImageNodeFormProps> = ({
 
     const [showButton, setShowButton] = useState(initialConfig?.showButton || false);
     const [buttonText, setButtonText] = useState(initialConfig?.buttonText || 'Learn More');
-    const [buttonAction, setButtonAction] = useState<'existing_flow' | 'url' | 'create_flow'>(
-        initialConfig?.buttonAction || 'existing_flow'
+    // Migrate old action types to new naming
+    const migrateButtonAction = (action?: string): 'startFlow' | 'url' | 'newFlow' => {
+        if (action === 'existing_flow') return 'startFlow';
+        if (action === 'create_flow') return 'newFlow';
+        if (action === 'startFlow' || action === 'url' || action === 'newFlow') return action;
+        return 'startFlow';
+    };
+    const [buttonAction, setButtonAction] = useState<'startFlow' | 'url' | 'newFlow'>(
+        migrateButtonAction(initialConfig?.buttonAction)
     );
     const [buttonUrl, setButtonUrl] = useState(initialConfig?.buttonUrl || '');
     const [webviewHeight, setWebviewHeight] = useState<'compact' | 'tall' | 'full'>(
@@ -94,12 +102,15 @@ const ImageNodeForm: React.FC<ImageNodeFormProps> = ({
     );
     const [buttonFlowId, setButtonFlowId] = useState(initialConfig?.buttonFlowId || '');
     const [buttonFlowName, setButtonFlowName] = useState(initialConfig?.buttonFlowName || '');
+    const [flowName, setFlowName] = useState(initialConfig?.flowName || '');
 
     const [flows, setFlows] = useState<any[]>([]);
     const [loadingFlows, setLoadingFlows] = useState(false);
     const [previewDevice, setPreviewDevice] = useState<'desktop' | 'tablet' | 'mobile'>('mobile');
     const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1024);
     const [saveNotification, setSaveNotification] = useState(false);
+    const [galleryImages, setGalleryImages] = useState<string[]>([]);
+    const [loadingGallery, setLoadingGallery] = useState(false);
 
     useEffect(() => {
         const handleResize = () => setIsDesktop(window.innerWidth >= 1024);
@@ -108,7 +119,7 @@ const ImageNodeForm: React.FC<ImageNodeFormProps> = ({
     }, []);
 
     useEffect(() => {
-        if (buttonAction === 'existing_flow' && workspaceId) {
+        if (buttonAction === 'startFlow' && workspaceId) {
             loadFlows();
         }
     }, [buttonAction, workspaceId]);
@@ -131,7 +142,7 @@ const ImageNodeForm: React.FC<ImageNodeFormProps> = ({
     const notifyChange = (updates: any = {}) => {
         onChange({
             imageUrl, imageSource, caption, delaySeconds,
-            showButton, buttonText, buttonAction, buttonUrl, webviewHeight, buttonFlowId, buttonFlowName,
+            showButton, buttonText, buttonAction, buttonUrl, webviewHeight, buttonFlowId, buttonFlowName, flowName,
             ...updates
         });
     };
@@ -162,12 +173,33 @@ const ImageNodeForm: React.FC<ImageNodeFormProps> = ({
         notifyChange({ delaySeconds: value });
     };
 
-    const handleSourceChange = (source: 'url' | 'upload' | 'gallery') => {
+    const handleSourceChange = async (source: 'url' | 'upload' | 'gallery') => {
         setImageSource(source);
         if (source !== imageSource) {
-            setImageUrl('');
             setPreviewError(false);
-            notifyChange({ imageUrl: '', imageSource: source });
+            notifyChange({ imageSource: source });
+        }
+
+        // Fetch gallery images when gallery tab is selected
+        if (source === 'gallery') {
+            setLoadingGallery(true);
+            try {
+                const { data, error } = await supabase.storage.from('attachments').list(workspaceId, { limit: 100 });
+                if (error) {
+                    console.error('Gallery fetch error:', error);
+                } else if (data) {
+                    // Filter only image files
+                    const imageFiles = data.filter(f =>
+                        f.name && (f.name.endsWith('.jpg') || f.name.endsWith('.jpeg') ||
+                            f.name.endsWith('.png') || f.name.endsWith('.gif') || f.name.endsWith('.webp'))
+                    );
+                    const urls = imageFiles.map(f =>
+                        supabase.storage.from('attachments').getPublicUrl(`${workspaceId}/${f.name}`).data.publicUrl
+                    );
+                    setGalleryImages(urls);
+                }
+            } catch (e) { console.error('Failed to load gallery:', e); }
+            setLoadingGallery(false);
         }
     };
 
@@ -220,9 +252,9 @@ const ImageNodeForm: React.FC<ImageNodeFormProps> = ({
     };
 
     const buttonActionOptions = [
-        { value: 'existing_flow', label: '⚡ Trigger Saved Flow', icon: Workflow, description: 'Triggers an existing saved flow' },
+        { value: 'startFlow', label: '⚡ Trigger Saved Flow', icon: Workflow, description: 'Triggers an existing saved flow' },
         { value: 'url', label: '🔗 Open URL (Webview)', icon: ExternalLink, description: 'Opens a URL in a webview' },
-        { value: 'create_flow', label: '➕ Start New Flow', icon: Plus, description: 'Creates a new flow with Start Node and Text Node' },
+        { value: 'newFlow', label: '➕ Start New Flow', icon: Plus, description: 'Creates a new flow with Start Node and Text Node' },
     ];
 
     // ================== PREVIEW (DEVICE MOCKUP) ==================
@@ -320,8 +352,8 @@ const ImageNodeForm: React.FC<ImageNodeFormProps> = ({
                                                 <div className="border-t border-slate-100">
                                                     <button className={`w-full ${previewDevice === 'desktop' ? 'py-2 text-xs' : 'py-3 text-sm'} text-blue-600 font-semibold hover:bg-blue-50 transition-colors flex items-center justify-center gap-1.5`}>
                                                         {buttonAction === 'url' && <ExternalLink className={`${previewDevice === 'desktop' ? 'w-3 h-3' : 'w-4 h-4'}`} />}
-                                                        {buttonAction === 'existing_flow' && <Workflow className={`${previewDevice === 'desktop' ? 'w-3 h-3' : 'w-4 h-4'}`} />}
-                                                        {buttonAction === 'create_flow' && <Plus className={`${previewDevice === 'desktop' ? 'w-3 h-3' : 'w-4 h-4'}`} />}
+                                                        {buttonAction === 'startFlow' && <Workflow className={`${previewDevice === 'desktop' ? 'w-3 h-3' : 'w-4 h-4'}`} />}
+                                                        {buttonAction === 'newFlow' && <Plus className={`${previewDevice === 'desktop' ? 'w-3 h-3' : 'w-4 h-4'}`} />}
                                                         {buttonText || 'Button'}
                                                     </button>
                                                 </div>
@@ -400,12 +432,56 @@ const ImageNodeForm: React.FC<ImageNodeFormProps> = ({
                 </div>
             )}
             {imageSource === 'gallery' && (
-                <div className="p-4 bg-black/20 border border-white/10 rounded-lg">
-                    <div className="text-center py-4">
-                        <GalleryHorizontal className="w-8 h-8 text-slate-400 mx-auto mb-2" />
-                        <p className="text-xs text-slate-400 mb-2">Select from your uploaded images</p>
-                        <p className="text-[10px] text-slate-500">Use the Upload tab to add images first, then select them here.</p>
-                    </div>
+                <div className="space-y-2">
+                    {loadingGallery ? (
+                        <div className="text-center py-4 text-slate-400 text-sm">Loading gallery...</div>
+                    ) : galleryImages.length === 0 ? (
+                        <div className="p-4 bg-black/20 border border-white/10 rounded-lg">
+                            <div className="text-center py-4">
+                                <GalleryHorizontal className="w-8 h-8 text-slate-400 mx-auto mb-2" />
+                                <p className="text-xs text-slate-400 mb-2">No images in gallery yet</p>
+                                <p className="text-[10px] text-slate-500">Use the Upload tab to add images first, then select them here.</p>
+                            </div>
+                        </div>
+                    ) : (
+                        <>
+                            <p className="text-[10px] text-slate-500">Click to select, hover to delete</p>
+                            <div className="grid grid-cols-4 gap-2 max-h-48 overflow-y-auto p-1">
+                                {galleryImages.map((url, i) => (
+                                    <div key={i} className="relative group aspect-square">
+                                        <button
+                                            type="button"
+                                            onClick={() => { setImageUrl(url); notifyChange({ imageUrl: url }); }}
+                                            className={`w-full h-full rounded-lg overflow-hidden border-2 ${imageUrl === url ? 'border-rose-500' : 'border-transparent'} hover:border-rose-500/50 transition-colors`}
+                                        >
+                                            <img src={url} alt="" className="w-full h-full object-cover" />
+                                        </button>
+                                        {/* Delete button - shows on hover */}
+                                        <button
+                                            type="button"
+                                            onClick={async (e) => {
+                                                e.stopPropagation();
+                                                // Extract filename from URL and delete
+                                                const fileName = url.split('/').pop();
+                                                if (fileName) {
+                                                    await supabase.storage.from('attachments').remove([`${workspaceId}/${fileName}`]);
+                                                    setGalleryImages(prev => prev.filter(u => u !== url));
+                                                    if (imageUrl === url) {
+                                                        setImageUrl('');
+                                                        notifyChange({ imageUrl: '' });
+                                                    }
+                                                }
+                                            }}
+                                            className="absolute top-0.5 right-0.5 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg hover:bg-red-600 z-10"
+                                            title="Delete image"
+                                        >
+                                            <Trash2 className="w-3 h-3 text-white" />
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        </>
+                    )}
                 </div>
             )}
             {imageUrl && (
@@ -451,20 +527,31 @@ const ImageNodeForm: React.FC<ImageNodeFormProps> = ({
                             className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-rose-500/50 placeholder-slate-500" />
                     </div>
                     <div>
-                        <label className="block text-xs text-slate-400 mb-2">Button Action</label>
-                        <div className="space-y-1.5">
-                            {buttonActionOptions.map(option => (
-                                <button key={option.value} type="button"
-                                    onClick={() => { setButtonAction(option.value as any); notifyChange({ buttonAction: option.value }); }}
-                                    className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left transition-all ${buttonAction === option.value ? 'bg-rose-500/20 border-rose-500 text-white' : 'bg-black/30 border-white/10 text-slate-300 hover:bg-white/5'} border`}>
-                                    <option.icon className={`w-4 h-4 ${buttonAction === option.value ? 'text-rose-400' : 'text-slate-400'}`} />
-                                    <div>
-                                        <div className="font-medium text-xs">{option.label}</div>
-                                        <div className="text-[10px] text-slate-500">{option.description}</div>
-                                    </div>
-                                </button>
-                            ))}
-                        </div>
+                        <label className="block text-xs text-slate-400 mb-1">Button Action</label>
+                        <select
+                            value={buttonAction}
+                            onChange={(e) => {
+                                const newType = e.target.value as 'startFlow' | 'url' | 'newFlow';
+                                setButtonAction(newType);
+                                notifyChange({
+                                    buttonAction: newType,
+                                    buttonFlowId: newType === 'startFlow' ? buttonFlowId : undefined,
+                                    buttonUrl: newType === 'url' ? buttonUrl : undefined,
+                                    webviewHeight: newType === 'url' ? webviewHeight : undefined,
+                                    flowName: newType === 'newFlow' ? flowName : undefined
+                                });
+                            }}
+                            className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:ring-2 focus:ring-rose-500/50 outline-none"
+                        >
+                            <option value="startFlow">⚡ Trigger Saved Flow</option>
+                            <option value="url">🔗 Open URL (Webview)</option>
+                            <option value="newFlow">➕ Start New Flow</option>
+                        </select>
+                        <p className="text-xs text-slate-500 mt-1">
+                            {buttonAction === 'startFlow' && '⚡ Triggers an existing saved flow from this page'}
+                            {buttonAction === 'url' && '🔗 Opens a URL in a webview'}
+                            {buttonAction === 'newFlow' && '➕ Creates a new flow with Start Node and Text Node'}
+                        </p>
                     </div>
                     {buttonAction === 'url' && (
                         <>
@@ -492,7 +579,7 @@ const ImageNodeForm: React.FC<ImageNodeFormProps> = ({
                             </div>
                         </>
                     )}
-                    {buttonAction === 'existing_flow' && (
+                    {buttonAction === 'startFlow' && (
                         <div>
                             <label className="block text-xs text-slate-400 mb-1">Select Flow</label>
                             {loadingFlows ? (
@@ -516,16 +603,28 @@ const ImageNodeForm: React.FC<ImageNodeFormProps> = ({
                         </div>
                     )}
 
-                    {buttonAction === 'create_flow' && (
-                        <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-3">
-                            <div className="flex items-start gap-2">
-                                <Plus className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
-                                <div>
-                                    <h4 className="text-xs font-semibold text-white">Create New Flow</h4>
-                                    <p className="text-[10px] text-slate-400 mt-0.5">A new flow will be created and linked.</p>
-                                </div>
+                    {buttonAction === 'newFlow' && (
+                        <>
+                            <div>
+                                <label className="block text-xs text-slate-400 mb-1">Flow Name</label>
+                                <input
+                                    type="text"
+                                    value={flowName}
+                                    onChange={(e) => { setFlowName(e.target.value); notifyChange({ flowName: e.target.value }); }}
+                                    placeholder="e.g., Pricing Flow, FAQ Response"
+                                    className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:ring-2 focus:ring-emerald-500/50 outline-none placeholder-slate-500"
+                                />
                             </div>
-                        </div>
+                            <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-lg">
+                                <div className="flex items-center gap-2 text-emerald-400 text-xs">
+                                    <Plus className="w-4 h-4" />
+                                    <span className="font-medium">Start New Flow</span>
+                                </div>
+                                <p className="text-xs text-emerald-300/70 mt-1">
+                                    Creates a new flow with Start Node and Text Node connected. The flow will be saved and available in Flows list.
+                                </p>
+                            </div>
+                        </>
                     )}
                 </>
             )}
@@ -588,7 +687,7 @@ const ImageNodeForm: React.FC<ImageNodeFormProps> = ({
                     {/* Content: 2 or 3 columns based on device */}
                     <div className="flex-1 flex min-h-0 overflow-hidden">
                         {/* Left Column: Form */}
-                        <div className="w-80 flex-shrink-0 border-r border-white/10 overflow-y-auto p-4 space-y-4">
+                        <div className="w-96 flex-shrink-0 border-r border-white/10 overflow-y-auto p-4 space-y-4">
                             {imageSection}
                             {buttonSection}
                             <CollapsibleTips title="Tips & Info" color="rose">
