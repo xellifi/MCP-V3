@@ -34,35 +34,35 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4 relative overflow-hidden">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col items-center justify-center p-4 relative overflow-hidden">
       {/* Cosmic Background */}
       <div className="absolute top-0 left-1/4 w-96 h-96 bg-indigo-600/20 rounded-full blur-[100px] animate-blob pointer-events-none"></div>
       <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-purple-600/20 rounded-full blur-[100px] animate-blob animation-delay-2000 pointer-events-none"></div>
 
-      <div className="w-full max-w-md relative z-10 bg-white/5 backdrop-blur-xl rounded-3xl overflow-hidden animate-fade-in-up border border-white/10 shadow-2xl">
+      <div className="w-full max-w-md relative z-10 bg-white/80 dark:bg-white/5 backdrop-blur-xl rounded-3xl overflow-hidden animate-fade-in-up border border-slate-200 dark:border-white/10 shadow-2xl">
         <div className="p-8 pb-4 text-center">
           <Link to="/" className="inline-block hover:scale-105 transition-transform duration-200">
             <div className="w-16 h-16 bg-gradient-to-tr from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-6 text-white shadow-lg shadow-indigo-500/30">
               <Bot className="w-8 h-8" />
             </div>
           </Link>
-          <h2 className="text-3xl font-bold text-white tracking-tight mb-2">Welcome back</h2>
-          <p className="text-slate-400">Sign in to your Mychat Pilot account</p>
+          <h2 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight mb-2">Welcome back</h2>
+          <p className="text-slate-500 dark:text-slate-400">Sign in to your Mychat Pilot account</p>
         </div>
 
         <form onSubmit={handleSubmit} className="p-8 space-y-6">
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">Email Address</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Email Address</label>
               <div className="relative group">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <Mail className="h-5 w-5 text-slate-500 group-focus-within:text-indigo-400 transition-colors" />
+                  <Mail className="h-5 w-5 text-slate-400 dark:text-slate-500 group-focus-within:text-indigo-500 dark:group-focus-within:text-indigo-400 transition-colors" />
                 </div>
                 <input
                   type="email"
                   value={email}
                   onChange={e => setEmail(e.target.value)}
-                  className="w-full bg-white/5 border border-slate-700/50 rounded-xl pl-12 pr-4 py-3.5 focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 outline-none transition-all text-white placeholder-slate-600"
+                  className="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-slate-700/50 rounded-xl pl-12 pr-4 py-3.5 focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 outline-none transition-all text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-600"
                   placeholder="name@company.com"
                   required
                 />
@@ -70,18 +70,18 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             </div>
             <div>
               <div className="flex justify-between items-center mb-2">
-                <label className="block text-sm font-medium text-slate-300">Password</label>
-                <Link to="/forgot-password" className="text-sm font-medium text-indigo-400 hover:text-indigo-300 hover:underline transition-colors">Forgot password?</Link>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Password</label>
+                <Link to="/forgot-password" className="text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 dark:hover:text-indigo-300 hover:underline transition-colors">Forgot password?</Link>
               </div>
               <div className="relative group">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <Lock className="h-5 w-5 text-slate-500 group-focus-within:text-indigo-400 transition-colors" />
+                  <Lock className="h-5 w-5 text-slate-400 dark:text-slate-500 group-focus-within:text-indigo-500 dark:group-focus-within:text-indigo-400 transition-colors" />
                 </div>
                 <input
                   type="password"
                   value={password}
                   onChange={e => setPassword(e.target.value)}
-                  className="w-full bg-white/5 border border-slate-700/50 rounded-xl pl-12 pr-4 py-3.5 focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 outline-none transition-all text-white placeholder-slate-600"
+                  className="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-slate-700/50 rounded-xl pl-12 pr-4 py-3.5 focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 outline-none transition-all text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-600"
                   placeholder="Enter your password"
                   required
                 />
@@ -99,9 +99,9 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           </button>
 
           <div className="text-center pt-2">
-            <p className="text-slate-400">
+            <p className="text-slate-500 dark:text-slate-400">
               Don't have an account?{' '}
-              <Link to="/register" className="text-indigo-400 hover:text-indigo-300 font-bold hover:underline transition-colors">Create account</Link>
+              <Link to="/register" className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 dark:hover:text-indigo-300 font-bold hover:underline transition-colors">Create account</Link>
             </p>
           </div>
         </form>
