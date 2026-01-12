@@ -307,10 +307,10 @@ const ConnectedPages: React.FC<ConnectedPagesProps> = ({ workspace }) => {
               </div>
 
               {/* Automation Toggle & Status */}
-              <div className={`flex flex-col items-center ${viewMode === 'list' ? 'md:items-end' : ''} gap-3 min-w-[200px]`}>
-                <div className={`flex items-center gap-3 p-2.5 rounded-xl border shadow-inner ${isDark ? 'bg-white/5 border-white/5' : 'bg-slate-50 border-slate-200'
+              <div className={`flex flex-col items-center ${viewMode === 'list' ? 'md:items-end min-w-[200px]' : 'w-full'} gap-3`}>
+                <div className={`flex ${viewMode === 'list' ? 'flex-row' : 'flex-col'} items-center gap-2 p-2.5 rounded-xl border shadow-inner w-full justify-center ${isDark ? 'bg-white/5 border-white/5' : 'bg-slate-50 border-slate-200'
                   }`}>
-                  <span className={`text-sm font-semibold ${page.isAutomationEnabled ? 'text-indigo-500' : 'text-slate-500'}`}>
+                  <span className={`text-xs font-semibold text-center ${page.isAutomationEnabled ? 'text-indigo-500' : 'text-slate-500'}`}>
                     {page.isAutomationEnabled ? 'Automation On' : 'Automation Off'}
                   </span>
                   <button
