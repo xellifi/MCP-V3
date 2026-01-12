@@ -2505,20 +2505,67 @@ Do not use markdown formatting. Be friendly and professional.`;
                 }
 
                 // Send response or fallback
-                const responseText = aiResponse || fallbackMessage;
+                let responseText = aiResponse || fallbackMessage;
                 console.log(`🤖 Sending AI response: "${responseText.substring(0, 100)}..."`);
 
-                await fetch(`https://graph.facebook.com/v21.0/me/messages`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        recipient: { id: senderId },
-                        message: { text: responseText },
-                        access_token: pageAccessToken
-                    })
-                });
+                // Check for quick action triggers and build buttons
+                const quickActions = config.quickActions || [];
+                const matchedButtons: Array<{ type: string; title: string; url: string }> = [];
 
-                // Save conversation to memory
+                for (const action of quickActions) {
+                    const triggerPattern = new RegExp(`\\[${action.trigger}\\]`, 'gi');
+                    if (triggerPattern.test(responseText)) {
+                        console.log(`🤖 Found quick action trigger: [${action.trigger}]`);
+                        // Remove trigger from response text
+                        responseText = responseText.replace(triggerPattern, '').trim();
+                        // Add button
+                        matchedButtons.push({
+                            type: 'web_url',
+                            title: action.buttonText,
+                            url: action.buttonUrl
+                        });
+                    }
+                }
+
+                // Clean up any remaining brackets or extra spaces
+                responseText = responseText.replace(/\s+/g, ' ').trim();
+
+                // Send message with or without buttons
+                if (matchedButtons.length > 0) {
+                    console.log(`🤖 Sending message with ${matchedButtons.length} button(s)`);
+                    // Send button template
+                    await fetch(`https://graph.facebook.com/v21.0/me/messages`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            recipient: { id: senderId },
+                            message: {
+                                attachment: {
+                                    type: 'template',
+                                    payload: {
+                                        template_type: 'button',
+                                        text: responseText.substring(0, 640), // Facebook limit
+                                        buttons: matchedButtons.slice(0, 3) // Max 3 buttons
+                                    }
+                                }
+                            },
+                            access_token: pageAccessToken
+                        })
+                    });
+                } else {
+                    // Send plain text
+                    await fetch(`https://graph.facebook.com/v21.0/me/messages`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            recipient: { id: senderId },
+                            message: { text: responseText },
+                            access_token: pageAccessToken
+                        })
+                    });
+                }
+
+                // Save conversation to memory (save clean text without triggers)
                 const updatedHistory = [
                     ...chatHistory,
                     { role: 'user', content: messageText, timestamp: new Date().toISOString() },

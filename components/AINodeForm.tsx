@@ -2,9 +2,17 @@ import React, { useState, useEffect, useRef, memo, useCallback } from 'react';
 import {
     Bot, Sparkles, Brain, MessageCircle, Settings, Database, Image as ImageIcon,
     Video, AlertCircle, ChevronDown, ChevronUp, X, Save, Eye, Smartphone, Monitor,
-    Tablet, HelpCircle, Zap, MessageSquare, RotateCcw, Sliders, Target, Shield
+    Tablet, HelpCircle, Zap, MessageSquare, RotateCcw, Sliders, Target, Shield, Link, Plus, Trash2
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+
+interface QuickAction {
+    id: string;
+    trigger: string;  // e.g., "ORDER", "PRODUCT", "SUPPORT"
+    buttonText: string;
+    buttonUrl: string;
+    description: string;  // Shown to user in config
+}
 
 interface AIProvider {
     id: 'openai' | 'gemini';
@@ -30,6 +38,7 @@ interface AINodeFormProps {
         maxTokens?: number;
         scope?: string[];
         nodeLabel?: string;
+        quickActions?: QuickAction[];
     };
     onChange: (config: any) => void;
     onClose?: () => void;
@@ -185,6 +194,7 @@ const AINodeForm: React.FC<AINodeFormProps> = ({
     const [maxTokens, setMaxTokens] = useState(initialConfig?.maxTokens ?? 500);
     const [scope, setScope] = useState<string[]>(initialConfig?.scope || []);
     const [nodeLabel, setNodeLabel] = useState(initialConfig?.nodeLabel || 'AI Agent');
+    const [quickActions, setQuickActions] = useState<QuickAction[]>(initialConfig?.quickActions || []);
 
     // UI State
     const [availableProviders, setAvailableProviders] = useState<AIProvider[]>(AI_PROVIDERS);
@@ -265,9 +275,10 @@ const AINodeForm: React.FC<AINodeFormProps> = ({
             maxTokens,
             scope,
             nodeLabel,
+            quickActions,
             ...updates
         });
-    }, [enabled, provider, model, instructions, memoryLines, triggerOn, triggerKeywords, fallbackMessage, allowMedia, temperature, maxTokens, scope, nodeLabel, onChange]);
+    }, [enabled, provider, model, instructions, memoryLines, triggerOn, triggerKeywords, fallbackMessage, allowMedia, temperature, maxTokens, scope, nodeLabel, quickActions, onChange]);
 
     // Handlers
     const handleProviderChange = (p: 'openai' | 'gemini') => {
@@ -306,6 +317,34 @@ const AINodeForm: React.FC<AINodeFormProps> = ({
         const updated = scope.filter(x => x !== s);
         setScope(updated);
         notifyChange({ scope: updated });
+    };
+
+    // Quick Action handlers
+    const handleAddQuickAction = () => {
+        const newAction: QuickAction = {
+            id: `action_${Date.now()}`,
+            trigger: 'ORDER',
+            buttonText: 'Order Now',
+            buttonUrl: 'https://example.com/order',
+            description: 'Shows when user mentions ordering'
+        };
+        const updated = [...quickActions, newAction];
+        setQuickActions(updated);
+        notifyChange({ quickActions: updated });
+    };
+
+    const handleUpdateQuickAction = (id: string, field: keyof QuickAction, value: string) => {
+        const updated = quickActions.map(a =>
+            a.id === id ? { ...a, [field]: value } : a
+        );
+        setQuickActions(updated);
+        notifyChange({ quickActions: updated });
+    };
+
+    const handleRemoveQuickAction = (id: string) => {
+        const updated = quickActions.filter(a => a.id !== id);
+        setQuickActions(updated);
+        notifyChange({ quickActions: updated });
     };
 
     const handleSave = () => {
@@ -715,6 +754,83 @@ const AINodeForm: React.FC<AINodeFormProps> = ({
                             <p className="text-xs text-slate-500 mt-2">
                                 This message is sent if the AI fails to respond.
                             </p>
+                        </div>
+                    </CollapsibleSection>
+
+                    {/* Quick Actions */}
+                    <CollapsibleSection title="Quick Actions (Buttons)" icon={Link} defaultOpen={false} badge={quickActions.length > 0 ? `${quickActions.length}` : undefined}>
+                        <div className="space-y-4">
+                            <p className="text-xs text-slate-400">
+                                Configure buttons that AI can send by including <code className="bg-black/30 px-1 rounded">[TRIGGER]</code> in its response.
+                                Add the triggers to your AI instructions.
+                            </p>
+
+                            {quickActions.map((action) => (
+                                <div key={action.id} className="bg-black/30 rounded-xl p-4 border border-white/10 space-y-3">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-xs font-semibold text-indigo-400">Action #{quickActions.indexOf(action) + 1}</span>
+                                        <button
+                                            onClick={() => handleRemoveQuickAction(action.id)}
+                                            className="p-1 text-red-400 hover:text-red-300 hover:bg-red-500/20 rounded transition-colors"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                        </button>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label className="block text-xs text-slate-500 mb-1">Trigger Tag</label>
+                                            <input
+                                                type="text"
+                                                value={action.trigger}
+                                                onChange={(e) => handleUpdateQuickAction(action.id, 'trigger', e.target.value.toUpperCase())}
+                                                placeholder="ORDER"
+                                                className="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-white text-sm font-mono"
+                                            />
+                                            <p className="text-[10px] text-slate-600 mt-1">AI uses: [<span className="text-indigo-400">{action.trigger}</span>]</p>
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs text-slate-500 mb-1">Button Text</label>
+                                            <input
+                                                type="text"
+                                                value={action.buttonText}
+                                                onChange={(e) => handleUpdateQuickAction(action.id, 'buttonText', e.target.value)}
+                                                placeholder="Order Now"
+                                                className="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-white text-sm"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-xs text-slate-500 mb-1">Button URL</label>
+                                        <input
+                                            type="text"
+                                            value={action.buttonUrl}
+                                            onChange={(e) => handleUpdateQuickAction(action.id, 'buttonUrl', e.target.value)}
+                                            placeholder="https://yoursite.com/order"
+                                            className="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-white text-sm"
+                                        />
+                                    </div>
+                                </div>
+                            ))}
+
+                            <button
+                                onClick={handleAddQuickAction}
+                                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-400 rounded-xl font-medium transition-colors border border-indigo-500/30"
+                            >
+                                <Plus className="w-4 h-4" />
+                                Add Quick Action
+                            </button>
+
+                            {quickActions.length > 0 && (
+                                <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3">
+                                    <p className="text-xs text-amber-400">
+                                        <strong>💡 Add to your Instructions:</strong><br />
+                                        "When user wants to order, include [ORDER] in your response."<br />
+                                        {quickActions.map(a => `[${a.trigger}]`).join(', ')} will add buttons automatically.
+                                    </p>
+                                </div>
+                            )}
                         </div>
                     </CollapsibleSection>
                 </div>
