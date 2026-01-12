@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Workspace, Subscriber, Conversation, ConnectedPage } from '../types';
 import { api } from '../services/api';
-import { Search, Download, User, Facebook, Instagram, X, MessageCircle, Calendar, Tag, ExternalLink, ChevronLeft, ChevronRight, LayoutGrid, List, Clock, Users, Plus, Check, Filter, Trash2, MoreVertical, ChevronDown } from 'lucide-react';
+import { supabase } from '../lib/supabase';
+import { Search, Download, User, Facebook, Instagram, X, MessageCircle, Calendar, Tag, ExternalLink, ChevronLeft, ChevronRight, LayoutGrid, List, Clock, Users, Plus, Check, Filter, Trash2, MoreVertical, ChevronDown, Brain } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
 import { useTheme } from '../context/ThemeContext';
 import { useToast } from '../context/ToastContext';
@@ -48,6 +49,7 @@ const Subscribers: React.FC<SubscribersProps> = ({ workspace }) => {
   const [subscriberToDelete, setSubscriberToDelete] = useState<Subscriber | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
+  const [clearingMemory, setClearingMemory] = useState(false);
   const [showPageDropdown, setShowPageDropdown] = useState(false);
   const itemsPerPage = 12;
   const toast = useToast();
@@ -189,6 +191,42 @@ const Subscribers: React.FC<SubscribersProps> = ({ workspace }) => {
     } finally {
       setDeleting(false);
       setSubscriberToDelete(null);
+    }
+  };
+
+  // Handle clearing AI memory for a subscriber
+  const handleClearAIMemory = async (subscriberId: string, subscriberName: string) => {
+    setClearingMemory(true);
+    try {
+      // Get current metadata and clear only ai_chat_history
+      const { data: subscriber, error: fetchError } = await supabase
+        .from('subscribers')
+        .select('metadata')
+        .eq('id', subscriberId)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      const currentMetadata = subscriber?.metadata || {};
+      const updatedMetadata = {
+        ...currentMetadata,
+        ai_chat_history: [],
+        ai_memory_cleared_at: new Date().toISOString()
+      };
+
+      const { error: updateError } = await supabase
+        .from('subscribers')
+        .update({ metadata: updatedMetadata })
+        .eq('id', subscriberId);
+
+      if (updateError) throw updateError;
+
+      toast.success(`AI memory cleared for ${subscriberName}`);
+    } catch (error: any) {
+      console.error('Clear AI memory error:', error);
+      toast.error('Failed to clear AI memory');
+    } finally {
+      setClearingMemory(false);
     }
   };
 
@@ -851,6 +889,16 @@ const Subscribers: React.FC<SubscribersProps> = ({ workspace }) => {
                     <MessageCircle className="w-4 h-4" />
                     Open Chat
                   </a>
+                  <button
+                    type="button"
+                    onClick={() => handleClearAIMemory(selectedSubscriber.id, selectedSubscriber.name)}
+                    disabled={clearingMemory}
+                    className="flex items-center justify-center gap-2 px-4 py-3 bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 hover:text-amber-300 rounded-xl font-semibold transition-colors border border-amber-500/30 disabled:opacity-50"
+                    title="Clear AI conversation memory for this subscriber"
+                  >
+                    <Brain className="w-4 h-4" />
+                    {clearingMemory ? 'Clearing...' : 'Clear AI Memory'}
+                  </button>
                   <button
                     type="button"
                     onClick={() => handleDeleteSubscriber(selectedSubscriber.id, selectedSubscriber.name)}
