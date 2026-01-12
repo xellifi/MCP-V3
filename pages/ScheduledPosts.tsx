@@ -55,6 +55,7 @@ interface SchedulerBuilderProps {
 }
 
 const SchedulerBuilder: React.FC<SchedulerBuilderProps> = ({ workspace, onBack }) => {
+  const { isDark } = useTheme();
   const toast = useToast();
   const { screenToFlowPosition } = useReactFlow();
   const [isFullScreen, setIsFullScreen] = useState(false);
@@ -178,7 +179,8 @@ const SchedulerBuilder: React.FC<SchedulerBuilderProps> = ({ workspace, onBack }
 
   return (
     <div
-      className={`${isFullScreen ? 'fixed inset-0 z-50 bg-slate-950' : 'h-[calc(100vh-100px)] w-full -m-6 relative bg-slate-950'} transition-all duration-300`}
+      className={`${isFullScreen ? 'fixed inset-0 z-50' : 'h-[calc(100vh-100px)] w-full -m-6 relative'} transition-all duration-300 ${isDark ? 'bg-slate-950' : 'bg-slate-50'
+        }`}
       onDragOver={onDragOver}
       onDrop={onDrop}
     >
@@ -187,51 +189,57 @@ const SchedulerBuilder: React.FC<SchedulerBuilderProps> = ({ workspace, onBack }
       <div className="absolute top-6 left-6 z-10 hidden md:flex items-center gap-4">
         <button
           onClick={handleBack}
-          className="p-2 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-lg text-white border border-white/10 shadow-lg transition-all"
+          className={`p-2 backdrop-blur-md rounded-lg border shadow-lg transition-all ${isDark
+              ? 'bg-white/10 hover:bg-white/20 text-white border-white/10'
+              : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200'
+            }`}
           title={isFullScreen ? "Exit Full Screen" : "Back"}
         >
           <ArrowLeft className="w-5 h-5" />
         </button>
         <div>
-          <h1 className="text-2xl font-bold text-white tracking-tight drop-shadow-md">New Schedule</h1>
-          <p className="text-slate-400 text-sm drop-shadow-sm font-medium">Visual Automation Builder</p>
+          <h1 className={`text-2xl font-bold tracking-tight drop-shadow-md ${isDark ? 'text-white' : 'text-slate-900'}`}>New Schedule</h1>
+          <p className={`text-sm drop-shadow-sm font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Visual Automation Builder</p>
         </div>
       </div>
 
       {/* Floating Toolbar - Top Center */}
       <div className="absolute top-20 md:top-6 left-1/2 -translate-x-1/2 z-20 flex gap-2">
-        <div className="glass-panel p-1.5 rounded-xl border border-white/10 shadow-2xl flex items-center gap-1.5 backdrop-blur-xl">
+        <div className={`p-1.5 rounded-xl border shadow-2xl flex items-center gap-1.5 backdrop-blur-xl ${isDark
+            ? 'glass-panel border-white/10'
+            : 'bg-white/80 border-white/20 shadow-slate-200/50'
+          }`}>
           <div onDragStart={(event) => onDragStart(event, 'visualTrigger')} draggable onClick={() => addNode('visualTrigger')} className="group relative w-9 h-9 bg-gradient-to-br from-orange-500 to-pink-600 rounded-lg flex items-center justify-center text-white shadow-lg hover:scale-105 transition-transform cursor-grab active:cursor-grabbing">
             <Zap className="w-5 h-5" />
-            <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Trigger</div>
+            <div className={`absolute top-full mt-2 left-1/2 -translate-x-1/2 px-2 py-1 text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none ${isDark ? 'bg-slate-900 text-white' : 'bg-white text-slate-900 shadow-lg border border-slate-100'}`}>Trigger</div>
           </div>
           <div onDragStart={(event) => onDragStart(event, 'visualAI')} draggable onClick={() => addNode('visualAI')} className="group relative w-9 h-9 bg-gradient-to-br from-violet-500 to-indigo-600 rounded-lg flex items-center justify-center text-white shadow-lg hover:scale-105 transition-transform cursor-grab active:cursor-grabbing">
             <Sparkles className="w-5 h-5" />
-            <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">AI Agent</div>
+            <div className={`absolute top-full mt-2 left-1/2 -translate-x-1/2 px-2 py-1 text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none ${isDark ? 'bg-slate-900 text-white' : 'bg-white text-slate-900 shadow-lg border border-slate-100'}`}>AI Agent</div>
           </div>
           <div onDragStart={(event) => onDragStart(event, 'visualSheet')} draggable onClick={() => addNode('visualSheet')} className="group relative w-9 h-9 bg-gradient-to-br from-emerald-500 to-green-600 rounded-lg flex items-center justify-center text-white shadow-lg hover:scale-105 transition-transform cursor-grab active:cursor-grabbing">
             <Table className="w-5 h-5" />
-            <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Sheet</div>
+            <div className={`absolute top-full mt-2 left-1/2 -translate-x-1/2 px-2 py-1 text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none ${isDark ? 'bg-slate-900 text-white' : 'bg-white text-slate-900 shadow-lg border border-slate-100'}`}>Sheet</div>
           </div>
           <div onDragStart={(event) => onDragStart(event, 'visualHTTP')} draggable onClick={() => addNode('visualHTTP')} className="group relative w-9 h-9 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-lg flex items-center justify-center text-white shadow-lg hover:scale-105 transition-transform cursor-grab active:cursor-grabbing">
             <Globe className="w-5 h-5" />
-            <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">HTTP</div>
+            <div className={`absolute top-full mt-2 left-1/2 -translate-x-1/2 px-2 py-1 text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none ${isDark ? 'bg-slate-900 text-white' : 'bg-white text-slate-900 shadow-lg border border-slate-100'}`}>HTTP</div>
           </div>
           <div onDragStart={(event) => onDragStart(event, 'visualPreview')} draggable onClick={() => addNode('visualPreview')} className="group relative w-9 h-9 bg-gradient-to-br from-pink-500 to-rose-600 rounded-lg flex items-center justify-center text-white shadow-lg hover:scale-105 transition-transform cursor-grab active:cursor-grabbing">
             <Eye className="w-5 h-5" />
-            <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Preview</div>
+            <div className={`absolute top-full mt-2 left-1/2 -translate-x-1/2 px-2 py-1 text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none ${isDark ? 'bg-slate-900 text-white' : 'bg-white text-slate-900 shadow-lg border border-slate-100'}`}>Preview</div>
           </div>
           <div onDragStart={(event) => onDragStart(event, 'visualMemory')} draggable onClick={() => addNode('visualMemory')} className="group relative w-9 h-9 bg-gradient-to-br from-amber-500 to-orange-600 rounded-lg flex items-center justify-center text-white shadow-lg hover:scale-105 transition-transform cursor-grab active:cursor-grabbing">
             <Database className="w-5 h-5" />
-            <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Database</div>
+            <div className={`absolute top-full mt-2 left-1/2 -translate-x-1/2 px-2 py-1 text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none ${isDark ? 'bg-slate-900 text-white' : 'bg-white text-slate-900 shadow-lg border border-slate-100'}`}>Database</div>
           </div>
           <div onDragStart={(event) => onDragStart(event, 'visualTool')} draggable onClick={() => addNode('visualTool')} className="group relative w-9 h-9 bg-gradient-to-br from-gray-500 to-slate-600 rounded-lg flex items-center justify-center text-white shadow-lg hover:scale-105 transition-transform cursor-grab active:cursor-grabbing">
             <Wrench className="w-5 h-5" />
-            <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Tools</div>
+            <div className={`absolute top-full mt-2 left-1/2 -translate-x-1/2 px-2 py-1 text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none ${isDark ? 'bg-slate-900 text-white' : 'bg-white text-slate-900 shadow-lg border border-slate-100'}`}>Tools</div>
           </div>
           <div onDragStart={(event) => onDragStart(event, 'visualModel')} draggable onClick={() => addNode('visualModel')} className="group relative w-9 h-9 bg-gradient-to-br from-teal-500 to-green-600 rounded-lg flex items-center justify-center text-white shadow-lg hover:scale-105 transition-transform cursor-grab active:cursor-grabbing">
             <BrainCircuit className="w-5 h-5" />
-            <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Memory</div>
+            <div className={`absolute top-full mt-2 left-1/2 -translate-x-1/2 px-2 py-1 text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none ${isDark ? 'bg-slate-900 text-white' : 'bg-white text-slate-900 shadow-lg border border-slate-100'}`}>Memory</div>
           </div>
         </div>
       </div>
@@ -240,20 +248,26 @@ const SchedulerBuilder: React.FC<SchedulerBuilderProps> = ({ workspace, onBack }
       <div className="absolute top-4 left-1/2 -translate-x-1/2 md:translate-x-0 md:left-auto md:right-6 md:top-6 z-10 flex gap-2 md:gap-3 w-max items-center">
         <button
           onClick={() => setIsFullScreen(!isFullScreen)}
-          className="group relative p-2.5 bg-white/5 hover:bg-white/10 backdrop-blur-md rounded-xl text-white border border-white/10 shadow-lg transition-all"
+          className={`group relative p-2.5 backdrop-blur-md rounded-xl border shadow-lg transition-all ${isDark
+              ? 'bg-white/5 hover:bg-white/10 text-white border-white/10'
+              : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200 shadow-slate-200/50'
+            }`}
           title={isFullScreen ? "Exit Full Screen (Esc)" : "Full Screen"}
         >
           {isFullScreen ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
-          <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+          <span className={`absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none ${isDark ? 'bg-slate-800 text-white' : 'bg-slate-900 text-white'}`}>
             {isFullScreen ? 'Exit (ESC)' : 'Fullscreen'}
           </span>
         </button>
         <button
-          className="group relative p-2.5 bg-white/5 hover:bg-white/10 backdrop-blur-md rounded-xl text-white border border-white/10 shadow-lg transition-all"
+          className={`group relative p-2.5 backdrop-blur-md rounded-xl border shadow-lg transition-all ${isDark
+              ? 'bg-white/5 hover:bg-white/10 text-white border-white/10'
+              : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200 shadow-slate-200/50'
+            }`}
           title="Save Flow"
         >
           <Save className="w-5 h-5" />
-          <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+          <span className={`absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none ${isDark ? 'bg-slate-800 text-white' : 'bg-slate-900 text-white'}`}>
             Save
           </span>
         </button>
@@ -280,10 +294,19 @@ const SchedulerBuilder: React.FC<SchedulerBuilderProps> = ({ workspace, onBack }
         defaultViewport={{ x: 300, y: -100, zoom: 1.5 }}
         minZoom={0.3}
 
-        className="bg-slate-950"
+        className={isDark ? 'bg-slate-950' : 'bg-slate-50'}
       >
-        <Background color="#334155" gap={20} size={1} />
-        <Controls className="!bg-slate-800 !border-white/10 !shadow-xl [&>button]:!fill-slate-400 [&>button:hover]:!fill-white" />
+        <Background
+          color={isDark ? '#334155' : '#cbd5e1'}
+          gap={20}
+          size={1}
+        />
+        <Controls
+          className={isDark
+            ? '!bg-slate-800 !border-white/10 !shadow-xl [&>button]:!fill-slate-400 [&>button:hover]:!fill-white'
+            : '!bg-white !border-slate-200 !shadow-xl [&>button]:!fill-slate-500 [&>button:hover]:!fill-slate-800'
+          }
+        />
       </ReactFlow>
     </div>
   );
@@ -313,8 +336,8 @@ const ScheduledPosts: React.FC<ScheduledPostsProps> = ({ workspace }) => {
                 <button
                   onClick={() => setViewMode('list')}
                   className={`p-2 rounded-lg transition-all ${viewMode === 'list'
-                      ? 'bg-indigo-500 text-white shadow-md'
-                      : isDark ? 'text-slate-400 hover:text-white hover:bg-white/5' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-50'
+                    ? 'bg-indigo-500 text-white shadow-md'
+                    : isDark ? 'text-slate-400 hover:text-white hover:bg-white/5' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-50'
                     }`}
                   title="List View"
                 >
@@ -323,8 +346,8 @@ const ScheduledPosts: React.FC<ScheduledPostsProps> = ({ workspace }) => {
                 <button
                   onClick={() => setViewMode('grid')}
                   className={`p-2 rounded-lg transition-all ${viewMode === 'grid'
-                      ? 'bg-indigo-500 text-white shadow-md'
-                      : isDark ? 'text-slate-400 hover:text-white hover:bg-white/5' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-50'
+                    ? 'bg-indigo-500 text-white shadow-md'
+                    : isDark ? 'text-slate-400 hover:text-white hover:bg-white/5' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-50'
                     }`}
                   title="Grid View"
                 >
