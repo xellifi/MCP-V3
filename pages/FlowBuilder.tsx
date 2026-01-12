@@ -2140,7 +2140,7 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
                 </h1>
                 <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider border backdrop-blur-md shadow-sm ${flowStatus === 'ACTIVE'
                   ? 'bg-green-500/20 text-green-300 border-green-500/30'
-                  : 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30'
+                  : 'bg-transparent text-slate-400 border-slate-300 dark:border-white/20'
                   }`}>
                   {flowStatus === 'ACTIVE' ? 'ACTIVE' : 'DRAFT'}
                 </span>

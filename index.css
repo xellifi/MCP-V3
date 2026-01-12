@@ -181,7 +181,7 @@
 
   :not(.dark) .react-flow__node div[class*="bg-"][class*="-500/"] {
     background-color: white !important;
-    border-width: 2px !important;
+    border-width: 3px !important;
     border-style: solid !important;
   }
 
