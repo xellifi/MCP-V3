@@ -39,7 +39,10 @@ import UpsellNodeForm from '../components/UpsellNodeForm';
 import DownsellNodeForm from '../components/DownsellNodeForm';
 import InvoiceNodeForm from '../components/InvoiceNodeForm';
 import ProductNodeForm from '../components/ProductNodeForm';
+import CartInvoiceNodeForm from '../components/CartInvoiceNodeForm';
+import CartSheetNodeForm from '../components/CartSheetNodeForm';
 import CheckoutNodeForm from '../components/CheckoutNodeForm';
+import CheckoutFormNodeForm from '../components/CheckoutFormNodeForm';
 import ProductWebviewNodeForm from '../components/ProductWebviewNodeForm';
 import AINodeForm from '../components/AINodeForm';
 import CustomEdge from '../components/edges/CustomEdge';
@@ -60,7 +63,10 @@ import CustomUpsellNode from '../components/nodes/CustomUpsellNode';
 import CustomDownsellNode from '../components/nodes/CustomDownsellNode';
 import CustomInvoiceNode from '../components/nodes/CustomInvoiceNode';
 import CustomProductNode from '../components/nodes/CustomProductNode';
+import CustomCartInvoiceNode from '../components/nodes/CustomCartInvoiceNode';
+import CustomCartSheetNode from '../components/nodes/CustomCartSheetNode';
 import CustomCheckoutNode from '../components/nodes/CustomCheckoutNode';
+import CustomCheckoutFormNode from '../components/nodes/CustomCheckoutFormNode';
 import CustomProductWebviewNode from '../components/nodes/CustomProductWebviewNode';
 import { api } from '../services/api';
 import { supabase } from '../lib/supabase';
@@ -96,7 +102,10 @@ const nodeTypes: NodeTypes = {
   downsellNode: CustomDownsellNode,
   invoiceNode: CustomInvoiceNode,
   productNode: CustomProductNode,
+  cartInvoiceNode: CustomCartInvoiceNode,
+  cartSheetNode: CustomCartSheetNode,
   checkoutNode: CustomCheckoutNode,
+  checkoutFormNode: CustomCheckoutFormNode,
   productWebviewNode: CustomProductWebviewNode,
 };
 
@@ -1771,6 +1780,16 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
       );
     }
 
+    // Checkout Form Node (must check BEFORE formNode due to 'form' in label)
+    if (nodeType === 'checkoutFormNode' || label.toLowerCase() === 'checkout form') {
+      return (
+        <CheckoutFormNodeForm
+          workspaceId={workspace?.id || ''}
+          initialConfig={initialConfigRef.current}
+          onChange={handleConfigChange}
+        />
+      );
+    }
 
     // Form Node
     if (nodeType === 'formNode' || label.toLowerCase().includes('form')) {
@@ -1870,6 +1889,27 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
       );
     }
 
+    // Cart Invoice Node
+    if (nodeType === 'cartInvoiceNode' || label.toLowerCase().includes('cart invoice')) {
+      return (
+        <CartInvoiceNodeForm
+          workspaceId={workspace?.id || ''}
+          initialConfig={initialConfigRef.current}
+          onChange={handleConfigChange}
+        />
+      );
+    }
+
+    // Cart Sheet Node
+    if (nodeType === 'cartSheetNode' || label.toLowerCase().includes('cart sheet')) {
+      return (
+        <CartSheetNodeForm
+          workspaceId={workspace?.id || ''}
+          initialConfig={initialConfigRef.current}
+          onChange={handleConfigChange}
+        />
+      );
+    }
 
     // Checkout Node
     if (nodeType === 'checkoutNode' || label.toLowerCase().includes('checkout')) {
@@ -2277,10 +2317,25 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
               <Package className="w-5 h-5" />
               <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">Product</span>
             </div>
+            <div draggable onDragStart={(e) => onDragStart(e, 'cartInvoiceNode', 'Cart Invoice')} onClick={() => addNode('cartInvoiceNode', 'Cart Invoice')}
+              className="group relative w-10 h-10 bg-emerald-500/20 hover:bg-emerald-500/40 border border-emerald-500/30 rounded-xl flex items-center justify-center text-emerald-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
+              <FileText className="w-5 h-5" />
+              <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">Cart Invoice</span>
+            </div>
+            <div draggable onDragStart={(e) => onDragStart(e, 'cartSheetNode', 'Cart Sheet')} onClick={() => addNode('cartSheetNode', 'Cart Sheet')}
+              className="group relative w-10 h-10 bg-green-500/20 hover:bg-green-500/40 border border-green-500/30 rounded-xl flex items-center justify-center text-green-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
+              <Table2 className="w-5 h-5" />
+              <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">Cart Sheet</span>
+            </div>
             <div draggable onDragStart={(e) => onDragStart(e, 'checkoutNode', 'Checkout')} onClick={() => addNode('checkoutNode', 'Checkout')}
               className="group relative w-10 h-10 bg-emerald-500/20 hover:bg-emerald-500/40 border border-emerald-500/30 rounded-xl flex items-center justify-center text-emerald-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
               <ShoppingCart className="w-5 h-5" />
               <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">Checkout</span>
+            </div>
+            <div draggable onDragStart={(e) => onDragStart(e, 'checkoutFormNode', 'Checkout Form')} onClick={() => addNode('checkoutFormNode', 'Checkout Form')}
+              className="group relative w-10 h-10 bg-indigo-500/20 hover:bg-indigo-500/40 border border-indigo-500/30 rounded-xl flex items-center justify-center text-indigo-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
+              <ClipboardList className="w-5 h-5" />
+              <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">Checkout Form</span>
             </div>
           </div>
         </div>
