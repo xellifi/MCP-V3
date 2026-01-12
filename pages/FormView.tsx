@@ -36,14 +36,42 @@ const FormView: React.FC = () => {
 
     useEffect(() => { loadForm(); }, [formId]);
 
-    // Log form open for abandoned form tracking AND apply open labels
-    // NOTE: These endpoints were consolidated to stay within Vercel's 12 function limit
+    // Log form open for abandoned form tracking (inserts directly to avoid extra API endpoint)
     useEffect(() => {
-        if (formId && subscriberId && flowId) {
-            console.log('[FormView] Form opened - tracking disabled for Vercel function limit');
-            // The log-open and apply-open-labels functionality was consolidated
-            // to stay within Vercel Hobby plan's 12 function limit
-        }
+        const trackFormOpen = async () => {
+            if (!formId || !subscriberId || !flowId) return;
+
+            try {
+                console.log('[FormView] Tracking form open for abandoned cart follow-up...');
+
+                // Upsert form_opens record - allows cron job to send follow-ups for abandoned forms
+                const { error } = await supabase
+                    .from('form_opens')
+                    .upsert({
+                        form_id: formId,
+                        subscriber_id: subscriberId,
+                        subscriber_name: subscriberName || 'Unknown',
+                        flow_id: flowId,
+                        node_id: nodeId,
+                        page_id: pageId,
+                        opened_at: new Date().toISOString(),
+                        // submitted_at is null - will be set when form is submitted
+                    }, {
+                        onConflict: 'subscriber_id,form_id',
+                        ignoreDuplicates: false // Update if exists
+                    });
+
+                if (error) {
+                    console.error('[FormView] Error tracking form open:', error.message);
+                } else {
+                    console.log('[FormView] ✓ Form open tracked for follow-up');
+                }
+            } catch (err: any) {
+                console.error('[FormView] Exception tracking form open:', err.message);
+            }
+        };
+
+        trackFormOpen();
     }, [formId, subscriberId, flowId]);
 
     // Countdown timer

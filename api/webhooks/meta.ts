@@ -2527,21 +2527,26 @@ Do not use markdown formatting. Be friendly and professional.`;
 
                 console.log(`🤖 Saving ${updatedHistory.length} messages to chat history for subscriber ${subscriber?.id}`);
 
-                const { error: saveError } = await supabase
-                    .from('subscribers')
-                    .update({
-                        metadata: {
-                            ...subscriber?.metadata,
-                            ai_chat_history: updatedHistory,
-                            ai_last_interaction: new Date().toISOString()
-                        }
-                    })
-                    .eq('id', subscriber?.id);
+                // Only save chat history if we have a valid subscriber ID
+                if (subscriber?.id) {
+                    const { error: saveError } = await supabase
+                        .from('subscribers')
+                        .update({
+                            metadata: {
+                                ...subscriber?.metadata,
+                                ai_chat_history: updatedHistory,
+                                ai_last_interaction: new Date().toISOString()
+                            }
+                        })
+                        .eq('id', subscriber.id);
 
-                if (saveError) {
-                    console.error(`🤖 Error saving chat history: ${saveError.message}`);
+                    if (saveError) {
+                        console.error(`🤖 Error saving chat history: ${saveError.message}`);
+                    } else {
+                        console.log('🤖 ✓ Chat history saved successfully');
+                    }
                 } else {
-                    console.log('🤖 ✓ Chat history saved successfully');
+                    console.log('🤖 ⚠️ Skipping chat history save - no valid subscriber ID');
                 }
 
                 console.log('🤖 AI response sent and conversation saved');
