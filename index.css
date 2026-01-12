@@ -162,6 +162,23 @@
    LIGHT MODE NODE STYLING REFINEMENTS
    Force white background and solid colored borders
    ======================================== */
+  /* Specific Insight Icon Color Overrides */
+  .react-flow__node .insight-icon-blue {
+    color: #3b82f6 !important;
+  }
+
+  .react-flow__node .insight-icon-red {
+    color: #ef4444 !important;
+  }
+
+  .react-flow__node .insight-icon-sky {
+    color: #38bdf8 !important;
+  }
+
+  .react-flow__node .insight-icon-emerald {
+    color: #10b981 !important;
+  }
+
   :not(.dark) .react-flow__node div[class*="bg-"][class*="-500/"] {
     background-color: white !important;
     border-width: 2px !important;
