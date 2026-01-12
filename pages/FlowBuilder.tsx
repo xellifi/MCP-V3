@@ -2,6 +2,7 @@ import React, { useState, useCallback, useEffect, useRef, DragEvent } from 'reac
 import ReactFlow, {
   addEdge,
   Background,
+  BackgroundVariant,
   Controls,
   Connection,
   Edge,
@@ -2408,7 +2409,12 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
             panOnScroll={false}
             panOnDrag={true}
           >
-            <Background color={isDark ? "#1e293b" : "#d1d5db"} gap={20} />
+            <Background
+              variant={BackgroundVariant.Dots}
+              color={isDark ? "#334155" : "#cbd5e1"}
+              gap={20}
+              size={1}
+            />
             <Controls className="hidden md:block !bg-slate-800 !border-white/10 !shadow-xl [&>button]:!fill-slate-400 [&>button:hover]:!fill-white" />
             <MiniMap
               className="hidden md:block !bg-slate-900/80 !backdrop-blur-sm !border-slate-700 !shadow-xl !rounded-lg overflow-hidden"
