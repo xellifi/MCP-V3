@@ -4,6 +4,7 @@ import { api } from '../services/api';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Search, MoreHorizontal, Play, Edit, Trash, Zap, Facebook, AlertTriangle, X, LayoutGrid, List, ChevronLeft, ChevronRight, GripVertical } from 'lucide-react';
 import { format } from 'date-fns';
+import { useTheme } from '../context/ThemeContext';
 import {
   DndContext,
   closestCenter,
@@ -135,6 +136,7 @@ const SortableFlowCard: React.FC<SortableFlowCardProps> = ({ flow, flowPage, onE
 };
 
 const Flows: React.FC<FlowsProps> = ({ workspace }) => {
+  const { isDark } = useTheme();
   const [flows, setFlows] = useState<Flow[]>([]);
   const [pages, setPages] = useState<ConnectedPage[]>([]);
   const [loading, setLoading] = useState(true);
@@ -293,8 +295,10 @@ const Flows: React.FC<FlowsProps> = ({ workspace }) => {
     <div className="space-y-6 animate-fade-in">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-white tracking-tight text-glow">Automations</h1>
-          <p className="text-slate-400 mt-1 text-lg">Build flows to automate conversations</p>
+          <h1 className={`text-3xl font-bold tracking-tight ${isDark ? 'text-white text-glow' : 'text-gray-900'
+            }`}>Automations</h1>
+          <p className={`mt-1 text-lg ${isDark ? 'text-slate-400' : 'text-gray-600'
+            }`}>Build flows to automate conversations</p>
         </div>
         <div className="flex items-center gap-3">
           <div className="flex bg-white/5 p-1 rounded-lg border border-white/10">
