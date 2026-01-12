@@ -32,26 +32,29 @@ const CollapsibleCard: React.FC<CollapsibleCardProps> = ({
   isDark
 }) => {
   return (
-    <div className="glass-panel rounded-2xl overflow-hidden transition-all duration-300">
+    <div className={`rounded-2xl overflow-hidden transition-all duration-300 ${isDark ? 'glass-panel' : 'bg-white border border-slate-200 shadow-sm'}`}>
       <div
-        className={`p-6 border-b border-white/10 flex items-center justify-between cursor-pointer transition-colors ${isOpen ? 'bg-white/10' : 'hover:bg-white/5'}`}
+        className={`p-6 border-b flex items-center justify-between cursor-pointer transition-colors ${isDark
+            ? `border-white/10 ${isOpen ? 'bg-white/10' : 'hover:bg-white/5'}`
+            : `border-slate-200 ${isOpen ? 'bg-slate-50' : 'hover:bg-slate-50'}`
+          }`}
         onClick={onToggle}
       >
         <div className="flex items-center gap-4">
-          <div className={`p-3 rounded-xl shadow-lg shadow-indigo-500/10 ${colorClass}`}>
+          <div className={`p-3 rounded-xl shadow-lg ${colorClass}`}>
             <Icon className="w-5 h-5 drop-shadow-glow" />
           </div>
           <div>
-            <h3 className="font-bold text-white text-lg">{title}</h3>
-            <p className="text-sm text-slate-400">{subtitle}</p>
+            <h3 className={`font-bold text-lg ${isDark ? 'text-white' : 'text-slate-900'}`}>{title}</h3>
+            <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{subtitle}</p>
           </div>
         </div>
-        <div className={`text-slate-400 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`}>
+        <div className={`${isDark ? 'text-slate-400' : 'text-slate-500'} transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`}>
           <ChevronDown className="w-5 h-5" />
         </div>
       </div>
       <div className={`transition-all duration-300 ease-in-out ${isOpen ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0 overflow-hidden'}`}>
-        <div className="p-6 md:p-8 bg-black/20">
+        <div className={`p-6 md:p-8 ${isDark ? 'bg-black/20' : 'bg-slate-50/50'}`}>
           {children}
         </div>
       </div>
@@ -172,15 +175,20 @@ const Settings: React.FC<SettingsProps> = ({ user, workspace }) => {
     );
   }
 
-  const inputClasses = "w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all placeholder-slate-500";
-  const labelClasses = "block text-sm font-semibold text-slate-300 mb-2";
+  const inputClasses = `w-full rounded-xl px-4 py-3 outline-none transition-all focus:ring-2 focus:ring-indigo-500/50 ${isDark
+      ? 'bg-black/20 border border-white/10 text-white placeholder-slate-500'
+      : 'bg-white border border-slate-200 text-slate-900 placeholder-slate-400'
+    }`;
+
+  const labelClasses = `block text-sm font-semibold mb-2 ${isDark ? 'text-slate-300' : 'text-slate-700'}`;
+
   const buttonPrimary = "bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-indigo-500/20 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed border border-white/20";
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 pb-12 animate-fade-in">
       <div>
-        <h1 className="text-3xl font-bold text-white tracking-tight text-glow">Settings</h1>
-        <p className="text-slate-400 mt-2 text-lg">Manage your account preferences, payouts, and workspace configurations.</p>
+        <h1 className={`text-3xl font-bold tracking-tight ${isDark ? 'text-white text-glow' : 'text-slate-900'}`}>Settings</h1>
+        <p className={`mt-2 text-lg ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Manage your account preferences, payouts, and workspace configurations.</p>
       </div>
 
       {/* 1. Payout Settings (User specific) */}
@@ -197,7 +205,12 @@ const Settings: React.FC<SettingsProps> = ({ user, workspace }) => {
           <div>
             <label className={labelClasses}>Payout Method</label>
             <div className="flex gap-4">
-              <label className={`flex items-center gap-3 cursor-pointer border p-4 rounded-xl flex-1 transition-all ${payouts.method === 'PAYPAL' ? 'bg-indigo-500/20 border-indigo-500 ring-1 ring-indigo-500' : 'bg-white/5 border-white/10 hover:bg-white/10'}`}>
+              <label className={`flex items-center gap-3 cursor-pointer border p-4 rounded-xl flex-1 transition-all ${payouts.method === 'PAYPAL'
+                  ? 'bg-indigo-500/20 border-indigo-500 ring-1 ring-indigo-500'
+                  : isDark
+                    ? 'bg-white/5 border-white/10 hover:bg-white/10'
+                    : 'bg-white border-slate-200 hover:bg-slate-50'
+                }`}>
                 <input
                   type="radio"
                   name="payoutMethod"
@@ -206,9 +219,14 @@ const Settings: React.FC<SettingsProps> = ({ user, workspace }) => {
                   onChange={() => setPayouts({ ...payouts, method: 'PAYPAL' })}
                   className="text-indigo-500 focus:ring-indigo-500 h-4 w-4 bg-transparent border-white/20"
                 />
-                <span className="font-medium text-white">PayPal</span>
+                <span className={`font-medium ${isDark ? 'text-white' : 'text-slate-900'}`}>PayPal</span>
               </label>
-              <label className={`flex items-center gap-3 cursor-pointer border p-4 rounded-xl flex-1 transition-all ${payouts.method === 'BANK_TRANSFER' ? 'bg-indigo-500/20 border-indigo-500 ring-1 ring-indigo-500' : 'bg-white/5 border-white/10 hover:bg-white/10'}`}>
+              <label className={`flex items-center gap-3 cursor-pointer border p-4 rounded-xl flex-1 transition-all ${payouts.method === 'BANK_TRANSFER'
+                  ? 'bg-indigo-500/20 border-indigo-500 ring-1 ring-indigo-500'
+                  : isDark
+                    ? 'bg-white/5 border-white/10 hover:bg-white/10'
+                    : 'bg-white border-slate-200 hover:bg-slate-50'
+                }`}>
                 <input
                   type="radio"
                   name="payoutMethod"
@@ -217,7 +235,7 @@ const Settings: React.FC<SettingsProps> = ({ user, workspace }) => {
                   onChange={() => setPayouts({ ...payouts, method: 'BANK_TRANSFER' })}
                   className="text-indigo-500 focus:ring-indigo-500 h-4 w-4 bg-transparent border-white/20"
                 />
-                <span className="font-medium text-white">Bank Transfer</span>
+                <span className={`font-medium ${isDark ? 'text-white' : 'text-slate-900'}`}>Bank Transfer</span>
               </label>
             </div>
           </div>
@@ -276,7 +294,7 @@ const Settings: React.FC<SettingsProps> = ({ user, workspace }) => {
             </div>
           )}
 
-          <div className="flex justify-end pt-4 border-t border-white/10">
+          <div className={`flex justify-end pt-4 border-t ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
             <button
               type="submit"
               disabled={savingPayouts}
@@ -315,7 +333,7 @@ const Settings: React.FC<SettingsProps> = ({ user, workspace }) => {
               <button
                 type="button"
                 onClick={() => setShowOpenAi(!showOpenAi)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors"
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-indigo-500 transition-colors"
               >
                 {showOpenAi ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
@@ -338,14 +356,14 @@ const Settings: React.FC<SettingsProps> = ({ user, workspace }) => {
               <button
                 type="button"
                 onClick={() => setShowGemini(!showGemini)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors"
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-indigo-500 transition-colors"
               >
                 {showGemini ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
             </div>
           </div>
 
-          <div className="flex justify-end pt-4 border-t border-white/10">
+          <div className={`flex justify-end pt-4 border-t ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
             <button
               type="submit"
               disabled={savingKeys}
@@ -368,8 +386,8 @@ const Settings: React.FC<SettingsProps> = ({ user, workspace }) => {
         isDark={isDark}
       >
         <form onSubmit={handleSaveIntegrations} className="space-y-6">
-          <div className="bg-amber-500/10 border border-amber-500/20 p-4 rounded-xl text-sm text-amber-200 mb-6 flex items-start gap-3">
-            <Server className="w-5 h-5 flex-shrink-0 mt-0.5" />
+          <div className={`p-4 rounded-xl text-sm flex items-start gap-3 ${isDark ? 'bg-amber-500/10 border border-amber-500/20 text-amber-200' : 'bg-amber-50 border border-amber-200 text-amber-800'}`}>
+            <Server className={`w-5 h-5 flex-shrink-0 mt-0.5 ${isDark ? 'text-amber-400' : 'text-amber-500'}`} />
             <p>Override the system default email settings to send notifications from your own domain.</p>
           </div>
 
@@ -426,24 +444,30 @@ const Settings: React.FC<SettingsProps> = ({ user, workspace }) => {
             </div>
 
             {/* Test Email Section */}
-            <div className="md:col-span-2 pt-6 border-t border-white/10">
-              <h4 className="text-sm font-bold text-white mb-3">Test Configuration</h4>
+            <div className={`md:col-span-2 pt-6 border-t ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
+              <h4 className={`text-sm font-bold mb-3 ${isDark ? 'text-white' : 'text-slate-900'}`}>Test Configuration</h4>
               <div className="flex gap-3">
                 <input
                   type="email"
                   value={testEmail}
                   onChange={e => setTestEmail(e.target.value)}
                   placeholder="Enter email to test..."
-                  className="flex-1 bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500/50 outline-none"
+                  className={`flex-1 rounded-xl px-4 py-3 outline-none transition-all focus:ring-2 focus:ring-indigo-500/50 ${isDark
+                      ? 'bg-black/20 border border-white/10 text-white placeholder-slate-500'
+                      : 'bg-white border border-slate-200 text-slate-900 placeholder-slate-400'
+                    }`}
                 />
                 <button
                   type="button"
                   onClick={handleTestEmail}
                   disabled={!testEmail || sendingTest}
-                  className="flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white px-6 py-3 rounded-xl font-bold transition-colors disabled:opacity-50 border border-white/10"
+                  className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-colors disabled:opacity-50 border ${isDark
+                      ? 'bg-white/10 hover:bg-white/20 text-white border-white/10'
+                      : 'bg-slate-100 hover:bg-slate-200 text-slate-900 border-slate-200'
+                    }`}
                 >
                   {sendingTest ? (
-                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
                   ) : (
                     <Send className="w-5 h-5" />
                   )}
@@ -453,7 +477,7 @@ const Settings: React.FC<SettingsProps> = ({ user, workspace }) => {
             </div>
           </div>
 
-          <div className="flex justify-end pt-4 border-t border-white/10">
+          <div className={`flex justify-end pt-4 border-t ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
             <button
               type="submit"
               disabled={savingKeys}

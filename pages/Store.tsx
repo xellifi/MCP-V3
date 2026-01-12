@@ -5,6 +5,7 @@ import {
     Eye, ExternalLink, Copy, Check, Truck, Clock, CheckCircle, XCircle,
     DollarSign, Tag, Box, AlertCircle, Palette, Building2, Link as LinkIcon, HelpCircle
 } from 'lucide-react';
+import { useTheme } from '../context/ThemeContext';
 import { supabase } from '../lib/supabase';
 import { Workspace } from '../types';
 
@@ -90,6 +91,7 @@ const ORDER_STATUSES = [
 const PRESET_COLORS = ['#7c3aed', '#6366f1', '#3b82f6', '#0891b2', '#10b981', '#f59e0b', '#ef4444', '#ec4899'];
 
 const Store: React.FC<StoreProps> = ({ workspace }) => {
+    const { isDark } = useTheme();
     const [activeTab, setActiveTab] = useState('products');
     const [loading, setLoading] = useState(true);
 
@@ -299,7 +301,7 @@ const Store: React.FC<StoreProps> = ({ workspace }) => {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900/20 to-slate-900 p-4 md:p-6">
+        <div className={`min-h-screen p-4 md:p-6 transition-colors duration-300 ${isDark ? 'bg-gradient-to-br from-slate-900 via-purple-900/20 to-slate-900' : 'bg-slate-50'}`}>
             <div className="max-w-7xl mx-auto">
                 {/* Header */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
@@ -308,21 +310,21 @@ const Store: React.FC<StoreProps> = ({ workspace }) => {
                             <StoreIcon className="w-6 h-6 text-white" />
                         </div>
                         <div>
-                            <h1 className="text-2xl font-bold text-white">{store.name || 'My Store'}</h1>
-                            <p className="text-slate-400 text-sm">Manage your products, orders, and store settings</p>
+                            <h1 className={`text-2xl font-bold transition-colors ${isDark ? 'text-white' : 'text-slate-900'}`}>{store.name || 'My Store'}</h1>
+                            <p className={`text-sm transition-colors ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Manage your products, orders, and store settings</p>
                         </div>
                     </div>
 
                     {/* Store URL */}
                     <div className="flex items-center gap-2">
-                        <div className="flex items-center gap-2 px-4 py-2 bg-black/30 rounded-xl border border-white/10">
-                            <LinkIcon className="w-4 h-4 text-slate-400" />
-                            <span className="text-slate-300 text-sm">/store/{store.slug}</span>
+                        <div className={`flex items-center gap-2 px-4 py-2 rounded-xl border transition-colors ${isDark ? 'bg-black/30 border-white/10' : 'bg-white border-slate-200'}`}>
+                            <LinkIcon className={`w-4 h-4 ${isDark ? 'text-slate-400' : 'text-slate-500'}`} />
+                            <span className={`text-sm ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>/store/{store.slug}</span>
                             <button
                                 onClick={copyStoreUrl}
-                                className="p-1 hover:bg-white/10 rounded transition-colors"
+                                className={`p-1 rounded transition-colors ${isDark ? 'hover:bg-white/10' : 'hover:bg-slate-100'}`}
                             >
-                                {slugCopied ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4 text-slate-400" />}
+                                {slugCopied ? <Check className="w-4 h-4 text-green-400" /> : <Copy className={`w-4 h-4 ${isDark ? 'text-slate-400' : 'text-slate-500'}`} />}
                             </button>
                         </div>
                         <a
@@ -337,14 +339,14 @@ const Store: React.FC<StoreProps> = ({ workspace }) => {
                 </div>
 
                 {/* Tabs */}
-                <div className="flex gap-1 p-1 bg-black/30 rounded-xl w-fit mb-6 border border-white/10">
+                <div className={`flex gap-1 p-1 rounded-xl w-fit mb-6 border transition-colors ${isDark ? 'bg-black/30 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
                     {TABS.map(tab => (
                         <button
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id)}
                             className={`flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium text-sm transition-all ${activeTab === tab.id
                                 ? 'bg-purple-500 text-white shadow-lg shadow-purple-500/25'
-                                : 'text-slate-400 hover:text-white hover:bg-white/5'
+                                : `${isDark ? 'text-slate-400 hover:text-white hover:bg-white/5' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100'}`
                                 }`}
                         >
                             <tab.icon className="w-4 h-4" />
@@ -365,7 +367,10 @@ const Store: React.FC<StoreProps> = ({ workspace }) => {
                                     value={productSearch}
                                     onChange={(e) => setProductSearch(e.target.value)}
                                     placeholder="Search products..."
-                                    className="w-full pl-10 pr-4 py-3 bg-black/30 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-purple-500/50 outline-none"
+                                    className={`w-full pl-10 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-purple-500/50 outline-none transition-colors ${isDark
+                                        ? 'bg-black/30 border-white/10 text-white'
+                                        : 'bg-white border-slate-200 text-slate-900 shadow-sm'
+                                        }`}
                                 />
                             </div>
                             <button
@@ -382,15 +387,18 @@ const Store: React.FC<StoreProps> = ({ workspace }) => {
                             {filteredProducts.map(product => (
                                 <div
                                     key={product.id}
-                                    className="bg-black/30 backdrop-blur-md border border-white/10 rounded-xl overflow-hidden hover:border-purple-500/50 transition-all group"
+                                    className={`backdrop-blur-md border rounded-xl overflow-hidden hover:border-purple-500/50 transition-all group ${isDark
+                                        ? 'bg-black/30 border-white/10'
+                                        : 'bg-white border-slate-200 shadow-sm hover:shadow-md'
+                                        }`}
                                 >
                                     {/* Product Image */}
-                                    <div className="relative aspect-square bg-slate-800">
+                                    <div className={`relative aspect-square ${isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>
                                         {product.images?.[0] ? (
                                             <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover" />
                                         ) : (
                                             <div className="w-full h-full flex items-center justify-center">
-                                                <ImageIcon className="w-12 h-12 text-slate-600" />
+                                                <ImageIcon className={`w-12 h-12 ${isDark ? 'text-slate-600' : 'text-slate-300'}`} />
                                             </div>
                                         )}
                                         {/* Status Badge */}
@@ -418,7 +426,7 @@ const Store: React.FC<StoreProps> = ({ workspace }) => {
                                     </div>
                                     {/* Product Info */}
                                     <div className="p-4">
-                                        <h3 className="font-semibold text-white truncate">{product.name}</h3>
+                                        <h3 className={`font-semibold truncate ${isDark ? 'text-white' : 'text-slate-900'}`}>{product.name}</h3>
                                         <div className="flex items-center gap-2 mt-1">
                                             <span className="text-lg font-bold text-purple-400">₱{product.price.toLocaleString()}</span>
                                             {product.compare_at_price && (
@@ -436,8 +444,8 @@ const Store: React.FC<StoreProps> = ({ workspace }) => {
 
                             {filteredProducts.length === 0 && !loading && (
                                 <div className="col-span-full py-12 text-center">
-                                    <Package className="w-12 h-12 text-slate-600 mx-auto mb-3" />
-                                    <p className="text-slate-400">No products yet</p>
+                                    <Package className={`w-12 h-12 mx-auto mb-3 ${isDark ? 'text-slate-600' : 'text-slate-300'}`} />
+                                    <p className={`${isDark ? 'text-slate-400' : 'text-slate-500'}`}>No products yet</p>
                                     <button
                                         onClick={() => setShowProductModal(true)}
                                         className="mt-3 text-purple-400 hover:text-purple-300"
@@ -468,7 +476,7 @@ const Store: React.FC<StoreProps> = ({ workspace }) => {
                                     onClick={() => setOrderFilter(status.id)}
                                     className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${orderFilter === status.id
                                         ? `bg-${status.color}-500 text-white`
-                                        : 'bg-black/30 text-slate-400 hover:text-white'
+                                        : `${isDark ? 'bg-black/30 text-slate-400 hover:text-white' : 'bg-white text-slate-500 hover:text-slate-900 border border-slate-200'}`
                                         }`}
                                 >
                                     {status.label}
@@ -477,27 +485,27 @@ const Store: React.FC<StoreProps> = ({ workspace }) => {
                         </div>
 
                         {/* Orders Table */}
-                        <div className="bg-black/30 backdrop-blur-md border border-white/10 rounded-xl overflow-hidden">
+                        <div className={`backdrop-blur-md border rounded-xl overflow-hidden transition-colors ${isDark ? 'bg-black/30 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
                             <div className="overflow-x-auto">
                                 <table className="w-full">
                                     <thead>
-                                        <tr className="border-b border-white/10">
-                                            <th className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase">Order</th>
-                                            <th className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase">Customer</th>
-                                            <th className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase">Status</th>
-                                            <th className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase">Total</th>
-                                            <th className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase">Date</th>
-                                            <th className="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase">Actions</th>
+                                        <tr className={`border-b ${isDark ? 'border-white/10' : 'border-slate-200 bg-slate-50/50'}`}>
+                                            <th className={`text-left px-4 py-3 text-xs font-semibold uppercase ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Order</th>
+                                            <th className={`text-left px-4 py-3 text-xs font-semibold uppercase ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Customer</th>
+                                            <th className={`text-left px-4 py-3 text-xs font-semibold uppercase ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Status</th>
+                                            <th className={`text-left px-4 py-3 text-xs font-semibold uppercase ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Total</th>
+                                            <th className={`text-left px-4 py-3 text-xs font-semibold uppercase ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Date</th>
+                                            <th className={`text-left px-4 py-3 text-xs font-semibold uppercase ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {filteredOrders.map(order => (
-                                            <tr key={order.id} className="border-b border-white/5 hover:bg-white/5">
+                                            <tr key={order.id} className={`border-b transition-colors ${isDark ? 'border-white/5 hover:bg-white/5' : 'border-slate-100 hover:bg-slate-50'}`}>
                                                 <td className="px-4 py-3">
-                                                    <span className="font-mono text-sm text-white">{order.order_number}</span>
+                                                    <span className={`font-mono text-sm ${isDark ? 'text-white' : 'text-slate-900'}`}>{order.order_number}</span>
                                                 </td>
                                                 <td className="px-4 py-3">
-                                                    <div className="text-sm text-white">{order.customer_name}</div>
+                                                    <div className={`text-sm ${isDark ? 'text-white' : 'text-slate-900'}`}>{order.customer_name}</div>
                                                     <div className="text-xs text-slate-500">{order.customer_email}</div>
                                                 </td>
                                                 <td className="px-4 py-3">
@@ -517,9 +525,9 @@ const Store: React.FC<StoreProps> = ({ workspace }) => {
                                                     </select>
                                                 </td>
                                                 <td className="px-4 py-3">
-                                                    <span className="text-white font-semibold">₱{order.total.toLocaleString()}</span>
+                                                    <span className={`font-semibold ${isDark ? 'text-white' : 'text-slate-900'}`}>₱{order.total.toLocaleString()}</span>
                                                 </td>
-                                                <td className="px-4 py-3 text-sm text-slate-400">
+                                                <td className={`px-4 py-3 text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                                                     {new Date(order.created_at).toLocaleDateString()}
                                                 </td>
                                                 <td className="px-4 py-3">
@@ -537,8 +545,8 @@ const Store: React.FC<StoreProps> = ({ workspace }) => {
 
                                 {filteredOrders.length === 0 && (
                                     <div className="py-12 text-center">
-                                        <ShoppingCart className="w-12 h-12 text-slate-600 mx-auto mb-3" />
-                                        <p className="text-slate-400">No orders yet</p>
+                                        <ShoppingCart className={`w-12 h-12 mx-auto mb-3 ${isDark ? 'text-slate-600' : 'text-slate-300'}`} />
+                                        <p className={`${isDark ? 'text-slate-400' : 'text-slate-500'}`}>No orders yet</p>
                                     </div>
                                 )}
                             </div>
@@ -550,48 +558,48 @@ const Store: React.FC<StoreProps> = ({ workspace }) => {
                 {activeTab === 'settings' && (
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         {/* Store Info */}
-                        <div className="bg-black/30 backdrop-blur-md border border-white/10 rounded-xl p-6">
-                            <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                        <div className={`backdrop-blur-md border rounded-xl p-6 transition-colors ${isDark ? 'bg-black/30 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
+                            <h2 className={`text-lg font-bold mb-4 flex items-center gap-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>
                                 <Building2 className="w-5 h-5 text-purple-400" />
                                 Store Information
                             </h2>
 
                             <div className="space-y-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-300 mb-2">Store Name</label>
+                                    <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>Store Name</label>
                                     <input
                                         type="text"
                                         value={store.name}
                                         onChange={(e) => setStore({ ...store, name: e.target.value })}
-                                        className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-purple-500/50 outline-none"
+                                        className={`w-full border rounded-xl px-4 py-3 focus:ring-2 focus:ring-purple-500/50 outline-none transition-colors ${isDark ? 'bg-black/30 border-white/10 text-white' : 'bg-white border-slate-200 text-slate-900'}`}
                                     />
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-300 mb-2">Store URL Slug</label>
+                                    <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>Store URL Slug</label>
                                     <div className="flex items-center gap-2">
                                         <span className="text-slate-500">/store/</span>
                                         <input
                                             type="text"
                                             value={store.slug}
                                             onChange={(e) => setStore({ ...store, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') })}
-                                            className="flex-1 bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-purple-500/50 outline-none"
+                                            className={`flex-1 border rounded-xl px-4 py-3 focus:ring-2 focus:ring-purple-500/50 outline-none transition-colors ${isDark ? 'bg-black/30 border-white/10 text-white' : 'bg-white border-slate-200 text-slate-900'}`}
                                         />
                                     </div>
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-300 mb-2">Description</label>
+                                    <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>Description</label>
                                     <textarea
                                         value={store.description || ''}
                                         onChange={(e) => setStore({ ...store, description: e.target.value })}
                                         rows={3}
-                                        className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-purple-500/50 outline-none resize-none"
+                                        className={`w-full border rounded-xl px-4 py-3 focus:ring-2 focus:ring-purple-500/50 outline-none resize-none transition-colors ${isDark ? 'bg-black/30 border-white/10 text-white' : 'bg-white border-slate-200 text-slate-900'}`}
                                     />
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-300 mb-2">Store Logo</label>
+                                    <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>Store Logo</label>
                                     <input type="file" ref={logoInputRef} className="hidden" accept="image/*" onChange={async (e) => {
                                         const file = e.target.files?.[0];
                                         if (file) {
@@ -612,7 +620,7 @@ const Store: React.FC<StoreProps> = ({ workspace }) => {
                                     ) : (
                                         <button
                                             onClick={() => logoInputRef.current?.click()}
-                                            className="w-full py-8 border-2 border-dashed border-white/20 rounded-xl text-slate-400 hover:text-white hover:border-purple-500/50 transition-colors flex flex-col items-center gap-2"
+                                            className={`w-full py-8 border-2 border-dashed rounded-xl transition-colors flex flex-col items-center gap-2 ${isDark ? 'border-white/20 text-slate-400 hover:text-white' : 'border-slate-300 text-slate-500 hover:text-slate-900 hover:border-purple-500/50'}`}
                                         >
                                             <Upload className="w-6 h-6" />
                                             Upload Logo
@@ -623,162 +631,164 @@ const Store: React.FC<StoreProps> = ({ workspace }) => {
                         </div>
 
                         {/* Branding */}
-                        <div className="bg-black/30 backdrop-blur-md border border-white/10 rounded-xl p-6">
-                            <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                        <div className={`backdrop-blur-md border rounded-xl p-6 transition-colors ${isDark ? 'bg-black/30 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
+                            <h2 className={`text-lg font-bold mb-4 flex items-center gap-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>
                                 <Palette className="w-5 h-5 text-purple-400" />
                                 Branding
                             </h2>
 
                             <div className="space-y-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-300 mb-2">Primary Color</label>
-                                    <div className="flex items-center gap-2">
-                                        {PRESET_COLORS.map(color => (
-                                            <button
-                                                key={color}
-                                                onClick={() => setStore({ ...store, primary_color: color })}
-                                                className={`w-8 h-8 rounded-full transition-transform ${store.primary_color === color ? 'ring-2 ring-white scale-110' : ''}`}
-                                                style={{ backgroundColor: color }}
+                                    <div>
+                                        <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>Primary Color</label>
+                                        <div className="flex items-center gap-2">
+                                            {PRESET_COLORS.map(color => (
+                                                <button
+                                                    key={color}
+                                                    onClick={() => setStore({ ...store, primary_color: color })}
+                                                    className={`w-8 h-8 rounded-full transition-transform ${store.primary_color === color ? 'ring-2 ring-white scale-110' : ''}`}
+                                                    style={{ backgroundColor: color }}
+                                                />
+                                            ))}
+                                            <input
+                                                type="color"
+                                                value={store.primary_color}
+                                                onChange={(e) => setStore({ ...store, primary_color: e.target.value })}
+                                                className="w-8 h-8 rounded-full cursor-pointer"
                                             />
-                                        ))}
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>Currency</label>
+                                        <select
+                                            value={store.currency}
+                                            onChange={(e) => setStore({ ...store, currency: e.target.value })}
+                                            className={`w-full border rounded-xl px-4 py-3 focus:ring-2 focus:ring-purple-500/50 outline-none transition-colors ${isDark ? 'bg-black/30 border-white/10 text-white' : 'bg-white border-slate-200 text-slate-900'}`}
+                                        >
+                                            <option value="PHP">PHP (₱)</option>
+                                            <option value="USD">USD ($)</option>
+                                            <option value="EUR">EUR (€)</option>
+                                        </select>
+                                    </div>
+
+                                    <div className="flex items-center justify-between py-3">
+                                        <div>
+                                            <div className="font-medium text-white">Store Active</div>
+                                            <div className="text-sm text-slate-400">Make your store visible to customers</div>
+                                        </div>
+                                        <button
+                                            onClick={() => setStore({ ...store, is_active: !store.is_active })}
+                                            className={`w-12 h-6 rounded-full transition-all ${store.is_active ? 'bg-green-500' : 'bg-slate-600'}`}
+                                        >
+                                            <div className={`w-5 h-5 bg-white rounded-full transition-transform ${store.is_active ? 'translate-x-6' : 'translate-x-0.5'}`} />
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Contact Info */}
+                            <div className={`backdrop-blur-md border rounded-xl p-6 lg:col-span-2 transition-colors ${isDark ? 'bg-black/30 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
+                                <h2 className={`text-lg font-bold mb-4 ${isDark ? 'text-white' : 'text-slate-900'}`}>Contact Information</h2>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div>
+                                        <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>Email</label>
                                         <input
-                                            type="color"
-                                            value={store.primary_color}
-                                            onChange={(e) => setStore({ ...store, primary_color: e.target.value })}
-                                            className="w-8 h-8 rounded-full cursor-pointer"
+                                            type="email"
+                                            value={store.email || ''}
+                                            onChange={(e) => setStore({ ...store, email: e.target.value })}
+                                            placeholder="contact@store.com"
+                                            className={`w-full border rounded-xl px-4 py-3 focus:ring-2 focus:ring-purple-500/50 outline-none transition-colors ${isDark ? 'bg-black/30 border-white/10 text-white' : 'bg-white border-slate-200 text-slate-900'}`}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>Phone</label>
+                                        <input
+                                            type="tel"
+                                            value={store.phone || ''}
+                                            onChange={(e) => setStore({ ...store, phone: e.target.value })}
+                                            placeholder="+63 912 345 6789"
+                                            className={`w-full border rounded-xl px-4 py-3 focus:ring-2 focus:ring-purple-500/50 outline-none transition-colors ${isDark ? 'bg-black/30 border-white/10 text-white' : 'bg-white border-slate-200 text-slate-900'}`}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>Address</label>
+                                        <input
+                                            type="text"
+                                            value={store.address || ''}
+                                            onChange={(e) => setStore({ ...store, address: e.target.value })}
+                                            placeholder="123 Business St, City"
+                                            className={`w-full border rounded-xl px-4 py-3 focus:ring-2 focus:ring-purple-500/50 outline-none transition-colors ${isDark ? 'bg-black/30 border-white/10 text-white' : 'bg-white border-slate-200 text-slate-900'}`}
                                         />
                                     </div>
                                 </div>
+                            </div>
 
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-300 mb-2">Currency</label>
-                                    <select
-                                        value={store.currency}
-                                        onChange={(e) => setStore({ ...store, currency: e.target.value })}
-                                        className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-purple-500/50 outline-none"
-                                    >
-                                        <option value="PHP">PHP (₱)</option>
-                                        <option value="USD">USD ($)</option>
-                                        <option value="EUR">EUR (€)</option>
-                                    </select>
-                                </div>
-
-                                <div className="flex items-center justify-between py-3">
-                                    <div>
-                                        <div className="font-medium text-white">Store Active</div>
-                                        <div className="text-sm text-slate-400">Make your store visible to customers</div>
-                                    </div>
+                            {/* Google Sheets Integration */}
+                            <div className={`backdrop-blur-md border rounded-xl p-6 lg:col-span-2 transition-colors ${isDark ? 'bg-black/30 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
+                                <div className="flex items-center justify-between mb-4">
+                                    <h2 className={`text-lg font-bold flex items-center gap-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                                        <svg className="w-5 h-5 text-green-400" viewBox="0 0 24 24" fill="currentColor">
+                                            <path d="M19.5 3H4.5C3.12 3 2 4.12 2 5.5v13C2 19.88 3.12 21 4.5 21h15c1.38 0 2.5-1.12 2.5-2.5v-13C22 4.12 20.88 3 19.5 3zM8 17.5H5v-2h3v2zm0-4H5v-2h3v2zm0-4H5v-2h3v2zm11 8H10v-2h9v2zm0-4H10v-2h9v2zm0-4H10v-2h9v2z" />
+                                        </svg>
+                                        Google Sheets Integration
+                                    </h2>
                                     <button
-                                        onClick={() => setStore({ ...store, is_active: !store.is_active })}
-                                        className={`w-12 h-6 rounded-full transition-all ${store.is_active ? 'bg-green-500' : 'bg-slate-600'}`}
+                                        onClick={() => setShowSheetsGuide(true)}
+                                        className="flex items-center gap-1.5 px-3 py-1.5 bg-green-500/20 hover:bg-green-500/30 text-green-400 rounded-lg text-sm font-medium transition-colors"
                                     >
-                                        <div className={`w-5 h-5 bg-white rounded-full transition-transform ${store.is_active ? 'translate-x-6' : 'translate-x-0.5'}`} />
+                                        <HelpCircle className="w-4 h-4" />
+                                        Setup Guide
                                     </button>
                                 </div>
+                                <p className={`text-sm mb-4 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                                    Automatically sync new orders to a Google Sheet. Click "Setup Guide" for step-by-step instructions.
+                                </p>
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>Apps Script Webhook URL</label>
+                                        <input
+                                            type="url"
+                                            value={store.google_webhook_url || ''}
+                                            onChange={(e) => setStore({ ...store, google_webhook_url: e.target.value })}
+                                            placeholder="https://script.google.com/macros/s/.../exec"
+                                            className={`w-full border rounded-xl px-4 py-3 focus:ring-2 focus:ring-purple-500/50 outline-none transition-colors ${isDark ? 'bg-black/30 border-white/10 text-white' : 'bg-white border-slate-200 text-slate-900'}`}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>Sheet Name</label>
+                                        <select
+                                            value={store.google_sheet_name || 'Sheet1'}
+                                            onChange={(e) => setStore({ ...store, google_sheet_name: e.target.value })}
+                                            className={`w-full border rounded-xl px-4 py-3 focus:ring-2 focus:ring-purple-500/50 outline-none transition-colors ${isDark ? 'bg-black/30 border-white/10 text-white' : 'bg-white border-slate-200 text-slate-900'}`}
+                                        >
+                                            <option value="Sheet1">Sheet1</option>
+                                            <option value="Sheet2">Sheet2</option>
+                                            <option value="Sheet3">Sheet3</option>
+                                            <option value="Sheet4">Sheet4</option>
+                                            <option value="Sheet5">Sheet5</option>
+                                            <option value="Orders">Orders</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                {store.google_webhook_url && (
+                                    <div className="mt-3 flex items-center gap-2 text-green-400 text-sm">
+                                        <Check className="w-4 h-4" />
+                                        <span>Orders will be synced to Google Sheets ({store.google_sheet_name || 'Sheet1'})</span>
+                                    </div>
+                                )}
                             </div>
-                        </div>
 
-                        {/* Contact Info */}
-                        <div className="bg-black/30 backdrop-blur-md border border-white/10 rounded-xl p-6 lg:col-span-2">
-                            <h2 className="text-lg font-bold text-white mb-4">Contact Information</h2>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-300 mb-2">Email</label>
-                                    <input
-                                        type="email"
-                                        value={store.email || ''}
-                                        onChange={(e) => setStore({ ...store, email: e.target.value })}
-                                        placeholder="contact@store.com"
-                                        className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-purple-500/50 outline-none"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-300 mb-2">Phone</label>
-                                    <input
-                                        type="tel"
-                                        value={store.phone || ''}
-                                        onChange={(e) => setStore({ ...store, phone: e.target.value })}
-                                        placeholder="+63 912 345 6789"
-                                        className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-purple-500/50 outline-none"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-300 mb-2">Address</label>
-                                    <input
-                                        type="text"
-                                        value={store.address || ''}
-                                        onChange={(e) => setStore({ ...store, address: e.target.value })}
-                                        placeholder="123 Business St, City"
-                                        className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-purple-500/50 outline-none"
-                                    />
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Google Sheets Integration */}
-                        <div className="bg-black/30 backdrop-blur-md border border-white/10 rounded-xl p-6 lg:col-span-2">
-                            <div className="flex items-center justify-between mb-4">
-                                <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                                    <svg className="w-5 h-5 text-green-400" viewBox="0 0 24 24" fill="currentColor">
-                                        <path d="M19.5 3H4.5C3.12 3 2 4.12 2 5.5v13C2 19.88 3.12 21 4.5 21h15c1.38 0 2.5-1.12 2.5-2.5v-13C22 4.12 20.88 3 19.5 3zM8 17.5H5v-2h3v2zm0-4H5v-2h3v2zm0-4H5v-2h3v2zm11 8H10v-2h9v2zm0-4H10v-2h9v2zm0-4H10v-2h9v2z" />
-                                    </svg>
-                                    Google Sheets Integration
-                                </h2>
+                            {/* Save Button */}
+                            <div className="lg:col-span-2">
                                 <button
-                                    onClick={() => setShowSheetsGuide(true)}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-green-500/20 hover:bg-green-500/30 text-green-400 rounded-lg text-sm font-medium transition-colors"
+                                    onClick={saveStore}
+                                    className="w-full py-3 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white rounded-xl font-semibold flex items-center justify-center gap-2 transition-all"
                                 >
-                                    <HelpCircle className="w-4 h-4" />
-                                    Setup Guide
+                                    <Save className="w-5 h-5" />
+                                    Save Settings
                                 </button>
                             </div>
-                            <p className="text-slate-400 text-sm mb-4">
-                                Automatically sync new orders to a Google Sheet. Click "Setup Guide" for step-by-step instructions.
-                            </p>
-                            <div className="space-y-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-300 mb-2">Apps Script Webhook URL</label>
-                                    <input
-                                        type="url"
-                                        value={store.google_webhook_url || ''}
-                                        onChange={(e) => setStore({ ...store, google_webhook_url: e.target.value })}
-                                        placeholder="https://script.google.com/macros/s/.../exec"
-                                        className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-purple-500/50 outline-none"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-300 mb-2">Sheet Name</label>
-                                    <select
-                                        value={store.google_sheet_name || 'Sheet1'}
-                                        onChange={(e) => setStore({ ...store, google_sheet_name: e.target.value })}
-                                        className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-purple-500/50 outline-none"
-                                    >
-                                        <option value="Sheet1">Sheet1</option>
-                                        <option value="Sheet2">Sheet2</option>
-                                        <option value="Sheet3">Sheet3</option>
-                                        <option value="Sheet4">Sheet4</option>
-                                        <option value="Sheet5">Sheet5</option>
-                                        <option value="Orders">Orders</option>
-                                    </select>
-                                </div>
-                            </div>
-                            {store.google_webhook_url && (
-                                <div className="mt-3 flex items-center gap-2 text-green-400 text-sm">
-                                    <Check className="w-4 h-4" />
-                                    <span>Orders will be synced to Google Sheets ({store.google_sheet_name || 'Sheet1'})</span>
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Save Button */}
-                        <div className="lg:col-span-2">
-                            <button
-                                onClick={saveStore}
-                                className="w-full py-3 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white rounded-xl font-semibold flex items-center justify-center gap-2 transition-all"
-                            >
-                                <Save className="w-5 h-5" />
-                                Save Settings
-                            </button>
                         </div>
                     </div>
                 )}
@@ -804,16 +814,16 @@ const Store: React.FC<StoreProps> = ({ workspace }) => {
                 {/* Google Sheets Setup Guide Modal */}
                 {showSheetsGuide && (
                     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
-                        <div className="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-                            <div className="sticky top-0 bg-slate-900 border-b border-white/10 px-6 py-4 flex items-center justify-between">
-                                <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                        <div className={`border rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto transition-colors ${isDark ? 'bg-slate-900 border-white/10' : 'bg-white border-slate-200 shadow-xl'}`}>
+                            <div className={`sticky top-0 border-b px-6 py-4 flex items-center justify-between z-10 ${isDark ? 'bg-slate-900 border-white/10' : 'bg-white border-slate-200'}`}>
+                                <h2 className={`text-xl font-bold flex items-center gap-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>
                                     <svg className="w-6 h-6 text-green-400" viewBox="0 0 24 24" fill="currentColor">
                                         <path d="M19.5 3H4.5C3.12 3 2 4.12 2 5.5v13C2 19.88 3.12 21 4.5 21h15c1.38 0 2.5-1.12 2.5-2.5v-13C22 4.12 20.88 3 19.5 3zM8 17.5H5v-2h3v2zm0-4H5v-2h3v2zm0-4H5v-2h3v2zm11 8H10v-2h9v2zm0-4H10v-2h9v2zm0-4H10v-2h9v2z" />
                                     </svg>
                                     Google Sheets Setup Guide
                                 </h2>
-                                <button onClick={() => setShowSheetsGuide(false)} className="p-2 hover:bg-white/10 rounded-lg">
-                                    <X className="w-5 h-5 text-slate-400" />
+                                <button onClick={() => setShowSheetsGuide(false)} className={`p-2 rounded-lg transition-colors ${isDark ? 'hover:bg-white/10' : 'hover:bg-slate-100'}`}>
+                                    <X className={`w-5 h-5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`} />
                                 </button>
                             </div>
                             <div className="p-6 space-y-6">
@@ -821,8 +831,8 @@ const Store: React.FC<StoreProps> = ({ workspace }) => {
                                 <div className="flex gap-4">
                                     <div className="w-8 h-8 rounded-full bg-purple-500 flex items-center justify-center text-white font-bold flex-shrink-0">1</div>
                                     <div>
-                                        <h3 className="font-semibold text-white mb-1">Create a Google Sheet</h3>
-                                        <p className="text-slate-400 text-sm">Go to <a href="https://sheets.google.com" target="_blank" rel="noopener noreferrer" className="text-purple-400 hover:underline">sheets.google.com</a> and create a new spreadsheet for your orders.</p>
+                                        <h3 className={`font-semibold mb-1 ${isDark ? 'text-white' : 'text-slate-900'}`}>Create a Google Sheet</h3>
+                                        <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Go to <a href="https://sheets.google.com" target="_blank" rel="noopener noreferrer" className="text-purple-400 hover:underline">sheets.google.com</a> and create a new spreadsheet for your orders.</p>
                                     </div>
                                 </div>
 
@@ -830,8 +840,8 @@ const Store: React.FC<StoreProps> = ({ workspace }) => {
                                 <div className="flex gap-4">
                                     <div className="w-8 h-8 rounded-full bg-purple-500 flex items-center justify-center text-white font-bold flex-shrink-0">2</div>
                                     <div>
-                                        <h3 className="font-semibold text-white mb-1">Add Column Headers</h3>
-                                        <p className="text-slate-400 text-sm">In the first row, add these headers:</p>
+                                        <h3 className={`font-semibold mb-1 ${isDark ? 'text-white' : 'text-slate-900'}`}>Add Column Headers</h3>
+                                        <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>In the first row, add these headers:</p>
                                         <div className="bg-black/30 rounded-lg px-3 py-2 mt-2 text-xs text-green-400 font-mono overflow-x-auto">
                                             Order Number | Date | Customer Name | Phone | Email | Shipping Address | Items | Total | Payment Method | Notes
                                         </div>
@@ -842,8 +852,8 @@ const Store: React.FC<StoreProps> = ({ workspace }) => {
                                 <div className="flex gap-4">
                                     <div className="w-8 h-8 rounded-full bg-purple-500 flex items-center justify-center text-white font-bold flex-shrink-0">3</div>
                                     <div>
-                                        <h3 className="font-semibold text-white mb-1">Open Apps Script</h3>
-                                        <p className="text-slate-400 text-sm">In your Google Sheet, go to <strong>Extensions → Apps Script</strong></p>
+                                        <h3 className={`font-semibold mb-1 ${isDark ? 'text-white' : 'text-slate-900'}`}>Open Apps Script</h3>
+                                        <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>In your Google Sheet, go to <strong>Extensions → Apps Script</strong></p>
                                     </div>
                                 </div>
 
@@ -851,8 +861,8 @@ const Store: React.FC<StoreProps> = ({ workspace }) => {
                                 <div className="flex gap-4">
                                     <div className="w-8 h-8 rounded-full bg-purple-500 flex items-center justify-center text-white font-bold flex-shrink-0">4</div>
                                     <div className="flex-1">
-                                        <h3 className="font-semibold text-white mb-1">Paste This Code</h3>
-                                        <p className="text-slate-400 text-sm mb-2">Delete any existing code and paste the following:</p>
+                                        <h3 className={`font-semibold mb-1 ${isDark ? 'text-white' : 'text-slate-900'}`}>Paste This Code</h3>
+                                        <p className={`text-sm mb-2 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Delete any existing code and paste the following:</p>
                                         <div className="relative">
                                             <pre className="bg-black/50 rounded-lg p-4 text-xs text-green-400 font-mono overflow-x-auto max-h-64 overflow-y-auto">
                                                 {`function doPost(e) {
@@ -941,9 +951,9 @@ const Store: React.FC<StoreProps> = ({ workspace }) => {
                                 <div className="flex gap-4">
                                     <div className="w-8 h-8 rounded-full bg-purple-500 flex items-center justify-center text-white font-bold flex-shrink-0">5</div>
                                     <div>
-                                        <h3 className="font-semibold text-white mb-1">Deploy as Web App</h3>
-                                        <p className="text-slate-400 text-sm">Click <strong>Deploy → New deployment</strong>, then:</p>
-                                        <ul className="text-slate-400 text-sm mt-2 space-y-1 list-disc list-inside">
+                                        <h3 className={`font-semibold mb-1 ${isDark ? 'text-white' : 'text-slate-900'}`}>Deploy as Web App</h3>
+                                        <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Click <strong>Deploy → New deployment</strong>, then:</p>
+                                        <ul className={`text-sm mt-2 space-y-1 list-disc list-inside ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                                             <li>Select type: <strong>Web app</strong></li>
                                             <li>Execute as: <strong>Me</strong></li>
                                             <li>Who has access: <strong>Anyone</strong></li>
@@ -956,8 +966,8 @@ const Store: React.FC<StoreProps> = ({ workspace }) => {
                                 <div className="flex gap-4">
                                     <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center text-white font-bold flex-shrink-0">6</div>
                                     <div>
-                                        <h3 className="font-semibold text-white mb-1">Copy the Webhook URL</h3>
-                                        <p className="text-slate-400 text-sm">Copy the Web app URL (starts with <code className="text-green-400">https://script.google.com/macros/s/...</code>) and paste it in the Store Settings above.</p>
+                                        <h3 className={`font-semibold mb-1 ${isDark ? 'text-white' : 'text-slate-900'}`}>Copy the Webhook URL</h3>
+                                        <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Copy the Web app URL (starts with <code className="text-green-400">https://script.google.com/macros/s/...</code>) and paste it in the Store Settings above.</p>
                                     </div>
                                 </div>
 
@@ -969,7 +979,7 @@ const Store: React.FC<StoreProps> = ({ workspace }) => {
                     </div>
                 )}
             </div>
-        </div>
+        </div >
     );
 };
 
@@ -980,6 +990,7 @@ const ProductModal: React.FC<{
     onClose: () => void;
     onSave: () => void;
 }> = ({ product, storeId, onClose, onSave }) => {
+    const { isDark } = useTheme();
     const [name, setName] = useState(product?.name || '');
     const [description, setDescription] = useState(product?.description || '');
     const [price, setPrice] = useState(product?.price?.toString() || '');
@@ -1029,18 +1040,18 @@ const ProductModal: React.FC<{
 
     return (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-                <div className="sticky top-0 bg-slate-900 border-b border-white/10 px-6 py-4 flex items-center justify-between">
-                    <h2 className="text-xl font-bold text-white">{product ? 'Edit Product' : 'Add Product'}</h2>
-                    <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-lg">
-                        <X className="w-5 h-5 text-slate-400" />
+            <div className={`border rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto transition-colors ${isDark ? 'bg-slate-900 border-white/10' : 'bg-white border-slate-200 shadow-xl'}`}>
+                <div className={`sticky top-0 border-b px-6 py-4 flex items-center justify-between z-10 ${isDark ? 'bg-slate-900 border-white/10' : 'bg-white border-slate-200'}`}>
+                    <h2 className={`text-xl font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>{product ? 'Edit Product' : 'Add Product'}</h2>
+                    <button onClick={onClose} className={`p-2 rounded-lg transition-colors ${isDark ? 'hover:bg-white/10' : 'hover:bg-slate-100'}`}>
+                        <X className={`w-5 h-5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`} />
                     </button>
                 </div>
 
                 <div className="p-6 space-y-4">
                     {/* Images */}
                     <div>
-                        <label className="block text-sm font-medium text-slate-300 mb-2">Product Images</label>
+                        <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>Product Images</label>
                         <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={(e) => {
                             const file = e.target.files?.[0];
                             if (file) uploadImage(file);
@@ -1059,56 +1070,56 @@ const ProductModal: React.FC<{
                             ))}
                             <button
                                 onClick={() => fileInputRef.current?.click()}
-                                className="w-20 h-20 border-2 border-dashed border-white/20 rounded-lg flex items-center justify-center hover:border-purple-500/50 transition-colors"
+                                className={`w-20 h-20 border-2 border-dashed rounded-lg flex items-center justify-center transition-colors ${isDark ? 'border-white/20 hover:border-purple-500/50' : 'border-slate-300 hover:border-purple-500/50'}`}
                             >
-                                <Plus className="w-6 h-6 text-slate-400" />
+                                <Plus className={`w-6 h-6 ${isDark ? 'text-slate-400' : 'text-slate-500'}`} />
                             </button>
                         </div>
                     </div>
 
                     {/* Name */}
                     <div>
-                        <label className="block text-sm font-medium text-slate-300 mb-2">Product Name *</label>
+                        <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>Product Name *</label>
                         <input
                             type="text"
                             value={name}
                             onChange={(e) => setName(e.target.value)}
                             placeholder="Enter product name"
-                            className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-purple-500/50 outline-none"
+                            className={`w-full border rounded-xl px-4 py-3 focus:ring-2 focus:ring-purple-500/50 outline-none transition-colors ${isDark ? 'bg-black/30 border-white/10 text-white' : 'bg-slate-50 border-slate-200 text-slate-900'}`}
                         />
                     </div>
 
                     {/* Description */}
                     <div>
-                        <label className="block text-sm font-medium text-slate-300 mb-2">Description</label>
+                        <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>Description</label>
                         <textarea
                             value={description}
                             onChange={(e) => setDescription(e.target.value)}
                             rows={3}
-                            className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-purple-500/50 outline-none resize-none"
+                            className={`w-full border rounded-xl px-4 py-3 focus:ring-2 focus:ring-purple-500/50 outline-none resize-none transition-colors ${isDark ? 'bg-black/30 border-white/10 text-white' : 'bg-slate-50 border-slate-200 text-slate-900'}`}
                         />
                     </div>
 
                     {/* Pricing */}
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-sm font-medium text-slate-300 mb-2">Price *</label>
+                            <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>Price *</label>
                             <input
                                 type="number"
                                 value={price}
                                 onChange={(e) => setPrice(e.target.value)}
                                 placeholder="0.00"
-                                className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-purple-500/50 outline-none"
+                                className={`w-full border rounded-xl px-4 py-3 focus:ring-2 focus:ring-purple-500/50 outline-none transition-colors ${isDark ? 'bg-black/30 border-white/10 text-white' : 'bg-slate-50 border-slate-200 text-slate-900'}`}
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-slate-300 mb-2">Compare at Price</label>
+                            <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>Compare at Price</label>
                             <input
                                 type="number"
                                 value={compareAtPrice}
                                 onChange={(e) => setCompareAtPrice(e.target.value)}
                                 placeholder="Original price"
-                                className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-purple-500/50 outline-none"
+                                className={`w-full border rounded-xl px-4 py-3 focus:ring-2 focus:ring-purple-500/50 outline-none transition-colors ${isDark ? 'bg-black/30 border-white/10 text-white' : 'bg-slate-50 border-slate-200 text-slate-900'}`}
                             />
                         </div>
                     </div>
@@ -1116,42 +1127,42 @@ const ProductModal: React.FC<{
                     {/* Inventory */}
                     <div className="flex items-center justify-between py-2">
                         <div>
-                            <div className="font-medium text-white">Track Inventory</div>
-                            <div className="text-sm text-slate-400">Monitor stock levels</div>
+                            <div className={`font-medium ${isDark ? 'text-white' : 'text-slate-900'}`}>Track Inventory</div>
+                            <div className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Monitor stock levels</div>
                         </div>
                         <button
                             onClick={() => setTrackInventory(!trackInventory)}
-                            className={`w-12 h-6 rounded-full transition-all ${trackInventory ? 'bg-purple-500' : 'bg-slate-600'}`}
+                            className={`w-12 h-6 rounded-full transition-all ${trackInventory ? 'bg-purple-500' : isDark ? 'bg-slate-600' : 'bg-slate-300'}`}
                         >
-                            <div className={`w-5 h-5 bg-white rounded-full transition-transform ${trackInventory ? 'translate-x-6' : 'translate-x-0.5'}`} />
+                            <div className={`w-5 h-5 bg-white rounded-full transition-transform shadow-sm ${trackInventory ? 'translate-x-6' : 'translate-x-0.5'}`} />
                         </button>
                     </div>
 
                     {trackInventory && (
                         <div>
-                            <label className="block text-sm font-medium text-slate-300 mb-2">Stock Quantity</label>
+                            <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>Stock Quantity</label>
                             <input
                                 type="number"
                                 value={stockQuantity}
                                 onChange={(e) => setStockQuantity(e.target.value)}
-                                className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-purple-500/50 outline-none"
+                                className={`w-full border rounded-xl px-4 py-3 focus:ring-2 focus:ring-purple-500/50 outline-none transition-colors ${isDark ? 'bg-black/30 border-white/10 text-white' : 'bg-slate-50 border-slate-200 text-slate-900'}`}
                             />
                         </div>
                     )}
 
                     {/* Status */}
                     <div>
-                        <label className="block text-sm font-medium text-slate-300 mb-2">Status</label>
+                        <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>Status</label>
                         <div className="flex gap-2">
                             {['active', 'draft', 'archived'].map(s => (
                                 <button
                                     key={s}
                                     onClick={() => setStatus(s as any)}
-                                    className={`px-4 py-2 rounded-lg font-medium text-sm capitalize ${status === s
+                                    className={`px-4 py-2 rounded-lg font-medium text-sm capitalize transition-colors ${status === s
                                         ? s === 'active' ? 'bg-green-500/20 text-green-400' :
                                             s === 'draft' ? 'bg-yellow-500/20 text-yellow-400' :
                                                 'bg-red-500/20 text-red-400'
-                                        : 'bg-black/30 text-slate-400'
+                                        : isDark ? 'bg-black/30 text-slate-400 hover:text-white' : 'bg-slate-100 text-slate-500 hover:text-slate-900'
                                         }`}
                                 >
                                     {s}
@@ -1161,14 +1172,14 @@ const ProductModal: React.FC<{
                     </div>
                 </div>
 
-                <div className="sticky bottom-0 bg-slate-900 border-t border-white/10 px-6 py-4 flex gap-3">
-                    <button onClick={onClose} className="flex-1 py-3 bg-white/10 hover:bg-white/20 rounded-xl text-white font-medium">
+                <div className={`sticky bottom-0 border-t px-6 py-4 flex gap-3 ${isDark ? 'bg-slate-900 border-white/10' : 'bg-white border-slate-200'}`}>
+                    <button onClick={onClose} className={`flex-1 py-3 rounded-xl font-medium transition-colors ${isDark ? 'bg-white/10 hover:bg-white/20 text-white' : 'bg-slate-100 hover:bg-slate-200 text-slate-900'}`}>
                         Cancel
                     </button>
                     <button
                         onClick={handleSave}
                         disabled={saving}
-                        className="flex-1 py-3 bg-purple-500 hover:bg-purple-600 rounded-xl text-white font-medium flex items-center justify-center gap-2"
+                        className="flex-1 py-3 bg-purple-500 hover:bg-purple-600 rounded-xl text-white font-medium flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
                     >
                         {saving ? 'Saving...' : 'Save Product'}
                     </button>
@@ -1180,15 +1191,16 @@ const ProductModal: React.FC<{
 
 // Order Detail Modal
 const OrderModal: React.FC<{ order: Order; onClose: () => void }> = ({ order, onClose }) => {
+    const { isDark } = useTheme();
     const statusInfo = ORDER_STATUSES.find(s => s.id === order.status);
 
     return (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
-                <div className="sticky top-0 bg-slate-900 border-b border-white/10 px-6 py-4 flex items-center justify-between">
+            <div className={`border rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto transition-colors ${isDark ? 'bg-slate-900 border-white/10' : 'bg-white border-slate-200 shadow-xl'}`}>
+                <div className={`sticky top-0 border-b px-6 py-4 flex items-center justify-between z-10 ${isDark ? 'bg-slate-900 border-white/10' : 'bg-white border-slate-200'}`}>
                     <div>
-                        <h2 className="text-xl font-bold text-white">{order.order_number}</h2>
-                        <p className="text-sm text-slate-400">{new Date(order.created_at).toLocaleString()}</p>
+                        <h2 className={`text-xl font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>{order.order_number}</h2>
+                        <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{new Date(order.created_at).toLocaleString()}</p>
                     </div>
                     <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-lg">
                         <X className="w-5 h-5 text-slate-400" />
@@ -1197,15 +1209,15 @@ const OrderModal: React.FC<{ order: Order; onClose: () => void }> = ({ order, on
 
                 <div className="p-6 space-y-4">
                     {/* Status */}
-                    <div className={`flex items-center gap-2 px-4 py-3 rounded-xl bg-${statusInfo?.color}-500/20`}>
+                    <div className={`flex items-center gap-2 px-4 py-3 rounded-xl ${statusInfo ? `bg-${statusInfo.color}-500/20` : 'bg-slate-500/20'}`}>
                         {statusInfo && <statusInfo.icon className={`w-5 h-5 text-${statusInfo.color}-400`} />}
                         <span className={`font-medium text-${statusInfo?.color}-400`}>{statusInfo?.label}</span>
                     </div>
 
                     {/* Customer */}
                     <div>
-                        <div className="text-xs text-slate-400 uppercase mb-2">Customer</div>
-                        <div className="text-white font-medium">{order.customer_name}</div>
+                        <div className={`text-xs uppercase mb-2 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Customer</div>
+                        <div className={`font-medium ${isDark ? 'text-white' : 'text-slate-900'}`}>{order.customer_name}</div>
                         {order.customer_email && <div className="text-sm text-slate-400">{order.customer_email}</div>}
                         {order.customer_phone && <div className="text-sm text-slate-400">{order.customer_phone}</div>}
                         {order.shipping_address && (
@@ -1215,33 +1227,33 @@ const OrderModal: React.FC<{ order: Order; onClose: () => void }> = ({ order, on
 
                     {/* Items */}
                     <div>
-                        <div className="text-xs text-slate-400 uppercase mb-2">Items</div>
+                        <div className={`text-xs uppercase mb-2 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Items</div>
                         <div className="space-y-2">
                             {order.items?.map(item => (
-                                <div key={item.id} className="flex items-center gap-3 p-2 bg-black/20 rounded-lg">
+                                <div key={item.id} className={`flex items-center gap-3 p-2 rounded-lg transition-colors ${isDark ? 'bg-black/20' : 'bg-slate-50'}`}>
                                     {item.product_image && (
                                         <img src={item.product_image} alt="" className="w-10 h-10 rounded object-cover" />
                                     )}
                                     <div className="flex-1">
-                                        <div className="text-white text-sm">{item.product_name}</div>
-                                        <div className="text-xs text-slate-400">x{item.quantity}</div>
+                                        <div className={`text-sm ${isDark ? 'text-white' : 'text-slate-900'}`}>{item.product_name}</div>
+                                        <div className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>x{item.quantity}</div>
                                     </div>
-                                    <div className="text-white font-medium">₱{item.line_total.toLocaleString()}</div>
+                                    <div className={`font-medium ${isDark ? 'text-white' : 'text-slate-900'}`}>₱{item.line_total.toLocaleString()}</div>
                                 </div>
                             ))}
                         </div>
                     </div>
 
                     {/* Totals */}
-                    <div className="border-t border-white/10 pt-4 space-y-2">
+                    <div className={`border-t pt-4 space-y-2 ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
                         <div className="flex justify-between text-sm">
-                            <span className="text-slate-400">Subtotal</span>
-                            <span className="text-white">₱{order.subtotal.toLocaleString()}</span>
+                            <span className={`${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Subtotal</span>
+                            <span className={`${isDark ? 'text-white' : 'text-slate-900'}`}>₱{order.subtotal.toLocaleString()}</span>
                         </div>
                         {order.shipping_fee > 0 && (
                             <div className="flex justify-between text-sm">
-                                <span className="text-slate-400">Shipping</span>
-                                <span className="text-white">₱{order.shipping_fee.toLocaleString()}</span>
+                                <span className={`${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Shipping</span>
+                                <span className={`${isDark ? 'text-white' : 'text-slate-900'}`}>₱{order.shipping_fee.toLocaleString()}</span>
                             </div>
                         )}
                         {order.discount > 0 && (
@@ -1250,8 +1262,8 @@ const OrderModal: React.FC<{ order: Order; onClose: () => void }> = ({ order, on
                                 <span className="text-green-400">-₱{order.discount.toLocaleString()}</span>
                             </div>
                         )}
-                        <div className="flex justify-between text-lg font-bold pt-2 border-t border-white/10">
-                            <span className="text-white">Total</span>
+                        <div className={`flex justify-between text-lg font-bold pt-2 border-t ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
+                            <span className={`${isDark ? 'text-white' : 'text-slate-900'}`}>Total</span>
                             <span className="text-purple-400">₱{order.total.toLocaleString()}</span>
                         </div>
                     </div>
@@ -1259,17 +1271,17 @@ const OrderModal: React.FC<{ order: Order; onClose: () => void }> = ({ order, on
                     {/* Payment */}
                     {order.payment_method && (
                         <div className="flex items-center gap-2 text-sm">
-                            <DollarSign className="w-4 h-4 text-slate-400" />
-                            <span className="text-slate-400">Payment:</span>
-                            <span className="text-white">{order.payment_method}</span>
+                            <DollarSign className={`w-4 h-4 ${isDark ? 'text-slate-400' : 'text-slate-500'}`} />
+                            <span className={`${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Payment:</span>
+                            <span className={`${isDark ? 'text-white' : 'text-slate-900'}`}>{order.payment_method}</span>
                         </div>
                     )}
 
                     {/* Notes */}
                     {order.notes && (
                         <div>
-                            <div className="text-xs text-slate-400 uppercase mb-2">Notes</div>
-                            <p className="text-sm text-slate-300">{order.notes}</p>
+                            <div className={`text-xs uppercase mb-2 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Notes</div>
+                            <p className={`text-sm ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>{order.notes}</p>
                         </div>
                     )}
                 </div>

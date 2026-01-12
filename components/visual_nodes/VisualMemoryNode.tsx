@@ -17,11 +17,11 @@ const VisualMemoryNode = ({ data }: { data: any }) => {
 
             {/* Node Container - Circle */}
             <div className={`w-20 h-20 border-2 rounded-full shadow-lg flex flex-col items-center justify-center gap-1 transition-all hover:scale-105 relative z-0 overflow-hidden ${isDark
-                ? 'bg-gradient-to-br from-amber-600 to-orange-700 border-white/20'
-                : 'bg-gradient-to-br from-amber-500 to-orange-600 border-white/20 shadow-orange-500/30'
+                ? 'bg-slate-900 border-slate-600 hover:shadow-orange-500/20'
+                : 'bg-white border-slate-200 hover:border-orange-400 hover:shadow-orange-500/20'
                 }`}>
-                <div className="absolute inset-0 bg-white/10 pointer-events-none" />
-                <Database className="w-8 h-8 text-white drop-shadow-md" />
+                <div className={`absolute inset-0 pointer-events-none ${isDark ? 'bg-orange-500/5' : 'bg-orange-50/50'}`} />
+                <Database className={`w-8 h-8 ${isDark ? 'text-orange-500' : 'text-orange-600'}`} />
             </div>
 
             {/* Controls - Outside circle, positioned to right */}

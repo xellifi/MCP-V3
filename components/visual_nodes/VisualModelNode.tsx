@@ -17,11 +17,11 @@ const VisualModelNode = ({ data }: { data: any }) => {
 
             {/* Node Container - Circle */}
             <div className={`w-20 h-20 border-2 rounded-full shadow-lg flex flex-col items-center justify-center gap-1 transition-all hover:scale-105 relative z-0 overflow-hidden ${isDark
-                ? 'bg-gradient-to-br from-teal-600 to-green-700 border-white/20'
-                : 'bg-gradient-to-br from-teal-500 to-green-600 border-white/20 shadow-teal-500/30'
+                ? 'bg-slate-900 border-slate-600 hover:shadow-teal-500/20'
+                : 'bg-white border-slate-200 hover:border-teal-400 hover:shadow-teal-500/20'
                 }`}>
-                <div className="absolute inset-0 bg-white/10 pointer-events-none" />
-                <BrainCircuit className="w-8 h-8 text-white drop-shadow-md" />
+                <div className={`absolute inset-0 pointer-events-none ${isDark ? 'bg-teal-500/5' : 'bg-teal-50/50'}`} />
+                <BrainCircuit className={`w-8 h-8 ${isDark ? 'text-teal-500' : 'text-teal-600'}`} />
             </div>
 
             {/* Controls - Outside circle, positioned to right */}
