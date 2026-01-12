@@ -2172,7 +2172,7 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
           title={isFullscreen ? 'Exit Fullscreen (ESC)' : 'Fullscreen'}
         >
           {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
-          <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+          <span className={`absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 ${isDark ? 'bg-slate-800 text-white' : 'bg-white border border-gray-300 text-slate-900 shadow-sm'} text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none`}>
             {isFullscreen ? 'Exit (ESC)' : 'Fullscreen'}
           </span>
         </button>
@@ -2186,7 +2186,7 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
             }`}
         >
           <Save className="w-4 h-4" />
-          <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+          <span className={`absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 ${isDark ? 'bg-slate-800 text-white' : 'bg-white border border-gray-300 text-slate-900 shadow-sm'} text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none`}>
             {isSaving ? 'Saving...' : 'Save Changes'}
           </span>
         </button>
@@ -2199,7 +2199,7 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
             }`}
         >
           <RotateCcw className="w-4 h-4" />
-          <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+          <span className={`absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 ${isDark ? 'bg-slate-800 text-white' : 'bg-white border border-gray-300 text-slate-900 shadow-sm'} text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none`}>
             Rearrange Nodes
           </span>
         </button>
@@ -2209,7 +2209,7 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
           title="Run Test"
         >
           <Play className="w-4 h-4" />
-          <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+          <span className={`absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 ${isDark ? 'bg-slate-800 text-white' : 'bg-white border border-gray-300 text-slate-900 shadow-sm'} text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none`}>
             Publish Flow
           </span>
         </button>
@@ -2234,27 +2234,27 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
               <div draggable onDragStart={(e) => onDragStart(e, 'startNode', 'Start')} onClick={() => addNode('startNode', 'Start')}
                 className="group relative w-9 h-9 bg-emerald-500/20 hover:bg-emerald-500/40 border border-emerald-500/30 rounded-xl flex items-center justify-center text-emerald-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
                 <Play className="w-4.5 h-4.5 fill-current" />
-                <span className={`absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 ${isDark ? 'bg-slate-800 text-white' : 'bg-white border border-gray-300 text-slate-900'} text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none shadow-xl z-50`}>Start</span>
+                <span className={`absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 ${isDark ? 'bg-slate-800 text-white' : 'bg-white border border-gray-300 text-slate-900 shadow-sm'} text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none shadow-xl z-50`}>Start</span>
               </div>
               <div draggable onDragStart={(e) => { e.dataTransfer.setData('application/reactflow-template', 'commentReply'); e.dataTransfer.effectAllowed = 'move'; }} onClick={() => addCommentReplyTemplate()}
                 className="group relative w-9 h-9 bg-blue-500/20 hover:bg-blue-500/40 border border-blue-500/30 rounded-xl flex items-center justify-center text-blue-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
                 <MessageCircle className="w-4.5 h-4.5" />
-                <span className={`absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 ${isDark ? 'bg-slate-800 text-white' : 'bg-white border border-gray-300 text-slate-900'} text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none shadow-xl z-50`}>Comment</span>
+                <span className={`absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 ${isDark ? 'bg-slate-800 text-white' : 'bg-white border border-gray-300 text-slate-900 shadow-sm'} text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none shadow-xl z-50`}>Comment</span>
               </div>
               <div draggable onDragStart={(e) => onDragStart(e, 'textNode', 'Text')} onClick={() => addNode('textNode', 'Text')}
                 className="group relative w-9 h-9 bg-amber-500/20 hover:bg-amber-500/40 border border-amber-500/30 rounded-xl flex items-center justify-center text-amber-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
                 <MessageSquare className="w-4.5 h-4.5" />
-                <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">Text</span>
+                <span className={`absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 ${isDark ? 'bg-slate-800 text-white' : 'bg-white border border-gray-300 text-slate-900 shadow-sm'} text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50`}>Text</span>
               </div>
               <div draggable onDragStart={(e) => onDragStart(e, 'imageNode', 'Image')} onClick={() => addNode('imageNode', 'Image')}
                 className="group relative w-9 h-9 bg-rose-500/20 hover:bg-rose-500/40 border border-rose-500/30 rounded-xl flex items-center justify-center text-rose-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
                 <Image className="w-4.5 h-4.5" />
-                <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">Image</span>
+                <span className={`absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 ${isDark ? 'bg-slate-800 text-white' : 'bg-white border border-gray-300 text-slate-900 shadow-sm'} text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50`}>Image</span>
               </div>
               <div draggable onDragStart={(e) => onDragStart(e, 'videoNode', 'Video')} onClick={() => addNode('videoNode', 'Video')}
                 className="group relative w-9 h-9 bg-cyan-500/20 hover:bg-cyan-500/40 border border-cyan-500/30 rounded-xl flex items-center justify-center text-cyan-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
                 <Video className="w-4.5 h-4.5" />
-                <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">Video</span>
+                <span className={`absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 ${isDark ? 'bg-slate-800 text-white' : 'bg-white border border-gray-300 text-slate-900 shadow-sm'} text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50`}>Video</span>
               </div>
             </div>
 
@@ -2263,17 +2263,17 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
               <div draggable onDragStart={(e) => onDragStart(e, 'aiNode', 'AI Agent')} onClick={() => addNode('aiNode', 'AI Agent')}
                 className="group relative w-9 h-9 bg-indigo-500/20 hover:bg-indigo-500/40 border border-indigo-500/30 rounded-xl flex items-center justify-center text-indigo-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
                 <Sparkles className="w-4.5 h-4.5" />
-                <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">AI Agent</span>
+                <span className={`absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 ${isDark ? 'bg-slate-800 text-white' : 'bg-white border border-gray-300 text-slate-900 shadow-sm'} text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50`}>AI Agent</span>
               </div>
               <div draggable onDragStart={(e) => onDragStart(e, 'conditionNode', 'Condition')} onClick={() => addNode('conditionNode', 'Condition')}
                 className="group relative w-9 h-9 bg-orange-500/20 hover:bg-orange-500/40 border border-orange-500/30 rounded-xl flex items-center justify-center text-orange-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
                 <GitBranch className="w-4.5 h-4.5" />
-                <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">Condition</span>
+                <span className={`absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 ${isDark ? 'bg-slate-800 text-white' : 'bg-white border border-gray-300 text-slate-900 shadow-sm'} text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50`}>Condition</span>
               </div>
               <div draggable onDragStart={(e) => onDragStart(e, 'followupNode', 'Follow-up')} onClick={() => addNode('followupNode', 'Follow-up')}
                 className="group relative w-9 h-9 bg-rose-500/20 hover:bg-rose-500/40 border border-rose-500/30 rounded-xl flex items-center justify-center text-rose-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
                 <RefreshCw className="w-4.5 h-4.5" />
-                <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">Follow-up</span>
+                <span className={`absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 ${isDark ? 'bg-slate-800 text-white' : 'bg-white border border-gray-300 text-slate-900 shadow-sm'} text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50`}>Follow-up</span>
               </div>
             </div>
 
@@ -2297,44 +2297,44 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
                     className="group relative w-10 h-10 bg-indigo-500/20 hover:bg-indigo-500/40 border border-indigo-500/30 rounded-xl flex items-center justify-center text-indigo-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
                     <ShoppingBag className="w-5 h-5" />
                     <Globe className="w-2.5 h-2.5 text-white absolute -bottom-0.5 -right-0.5 bg-indigo-600 rounded-full p-0.5" />
-                    <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Product Webview</span>
+                    <span className={`absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 ${isDark ? 'bg-slate-800 text-white' : 'bg-white border border-gray-300 text-slate-900 shadow-sm'} text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none`}>Product Webview</span>
                   </div>
                   <div draggable onDragStart={(e) => onDragStart(e, 'upsellNode', 'Upsell')} onClick={() => { addNode('upsellNode', 'Upsell'); setShowEcommerceTools(false); }}
                     className="group relative w-10 h-10 bg-teal-500/20 hover:bg-teal-500/40 border border-teal-500/30 rounded-xl flex items-center justify-center text-teal-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
                     <ShoppingCart className="w-5 h-5" />
                     <ArrowUp className="w-2.5 h-2.5 text-white absolute -bottom-0.5 -right-0.5 bg-teal-600 rounded-full p-0.5" />
-                    <span className={`absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 ${isDark ? 'bg-slate-800 text-white' : 'bg-white border border-gray-300 text-slate-900'} text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none shadow-xl z-50`}>$1</span>
+                    <span className={`absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 ${isDark ? 'bg-slate-800 text-white' : 'bg-white border border-gray-300 text-slate-900 shadow-sm'} text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none shadow-xl z-50`}>Upsell</span>
                   </div>
                   <div draggable onDragStart={(e) => onDragStart(e, 'downsellNode', 'Downsell')} onClick={() => { addNode('downsellNode', 'Downsell'); setShowEcommerceTools(false); }}
                     className="group relative w-10 h-10 bg-orange-500/20 hover:bg-orange-500/40 border border-orange-500/30 rounded-xl flex items-center justify-center text-orange-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
                     <ShoppingCart className="w-5 h-5" />
                     <ArrowDown className="w-2.5 h-2.5 text-white absolute -bottom-0.5 -right-0.5 bg-orange-600 rounded-full p-0.5" />
-                    <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Downsell</span>
+                    <span className={`absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 ${isDark ? 'bg-slate-800 text-white' : 'bg-white border border-gray-300 text-slate-900 shadow-sm'} text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none`}>Downsell</span>
                   </div>
                   <div draggable onDragStart={(e) => onDragStart(e, 'formNode', 'Form')} onClick={() => { addNode('formNode', 'Form'); setShowEcommerceTools(false); }}
                     className="group relative w-10 h-10 bg-purple-500/20 hover:bg-purple-500/40 border border-purple-500/30 rounded-xl flex items-center justify-center text-purple-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
                     <FileText className="w-5 h-5" />
-                    <span className={`absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 ${isDark ? 'bg-slate-800 text-white' : 'bg-white border border-gray-300 text-slate-900'} text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none shadow-xl z-50`}>Form</span>
+                    <span className={`absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 ${isDark ? 'bg-slate-800 text-white' : 'bg-white border border-gray-300 text-slate-900 shadow-sm'} text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none shadow-xl z-50`}>Form</span>
                   </div>
                   <div draggable onDragStart={(e) => onDragStart(e, 'sheetsNode', 'Google Sheets')} onClick={() => { addNode('sheetsNode', 'Google Sheets'); setShowEcommerceTools(false); }}
                     className="group relative w-10 h-10 bg-green-500/20 hover:bg-green-500/40 border border-green-500/30 rounded-xl flex items-center justify-center text-green-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
                     <Table className="w-5 h-5" />
-                    <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Sheets</span>
+                    <span className={`absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 ${isDark ? 'bg-slate-800 text-white' : 'bg-white border border-gray-300 text-slate-900 shadow-sm'} text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none`}>Sheets</span>
                   </div>
                   <div draggable onDragStart={(e) => onDragStart(e, 'invoiceNode', 'Invoice')} onClick={() => { addNode('invoiceNode', 'Invoice'); setShowEcommerceTools(false); }}
                     className="group relative w-10 h-10 bg-violet-500/20 hover:bg-violet-500/40 border border-violet-500/30 rounded-xl flex items-center justify-center text-violet-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
                     <Receipt className="w-5 h-5" />
-                    <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Invoice</span>
+                    <span className={`absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 ${isDark ? 'bg-slate-800 text-white' : 'bg-white border border-gray-300 text-slate-900 shadow-sm'} text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none`}>Invoice</span>
                   </div>
                   <div draggable onDragStart={(e) => onDragStart(e, 'productNode', 'Product')} onClick={() => { addNode('productNode', 'Product'); setShowEcommerceTools(false); }}
                     className="group relative w-10 h-10 bg-emerald-500/20 hover:bg-emerald-500/40 border border-emerald-500/30 rounded-xl flex items-center justify-center text-emerald-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
                     <Package className="w-5 h-5" />
-                    <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Product</span>
+                    <span className={`absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 ${isDark ? 'bg-slate-800 text-white' : 'bg-white border border-gray-300 text-slate-900 shadow-sm'} text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none`}>Product</span>
                   </div>
                   <div draggable onDragStart={(e) => onDragStart(e, 'checkoutNode', 'Checkout')} onClick={() => { addNode('checkoutNode', 'Checkout'); setShowEcommerceTools(false); }}
                     className="group relative w-10 h-10 bg-emerald-500/20 hover:bg-emerald-500/40 border border-emerald-500/30 rounded-xl flex items-center justify-center text-emerald-400 shadow-lg hover:scale-110 transition-transform cursor-grab active:cursor-grabbing">
                     <ShoppingCart className="w-5 h-5" />
-                    <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Checkout</span>
+                    <span className={`absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 ${isDark ? 'bg-slate-800 text-white' : 'bg-white border border-gray-300 text-slate-900 shadow-sm'} text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none`}>Checkout</span>
                   </div>
                 </div>
               )}

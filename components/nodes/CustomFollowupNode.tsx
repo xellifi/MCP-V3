@@ -119,11 +119,11 @@ const CustomFollowupNode: React.FC<NodeProps> = ({ data, selected }) => {
 
                         {/* Message Preview */}
                         {isConfigured ? (
-                            <div className="bg-slate-800/60 border border-slate-600/40 rounded-lg p-2">
-                                <div className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold mb-1">
+                            <div className="bg-rose-500/5 border border-rose-500/10 rounded-lg p-2">
+                                <div className="text-[10px] text-rose-400 uppercase tracking-wider font-semibold mb-1">
                                     📩 Message
                                 </div>
-                                <div className="text-slate-300 text-xs line-clamp-2">
+                                <div className="text-slate-600 text-xs line-clamp-2">
                                     {firstMessage.substring(0, 60)}{firstMessage.length > 60 ? '...' : ''}
                                 </div>
                             </div>

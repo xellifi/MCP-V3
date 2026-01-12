@@ -117,8 +117,8 @@ const CustomStartNode: React.FC<NodeProps> = ({ data, selected }) => {
                 {/* Expanded Content - Keywords */}
                 {isExpanded && hasKeywords && (
                     <div className="mt-3 pt-3 border-t border-emerald-500/20">
-                        <div className="bg-slate-800/60 border border-slate-600/40 rounded-lg p-2.5 backdrop-blur-sm">
-                            <div className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold mb-1.5 flex items-center gap-1">
+                        <div className="bg-emerald-500/5 border border-emerald-500/10 rounded-lg p-2.5 backdrop-blur-sm">
+                            <div className="text-[10px] text-emerald-400 uppercase tracking-wider font-semibold mb-1.5 flex items-center gap-1">
                                 <Key className="w-3 h-3" />
                                 Keywords ({matchType})
                             </div>
@@ -129,9 +129,9 @@ const CustomStartNode: React.FC<NodeProps> = ({ data, selected }) => {
                                 {keywords.map((keyword: string, index: number) => (
                                     <div
                                         key={index}
-                                        className="flex items-center gap-2 px-2 py-1 bg-emerald-500/20 border border-emerald-500/30 rounded-md"
+                                        className="flex items-center gap-2 px-2 py-1 bg-white/40 border border-emerald-500/20 rounded-md"
                                     >
-                                        <span className="text-emerald-300 text-xs font-medium truncate">
+                                        <span className="text-slate-600 text-xs font-medium truncate">
                                             {keyword}
                                         </span>
                                     </div>

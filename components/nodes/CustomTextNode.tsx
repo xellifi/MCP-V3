@@ -130,14 +130,14 @@ const CustomTextNode: React.FC<NodeProps> = ({ data, selected }) => {
                 {isExpanded && hasDetails && (
                     <div className="mt-3 pt-3 border-t border-amber-500/20">
                         {hasContent && (
-                            <div className="bg-slate-800/60 border border-slate-600/40 rounded-lg p-2.5 backdrop-blur-sm">
-                                <div className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold mb-1.5 flex items-center gap-1">
+                            <div className="bg-amber-500/5 border border-amber-500/10 rounded-lg p-2.5 backdrop-blur-sm">
+                                <div className="text-[10px] text-amber-400 uppercase tracking-wider font-semibold mb-1.5 flex items-center gap-1">
                                     <MessageSquare className="w-3 h-3" />
                                     Message Content
                                 </div>
                                 <div
                                     ref={textContainerRef}
-                                    className="text-slate-300 text-xs leading-relaxed break-words whitespace-pre-wrap max-h-[120px] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-transparent"
+                                    className="text-slate-600 text-xs leading-relaxed break-words whitespace-pre-wrap max-h-[120px] overflow-y-auto scrollbar-thin scrollbar-thumb-amber-200 scrollbar-track-transparent"
                                 >
                                     {data.textContent}
                                 </div>
