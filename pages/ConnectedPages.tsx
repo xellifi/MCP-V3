@@ -3,6 +3,7 @@ import { Workspace, ConnectedPage } from '../types';
 import { api } from '../services/api';
 import { Facebook, Instagram, RefreshCw, ExternalLink, CheckCircle, Bot, Users, AlertTriangle, LayoutGrid, List, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
+import { useTheme } from '../context/ThemeContext';
 
 interface ConnectedPagesProps {
   workspace: Workspace;
@@ -11,6 +12,7 @@ interface ConnectedPagesProps {
 type FilterType = 'active' | 'inactive' | 'all';
 
 const ConnectedPages: React.FC<ConnectedPagesProps> = ({ workspace }) => {
+  const { isDark } = useTheme();
   const [pages, setPages] = useState<ConnectedPage[]>([]);
   const [loading, setLoading] = useState(true);
   const [toggling, setToggling] = useState<string | null>(null);
@@ -142,30 +144,39 @@ const ConnectedPages: React.FC<ConnectedPagesProps> = ({ workspace }) => {
     <div className="space-y-8 animate-fade-in">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl md:text-4xl font-bold text-white tracking-tight mb-2">Pages</h1>
-          <p className="text-slate-400 text-sm md:text-lg">Manage bot automations for your Facebook Pages and Instagram Accounts</p>
+          <h1 className={`text-2xl md:text-4xl font-bold tracking-tight mb-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>Pages</h1>
+          <p className={`text-sm md:text-lg ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Manage bot automations for your Facebook Pages and Instagram Accounts</p>
         </div>
         <div className="flex items-center gap-3">
           <button
             onClick={() => { loadPages(); toast.info("Refreshing page list..."); }}
-            className="flex items-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white px-5 py-2.5 rounded-xl font-medium transition-colors shadow-lg"
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium transition-colors shadow-lg border ${isDark
+              ? 'bg-white/5 hover:bg-white/10 border-white/10 text-slate-300 hover:text-white'
+              : 'bg-white hover:bg-slate-50 border-slate-200 text-slate-600 hover:text-slate-900'
+              }`}
           >
             <RefreshCw className="w-4 h-4" />
             <span className="hidden sm:inline">Refresh</span>
           </button>
 
           {/* View Toggle */}
-          <div className="flex bg-white/5 p-1 rounded-lg border border-white/10">
+          <div className={`flex p-1 rounded-lg border ${isDark ? 'bg-white/5 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
             <button
               onClick={() => setViewMode('list')}
-              className={`p-2 rounded-md transition-all ${viewMode === 'list' ? 'bg-indigo-500 text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
+              className={`p-2 rounded-md transition-all ${viewMode === 'list'
+                ? 'bg-indigo-500 text-white shadow-lg'
+                : isDark ? 'text-slate-400 hover:text-white hover:bg-white/5' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-100'
+                }`}
               title="List View"
             >
               <List className="w-5 h-5" />
             </button>
             <button
               onClick={() => setViewMode('grid')}
-              className={`p-2 rounded-md transition-all ${viewMode === 'grid' ? 'bg-indigo-500 text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
+              className={`p-2 rounded-md transition-all ${viewMode === 'grid'
+                ? 'bg-indigo-500 text-white shadow-lg'
+                : isDark ? 'text-slate-400 hover:text-white hover:bg-white/5' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-100'
+                }`}
               title="Grid View"
             >
               <LayoutGrid className="w-5 h-5" />
@@ -174,45 +185,49 @@ const ConnectedPages: React.FC<ConnectedPagesProps> = ({ workspace }) => {
         </div>
       </div>
       {/* Filter Tabs */}
-      <div className="flex gap-2 border-b border-white/10">
+      <div className={`flex gap-2 border-b ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
         <button
           onClick={() => setFilter('active')}
           className={`px-4 py-3 font-semibold transition-all border-b-2 hover:text-indigo-400 ${filter === 'active'
-            ? 'border-indigo-500 text-indigo-400'
-            : 'border-transparent text-slate-500 hover:text-slate-300'
+            ? 'border-indigo-500 text-indigo-500'
+            : `border-transparent ${isDark ? 'text-slate-500 hover:text-slate-300' : 'text-slate-500 hover:text-slate-700'}`
             }`}
         >
-          Active <span className={`ml-1.5 px-2 py-0.5 rounded-full text-xs ${filter === 'active' ? 'bg-indigo-500/20 text-indigo-300' : 'bg-white/5 text-slate-500'}`}>{pages.filter(p => p.isAutomationEnabled).length}</span>
+          Active <span className={`ml-1.5 px-2 py-0.5 rounded-full text-xs ${filter === 'active' ? 'bg-indigo-500/10 text-indigo-500' : isDark ? 'bg-white/5 text-slate-500' : 'bg-slate-100 text-slate-500'}`}>{pages.filter(p => p.isAutomationEnabled).length}</span>
         </button>
         <button
           onClick={() => setFilter('inactive')}
           className={`px-4 py-3 font-semibold transition-all border-b-2 hover:text-indigo-400 ${filter === 'inactive'
-            ? 'border-indigo-500 text-indigo-400'
-            : 'border-transparent text-slate-500 hover:text-slate-300'
+            ? 'border-indigo-500 text-indigo-500'
+            : `border-transparent ${isDark ? 'text-slate-500 hover:text-slate-300' : 'text-slate-500 hover:text-slate-700'}`
             }`}
         >
-          Inactive <span className={`ml-1.5 px-2 py-0.5 rounded-full text-xs ${filter === 'inactive' ? 'bg-indigo-500/20 text-indigo-300' : 'bg-white/5 text-slate-500'}`}>{pages.filter(p => !p.isAutomationEnabled).length}</span>
+          Inactive <span className={`ml-1.5 px-2 py-0.5 rounded-full text-xs ${filter === 'inactive' ? 'bg-indigo-500/10 text-indigo-500' : isDark ? 'bg-white/5 text-slate-500' : 'bg-slate-100 text-slate-500'}`}>{pages.filter(p => !p.isAutomationEnabled).length}</span>
         </button>
         <button
           onClick={() => setFilter('all')}
           className={`px-4 py-3 font-semibold transition-all border-b-2 hover:text-indigo-400 ${filter === 'all'
-            ? 'border-indigo-500 text-indigo-400'
-            : 'border-transparent text-slate-500 hover:text-slate-300'
+            ? 'border-indigo-500 text-indigo-500'
+            : `border-transparent ${isDark ? 'text-slate-500 hover:text-slate-300' : 'text-slate-500 hover:text-slate-700'}`
             }`}
         >
-          All <span className={`ml-1.5 px-2 py-0.5 rounded-full text-xs ${filter === 'all' ? 'bg-indigo-500/20 text-indigo-300' : 'bg-white/5 text-slate-500'}`}>{pages.length}</span>
+          All <span className={`ml-1.5 px-2 py-0.5 rounded-full text-xs ${filter === 'all' ? 'bg-indigo-500/10 text-indigo-500' : isDark ? 'bg-white/5 text-slate-500' : 'bg-slate-100 text-slate-500'}`}>{pages.length}</span>
         </button>
       </div>
 
       <div className={`grid gap-4 ${viewMode === 'grid' ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5' : 'grid-cols-1'}`}>
         {currentItems.map(page => (
-          <div key={page.id} className="relative glass-panel rounded-2xl border border-white/10 overflow-hidden group hover:border-indigo-500/50 hover:shadow-[0_0_30px_rgba(99,102,241,0.2)] transition-all duration-300 ease-out isolate">
+          <div key={page.id} className={`relative rounded-2xl border overflow-hidden group hover:shadow-[0_0_30px_rgba(99,102,241,0.2)] transition-all duration-300 ease-out isolate ${isDark
+            ? 'glass-panel border-white/10 hover:border-indigo-500/50'
+            : 'bg-white border-gray-200 shadow-sm hover:border-indigo-400 hover:shadow-xl'
+            }`}>
             {/* Mobile/Grid Open Page Button (Top Right) */}
             <a
               href={`https://facebook.com/${page.pageId}`}
               target="_blank"
               rel="noopener noreferrer"
-              className={`${viewMode === 'grid' ? 'block' : 'md:hidden'} absolute top-3 right-3 p-2 bg-white/10 rounded-full text-slate-300 hover:text-white hover:bg-white/20 z-10 transition-colors`}
+              className={`${viewMode === 'grid' ? 'block' : 'md:hidden'} absolute top-3 right-3 p-2 rounded-full z-10 transition-colors ${isDark ? 'bg-white/10 text-slate-300 hover:text-white hover:bg-white/20' : 'bg-slate-100 text-slate-500 hover:text-slate-900 hover:bg-slate-200'
+                }`}
               title="Open Page"
             >
               <ExternalLink className="w-4 h-4" />
@@ -227,10 +242,10 @@ const ConnectedPages: React.FC<ConnectedPagesProps> = ({ workspace }) => {
                   <img
                     src={page.pageImageUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(page.name)}&background=1877F2&color=fff`}
                     alt={page.name}
-                    className="w-24 h-24 rounded-full border-4 border-slate-900 shadow-xl object-cover bg-slate-800"
+                    className={`w-24 h-24 rounded-full border-4 shadow-xl object-cover ${isDark ? 'border-slate-900 bg-slate-800' : 'border-white bg-gray-100'}`}
                   />
                   {/* FB Badge */}
-                  <div className="absolute bottom-0 right-0 bg-slate-900 rounded-full p-1 shadow-md z-30 ring-2 ring-slate-900">
+                  <div className={`absolute bottom-0 right-0 rounded-full p-1 shadow-md z-30 ring-2 ${isDark ? 'bg-slate-900 ring-slate-900' : 'bg-white ring-white'}`}>
                     <div className="bg-[#1877F2] text-white rounded-full p-1.5 flex items-center justify-center">
                       <Facebook className="w-4 h-4 fill-current" />
                     </div>
@@ -243,10 +258,10 @@ const ConnectedPages: React.FC<ConnectedPagesProps> = ({ workspace }) => {
                     <img
                       src={page.instagram.imageUrl}
                       alt={page.instagram.username}
-                      className="w-24 h-24 rounded-full border-4 border-slate-900 shadow-xl object-cover bg-slate-800"
+                      className={`w-24 h-24 rounded-full border-4 shadow-xl object-cover ${isDark ? 'border-slate-900 bg-slate-800' : 'border-white bg-gray-100'}`}
                     />
                     {/* IG Badge */}
-                    <div className="absolute bottom-0 right-0 bg-slate-900 rounded-full p-1 shadow-md z-30 ring-2 ring-slate-900">
+                    <div className={`absolute bottom-0 right-0 rounded-full p-1 shadow-md z-30 ring-2 ${isDark ? 'bg-slate-900 ring-slate-900' : 'bg-white ring-white'}`}>
                       <div className="bg-gradient-to-tr from-yellow-400 via-red-500 to-purple-500 text-white rounded-full p-1.5 flex items-center justify-center">
                         <Instagram className="w-4 h-4" />
                       </div>
@@ -258,32 +273,32 @@ const ConnectedPages: React.FC<ConnectedPagesProps> = ({ workspace }) => {
               {/* Info Section */}
               <div className={`flex-1 text-center ${viewMode === 'list' ? 'md:text-left' : ''} min-w-0 overflow-hidden w-full`}>
                 <div className={`flex flex-col ${viewMode === 'list' ? 'md:flex-row md:items-center' : ''} gap-2 mb-1`}>
-                  <h3 className="text-lg md:text-xl font-bold text-white truncate max-w-full">{page.name}</h3>
+                  <h3 className={`text-lg md:text-xl font-bold truncate max-w-full ${isDark ? 'text-white' : 'text-slate-900'}`}>{page.name}</h3>
                   {page.instagram && (
-                    <span className="hidden md:inline text-slate-600 mx-1">|</span>
+                    <span className="hidden md:inline text-slate-400 mx-1">|</span>
                   )}
                   {page.instagram && (
-                    <span className="text-sm md:text-base font-medium text-slate-400 truncate">@{page.instagram.username}</span>
+                    <span className="text-sm md:text-base font-medium text-slate-500 truncate">@{page.instagram.username}</span>
                   )}
                 </div>
 
-                <div className={`flex items-center justify-center ${viewMode === 'list' ? 'md:justify-start' : ''} gap-6 text-sm text-slate-400 mt-3`}>
+                <div className={`flex items-center justify-center ${viewMode === 'list' ? 'md:justify-start' : ''} gap-6 text-sm mt-3 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                   <div className="flex items-center gap-2" title="Facebook Followers">
-                    <div className="p-1.5 bg-white/5 rounded-full">
-                      <Users className="w-4 h-4 text-slate-400" />
+                    <div className={`p-1.5 rounded-full ${isDark ? 'bg-white/5' : 'bg-slate-100'}`}>
+                      <Users className={`w-4 h-4 ${isDark ? 'text-slate-400' : 'text-slate-500'}`} />
                     </div>
                     <div>
-                      <span className="font-bold text-white">{formatFollowers(page.pageFollowers)}</span>
+                      <span className={`font-bold ${isDark ? 'text-white' : 'text-slate-800'}`}>{formatFollowers(page.pageFollowers)}</span>
                       <span className="text-xs ml-1 font-medium text-slate-500">followers</span>
                     </div>
                   </div>
                   {page.instagram && (
                     <div className="flex items-center gap-2" title="Instagram Followers">
-                      <div className="p-1.5 bg-white/5 rounded-full">
-                        <Users className="w-4 h-4 text-slate-400" />
+                      <div className={`p-1.5 rounded-full ${isDark ? 'bg-white/5' : 'bg-slate-100'}`}>
+                        <Users className={`w-4 h-4 ${isDark ? 'text-slate-400' : 'text-slate-500'}`} />
                       </div>
                       <div>
-                        <span className="font-bold text-white">{formatFollowers(page.instagram.followers)}</span>
+                        <span className={`font-bold ${isDark ? 'text-white' : 'text-slate-800'}`}>{formatFollowers(page.instagram.followers)}</span>
                         <span className="text-xs ml-1 font-medium text-slate-500">followers</span>
                       </div>
                     </div>
@@ -293,14 +308,15 @@ const ConnectedPages: React.FC<ConnectedPagesProps> = ({ workspace }) => {
 
               {/* Automation Toggle & Status */}
               <div className={`flex flex-col items-center ${viewMode === 'list' ? 'md:items-end' : ''} gap-3 min-w-[200px]`}>
-                <div className="flex items-center gap-3 bg-white/5 p-2.5 rounded-xl border border-white/5 shadow-inner">
-                  <span className={`text-sm font-semibold ${page.isAutomationEnabled ? 'text-indigo-400' : 'text-slate-500'}`}>
+                <div className={`flex items-center gap-3 p-2.5 rounded-xl border shadow-inner ${isDark ? 'bg-white/5 border-white/5' : 'bg-slate-50 border-slate-200'
+                  }`}>
+                  <span className={`text-sm font-semibold ${page.isAutomationEnabled ? 'text-indigo-500' : 'text-slate-500'}`}>
                     {page.isAutomationEnabled ? 'Automation On' : 'Automation Off'}
                   </span>
                   <button
                     onClick={() => handleToggleAutomation(page.id, page.isAutomationEnabled)}
                     disabled={toggling === page.id || page.status !== 'CONNECTED'}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-all focus:outline-none ring-2 ring-transparent focus:ring-indigo-500/50 ${page.isAutomationEnabled ? 'bg-gradient-to-r from-emerald-400 to-emerald-600 shadow-[0_0_10px_rgba(52,211,153,0.5)]' : 'bg-slate-700'
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-all focus:outline-none ring-2 ring-transparent focus:ring-indigo-500/50 ${page.isAutomationEnabled ? 'bg-gradient-to-r from-emerald-400 to-emerald-600 shadow-[0_0_10px_rgba(52,211,153,0.5)]' : 'bg-slate-400'
                       } ${page.status !== 'CONNECTED' ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:scale-105 active:scale-95'}`}
                   >
                     <span
@@ -312,12 +328,12 @@ const ConnectedPages: React.FC<ConnectedPagesProps> = ({ workspace }) => {
 
                 <div className="flex items-center gap-2 mt-1">
                   {page.status === 'CONNECTED' ? (
-                    <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                    <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
                       <CheckCircle className="w-3.5 h-3.5" />
                       Active
                     </span>
                   ) : (
-                    <span className="inline-flex items-center gap-1.5 text-xs font-bold text-red-400 bg-red-500/10 px-2 py-0.5 rounded-full border border-red-500/20">
+                    <span className="inline-flex items-center gap-1.5 text-xs font-bold text-red-500 bg-red-500/10 px-2 py-0.5 rounded-full border border-red-500/20">
                       <AlertTriangle className="w-3.5 h-3.5" />
                       Disconnected
                     </span>
@@ -327,14 +343,16 @@ const ConnectedPages: React.FC<ConnectedPagesProps> = ({ workspace }) => {
 
             </div>
 
-            <div className={`bg-white/5 px-4 md:px-6 py-3 border-t border-white/5 flex flex-col ${viewMode === 'list' ? 'sm:flex-row' : ''} justify-between items-start ${viewMode === 'list' ? 'sm:items-center' : 'items-center'} gap-3 text-xs font-medium text-slate-400`}>
+            <div className={`px-4 md:px-6 py-3 border-t flex flex-col ${viewMode === 'list' ? 'sm:flex-row' : ''} justify-between items-start ${viewMode === 'list' ? 'sm:items-center' : 'items-center'} gap-3 text-xs font-medium ${isDark ? 'bg-white/5 border-white/5 text-slate-400' : 'bg-slate-50 border-gray-100 text-slate-500'
+              }`}>
               <div className={`flex gap-4 w-full ${viewMode === 'list' ? 'sm:w-auto' : ''}`}>
-                <span className={`font-mono bg-black/20 px-2 py-0.5 rounded text-slate-500 truncate w-full ${viewMode === 'list' ? 'sm:w-auto text-center sm:text-left' : 'text-center'}`}>ID: {page.pageId}</span>
+                <span className={`font-mono px-2 py-0.5 rounded truncate w-full ${viewMode === 'list' ? 'sm:w-auto text-center sm:text-left' : 'text-center'} ${isDark ? 'bg-black/20 text-slate-500' : 'bg-slate-200 text-slate-600'
+                  }`}>ID: {page.pageId}</span>
               </div>
               <div className={`flex gap-3 w-full ${viewMode === 'list' ? 'sm:w-auto justify-center sm:justify-start' : 'justify-center'}`}>
                 <button
                   onClick={() => handleSubscribeToWebhooks(page)}
-                  className="flex items-center gap-1.5 text-indigo-400 hover:text-indigo-300 transition-colors group/sub"
+                  className="flex items-center gap-1.5 text-indigo-500 hover:text-indigo-600 transition-colors group/sub"
                   title="Subscribe this page to receive webhooks for automations"
                 >
                   <RefreshCw className="w-3.5 h-3.5 group-hover/sub:rotate-180 transition-transform duration-500" />
@@ -347,7 +365,7 @@ const ConnectedPages: React.FC<ConnectedPagesProps> = ({ workspace }) => {
                       href={`https://facebook.com/${page.pageId}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="hidden md:flex items-center gap-1.5 hover:text-white transition-colors group/link"
+                      className={`hidden md:flex items-center gap-1.5 transition-colors group/link ${isDark ? 'hover:text-white' : 'hover:text-slate-900'}`}
                       title="View on Facebook"
                     >
                       Open Page
@@ -361,16 +379,17 @@ const ConnectedPages: React.FC<ConnectedPagesProps> = ({ workspace }) => {
         ))}
 
         {filteredPages.length === 0 && (
-          <div className="py-20 text-center glass-panel rounded-3xl border border-dashed border-white/10 w-full col-span-full">
-            <div className="w-20 h-20 bg-indigo-500/10 text-indigo-400 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
+          <div className={`py-20 text-center rounded-3xl border border-dashed w-full col-span-full ${isDark ? 'glass-panel border-white/10' : 'bg-white border-slate-300'
+            }`}>
+            <div className="w-20 h-20 bg-indigo-500/10 text-indigo-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
               <Bot className="w-10 h-10" />
             </div>
-            <h3 className="text-xl font-bold text-white mb-2">
+            <h3 className={`text-xl font-bold mb-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>
               {filter === 'active' && 'No active pages'}
               {filter === 'inactive' && 'No inactive pages'}
               {filter === 'all' && 'No pages found'}
             </h3>
-            <p className="text-slate-400 max-w-sm mx-auto mb-8">
+            <p className={`max-w-sm mx-auto mb-8 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
               {filter === 'active' && 'Enable automation on your pages to see them here.'}
               {filter === 'inactive' && 'All your pages have automation enabled!'}
               {filter === 'all' && 'Go to Connections to link your Facebook Profile, then pages will appear here.'}
@@ -381,15 +400,18 @@ const ConnectedPages: React.FC<ConnectedPagesProps> = ({ workspace }) => {
 
       {/* Pagination Controls */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-between border-t border-white/10 pt-4">
-          <p className="text-sm text-slate-400">
-            Showing <span className="font-medium text-white">{indexOfFirstItem + 1}</span> to <span className="font-medium text-white">{Math.min(indexOfLastItem, filteredPages.length)}</span> of <span className="font-medium text-white">{filteredPages.length}</span> results
+        <div className={`flex items-center justify-between border-t pt-4 ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
+          <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+            Showing <span className={`font-medium ${isDark ? 'text-white' : 'text-slate-900'}`}>{indexOfFirstItem + 1}</span> to <span className={`font-medium ${isDark ? 'text-white' : 'text-slate-900'}`}>{Math.min(indexOfLastItem, filteredPages.length)}</span> of <span className={`font-medium ${isDark ? 'text-white' : 'text-slate-900'}`}>{filteredPages.length}</span> results
           </p>
           <div className="flex items-center gap-2">
             <button
               onClick={() => handlePageChange(currentPage - 1)}
               disabled={currentPage === 1}
-              className="p-2 rounded-lg bg-white/5 border border-white/10 text-slate-400 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className={`p-2 rounded-lg border disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${isDark
+                ? 'bg-white/5 border-white/10 text-slate-400 hover:text-white'
+                : 'bg-white border-slate-200 text-slate-500 hover:text-slate-900 hover:bg-slate-50'
+                }`}
             >
               <ChevronLeft className="w-5 h-5" />
             </button>
@@ -400,7 +422,7 @@ const ConnectedPages: React.FC<ConnectedPagesProps> = ({ workspace }) => {
                   onClick={() => handlePageChange(page)}
                   className={`w-8 h-8 rounded-lg text-sm font-medium transition-colors ${currentPage === page
                     ? 'bg-indigo-500 text-white'
-                    : 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white'
+                    : isDark ? 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900'
                     }`}
                 >
                   {page}
@@ -410,7 +432,10 @@ const ConnectedPages: React.FC<ConnectedPagesProps> = ({ workspace }) => {
             <button
               onClick={() => handlePageChange(currentPage + 1)}
               disabled={currentPage === totalPages}
-              className="p-2 rounded-lg bg-white/5 border border-white/10 text-slate-400 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className={`p-2 rounded-lg border disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${isDark
+                ? 'bg-white/5 border-white/10 text-slate-400 hover:text-white'
+                : 'bg-white border-slate-200 text-slate-500 hover:text-slate-900 hover:bg-slate-50'
+                }`}
             >
               <ChevronRight className="w-5 h-5" />
             </button>
