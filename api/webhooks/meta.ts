@@ -2328,7 +2328,7 @@ async function processTextMessage(messagingEvent: any, pageId: string) {
                     .from('subscribers')
                     .select('*')
                     .eq('workspace_id', workspaceId)
-                    .eq('platform_user_id', senderId)
+                    .eq('external_id', senderId)  // Use external_id to match saveOrUpdateSubscriber
                     .maybeSingle();
 
                 if (subError) {
@@ -2346,7 +2346,7 @@ async function processTextMessage(messagingEvent: any, pageId: string) {
                         .insert({
                             workspace_id: workspaceId,
                             page_id: pageDbId,
-                            platform_user_id: senderId,
+                            external_id: senderId,  // Use external_id to match saveOrUpdateSubscriber
                             name: userName,
                             source: 'AI_AGENT',
                             metadata: { ai_chat_history: [] }
