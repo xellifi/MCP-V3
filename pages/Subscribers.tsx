@@ -289,17 +289,23 @@ const Subscribers: React.FC<SubscribersProps> = ({ workspace }) => {
           </button>
 
           {/* View Toggle */}
-          <div className="flex bg-white/5 p-1 rounded-lg border border-white/10">
+          <div className={`flex p-1 rounded-xl border ${isDark ? 'bg-white/5 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
             <button
               onClick={() => setViewMode('list')}
-              className={`p-2 rounded-md transition-all ${viewMode === 'list' ? 'bg-indigo-500 text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
+              className={`p-2 rounded-lg transition-all ${viewMode === 'list'
+                  ? 'bg-indigo-500 text-white shadow-md'
+                  : isDark ? 'text-slate-400 hover:text-white hover:bg-white/5' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-50'
+                }`}
               title="List View"
             >
               <List className="w-5 h-5" />
             </button>
             <button
               onClick={() => setViewMode('grid')}
-              className={`p-2 rounded-md transition-all ${viewMode === 'grid' ? 'bg-indigo-500 text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
+              className={`p-2 rounded-lg transition-all ${viewMode === 'grid'
+                  ? 'bg-indigo-500 text-white shadow-md'
+                  : isDark ? 'text-slate-400 hover:text-white hover:bg-white/5' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-50'
+                }`}
               title="Grid View"
             >
               <LayoutGrid className="w-5 h-5" />
@@ -310,55 +316,54 @@ const Subscribers: React.FC<SubscribersProps> = ({ workspace }) => {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="glass-panel p-4 rounded-xl border border-white/10">
+        <div className={`p-4 rounded-xl border ${isDark ? 'glass-panel border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
           <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-indigo-500/20 rounded-lg">
-              <Users className="w-5 h-5 text-indigo-400" />
+            <div className={`p-2.5 rounded-lg ${isDark ? 'bg-indigo-500/20' : 'bg-indigo-50 text-indigo-500'}`}>
+              <Users className={`w-5 h-5 ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`} />
             </div>
             <div>
-              <p className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'
-                }`}>{subscribers.length}</p>
-              <p className="text-xs text-slate-400">Total Subscribers</p>
+              <p className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{subscribers.length}</p>
+              <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Total Subscribers</p>
             </div>
           </div>
         </div>
-        <div className="glass-panel p-4 rounded-xl border border-white/10">
+        <div className={`p-4 rounded-xl border ${isDark ? 'glass-panel border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
           <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-emerald-500/20 rounded-lg">
-              <User className="w-5 h-5 text-emerald-400" />
+            <div className={`p-2.5 rounded-lg ${isDark ? 'bg-emerald-500/20' : 'bg-emerald-50 text-emerald-500'}`}>
+              <User className={`w-5 h-5 ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`} />
             </div>
             <div>
-              <p className="text-2xl font-bold text-white">{subscribers.filter(s => s.status === 'SUBSCRIBED').length}</p>
-              <p className="text-xs text-slate-400">Active</p>
+              <p className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{subscribers.filter(s => s.status === 'SUBSCRIBED').length}</p>
+              <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Active</p>
             </div>
           </div>
         </div>
-        <div className="glass-panel p-4 rounded-xl border border-white/10">
+        <div className={`p-4 rounded-xl border ${isDark ? 'glass-panel border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
           <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-blue-500/20 rounded-lg">
-              <Facebook className="w-5 h-5 text-blue-400" />
+            <div className={`p-2.5 rounded-lg ${isDark ? 'bg-blue-500/20' : 'bg-blue-50 text-blue-500'}`}>
+              <Facebook className={`w-5 h-5 ${isDark ? 'text-blue-400' : 'text-blue-600'}`} />
             </div>
             <div>
-              <p className="text-2xl font-bold text-white">{subscribers.filter(s => s.platform === 'FACEBOOK').length}</p>
-              <p className="text-xs text-slate-400">Facebook</p>
+              <p className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{subscribers.filter(s => s.platform === 'FACEBOOK').length}</p>
+              <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Facebook</p>
             </div>
           </div>
         </div>
-        <div className="glass-panel p-4 rounded-xl border border-white/10">
+        <div className={`p-4 rounded-xl border ${isDark ? 'glass-panel border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
           <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-pink-500/20 rounded-lg">
-              <Instagram className="w-5 h-5 text-pink-400" />
+            <div className={`p-2.5 rounded-lg ${isDark ? 'bg-pink-500/20' : 'bg-pink-50 text-pink-500'}`}>
+              <Instagram className={`w-5 h-5 ${isDark ? 'text-pink-400' : 'text-pink-600'}`} />
             </div>
             <div>
-              <p className="text-2xl font-bold text-white">{subscribers.filter(s => s.platform === 'INSTAGRAM').length}</p>
-              <p className="text-xs text-slate-400">Instagram</p>
+              <p className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{subscribers.filter(s => s.platform === 'INSTAGRAM').length}</p>
+              <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Instagram</p>
             </div>
           </div>
         </div>
       </div>
 
       {/* Toolbar */}
-      <div className="glass-panel rounded-2xl p-4 border border-white/10 overflow-visible relative z-20">
+      <div className={`rounded-2xl p-4 border overflow-visible relative z-20 ${isDark ? 'glass-panel border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
         <div className="flex flex-col lg:flex-row gap-4">
           {/* Search */}
           <div className="relative flex-1">
@@ -368,7 +373,10 @@ const Subscribers: React.FC<SubscribersProps> = ({ workspace }) => {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search by name or ID..."
-              className="w-full pl-10 pr-4 py-2.5 text-sm bg-black/20 border border-white/10 text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-transparent placeholder-slate-500 transition-all"
+              className={`w-full pl-10 pr-4 py-2.5 text-sm rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-transparent transition-all border ${isDark
+                  ? 'bg-black/20 border-white/10 text-white placeholder-slate-500'
+                  : 'bg-white border-slate-200 text-slate-900 placeholder-slate-400 focus:bg-white'
+                }`}
             />
           </div>
 
@@ -378,7 +386,10 @@ const Subscribers: React.FC<SubscribersProps> = ({ workspace }) => {
             <div className="relative min-w-[200px]">
               <button
                 onClick={() => setShowPageDropdown(!showPageDropdown)}
-                className="w-full px-3 py-2.5 bg-black/20 border border-white/10 rounded-xl text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all cursor-pointer flex items-center gap-2 hover:bg-white/5"
+                className={`w-full px-3 py-2.5 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all cursor-pointer flex items-center gap-2 ${isDark
+                    ? 'bg-black/20 border-white/10 text-slate-200 hover:bg-white/5'
+                    : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                  }`}
               >
                 {selectedPageId ? (
                   <>
@@ -407,14 +418,19 @@ const Subscribers: React.FC<SubscribersProps> = ({ workspace }) => {
               </button>
 
               {showPageDropdown && (
-                <div className="absolute z-[999] w-full mt-2 bg-slate-900 border border-white/10 rounded-xl shadow-2xl max-h-64 overflow-y-auto custom-scrollbar backdrop-blur-xl">
+                <div className={`absolute z-[999] w-full mt-2 border rounded-xl shadow-2xl max-h-64 overflow-y-auto custom-scrollbar backdrop-blur-xl ${isDark
+                    ? 'bg-slate-900 border-white/10'
+                    : 'bg-white border-slate-200'
+                  }`}>
                   {/* All Pages Option */}
                   <button
                     onClick={() => {
                       setSelectedPageId('');
                       setShowPageDropdown(false);
                     }}
-                    className={`w-full px-3 py-2.5 text-left hover:bg-white/5 transition-colors flex items-center gap-2 ${!selectedPageId ? 'bg-indigo-500/20 text-indigo-300' : 'text-slate-300'}`}
+                    className={`w-full px-3 py-2.5 text-left hover:bg-white/5 transition-colors flex items-center gap-2 ${!selectedPageId
+                      ? (isDark ? 'bg-indigo-500/20 text-indigo-300' : 'bg-indigo-50 text-indigo-600')
+                      : (isDark ? 'text-slate-300 hover:bg-white/5' : 'text-slate-600 hover:bg-slate-50')}`}
                   >
                     <div className="w-6 h-6 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400">
                       <Facebook className="w-4 h-4" />
@@ -430,7 +446,9 @@ const Subscribers: React.FC<SubscribersProps> = ({ workspace }) => {
                         setSelectedPageId(page.id);
                         setShowPageDropdown(false);
                       }}
-                      className={`w-full px-3 py-2.5 text-left hover:bg-white/5 transition-colors flex items-center gap-2 ${selectedPageId === page.id ? 'bg-indigo-500/20 text-indigo-300' : 'text-slate-300'}`}
+                      className={`w-full px-3 py-2.5 text-left transition-colors flex items-center gap-2 ${selectedPageId === page.id
+                        ? (isDark ? 'bg-indigo-500/20 text-indigo-300' : 'bg-indigo-50 text-indigo-600')
+                        : (isDark ? 'text-slate-300 hover:bg-white/5' : 'text-slate-600 hover:bg-slate-50')}`}
                     >
                       {page.pageImageUrl ? (
                         <img
@@ -460,19 +478,28 @@ const Subscribers: React.FC<SubscribersProps> = ({ workspace }) => {
           <div className="flex gap-2">
             <button
               onClick={() => setStatusFilter('all')}
-              className={`px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${statusFilter === 'all' ? 'bg-indigo-500 text-white' : 'bg-white/5 text-slate-400 hover:text-white hover:bg-white/10'}`}
+              className={`px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${statusFilter === 'all'
+                  ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/25'
+                  : isDark ? 'bg-white/5 text-slate-400 hover:text-white hover:bg-white/10' : 'bg-slate-100 text-slate-500 hover:text-slate-700'
+                }`}
             >
               All
             </button>
             <button
               onClick={() => setStatusFilter('SUBSCRIBED')}
-              className={`px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${statusFilter === 'SUBSCRIBED' ? 'bg-emerald-500 text-white' : 'bg-white/5 text-slate-400 hover:text-white hover:bg-white/10'}`}
+              className={`px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${statusFilter === 'SUBSCRIBED'
+                  ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/25'
+                  : isDark ? 'bg-white/5 text-slate-400 hover:text-white hover:bg-white/10' : 'bg-slate-100 text-slate-500 hover:text-slate-700'
+                }`}
             >
               Active
             </button>
             <button
               onClick={() => setStatusFilter('UNSUBSCRIBED')}
-              className={`px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${statusFilter === 'UNSUBSCRIBED' ? 'bg-slate-500 text-white' : 'bg-white/5 text-slate-400 hover:text-white hover:bg-white/10'}`}
+              className={`px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${statusFilter === 'UNSUBSCRIBED'
+                  ? 'bg-slate-500 text-white shadow-lg shadow-slate-500/25'
+                  : isDark ? 'bg-white/5 text-slate-400 hover:text-white hover:bg-white/10' : 'bg-slate-100 text-slate-500 hover:text-slate-700'
+                }`}
             >
               Inactive
             </button>
@@ -490,15 +517,17 @@ const Subscribers: React.FC<SubscribersProps> = ({ workspace }) => {
             <div
               key={subscriber.id}
               onClick={() => openSubscriberProfile(subscriber)}
-              className={`glass-panel border border-white/10 rounded-2xl overflow-hidden cursor-pointer group hover:border-indigo-500/50 hover:shadow-[0_0_30px_rgba(99,102,241,0.15)] transition-all duration-300 relative ${viewMode === 'grid' ? 'p-5' : 'p-4 flex items-center gap-4'
-                }`}
+              className={`border rounded-2xl overflow-hidden cursor-pointer group transition-all duration-300 relative ${isDark
+                  ? 'glass-panel border-white/10 hover:border-indigo-500/50 hover:shadow-[0_0_30px_rgba(99,102,241,0.15)]'
+                  : 'bg-white border-slate-200 shadow-sm hover:border-indigo-400 hover:shadow-xl'
+                } ${viewMode === 'grid' ? 'p-5' : 'p-4 flex items-center gap-4'}`}
             >
               {/* Actions Menu - Top Right */}
               <div className="absolute top-3 right-3 z-10 flex items-center gap-1">
                 {/* Dropdown Menu */}
                 {activeMenuId === subscriber.id && (
                   <div
-                    className={`subscriber-card-menu flex items-center gap-0.5 p-1 ${isDark ? 'bg-slate-800/95 border-slate-700' : 'bg-white/95 border-gray-200'} rounded-lg shadow-xl backdrop-blur-sm animate-scale-in`}
+                    className={`subscriber-card-menu flex items-center gap-0.5 p-1 ${isDark ? 'bg-slate-800/95 border-slate-700' : 'bg-white/95 border-gray-200'} rounded-lg shadow-xl backdrop-blur-sm animate-scale-in border`}
                     onClick={(e) => e.stopPropagation()}
                   >
                     <button
@@ -535,12 +564,16 @@ const Subscribers: React.FC<SubscribersProps> = ({ workspace }) => {
                   <img
                     src={subscriber.avatarUrl}
                     alt={subscriber.name}
-                    className={`rounded-full object-cover border-2 border-white/10 group-hover:border-indigo-500/50 transition-colors ${viewMode === 'grid' ? 'w-20 h-20' : 'w-12 h-12'
-                      }`}
+                    className={`rounded-full object-cover border-2 transition-colors ${isDark
+                        ? 'border-white/10 group-hover:border-indigo-500/50'
+                        : 'border-slate-100 group-hover:border-indigo-500/30'
+                      } ${viewMode === 'grid' ? 'w-20 h-20' : 'w-12 h-12'}`}
                   />
                 ) : (
-                  <div className={`rounded-full bg-gradient-to-br from-indigo-500/30 to-purple-500/30 flex items-center justify-center text-slate-300 border-2 border-white/10 group-hover:border-indigo-500/50 transition-colors ${viewMode === 'grid' ? 'w-20 h-20' : 'w-12 h-12'
-                    }`}>
+                  <div className={`rounded-full flex items-center justify-center border-2 transition-colors ${isDark
+                      ? 'bg-gradient-to-br from-indigo-500/30 to-purple-500/30 text-slate-300 border-white/10 group-hover:border-indigo-500/50'
+                      : 'bg-gradient-to-br from-indigo-50 to-purple-50 text-indigo-400 border-slate-100 group-hover:border-indigo-500/30'
+                    } ${viewMode === 'grid' ? 'w-20 h-20' : 'w-12 h-12'}`}>
                     <User className={viewMode === 'grid' ? 'w-8 h-8' : 'w-5 h-5'} />
                   </div>
                 )}
@@ -556,8 +589,8 @@ const Subscribers: React.FC<SubscribersProps> = ({ workspace }) => {
 
               {/* Info */}
               <div className={viewMode === 'grid' ? 'text-center' : 'flex-1 min-w-0'}>
-                <h3 className={`font-bold text-white truncate group-hover:text-indigo-300 transition-colors ${viewMode === 'grid' ? 'text-lg' : 'text-base'
-                  }`}>
+                <h3 className={`font-bold truncate group-hover:text-indigo-500 transition-colors ${viewMode === 'grid' ? 'text-lg' : 'text-base'
+                  } ${isDark ? 'text-white' : 'text-slate-900'}`}>
                   {subscriber.name}
                 </h3>
 
@@ -569,8 +602,8 @@ const Subscribers: React.FC<SubscribersProps> = ({ workspace }) => {
                 {/* Status & Source Labels */}
                 <div className={`flex flex-wrap items-center gap-1.5 mt-2 ${viewMode === 'grid' ? 'justify-center' : ''}`}>
                   <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${subscriber.status === 'SUBSCRIBED'
-                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                    : 'bg-slate-500/20 text-slate-400 border border-slate-500/30'
+                    ? 'bg-emerald-500/20 text-emerald-500 border border-emerald-500/30'
+                    : 'bg-slate-500/20 text-slate-500 border border-slate-500/30'
                     }`}>
                     {subscriber.status === 'SUBSCRIBED' ? 'Active' : 'Inactive'}
                   </span>
@@ -605,11 +638,11 @@ const Subscribers: React.FC<SubscribersProps> = ({ workspace }) => {
           }
         </div >
       ) : (
-        <div className="py-20 text-center glass-panel rounded-3xl border border-dashed border-white/10">
-          <div className="w-20 h-20 bg-indigo-500/10 text-indigo-400 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
+        <div className={`py-20 text-center rounded-3xl border border-dashed ${isDark ? 'glass-panel border-white/10' : 'bg-white border-slate-300'}`}>
+          <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner ${isDark ? 'bg-indigo-500/10 text-indigo-400' : 'bg-indigo-50 text-indigo-500'}`}>
             <User className="w-10 h-10" />
           </div>
-          <h3 className="text-xl font-bold text-white mb-2">No subscribers found</h3>
+          <h3 className={`text-xl font-bold mb-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>No subscribers found</h3>
           <p className="text-slate-400 max-w-sm mx-auto">
             {searchQuery || statusFilter !== 'all' || selectedPageId
               ? 'Try adjusting your search or filters.'
@@ -678,13 +711,15 @@ const Subscribers: React.FC<SubscribersProps> = ({ workspace }) => {
         selectedSubscriber && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in" onClick={closeProfile}>
             <div
-              className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto glass-panel rounded-3xl border border-white/10 shadow-2xl animate-scale-in"
+              className={`relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-3xl border shadow-2xl animate-scale-in ${isDark ? 'glass-panel border-white/10' : 'bg-white border-slate-200'
+                }`}
               onClick={e => e.stopPropagation()}
             >
               {/* Close Button */}
               <button
                 onClick={closeProfile}
-                className="absolute top-4 right-4 p-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors z-10"
+                className={`absolute top-4 right-4 p-2 rounded-lg transition-colors z-10 ${isDark ? 'text-slate-400 hover:text-white hover:bg-white/10' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-100'
+                  }`}
               >
                 <X className="w-5 h-5" />
               </button>
@@ -718,7 +753,7 @@ const Subscribers: React.FC<SubscribersProps> = ({ workspace }) => {
 
                   {/* Name & Info */}
                   <div className="flex-1 text-center sm:text-left">
-                    <h2 className="text-2xl sm:text-3xl font-bold text-white mb-1">{selectedSubscriber.name}</h2>
+                    <h2 className={`text-2xl sm:text-3xl font-bold mb-1 ${isDark ? 'text-white' : 'text-slate-900'}`}>{selectedSubscriber.name}</h2>
                     {selectedSubscriber.email && (
                       <p className="text-sm text-indigo-400 mb-1">📧 {selectedSubscriber.email}</p>
                     )}
@@ -749,25 +784,25 @@ const Subscribers: React.FC<SubscribersProps> = ({ workspace }) => {
               <div className="p-6 space-y-6">
                 {/* Quick Stats */}
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+                  <div className={`rounded-xl p-4 border ${isDark ? 'bg-white/5 border-white/10' : 'bg-slate-50 border-slate-200'}`}>
                     <div className="flex items-center gap-3">
-                      <div className="p-2 bg-indigo-500/20 rounded-lg">
-                        <Calendar className="w-5 h-5 text-indigo-400" />
+                      <div className={`p-2 rounded-lg ${isDark ? 'bg-indigo-500/20' : 'bg-indigo-100 text-indigo-600'}`}>
+                        <Calendar className={`w-5 h-5 ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`} />
                       </div>
                       <div>
-                        <p className="text-xs text-slate-400">Last Active</p>
-                        <p className="text-sm font-semibold text-white">{formatDateTime(selectedSubscriber.lastActiveAt)}</p>
+                        <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Last Active</p>
+                        <p className={`text-sm font-semibold ${isDark ? 'text-white' : 'text-slate-900'}`}>{formatDateTime(selectedSubscriber.lastActiveAt)}</p>
                       </div>
                     </div>
                   </div>
-                  <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+                  <div className={`rounded-xl p-4 border ${isDark ? 'bg-white/5 border-white/10' : 'bg-slate-50 border-slate-200'}`}>
                     <div className="flex items-center gap-3">
-                      <div className="p-2 bg-purple-500/20 rounded-lg">
-                        <MessageCircle className="w-5 h-5 text-purple-400" />
+                      <div className={`p-2 rounded-lg ${isDark ? 'bg-purple-500/20' : 'bg-purple-100 text-purple-600'}`}>
+                        <MessageCircle className={`w-5 h-5 ${isDark ? 'text-purple-400' : 'text-purple-600'}`} />
                       </div>
                       <div>
-                        <p className="text-xs text-slate-400">Conversations</p>
-                        <p className="text-sm font-semibold text-white">
+                        <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Conversations</p>
+                        <p className={`text-sm font-semibold ${isDark ? 'text-white' : 'text-slate-900'}`}>
                           {loadingConversations ? '...' : subscriberConversations.length}
                         </p>
                       </div>
