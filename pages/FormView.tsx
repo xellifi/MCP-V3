@@ -44,27 +44,47 @@ const FormView: React.FC = () => {
             try {
                 console.log('[FormView] Tracking form open for abandoned cart follow-up...');
 
-                // Upsert form_opens record - allows cron job to send follow-ups for abandoned forms
-                const { error } = await supabase
+                // First check if there's already an open (unsubmitted) record for this subscriber+form
+                const { data: existing } = await supabase
                     .from('form_opens')
-                    .upsert({
-                        form_id: formId,
-                        subscriber_id: subscriberId,
-                        subscriber_name: subscriberName || 'Unknown',
-                        flow_id: flowId,
-                        node_id: nodeId,
-                        page_id: pageId,
-                        opened_at: new Date().toISOString(),
-                        // submitted_at is null - will be set when form is submitted
-                    }, {
-                        onConflict: 'subscriber_id,form_id',
-                        ignoreDuplicates: false // Update if exists
-                    });
+                    .select('id')
+                    .eq('subscriber_id', subscriberId)
+                    .eq('form_id', formId)
+                    .is('submitted_at', null)
+                    .maybeSingle();
 
-                if (error) {
-                    console.error('[FormView] Error tracking form open:', error.message);
+                if (existing) {
+                    // Update the existing record's opened_at timestamp
+                    const { error } = await supabase
+                        .from('form_opens')
+                        .update({ opened_at: new Date().toISOString() })
+                        .eq('id', existing.id);
+
+                    if (error) {
+                        console.error('[FormView] Error updating form open:', error.message);
+                    } else {
+                        console.log('[FormView] ✓ Form open updated (returning user)');
+                    }
                 } else {
-                    console.log('[FormView] ✓ Form open tracked for follow-up');
+                    // Insert new record
+                    const { error } = await supabase
+                        .from('form_opens')
+                        .insert({
+                            form_id: formId,
+                            subscriber_id: subscriberId,
+                            subscriber_name: subscriberName || 'Unknown',
+                            flow_id: flowId,
+                            node_id: nodeId,
+                            page_id: pageId,
+                            opened_at: new Date().toISOString(),
+                            // submitted_at stays null - will be set when form is submitted
+                        });
+
+                    if (error) {
+                        console.error('[FormView] Error tracking form open:', error.message);
+                    } else {
+                        console.log('[FormView] ✓ Form open tracked for follow-up');
+                    }
                 }
             } catch (err: any) {
                 console.error('[FormView] Exception tracking form open:', err.message);
