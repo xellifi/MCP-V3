@@ -2139,8 +2139,8 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
                   {currentFlowName}
                 </h1>
                 <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider border backdrop-blur-md shadow-sm ${flowStatus === 'ACTIVE'
-                  ? 'bg-green-500/20 text-green-300 border-green-500/30'
-                  : 'bg-transparent text-slate-400 border-slate-300 dark:border-white/20'
+                  ? 'bg-green-500 text-white border-green-600'
+                  : 'bg-transparent text-black dark:text-slate-300 border-slate-300 dark:border-white/20'
                   }`}>
                   {flowStatus === 'ACTIVE' ? 'ACTIVE' : 'DRAFT'}
                 </span>
@@ -2512,8 +2512,8 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
           {/* Dialog */}
           <div className={`relative border rounded-2xl w-full max-w-md p-6 shadow-2xl animate-fade-in ${isDark
-              ? 'glass-panel border-white/10 bg-slate-900/90'
-              : 'bg-white border-gray-200'
+            ? 'glass-panel border-white/10 bg-slate-900/90'
+            : 'bg-white border-gray-200'
             }`}>
             <h2 className={`text-xl font-bold mb-2 ${isDark ? 'text-white text-glow' : 'text-slate-900'
               }`}>Save Flow</h2>
@@ -2527,8 +2527,8 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
               onKeyPress={(e) => e.key === 'Enter' && handleSaveWithName()}
               placeholder="e.g., Welcome Message Flow"
               className={`w-full border rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all mb-6 ${isDark
-                  ? 'bg-black/20 border-white/10 text-white placeholder-slate-500'
-                  : 'bg-slate-50 border-slate-200 text-slate-900 placeholder-slate-400'
+                ? 'bg-black/20 border-white/10 text-white placeholder-slate-500'
+                : 'bg-slate-50 border-slate-200 text-slate-900 placeholder-slate-400'
                 }`}
               autoFocus
               disabled={isSaving}
@@ -2560,8 +2560,8 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
                 }}
                 disabled={isSaving}
                 className={`px-5 py-2.5 text-sm font-medium rounded-xl border transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${isDark
-                    ? 'text-slate-300 hover:bg-white/5 border-white/10 hover:border-white/20'
-                    : 'text-slate-600 hover:bg-slate-50 border-gray-200 hover:border-gray-300'
+                  ? 'text-slate-300 hover:bg-white/5 border-white/10 hover:border-white/20'
+                  : 'text-slate-600 hover:bg-slate-50 border-gray-200 hover:border-gray-300'
                   }`}
               >
                 Cancel
