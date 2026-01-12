@@ -3,6 +3,7 @@ import { Workspace, MetaConnection } from '../types';
 import { api } from '../services/api';
 import { Facebook, CheckCircle, Trash2, Plus, RefreshCw, UserCheck, Link2 } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
+import { useTheme } from '../context/ThemeContext';
 import DeleteConfirmModal from '../components/DeleteConfirmModal';
 import ImportLoading from '../components/ImportLoading';
 
@@ -11,6 +12,7 @@ interface ConnectionsProps {
 }
 
 const Connections: React.FC<ConnectionsProps> = ({ workspace }) => {
+  const { isDark } = useTheme();
   const [connections, setConnections] = useState<MetaConnection[]>([]);
   const [loading, setLoading] = useState(true);
   const [isImporting, setIsImporting] = useState(false);
@@ -362,8 +364,8 @@ const Connections: React.FC<ConnectionsProps> = ({ workspace }) => {
     <div className="space-y-8 animate-fade-in">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-4xl font-bold text-white tracking-tight mb-2">Connections</h1>
-          <p className="text-slate-400 text-lg">Connect your personal social media profiles to manage pages.</p>
+          <h1 className={`text-4xl font-bold tracking-tight mb-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>Connections</h1>
+          <p className={`text-lg ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Connect your personal social media profiles to manage pages.</p>
         </div>
         <button
           onClick={handleConnect}
@@ -386,29 +388,39 @@ const Connections: React.FC<ConnectionsProps> = ({ workspace }) => {
         )}
 
         {connections.map(connection => (
-          <div key={connection.id} className="glass-panel p-6 rounded-2xl border border-white/10 group hover:border-blue-500/30 transition-all duration-300 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl -mr-16 -mt-16 transition-opacity group-hover:opacity-75"></div>
+          <div key={connection.id} className={`p-6 rounded-2xl border transition-all duration-300 relative overflow-hidden group ${isDark
+              ? 'glass-panel border-white/10 hover:border-blue-500/30'
+              : 'bg-white border-slate-200 shadow-sm hover:shadow-xl hover:border-blue-400'
+            }`}>
+            <div className={`absolute top-0 right-0 w-32 h-32 rounded-full blur-3xl -mr-16 -mt-16 transition-opacity group-hover:opacity-75 ${isDark ? 'bg-blue-500/10' : 'bg-blue-500/5'
+              }`}></div>
 
             <div className="relative z-10">
               <div className="flex items-center gap-4 mb-6">
                 <div className="relative">
                   {connection.imageUrl ? (
-                    <img src={connection.imageUrl} alt={connection.name} className="w-16 h-16 rounded-2xl border-2 border-white/10 shadow-lg object-cover" />
+                    <img src={connection.imageUrl} alt={connection.name} className={`w-16 h-16 rounded-2xl border-2 shadow-lg object-cover ${isDark ? 'border-white/10' : 'border-white'}`} />
                   ) : (
-                    <div className="w-16 h-16 bg-white/5 rounded-2xl flex items-center justify-center text-slate-400 border border-white/10">
+                    <div className={`w-16 h-16 rounded-2xl flex items-center justify-center border ${isDark ? 'bg-white/5 border-white/10 text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-400'
+                      }`}>
                       <UserCheck className="w-7 h-7" />
                     </div>
                   )}
-                  <div className="absolute -bottom-2 -right-2 bg-slate-900 rounded-xl p-1 shadow-lg border border-white/10">
+                  <div className={`absolute -bottom-2 -right-2 rounded-xl p-1 shadow-lg border ${isDark ? 'bg-slate-900 border-white/10' : 'bg-white border-slate-100'
+                    }`}>
                     <div className="bg-[#1877F2] text-white rounded-lg p-1.5 flex items-center justify-center shadow-inner">
                       <Facebook className="w-3.5 h-3.5" />
                     </div>
                   </div>
                 </div>
                 <div className="min-w-0">
-                  <h3 className="text-xl font-bold text-white line-clamp-1 group-hover:text-blue-400 transition-colors">{connection.name}</h3>
+                  <h3 className={`text-xl font-bold line-clamp-1 transition-colors ${isDark ? 'text-white group-hover:text-blue-400' : 'text-slate-900 group-hover:text-blue-600'
+                    }`}>{connection.name}</h3>
                   <div className="flex items-center gap-2 mt-1">
-                    <span className="text-xs font-mono text-slate-500 bg-white/5 px-2 py-0.5 rounded border border-white/5">ID: {connection.externalId}</span>
+                    <span className={`text-xs font-mono px-2 py-0.5 rounded border ${isDark
+                        ? 'text-slate-500 bg-white/5 border-white/5'
+                        : 'text-slate-500 bg-slate-100 border-slate-200'
+                      }`}>ID: {connection.externalId}</span>
                   </div>
                 </div>
               </div>
@@ -427,7 +439,10 @@ const Connections: React.FC<ConnectionsProps> = ({ workspace }) => {
               <div className="flex gap-3">
                 <button
                   onClick={() => handleReconnect(connection.id)}
-                  className="flex-1 py-3 px-4 text-sm font-bold text-blue-300 bg-blue-500/10 hover:bg-blue-500/20 hover:text-blue-200 rounded-xl transition-all border border-blue-500/20 flex items-center justify-center gap-2 group/btn"
+                  className={`flex-1 py-3 px-4 text-sm font-bold rounded-xl transition-all border flex items-center justify-center gap-2 group/btn ${isDark
+                      ? 'text-blue-300 bg-blue-500/10 hover:bg-blue-500/20 hover:text-blue-200 border-blue-500/20'
+                      : 'text-blue-600 bg-blue-50 hover:bg-blue-100 hover:text-blue-700 border-blue-100'
+                    }`}
                   title="Reconnect to update pages and permissions"
                 >
                   <Link2 className="w-4 h-4 group-hover/btn:rotate-12 transition-transform" />
@@ -435,14 +450,20 @@ const Connections: React.FC<ConnectionsProps> = ({ workspace }) => {
                 </button>
                 <button
                   onClick={handleRefresh}
-                  className="py-3 px-4 text-sm font-bold text-slate-300 bg-white/5 hover:bg-white/10 hover:text-white rounded-xl transition-all border border-white/5 flex items-center justify-center gap-2 group/btn"
+                  className={`py-3 px-4 text-sm font-bold rounded-xl transition-all border flex items-center justify-center gap-2 group/btn ${isDark
+                      ? 'text-slate-300 bg-white/5 hover:bg-white/10 hover:text-white border-white/5'
+                      : 'text-slate-600 bg-slate-100 hover:bg-slate-200 hover:text-slate-900 border-slate-200'
+                    }`}
                   title="Refresh connection status"
                 >
                   <RefreshCw className="w-4 h-4 group-hover/btn:rotate-180 transition-transform duration-500" />
                 </button>
                 <button
                   onClick={() => handleDeleteClick(connection.id, connection.name)}
-                  className="py-3 px-4 text-sm font-bold text-red-400 bg-red-500/10 hover:bg-red-500/20 hover:text-red-300 rounded-xl transition-colors flex items-center justify-center border border-red-500/10"
+                  className={`py-3 px-4 text-sm font-bold rounded-xl transition-colors flex items-center justify-center border ${isDark
+                      ? 'text-red-400 bg-red-500/10 hover:bg-red-500/20 hover:text-red-300 border-red-500/10'
+                      : 'text-red-600 bg-red-50 hover:bg-red-100 hover:text-red-700 border-red-100'
+                    }`}
                   title="Remove Connection"
                 >
                   <Trash2 className="w-4 h-4" />
@@ -453,14 +474,16 @@ const Connections: React.FC<ConnectionsProps> = ({ workspace }) => {
         ))}
 
         {connections.length === 0 && (
-          <div className="col-span-full py-20 text-center glass-panel rounded-3xl border border-dashed border-white/10 relative overflow-hidden group">
-            <div className="absolute inset-0 bg-gradient-to-b from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+          <div className={`col-span-full py-20 text-center rounded-3xl border border-dashed relative overflow-hidden group ${isDark ? 'glass-panel border-white/10' : 'bg-white border-slate-300'
+            }`}>
+            <div className={`absolute inset-0 bg-gradient-to-b opacity-0 group-hover:opacity-100 transition-opacity duration-500 ${isDark ? 'from-blue-500/5 to-transparent' : 'from-blue-50 to-transparent'
+              }`}></div>
             <div className="relative z-10 p-6">
               <div className="w-24 h-24 bg-gradient-to-tr from-blue-600 to-blue-400 rounded-3xl flex items-center justify-center mx-auto mb-8 shadow-2xl shadow-blue-500/20 group-hover:scale-110 transition-transform duration-300 rotate-3 group-hover:rotate-6">
                 <Facebook className="w-12 h-12 text-white" />
               </div>
-              <h3 className="text-2xl font-bold text-white mb-3">No accounts connected</h3>
-              <p className="text-slate-400 max-w-md mx-auto mb-10 text-lg leading-relaxed">
+              <h3 className={`text-2xl font-bold mb-3 ${isDark ? 'text-white' : 'text-slate-900'}`}>No accounts connected</h3>
+              <p className={`max-w-md mx-auto mb-10 text-lg leading-relaxed ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
                 Connect your personal Facebook profile to start importing your business pages and automating your conversations.
               </p>
               <button

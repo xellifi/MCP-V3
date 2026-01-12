@@ -113,8 +113,8 @@ const SortableFlowCard: React.FC<SortableFlowCardProps> = ({ flow, flowPage, onE
       {/* Status */}
       <div className="mb-6">
         <span className={`inline-flex px-3 py-1 rounded-full text-xs font-bold ${flow.status === 'ACTIVE'
-          ? 'bg-green-500/20 text-green-400 border border-green-500/30'
-          : 'bg-slate-500/20 text-slate-400 border border-slate-500/30'
+          ? 'bg-green-500 text-white border border-green-600'
+          : 'bg-transparent text-slate-500 border border-slate-300 dark:text-slate-400 dark:border-slate-500/30'
           }`}>
           {flow.status}
         </span>
@@ -407,8 +407,8 @@ const Flows: React.FC<FlowsProps> = ({ workspace }) => {
                       </td>
                       <td className="px-6 py-4">
                         <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-bold ${flow.status === 'ACTIVE'
-                          ? 'bg-green-500/20 text-green-400 border border-green-500/30'
-                          : 'bg-slate-500/20 text-slate-400 border border-slate-500/30'
+                          ? 'bg-green-500 text-white border border-green-600'
+                          : 'bg-transparent text-slate-500 border border-slate-300 dark:text-slate-400 dark:border-slate-500/30'
                           }`}>
                           {flow.status}
                         </span>
@@ -551,8 +551,8 @@ const Flows: React.FC<FlowsProps> = ({ workspace }) => {
                   {/* Status */}
                   <div className="mb-6">
                     <span className={`inline-flex px-3 py-1 rounded-full text-xs font-bold ${activeFlow.status === 'ACTIVE'
-                      ? 'bg-green-500/20 text-green-400 border border-green-500/30'
-                      : 'bg-slate-500/20 text-slate-400 border border-slate-500/30'
+                      ? 'bg-green-500 text-white border border-green-600'
+                      : 'bg-transparent text-slate-500 border border-slate-300 dark:text-slate-400 dark:border-slate-500/30'
                       }`}>
                       {activeFlow.status}
                     </span>
@@ -622,24 +622,28 @@ const Flows: React.FC<FlowsProps> = ({ workspace }) => {
           />
 
           {/* Modal */}
-          <div className="relative bg-slate-800 rounded-2xl border border-white/10 shadow-2xl max-w-md w-full p-6 animate-fade-in">
+          <div className={`relative rounded-2xl border shadow-2xl max-w-md w-full p-6 animate-fade-in ${isDark
+              ? 'bg-slate-800 border-white/10'
+              : 'bg-white border-gray-200'
+            }`}>
             {/* Close button */}
             <button
               onClick={closeDeleteModal}
-              className="absolute top-4 right-4 p-1 text-slate-400 hover:text-white transition-colors"
+              className={`absolute top-4 right-4 p-1 transition-colors ${isDark ? 'text-slate-400 hover:text-white' : 'text-slate-400 hover:text-slate-600'
+                }`}
             >
               <X className="w-5 h-5" />
             </button>
 
             {/* Icon */}
             <div className="flex items-center justify-center w-14 h-14 bg-red-500/20 rounded-full mx-auto mb-4">
-              <AlertTriangle className="w-7 h-7 text-red-400" />
+              <AlertTriangle className="w-7 h-7 text-red-500" />
             </div>
 
             {/* Content */}
-            <h3 className="text-xl font-bold text-white text-center mb-2">Delete Flow</h3>
-            <p className="text-slate-400 text-center mb-6">
-              Are you sure you want to delete <span className="text-white font-semibold">"{deleteModal.flowName}"</span>?
+            <h3 className={`text-xl font-bold text-center mb-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>Delete Flow</h3>
+            <p className={`text-center mb-6 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+              Are you sure you want to delete <span className={`font-semibold ${isDark ? 'text-white' : 'text-slate-900'}`}>"{deleteModal.flowName}"</span>?
               This action cannot be undone.
             </p>
 
@@ -647,7 +651,10 @@ const Flows: React.FC<FlowsProps> = ({ workspace }) => {
             <div className="flex gap-3">
               <button
                 onClick={closeDeleteModal}
-                className="flex-1 px-4 py-3 bg-white/5 hover:bg-white/10 text-white rounded-xl font-semibold transition-colors border border-white/10"
+                className={`flex-1 px-4 py-3 rounded-xl font-semibold transition-colors border ${isDark
+                    ? 'bg-white/5 hover:bg-white/10 text-white border-white/10'
+                    : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200'
+                  }`}
               >
                 Cancel
               </button>
