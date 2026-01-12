@@ -39,19 +39,29 @@ const FormView: React.FC = () => {
     // Log form open for abandoned form tracking (inserts directly to avoid extra API endpoint)
     useEffect(() => {
         const trackFormOpen = async () => {
-            if (!formId || !subscriberId || !flowId) return;
+            console.log('[FormView] Tracking params:', { formId, subscriberId, flowId, nodeId, pageId });
+
+            // Only require formId and subscriberId - flowId might not always be present
+            if (!formId || !subscriberId) {
+                console.log('[FormView] Skipping tracking - missing formId or subscriberId');
+                return;
+            }
 
             try {
                 console.log('[FormView] Tracking form open for abandoned cart follow-up...');
 
                 // First check if there's already an open (unsubmitted) record for this subscriber+form
-                const { data: existing } = await supabase
+                const { data: existing, error: selectError } = await supabase
                     .from('form_opens')
                     .select('id')
                     .eq('subscriber_id', subscriberId)
                     .eq('form_id', formId)
                     .is('submitted_at', null)
                     .maybeSingle();
+
+                if (selectError) {
+                    console.error('[FormView] Error checking existing form open:', selectError.message);
+                }
 
                 if (existing) {
                     // Update the existing record's opened_at timestamp
@@ -67,21 +77,25 @@ const FormView: React.FC = () => {
                     }
                 } else {
                     // Insert new record
+                    console.log('[FormView] Inserting new form_opens record...');
+                    const insertData = {
+                        form_id: formId,
+                        subscriber_id: subscriberId,
+                        subscriber_name: subscriberName || 'Unknown',
+                        flow_id: flowId || null,
+                        node_id: nodeId || null,
+                        page_id: pageId || null,
+                        opened_at: new Date().toISOString(),
+                        // submitted_at stays null - will be set when form is submitted
+                    };
+                    console.log('[FormView] Insert data:', insertData);
+
                     const { error } = await supabase
                         .from('form_opens')
-                        .insert({
-                            form_id: formId,
-                            subscriber_id: subscriberId,
-                            subscriber_name: subscriberName || 'Unknown',
-                            flow_id: flowId,
-                            node_id: nodeId,
-                            page_id: pageId,
-                            opened_at: new Date().toISOString(),
-                            // submitted_at stays null - will be set when form is submitted
-                        });
+                        .insert(insertData);
 
                     if (error) {
-                        console.error('[FormView] Error tracking form open:', error.message);
+                        console.error('[FormView] Error tracking form open:', error.message, error);
                     } else {
                         console.log('[FormView] ✓ Form open tracked for follow-up');
                     }

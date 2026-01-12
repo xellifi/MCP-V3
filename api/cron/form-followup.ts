@@ -31,10 +31,17 @@ interface ScheduledFollowup {
 export default async function handler(req: VercelRequest, res: VercelResponse) {
     console.log('[Form Followup Cron] Starting...');
     console.log('[Form Followup Cron] Time:', new Date().toISOString());
+    console.log('[Form Followup Cron] Supabase URL:', supabaseUrl ? 'SET' : 'MISSING');
+    console.log('[Form Followup Cron] Supabase Key:', supabaseKey ? 'SET' : 'MISSING');
+
+    let formProcessedCount = 0;
+    let formSentCount = 0;
 
     try {
         const now = new Date();
         const minOpenTime = new Date(now.getTime() - MAX_WINDOW_DAYS * 24 * 60 * 60 * 1000);
+
+        console.log('[Form Followup Cron] Querying form_opens table...');
 
         // Find form opens that need follow-up
         const { data: pendingFollowups, error: fetchError } = await supabase
@@ -46,11 +53,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             .limit(50);
 
         if (fetchError) {
-            console.error('[Form Followup Cron] Error fetching:', fetchError);
-            return res.status(500).json({ error: fetchError.message });
+            console.error('[Form Followup Cron] Error fetching form_opens:', fetchError.message);
+            console.error('[Form Followup Cron] Error details:', JSON.stringify(fetchError));
+            // Don't return - continue to webview section
+        } else {
+            console.log('[Form Followup Cron] Found', pendingFollowups?.length || 0, 'potential follow-ups');
         }
-
-        console.log('[Form Followup Cron] Found', pendingFollowups?.length || 0, 'potential follow-ups');
 
         let processedCount = 0;
         let sentCount = 0;
