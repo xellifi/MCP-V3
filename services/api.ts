@@ -1748,7 +1748,6 @@ export const api = {
         affiliate_commission: settings.affiliateCommission,
         affiliate_currency: settings.affiliateCurrency,
         affiliate_min_withdrawal: settings.affiliateMinWithdrawal,
-        affiliate_min_withdrawal: settings.affiliateMinWithdrawal,
         affiliate_withdrawal_days: settings.affiliateWithdrawalDays,
         default_theme: settings.defaultTheme
       };
