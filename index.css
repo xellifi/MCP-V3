@@ -108,7 +108,7 @@
 
   /* Enhanced glass panels */
   .glass-panel {
-    @apply bg-white dark:bg-white/5 backdrop-blur-2xl border border-gray-200 dark:border-white/10 shadow-lg;
+    @apply bg-white dark:bg-white/5 backdrop-blur-2xl border border-gray-300 dark:border-white/10;
   }
 
   .glass-card {

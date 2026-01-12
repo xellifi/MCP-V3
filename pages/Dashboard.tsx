@@ -28,8 +28,8 @@ const StatCard = ({ title, value, icon: Icon, gradient, loading }: any) => {
   const { isDark } = useTheme();
   return (
     <div className={`p-6 rounded-2xl border transition-all duration-300 hover:-translate-y-1 group relative overflow-hidden ${isDark
-        ? 'glass-panel border-white/10 hover:border-indigo-500/30'
-        : 'bg-white border-gray-200 hover:border-blue-300 shadow-sm hover:shadow-md'
+      ? 'glass-panel border-white/10 hover:border-indigo-500/30'
+      : 'bg-white border-gray-300 hover:border-blue-400'
       }`}>
       <div className={`absolute -inset-1 bg-gradient-to-br ${gradient} opacity-0 group-hover:opacity-10 transition-opacity duration-500 blur-xl`}></div>
       <div className="relative z-10">
@@ -164,7 +164,7 @@ const Dashboard: React.FC<DashboardProps> = ({ workspace }) => {
         </div>
         <div className={`px-4 py-2 rounded-xl border flex items-center gap-3 text-sm font-medium ${isDark
             ? 'glass-panel border-white/10 text-slate-300'
-            : 'bg-white border-gray-200 text-gray-700 shadow-sm'
+            : 'bg-white border-gray-300 text-gray-700'
           }`}>
           <div className={`p-1.5 rounded-lg ${isDark ? 'bg-indigo-500/20' : 'bg-blue-50'
             }`}>
