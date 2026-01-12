@@ -19,29 +19,29 @@ const NodeInsights: React.FC<NodeInsightsProps> = ({
     errors = 0
 }) => {
     return (
-        <div className="flex items-center justify-between gap-2 mt-2 pt-2 border-t border-white/10">
+        <div className="flex items-center justify-between gap-2 mt-2 pt-2 border-t border-slate-400/20">
             {/* Sent */}
             <div className="flex items-center gap-1" title="Messages Sent">
-                <Send className="w-3 h-3 text-blue-400" />
-                <span className="text-[10px] text-slate-400 font-medium">{sent}</span>
+                <Send className="w-3 h-3 text-blue-500 dark:text-blue-400" />
+                <span className="text-[10px] font-bold text-gray-700 dark:text-slate-400">{sent}</span>
             </div>
 
             {/* Delivered */}
             <div className="flex items-center gap-1" title="Delivered">
-                <CheckCircle className="w-3 h-3 text-green-400" />
-                <span className="text-[10px] text-slate-400 font-medium">{delivered}</span>
+                <CheckCircle className="w-3 h-3 text-green-500 dark:text-green-400" />
+                <span className="text-[10px] font-bold text-gray-700 dark:text-slate-400">{delivered}</span>
             </div>
 
             {/* Subscribers */}
             <div className="flex items-center gap-1" title="Subscribers Reached">
-                <Users className="w-3 h-3 text-cyan-400" />
-                <span className="text-[10px] text-slate-400 font-medium">{subscribers}</span>
+                <Users className="w-3 h-3 text-cyan-500 dark:text-cyan-400" />
+                <span className="text-[10px] font-bold text-gray-700 dark:text-slate-400">{subscribers}</span>
             </div>
 
             {/* Errors */}
             <div className="flex items-center gap-1" title="Errors">
-                <AlertTriangle className="w-3 h-3 text-red-400" />
-                <span className="text-[10px] text-slate-400 font-medium">{errors}</span>
+                <AlertTriangle className="w-3 h-3 text-red-500 dark:text-red-400" />
+                <span className="text-[10px] font-bold text-gray-700 dark:text-slate-400">{errors}</span>
             </div>
         </div>
     );

@@ -2093,7 +2093,10 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigate('/flows')}
-            className="p-2 bg-white/5 hover:bg-white/10 backdrop-blur-md border border-white/10 rounded-xl text-slate-400 hover:text-white transition-all shadow-lg"
+            className={`p-2 backdrop-blur-md border rounded-xl transition-all shadow-lg ${isDark
+                ? 'bg-white/5 border-white/10 text-slate-400 hover:text-white hover:bg-white/10'
+                : 'bg-white border-gray-300 text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+              }`}
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
@@ -2106,16 +2109,17 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
                 onChange={(e) => setEditedName(e.target.value)}
                 onBlur={handleNameSave}
                 onKeyDown={handleNameKeyPress}
-                className="font-bold text-white bg-white/10 border border-indigo-500/50 rounded-lg px-2 py-0.5 text-lg outline-none focus:ring-2 focus:ring-indigo-500/50 shadow-lg backdrop-blur-md"
+                className={`font-bold bg-white/10 border border-indigo-500/50 rounded-lg px-2 py-0.5 text-lg outline-none focus:ring-2 focus:ring-indigo-500/50 shadow-lg backdrop-blur-md ${isDark ? 'text-white' : 'text-gray-900'
+                  }`}
                 autoFocus
-                style={{ minWidth: '200px' }}
+                onFocus={(e) => e.target.select()}
               />
             ) : (
-              <div className="flex items-center gap-3 group">
+              <div className="flex items-center gap-2">
                 <h1
-                  className="text-2xl font-bold text-white tracking-tight drop-shadow-md cursor-pointer"
-                  onDoubleClick={handleNameDoubleClick}
-                  title="Double-click to edit"
+                  onClick={() => setIsEditingName(true)}
+                  className={`text-lg font-bold tracking-tight cursor-pointer hover:opacity-80 transition-opacity ${isDark ? 'text-white' : 'text-gray-900'
+                    }`}
                 >
                   {currentFlowName}
                 </h1>
@@ -2127,7 +2131,8 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
                 </span>
               </div>
             )}
-            <p className="text-slate-400 text-sm drop-shadow-sm font-medium">Flow Automation Builder</p>
+            <p className={`text-sm drop-shadow-sm font-medium ${isDark ? 'text-slate-400' : 'text-gray-600'
+              }`}>Flow Automation Builder</p>
           </div>
         </div>
       </div>
@@ -2145,7 +2150,10 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
         {/* Fullscreen Toggle */}
         <button
           onClick={() => setIsFullscreen(!isFullscreen)}
-          className="group relative hidden md:flex w-10 h-10 items-center justify-center bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-xl text-white transition-all border border-white/10 shadow-lg active:scale-95"
+          className={`group relative hidden md:flex w-10 h-10 items-center justify-center backdrop-blur-md rounded-xl transition-all border shadow-lg active:scale-95 ${isDark
+              ? 'bg-white/10 border-white/10 text-white hover:bg-white/20'
+              : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
+            }`}
           title={isFullscreen ? 'Exit Fullscreen (ESC)' : 'Fullscreen'}
         >
           {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
@@ -2157,33 +2165,37 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
         <button
           onClick={handleSave}
           disabled={isSaving}
-          className="group relative w-10 h-10 flex items-center justify-center bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-xl text-white transition-all border border-white/10 shadow-lg disabled:opacity-50"
-          title="Save Draft"
+          className={`group relative w-10 h-10 flex items-center justify-center backdrop-blur-md rounded-xl transition-all border shadow-lg disabled:opacity-50 ${isDark
+              ? 'bg-white/10 border-white/10 text-white hover:bg-white/20'
+              : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
+            }`}
         >
           <Save className="w-4 h-4" />
           <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-            {isSaving ? 'Saving...' : 'Save Draft'}
+            {isSaving ? 'Saving...' : 'Save Changes'}
           </span>
         </button>
 
         <button
-          onClick={handleResetLayout}
-          className="group relative w-10 h-10 flex items-center justify-center bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-xl text-white transition-all border border-white/10 shadow-lg active:scale-95"
-          title="Reset Layout"
+          onClick={autoRearrangeNodes}
+          className={`group relative w-10 h-10 flex items-center justify-center backdrop-blur-md rounded-xl transition-all border shadow-lg ${isDark
+              ? 'bg-white/10 border-white/10 text-white hover:bg-white/20'
+              : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
+            }`}
         >
           <RotateCcw className="w-4 h-4" />
           <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-            Reset
+            Rearrange Nodes
           </span>
         </button>
 
         <button
-          className="group relative w-10 h-10 flex items-center justify-center bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white rounded-xl transition-all shadow-lg shadow-indigo-500/20 active:scale-95 border border-white/20"
+          className="group relative w-10 h-10 flex items-center justify-center bg-indigo-600 hover:bg-indigo-700 rounded-xl text-white transition-all shadow-lg active:scale-95"
           title="Run Test"
         >
-          <Play className="w-4 h-4 fill-current" />
+          <Play className="w-4 h-4" />
           <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-            Run Test
+            Publish Flow
           </span>
         </button>
       </div>
