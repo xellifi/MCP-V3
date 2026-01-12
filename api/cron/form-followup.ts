@@ -328,8 +328,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         console.log(`[Webview Followup] Complete. Processed: ${webviewProcessed}, Sent: ${webviewSent}`);
 
+        // Clear summary for quick identification in log list
+        console.log(`📊 [Summary] Order Form - ${processedCount} found (${sentCount} sent) : Webview - ${webviewProcessed} found (${webviewSent} sent)`);
+
         return res.status(200).json({
             success: true,
+            summary: `Order Form - ${processedCount} : Webview - ${webviewProcessed}`,
             form: { processed: processedCount, sent: sentCount },
             webview: { processed: webviewProcessed, sent: webviewSent }
         });
