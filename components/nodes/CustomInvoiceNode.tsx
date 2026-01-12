@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
-import { Receipt, Settings, Trash2, ChevronDown, ChevronUp, Package, Truck, CheckCircle, Clock, Download, FileImage, Copy } from 'lucide-react';
+import { Receipt, ChevronDown, ChevronUp, Package, Truck, CheckCircle, Clock, Download, FileImage } from 'lucide-react';
+import NodeToolbar from '../NodeToolbar';
 import NodeInsights from '../NodeInsights';
 
 const CustomInvoiceNode: React.FC<NodeProps> = ({ data, selected }) => {
@@ -181,30 +182,13 @@ const CustomInvoiceNode: React.FC<NodeProps> = ({ data, selected }) => {
                     </div>
                 )}
 
-                {/* Action Buttons - Visible on Hover */}
-                <div className="absolute -top-2 -right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity  duration-300">
-                    <button
-                        onClick={handleClone}
-                        className="p-1.5 bg-slate-600/80 hover:bg-slate-600 text-white rounded-lg shadow-lg hover:scale-110 transition-all"
-                        title="Clone node"
-                    >
-                        <Copy className="w-3 h-3" />
-                    </button>
-                    <button
-                        onClick={handleConfigure}
-                        className="p-1.5 bg-purple-500/80 hover:bg-purple-500 text-white rounded-lg shadow-lg hover:scale-110 transition-all"
-                        title="Configure"
-                    >
-                        <Settings className="w-3 h-3" />
-                    </button>
-                    <button
-                        onClick={handleDelete}
-                        className="p-1.5 bg-red-500/80 hover:bg-red-500 text-white rounded-lg shadow-lg hover:scale-110 transition-all"
-                        title="Delete"
-                    >
-                        <Trash2 className="w-3 h-3" />
-                    </button>
-                </div>
+                {/* Action Buttons */}
+                <NodeToolbar
+                    onClone={handleClone}
+                    onConfigure={handleConfigure}
+                    onDelete={handleDelete}
+                    color="purple"
+                />
             </div>
 
             {/* Connection Handles */}

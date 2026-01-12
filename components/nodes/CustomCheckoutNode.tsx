@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
-import { ShoppingCart, Settings, Trash2, ChevronDown, ChevronUp, Package, Copy } from 'lucide-react';
+import { ShoppingCart, ChevronDown, ChevronUp, Package } from 'lucide-react';
+import NodeToolbar from '../NodeToolbar';
 import NodeInsights from '../NodeInsights';
 
 const CustomCheckoutNode: React.FC<NodeProps> = ({ data, selected }) => {
@@ -113,29 +114,12 @@ const CustomCheckoutNode: React.FC<NodeProps> = ({ data, selected }) => {
                 )}
 
                 {/* Hover Actions */}
-                <div className="absolute -top-2 -right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                    <button
-                        onClick={handleClone}
-                        className="p-1.5 bg-slate-600 hover:bg-slate-500 rounded-lg shadow-lg transition-colors"
-                        title="Clone node"
-                    >
-                        <Copy className="w-3.5 h-3.5 text-white" />
-                    </button>
-                    <button
-                        onClick={handleConfigure}
-                        className="p-1.5 bg-emerald-500 hover:bg-emerald-600 rounded-lg shadow-lg transition-colors"
-                        title="Configure"
-                    >
-                        <Settings className="w-3.5 h-3.5 text-white" />
-                    </button>
-                    <button
-                        onClick={handleDelete}
-                        className="p-1.5 bg-red-500 hover:bg-red-600 rounded-lg shadow-lg transition-colors"
-                        title="Delete"
-                    >
-                        <Trash2 className="w-3.5 h-3.5 text-white" />
-                    </button>
-                </div>
+                <NodeToolbar
+                    onClone={handleClone}
+                    onConfigure={handleConfigure}
+                    onDelete={handleDelete}
+                    color="emerald"
+                />
 
                 {/* Node Insights */}
                 <NodeInsights />

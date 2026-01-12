@@ -9,6 +9,7 @@ import {
     Pencil, Trash2, Save, AlertTriangle
 } from 'lucide-react';
 import { format } from 'date-fns';
+import { useTheme } from '../context/ThemeContext';
 
 interface OrdersProps {
     workspace: Workspace;
@@ -36,11 +37,11 @@ interface Order {
 }
 
 const STATUS_CONFIG = {
-    pending: { label: 'Pending', icon: Clock, color: 'amber', bg: 'bg-amber-500/20', text: 'text-amber-400', border: 'border-amber-500/30' },
-    confirmed: { label: 'Confirmed', icon: Check, color: 'blue', bg: 'bg-blue-500/20', text: 'text-blue-400', border: 'border-blue-500/30' },
-    shipped: { label: 'Shipped', icon: Truck, color: 'purple', bg: 'bg-purple-500/20', text: 'text-purple-400', border: 'border-purple-500/30' },
-    delivered: { label: 'Delivered', icon: CheckCircle, color: 'emerald', bg: 'bg-emerald-500/20', text: 'text-emerald-400', border: 'border-emerald-500/30' },
-    cancelled: { label: 'Cancelled', icon: XCircle, color: 'red', bg: 'bg-red-500/20', text: 'text-red-400', border: 'border-red-500/30' }
+    pending: { label: 'Pending', icon: Clock, color: 'amber', bg: 'bg-amber-500', text: 'text-white', border: 'border-transparent' },
+    confirmed: { label: 'Confirmed', icon: Check, color: 'blue', bg: 'bg-blue-500', text: 'text-white', border: 'border-transparent' },
+    shipped: { label: 'Shipped', icon: Truck, color: 'purple', bg: 'bg-purple-500', text: 'text-white', border: 'border-transparent' },
+    delivered: { label: 'Delivered', icon: CheckCircle, color: 'emerald', bg: 'bg-emerald-500', text: 'text-white', border: 'border-transparent' },
+    cancelled: { label: 'Cancelled', icon: XCircle, color: 'red', bg: 'bg-red-500', text: 'text-white', border: 'border-transparent' }
 };
 
 const PAYMENT_ICONS: Record<string, string> = {
@@ -69,6 +70,7 @@ const Orders: React.FC<OrdersProps> = ({ workspace }) => {
     const [editForm, setEditForm] = useState<Partial<Order>>({});
     const [isSaving, setIsSaving] = useState(false);
     const ordersPerPage = 10;
+    const { isDark } = useTheme();
 
     // Load orders
     const loadOrders = useCallback(async () => {
@@ -383,7 +385,7 @@ const Orders: React.FC<OrdersProps> = ({ workspace }) => {
             order.customer_phone || '',
             order.customer_email || '',
             order.customer_address || '',
-            order.items.map(i => `${i.productName} x${i.quantity}`).join('; '),
+            (order.items || []).map(i => `${i.productName} x${i.quantity}`).join('; '),
             order.subtotal.toFixed(2),
             order.shipping_fee.toFixed(2),
             order.total.toFixed(2),
@@ -422,20 +424,21 @@ const Orders: React.FC<OrdersProps> = ({ workspace }) => {
     const OrderDetailModal = () => {
         if (!selectedOrder) return null;
 
-        const statusConfig = STATUS_CONFIG[selectedOrder.status];
+        const statusKey = selectedOrder.status && STATUS_CONFIG[selectedOrder.status] ? selectedOrder.status : 'pending';
+        const statusConfig = STATUS_CONFIG[statusKey];
         const StatusIcon = statusConfig.icon;
 
         return (
             <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setSelectedOrder(null)}>
-                <div className="bg-slate-800 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden border border-white/10 shadow-2xl" onClick={e => e.stopPropagation()}>
+                <div className={`rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden border shadow-2xl ${isDark ? 'bg-slate-800 border-white/10' : 'bg-white border-slate-200'}`} onClick={e => e.stopPropagation()}>
                     {/* Header */}
-                    <div className="p-6 border-b border-white/10 flex items-center justify-between">
+                    <div className={`p-6 border-b flex items-center justify-between ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
                         <div>
-                            <h2 className="text-xl font-bold text-white">Order Details</h2>
-                            <p className="text-slate-400 text-sm font-mono mt-1">{selectedOrder.id}</p>
+                            <h2 className={`text-xl font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>Order Details</h2>
+                            <p className={`text-sm font-mono mt-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{selectedOrder.id}</p>
                         </div>
-                        <button onClick={() => setSelectedOrder(null)} className="p-2 hover:bg-white/10 rounded-lg transition-colors">
-                            <X className="w-5 h-5 text-slate-400" />
+                        <button onClick={() => setSelectedOrder(null)} className={`p-2 rounded-lg transition-colors ${isDark ? 'hover:bg-white/10' : 'hover:bg-slate-100'}`}>
+                            <X className={`w-5 h-5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`} />
                         </button>
                     </div>
 
@@ -454,24 +457,24 @@ const Orders: React.FC<OrdersProps> = ({ workspace }) => {
                         </div>
 
                         {/* Customer Info */}
-                        <div className="bg-black/20 rounded-xl p-4 space-y-3">
-                            <h3 className="text-white font-semibold flex items-center gap-2">
+                        <div className={`rounded-xl p-4 space-y-3 ${isDark ? 'bg-black/20' : 'bg-slate-50'}`}>
+                            <h3 className={`font-semibold flex items-center gap-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>
                                 <User className="w-4 h-4 text-emerald-400" />
                                 Customer Information
                             </h3>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-                                <div className="flex items-center gap-2 text-slate-300">
+                                <div className={`flex items-center gap-2 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
                                     <User className="w-4 h-4 text-slate-500" />
                                     {selectedOrder.customer_name || 'N/A'}
                                 </div>
                                 {selectedOrder.customer_phone && (
-                                    <div className="flex items-center gap-2 text-slate-300">
+                                    <div className={`flex items-center gap-2 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
                                         <Phone className="w-4 h-4 text-slate-500" />
                                         {selectedOrder.customer_phone}
                                     </div>
                                 )}
                                 {selectedOrder.customer_email && (
-                                    <div className="flex items-center gap-2 text-slate-300">
+                                    <div className={`flex items-center gap-2 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
                                         <Mail className="w-4 h-4 text-slate-500" />
                                         {selectedOrder.customer_email}
                                     </div>
@@ -486,14 +489,14 @@ const Orders: React.FC<OrdersProps> = ({ workspace }) => {
                         </div>
 
                         {/* Order Items */}
-                        <div className="bg-black/20 rounded-xl p-4 space-y-3">
-                            <h3 className="text-white font-semibold flex items-center gap-2">
+                        <div className={`rounded-xl p-4 space-y-3 ${isDark ? 'bg-black/20' : 'bg-slate-50'}`}>
+                            <h3 className={`font-semibold flex items-center gap-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>
                                 <Package className="w-4 h-4 text-emerald-400" />
                                 Order Items
                             </h3>
                             <div className="space-y-2">
                                 {selectedOrder.items.map((item, idx) => (
-                                    <div key={idx} className="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
+                                    <div key={idx} className={`flex items-center justify-between py-2 border-b last:border-0 ${isDark ? 'border-white/5' : 'border-slate-200'}`}>
                                         <div className="flex items-center gap-3">
                                             {item.productImage ? (
                                                 <img src={item.productImage} alt="" className="w-10 h-10 rounded-lg object-cover" />
@@ -503,7 +506,7 @@ const Orders: React.FC<OrdersProps> = ({ workspace }) => {
                                                 </div>
                                             )}
                                             <div>
-                                                <p className="text-white text-sm font-medium">{item.productName}</p>
+                                                <p className={`text-sm font-medium ${isDark ? 'text-white' : 'text-slate-900'}`}>{item.productName}</p>
                                                 <p className="text-slate-500 text-xs">Qty: {item.quantity || 1}</p>
                                             </div>
                                         </div>
@@ -514,17 +517,17 @@ const Orders: React.FC<OrdersProps> = ({ workspace }) => {
                         </div>
 
                         {/* Payment & Totals */}
-                        <div className="bg-black/20 rounded-xl p-4 space-y-3">
-                            <h3 className="text-white font-semibold flex items-center gap-2">
+                        <div className={`rounded-xl p-4 space-y-3 ${isDark ? 'bg-black/20' : 'bg-slate-50'}`}>
+                            <h3 className={`font-semibold flex items-center gap-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>
                                 <CreditCard className="w-4 h-4 text-emerald-400" />
                                 Payment Summary
                             </h3>
                             <div className="space-y-2 text-sm">
-                                <div className="flex justify-between text-slate-300">
+                                <div className={`flex justify-between ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
                                     <span>Subtotal</span>
                                     <span>₱{selectedOrder.subtotal.toLocaleString()}</span>
                                 </div>
-                                <div className="flex justify-between text-slate-300">
+                                <div className={`flex justify-between ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
                                     <span>Shipping</span>
                                     <span className={selectedOrder.shipping_fee === 0 ? 'text-emerald-400' : ''}>
                                         {selectedOrder.shipping_fee === 0 ? 'FREE' : `₱${selectedOrder.shipping_fee.toLocaleString()}`}
@@ -540,7 +543,7 @@ const Orders: React.FC<OrdersProps> = ({ workspace }) => {
                                         <span>-₱{selectedOrder.metadata.discount.toLocaleString()}</span>
                                     </div>
                                 )}
-                                <div className="flex justify-between text-white font-bold text-lg pt-2 border-t border-white/10">
+                                <div className={`flex justify-between font-bold text-lg pt-2 border-t ${isDark ? 'text-white border-white/10' : 'text-slate-900 border-slate-200'}`}>
                                     <span>Total</span>
                                     <span className="text-emerald-400">₱{selectedOrder.total.toLocaleString()}</span>
                                 </div>
@@ -569,14 +572,14 @@ const Orders: React.FC<OrdersProps> = ({ workspace }) => {
                     </div>
 
                     {/* Footer Actions */}
-                    <div className="p-6 border-t border-white/10 flex items-center justify-between gap-4">
+                    <div className={`p-6 border-t flex items-center justify-between gap-4 ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
                         <div className="flex items-center gap-2">
-                            <span className="text-slate-400 text-sm">Update Status:</span>
+                            <span className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Update Status:</span>
                             <select
                                 value={selectedOrder.status}
                                 onChange={(e) => updateOrderStatus(selectedOrder.id, e.target.value)}
                                 disabled={updatingStatus === selectedOrder.id}
-                                className="px-3 py-2 bg-black/30 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:border-emerald-500"
+                                className={`px-3 py-2 border rounded-lg text-sm focus:outline-none focus:border-emerald-500 ${isDark ? 'bg-black/30 border-white/10 text-white' : 'bg-white border-slate-200 text-slate-900'}`}
                             >
                                 {Object.entries(STATUS_CONFIG).map(([key, config]) => (
                                     <option key={key} value={key}>{config.label}</option>
@@ -593,14 +596,14 @@ const Orders: React.FC<OrdersProps> = ({ workspace }) => {
                             </button>
                             <button
                                 onClick={() => { setSelectedOrder(null); setDeletingOrder(selectedOrder); }}
-                                className="flex items-center gap-2 px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg transition-colors border border-red-500/30"
+                                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors border ${isDark ? 'bg-red-500/20 hover:bg-red-500/30 text-red-400 border-red-500/30' : 'bg-red-50 hover:bg-red-100 text-red-600 border-red-200'}`}
                             >
                                 <Trash2 className="w-4 h-4" />
                                 Delete
                             </button>
                             <button
                                 onClick={() => window.print()}
-                                className="flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors"
+                                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${isDark ? 'bg-slate-700 hover:bg-slate-600 text-white' : 'bg-slate-200 hover:bg-slate-300 text-slate-700'}`}
                             >
                                 <Printer className="w-4 h-4" />
                                 Print
@@ -618,79 +621,79 @@ const Orders: React.FC<OrdersProps> = ({ workspace }) => {
 
         return (
             <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setEditingOrder(null)}>
-                <div className="bg-slate-800 rounded-2xl w-full max-w-lg overflow-hidden border border-white/10 shadow-2xl" onClick={e => e.stopPropagation()}>
+                <div className={`rounded-2xl w-full max-w-lg overflow-hidden border shadow-2xl ${isDark ? 'bg-slate-800 border-white/10' : 'bg-white border-slate-200'}`} onClick={e => e.stopPropagation()}>
                     {/* Header */}
-                    <div className="p-6 border-b border-white/10 flex items-center justify-between">
+                    <div className={`p-6 border-b flex items-center justify-between ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
                         <div className="flex items-center gap-3">
                             <div className="p-2 bg-indigo-500/20 rounded-lg">
                                 <Pencil className="w-5 h-5 text-indigo-400" />
                             </div>
                             <div>
-                                <h2 className="text-xl font-bold text-white">Edit Order</h2>
-                                <p className="text-slate-400 text-sm font-mono">{editingOrder.id}</p>
+                                <h2 className={`text-xl font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>Edit Order</h2>
+                                <p className={`text-sm font-mono ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{editingOrder.id}</p>
                             </div>
                         </div>
-                        <button onClick={() => setEditingOrder(null)} className="p-2 hover:bg-white/10 rounded-lg transition-colors">
-                            <X className="w-5 h-5 text-slate-400" />
+                        <button onClick={() => setEditingOrder(null)} className={`p-2 rounded-lg transition-colors ${isDark ? 'hover:bg-white/10' : 'hover:bg-slate-100'}`}>
+                            <X className={`w-5 h-5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`} />
                         </button>
                     </div>
 
                     {/* Form */}
                     <div className="p-6 space-y-4 max-h-[60vh] overflow-y-auto">
                         <div>
-                            <label className="block text-slate-400 text-sm mb-1.5">Customer Name</label>
+                            <label className={`block text-sm mb-1.5 ${isDark ? 'text-slate-400' : 'text-slate-700'}`}>Customer Name</label>
                             <input
                                 type="text"
                                 value={editForm.customer_name || ''}
                                 onChange={(e) => setEditForm({ ...editForm, customer_name: e.target.value })}
-                                className="w-full px-4 py-2.5 bg-black/30 border border-white/10 rounded-lg text-white focus:outline-none focus:border-indigo-500"
+                                className={`w-full px-4 py-2.5 rounded-lg focus:outline-none focus:border-indigo-500 border ${isDark ? 'bg-black/30 border-white/10 text-white' : 'bg-slate-50 border-slate-300 text-slate-900'}`}
                             />
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-slate-400 text-sm mb-1.5">Phone</label>
+                                <label className={`block text-sm mb-1.5 ${isDark ? 'text-slate-400' : 'text-slate-700'}`}>Phone</label>
                                 <input
                                     type="text"
                                     value={editForm.customer_phone || ''}
                                     onChange={(e) => setEditForm({ ...editForm, customer_phone: e.target.value })}
-                                    className="w-full px-4 py-2.5 bg-black/30 border border-white/10 rounded-lg text-white focus:outline-none focus:border-indigo-500"
+                                    className={`w-full px-4 py-2.5 rounded-lg focus:outline-none focus:border-indigo-500 border ${isDark ? 'bg-black/30 border-white/10 text-white' : 'bg-slate-50 border-slate-300 text-slate-900'}`}
                                 />
                             </div>
                             <div>
-                                <label className="block text-slate-400 text-sm mb-1.5">Email</label>
+                                <label className={`block text-sm mb-1.5 ${isDark ? 'text-slate-400' : 'text-slate-700'}`}>Email</label>
                                 <input
                                     type="email"
                                     value={editForm.customer_email || ''}
                                     onChange={(e) => setEditForm({ ...editForm, customer_email: e.target.value })}
-                                    className="w-full px-4 py-2.5 bg-black/30 border border-white/10 rounded-lg text-white focus:outline-none focus:border-indigo-500"
+                                    className={`w-full px-4 py-2.5 rounded-lg focus:outline-none focus:border-indigo-500 border ${isDark ? 'bg-black/30 border-white/10 text-white' : 'bg-slate-50 border-slate-300 text-slate-900'}`}
                                 />
                             </div>
                         </div>
                         <div>
-                            <label className="block text-slate-400 text-sm mb-1.5">Address</label>
+                            <label className={`block text-sm mb-1.5 ${isDark ? 'text-slate-400' : 'text-slate-700'}`}>Address</label>
                             <textarea
                                 value={editForm.customer_address || ''}
                                 onChange={(e) => setEditForm({ ...editForm, customer_address: e.target.value })}
                                 rows={2}
-                                className="w-full px-4 py-2.5 bg-black/30 border border-white/10 rounded-lg text-white focus:outline-none focus:border-indigo-500 resize-none"
+                                className={`w-full px-4 py-2.5 rounded-lg focus:outline-none focus:border-indigo-500 resize-none border ${isDark ? 'bg-black/30 border-white/10 text-white' : 'bg-slate-50 border-slate-300 text-slate-900'}`}
                             />
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-slate-400 text-sm mb-1.5">Shipping Fee</label>
+                                <label className={`block text-sm mb-1.5 ${isDark ? 'text-slate-400' : 'text-slate-700'}`}>Shipping Fee</label>
                                 <input
                                     type="number"
                                     value={editForm.shipping_fee || 0}
                                     onChange={(e) => setEditForm({ ...editForm, shipping_fee: parseFloat(e.target.value) || 0 })}
-                                    className="w-full px-4 py-2.5 bg-black/30 border border-white/10 rounded-lg text-white focus:outline-none focus:border-indigo-500"
+                                    className={`w-full px-4 py-2.5 rounded-lg focus:outline-none focus:border-indigo-500 border ${isDark ? 'bg-black/30 border-white/10 text-white' : 'bg-slate-50 border-slate-300 text-slate-900'}`}
                                 />
                             </div>
                             <div>
-                                <label className="block text-slate-400 text-sm mb-1.5">Status</label>
+                                <label className={`block text-sm mb-1.5 ${isDark ? 'text-slate-400' : 'text-slate-700'}`}>Status</label>
                                 <select
                                     value={editForm.status || 'pending'}
                                     onChange={(e) => setEditForm({ ...editForm, status: e.target.value as any })}
-                                    className="w-full px-4 py-2.5 bg-black/30 border border-white/10 rounded-lg text-white focus:outline-none focus:border-indigo-500"
+                                    className={`w-full px-4 py-2.5 rounded-lg focus:outline-none focus:border-indigo-500 border ${isDark ? 'bg-black/30 border-white/10 text-white' : 'bg-slate-50 border-slate-300 text-slate-900'}`}
                                 >
                                     {Object.entries(STATUS_CONFIG).map(([key, config]) => (
                                         <option key={key} value={key}>{config.label}</option>
@@ -700,18 +703,18 @@ const Orders: React.FC<OrdersProps> = ({ workspace }) => {
                         </div>
 
                         {/* Order Summary (read-only) */}
-                        <div className="bg-black/20 rounded-xl p-4 mt-4">
-                            <h4 className="text-white font-medium mb-2">Order Summary</h4>
-                            <div className="text-sm space-y-1 text-slate-400">
+                        <div className={`rounded-xl p-4 mt-4 ${isDark ? 'bg-black/20' : 'bg-slate-50'}`}>
+                            <h4 className={`font-medium mb-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>Order Summary</h4>
+                            <div className={`text-sm space-y-1 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
                                 <div className="flex justify-between">
                                     <span>Subtotal:</span>
-                                    <span className="text-white">₱{editingOrder.subtotal.toLocaleString()}</span>
+                                    <span className={isDark ? 'text-white' : 'text-slate-900'}>₱{editingOrder.subtotal.toLocaleString()}</span>
                                 </div>
                                 <div className="flex justify-between">
                                     <span>Shipping:</span>
-                                    <span className="text-white">₱{(editForm.shipping_fee ?? editingOrder.shipping_fee).toLocaleString()}</span>
+                                    <span className={isDark ? 'text-white' : 'text-slate-900'}>₱{(editForm.shipping_fee ?? editingOrder.shipping_fee).toLocaleString()}</span>
                                 </div>
-                                <div className="flex justify-between pt-2 border-t border-white/10 text-white font-bold">
+                                <div className={`flex justify-between pt-2 border-t font-bold ${isDark ? 'border-white/10 text-white' : 'border-slate-200 text-slate-900'}`}>
                                     <span>Total:</span>
                                     <span className="text-emerald-400">₱{(editingOrder.subtotal + (editForm.shipping_fee ?? editingOrder.shipping_fee)).toLocaleString()}</span>
                                 </div>
@@ -720,10 +723,10 @@ const Orders: React.FC<OrdersProps> = ({ workspace }) => {
                     </div>
 
                     {/* Footer */}
-                    <div className="p-6 border-t border-white/10 flex items-center justify-end gap-3">
+                    <div className={`p-6 border-t flex items-center justify-end gap-3 ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
                         <button
                             onClick={() => setEditingOrder(null)}
-                            className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors"
+                            className={`px-4 py-2 rounded-lg transition-colors ${isDark ? 'bg-slate-700 hover:bg-slate-600 text-white' : 'bg-slate-200 hover:bg-slate-300 text-slate-700'}`}
                         >
                             Cancel
                         </button>
@@ -747,42 +750,42 @@ const Orders: React.FC<OrdersProps> = ({ workspace }) => {
 
         return (
             <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setDeletingOrder(null)}>
-                <div className="bg-slate-800 rounded-2xl w-full max-w-md overflow-hidden border border-white/10 shadow-2xl" onClick={e => e.stopPropagation()}>
+                <div className={`rounded-2xl w-full max-w-md overflow-hidden border shadow-2xl ${isDark ? 'bg-slate-800 border-white/10' : 'bg-white border-slate-200'}`} onClick={e => e.stopPropagation()}>
                     {/* Header */}
                     <div className="p-6 text-center">
                         <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
                             <AlertTriangle className="w-8 h-8 text-red-400" />
                         </div>
-                        <h2 className="text-xl font-bold text-white mb-2">Delete Order?</h2>
-                        <p className="text-slate-400">
-                            Are you sure you want to delete order <span className="font-mono text-white">{deletingOrder.id.slice(0, 12)}...</span>?
+                        <h2 className={`text-xl font-bold mb-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>Delete Order?</h2>
+                        <p className={isDark ? 'text-slate-400' : 'text-slate-600'}>
+                            Are you sure you want to delete order <span className={`font-mono ${isDark ? 'text-white' : 'text-slate-900'}`}>{deletingOrder.id.slice(0, 12)}...</span>?
                         </p>
                         <p className="text-red-400 text-sm mt-2">This action cannot be undone.</p>
                     </div>
 
                     {/* Order Info */}
-                    <div className="mx-6 p-4 bg-black/20 rounded-xl mb-6">
+                    <div className={`mx-6 p-4 rounded-xl mb-6 ${isDark ? 'bg-black/20' : 'bg-slate-50'}`}>
                         <div className="text-sm space-y-2">
                             <div className="flex justify-between">
-                                <span className="text-slate-400">Customer:</span>
-                                <span className="text-white">{deletingOrder.customer_name}</span>
+                                <span className={isDark ? 'text-slate-400' : 'text-slate-600'}>Customer:</span>
+                                <span className={isDark ? 'text-white' : 'text-slate-900'}>{deletingOrder.customer_name}</span>
                             </div>
                             <div className="flex justify-between">
-                                <span className="text-slate-400">Total:</span>
+                                <span className={isDark ? 'text-slate-400' : 'text-slate-600'}>Total:</span>
                                 <span className="text-emerald-400 font-bold">₱{deletingOrder.total.toLocaleString()}</span>
                             </div>
                             <div className="flex justify-between">
-                                <span className="text-slate-400">Items:</span>
-                                <span className="text-white">{deletingOrder.items.length} item(s)</span>
+                                <span className={isDark ? 'text-slate-400' : 'text-slate-600'}>Items:</span>
+                                <span className={isDark ? 'text-white' : 'text-slate-900'}>{deletingOrder.items.length} item(s)</span>
                             </div>
                         </div>
                     </div>
 
                     {/* Footer */}
-                    <div className="p-6 border-t border-white/10 flex items-center justify-end gap-3">
+                    <div className={`p-6 border-t flex items-center justify-end gap-3 ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
                         <button
                             onClick={() => setDeletingOrder(null)}
-                            className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors"
+                            className={`px-4 py-2 rounded-lg transition-colors ${isDark ? 'bg-slate-700 hover:bg-slate-600 text-white' : 'bg-slate-200 hover:bg-slate-300 text-slate-700'}`}
                         >
                             Cancel
                         </button>
@@ -805,14 +808,17 @@ const Orders: React.FC<OrdersProps> = ({ workspace }) => {
             {/* Header */}
             <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl lg:text-4xl font-bold text-white tracking-tight mb-2">Order Management</h1>
-                    <p className="text-slate-400">Manage and track all your customer orders</p>
+                    <h1 className={`text-3xl lg:text-4xl font-bold tracking-tight mb-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>Order Management</h1>
+                    <p className={`${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Manage and track all your customer orders</p>
                 </div>
                 <div className="flex items-center gap-3">
                     <button
                         onClick={loadOrders}
                         disabled={loading}
-                        className="flex items-center gap-2 px-4 py-2.5 bg-slate-700/50 hover:bg-slate-700 border border-white/10 rounded-xl text-white transition-colors"
+                        className={`flex items-center gap-2 px-4 py-2.5 border rounded-xl transition-colors ${isDark
+                            ? 'bg-slate-700/50 hover:bg-slate-700 border-white/10 text-white'
+                            : 'bg-white hover:bg-slate-50 border-slate-200 text-slate-700'
+                            }`}
                     >
                         <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
                         Refresh
@@ -829,34 +835,34 @@ const Orders: React.FC<OrdersProps> = ({ workspace }) => {
 
             {/* Stats Cards */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-                <div className="glass-panel p-4 rounded-xl border border-white/10">
-                    <p className="text-slate-400 text-xs uppercase tracking-wider">Total Orders</p>
-                    <p className="text-2xl font-bold text-white mt-1">{stats.total}</p>
+                <div className={`p-4 rounded-xl border ${isDark ? 'glass-panel border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
+                    <p className={`text-xs uppercase tracking-wider ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Total Orders</p>
+                    <p className={`text-2xl font-bold mt-1 ${isDark ? 'text-white' : 'text-slate-900'}`}>{stats.total}</p>
                 </div>
-                <div className="glass-panel p-4 rounded-xl border border-amber-500/20">
-                    <p className="text-amber-400 text-xs uppercase tracking-wider">Pending</p>
-                    <p className="text-2xl font-bold text-amber-400 mt-1">{stats.pending}</p>
+                <div className={`p-4 rounded-xl border ${isDark ? 'glass-panel border-amber-500/20' : 'bg-amber-50 border-amber-200'}`}>
+                    <p className={`text-xs uppercase tracking-wider ${isDark ? 'text-amber-400' : 'text-amber-600'}`}>Pending</p>
+                    <p className={`text-2xl font-bold mt-1 ${isDark ? 'text-amber-400' : 'text-amber-600'}`}>{stats.pending}</p>
                 </div>
-                <div className="glass-panel p-4 rounded-xl border border-blue-500/20">
-                    <p className="text-blue-400 text-xs uppercase tracking-wider">Confirmed</p>
-                    <p className="text-2xl font-bold text-blue-400 mt-1">{stats.confirmed}</p>
+                <div className={`p-4 rounded-xl border ${isDark ? 'glass-panel border-blue-500/20' : 'bg-blue-50 border-blue-200'}`}>
+                    <p className={`text-xs uppercase tracking-wider ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>Confirmed</p>
+                    <p className={`text-2xl font-bold mt-1 ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>{stats.confirmed}</p>
                 </div>
-                <div className="glass-panel p-4 rounded-xl border border-purple-500/20">
-                    <p className="text-purple-400 text-xs uppercase tracking-wider">Shipped</p>
-                    <p className="text-2xl font-bold text-purple-400 mt-1">{stats.shipped}</p>
+                <div className={`p-4 rounded-xl border ${isDark ? 'glass-panel border-purple-500/20' : 'bg-purple-50 border-purple-200'}`}>
+                    <p className={`text-xs uppercase tracking-wider ${isDark ? 'text-purple-400' : 'text-purple-600'}`}>Shipped</p>
+                    <p className={`text-2xl font-bold mt-1 ${isDark ? 'text-purple-400' : 'text-purple-600'}`}>{stats.shipped}</p>
                 </div>
-                <div className="glass-panel p-4 rounded-xl border border-emerald-500/20">
-                    <p className="text-emerald-400 text-xs uppercase tracking-wider">Delivered</p>
-                    <p className="text-2xl font-bold text-emerald-400 mt-1">{stats.delivered}</p>
+                <div className={`p-4 rounded-xl border ${isDark ? 'glass-panel border-emerald-500/20' : 'bg-emerald-50 border-emerald-200'}`}>
+                    <p className={`text-xs uppercase tracking-wider ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`}>Delivered</p>
+                    <p className={`text-2xl font-bold mt-1 ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`}>{stats.delivered}</p>
                 </div>
-                <div className="glass-panel p-4 rounded-xl border border-white/10">
-                    <p className="text-slate-400 text-xs uppercase tracking-wider">Revenue</p>
-                    <p className="text-2xl font-bold text-emerald-400 mt-1">₱{stats.totalRevenue.toLocaleString()}</p>
+                <div className={`p-4 rounded-xl border ${isDark ? 'glass-panel border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
+                    <p className={`text-xs uppercase tracking-wider ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Revenue</p>
+                    <p className={`text-2xl font-bold mt-1 ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`}>₱{stats.totalRevenue.toLocaleString()}</p>
                 </div>
             </div>
 
             {/* Filters & Search */}
-            <div className="glass-panel rounded-xl border border-white/10 p-4">
+            <div className={`rounded-xl border p-4 ${isDark ? 'glass-panel border-white/10' : 'bg-white border-slate-200 can-shadow'}`}>
                 <div className="flex flex-col lg:flex-row gap-4">
                     {/* Search */}
                     <div className="relative flex-1">
@@ -866,7 +872,10 @@ const Orders: React.FC<OrdersProps> = ({ workspace }) => {
                             placeholder="Search by Order ID, Customer, Phone, Email..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full pl-10 pr-4 py-3 bg-black/30 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500/50"
+                            className={`w-full pl-10 pr-4 py-3 border rounded-xl outline-none focus:border-emerald-500/50 ${isDark
+                                ? 'bg-black/30 border-white/10 text-white placeholder-slate-500'
+                                : 'bg-white border-slate-200 text-slate-900 placeholder-slate-400'
+                                }`}
                         />
                     </div>
 
@@ -874,7 +883,10 @@ const Orders: React.FC<OrdersProps> = ({ workspace }) => {
                     <select
                         value={statusFilter}
                         onChange={(e) => setStatusFilter(e.target.value)}
-                        className="px-4 py-3 bg-black/30 border border-white/10 rounded-xl text-white focus:outline-none focus:border-emerald-500/50"
+                        className={`px-4 py-3 border rounded-xl outline-none focus:border-emerald-500/50 ${isDark
+                            ? 'bg-black/30 border-white/10 text-white'
+                            : 'bg-white border-slate-200 text-slate-900'
+                            }`}
                     >
                         <option value="all">All Status</option>
                         {Object.entries(STATUS_CONFIG).map(([key, config]) => (
@@ -886,7 +898,10 @@ const Orders: React.FC<OrdersProps> = ({ workspace }) => {
                     <select
                         value={dateFilter}
                         onChange={(e) => setDateFilter(e.target.value as any)}
-                        className="px-4 py-3 bg-black/30 border border-white/10 rounded-xl text-white focus:outline-none focus:border-emerald-500/50"
+                        className={`px-4 py-3 border rounded-xl outline-none focus:border-emerald-500/50 ${isDark
+                            ? 'bg-black/30 border-white/10 text-white'
+                            : 'bg-white border-slate-200 text-slate-900'
+                            }`}
                     >
                         <option value="all">All Time</option>
                         <option value="today">Today</option>
@@ -897,30 +912,30 @@ const Orders: React.FC<OrdersProps> = ({ workspace }) => {
 
                 {/* Bulk Actions */}
                 {selectedOrders.size > 0 && (
-                    <div className="mt-4 pt-4 border-t border-white/10 flex items-center gap-4">
-                        <span className="text-slate-400 text-sm">{selectedOrders.size} selected</span>
+                    <div className={`mt-4 pt-4 border-t flex items-center gap-4 ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
+                        <span className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>{selectedOrders.size} selected</span>
                         <div className="flex items-center gap-2">
                             <button
                                 onClick={() => bulkUpdateStatus('confirmed')}
-                                className="px-3 py-1.5 bg-blue-500/20 text-blue-400 rounded-lg text-sm hover:bg-blue-500/30 transition-colors"
+                                className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${isDark ? 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30' : 'bg-blue-50 text-blue-600 hover:bg-blue-100'}`}
                             >
                                 Confirm
                             </button>
                             <button
                                 onClick={() => bulkUpdateStatus('shipped')}
-                                className="px-3 py-1.5 bg-purple-500/20 text-purple-400 rounded-lg text-sm hover:bg-purple-500/30 transition-colors"
+                                className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${isDark ? 'bg-purple-500/20 text-purple-400 hover:bg-purple-500/30' : 'bg-purple-50 text-purple-600 hover:bg-purple-100'}`}
                             >
                                 Ship
                             </button>
                             <button
                                 onClick={() => bulkUpdateStatus('delivered')}
-                                className="px-3 py-1.5 bg-emerald-500/20 text-emerald-400 rounded-lg text-sm hover:bg-emerald-500/30 transition-colors"
+                                className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${isDark ? 'bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'}`}
                             >
                                 Deliver
                             </button>
                             <button
                                 onClick={() => bulkUpdateStatus('cancelled')}
-                                className="px-3 py-1.5 bg-red-500/20 text-red-400 rounded-lg text-sm hover:bg-red-500/30 transition-colors"
+                                className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${isDark ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30' : 'bg-red-50 text-red-600 hover:bg-red-100'}`}
                             >
                                 Cancel
                             </button>
@@ -930,41 +945,41 @@ const Orders: React.FC<OrdersProps> = ({ workspace }) => {
             </div>
 
             {/* Orders Table */}
-            <div className="glass-panel rounded-xl border border-white/10 overflow-hidden">
+            <div className={`rounded-xl border overflow-hidden ${isDark ? 'glass-panel border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
                 <div className="overflow-x-auto">
                     <table className="w-full">
                         <thead>
-                            <tr className="border-b border-white/10 text-left">
+                            <tr className={`border-b text-left ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
                                 <th className="p-4">
                                     <input
                                         type="checkbox"
                                         checked={selectedOrders.size === paginatedOrders.length && paginatedOrders.length > 0}
                                         onChange={toggleSelectAll}
-                                        className="w-4 h-4 rounded border-slate-600 bg-black/30 text-emerald-500 focus:ring-emerald-500/30"
+                                        className={`w-4 h-4 rounded focus:ring-emerald-500/30 ${isDark ? 'bg-black/30 border-slate-600 text-emerald-500' : 'bg-white border-slate-300 text-emerald-600'}`}
                                     />
                                 </th>
-                                <th className="p-4 text-slate-400 font-medium text-sm">
-                                    <button onClick={() => toggleSort('created_at')} className="flex items-center gap-1 hover:text-white transition-colors">
+                                <th className={`p-4 font-medium text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                                    <button onClick={() => toggleSort('created_at')} className={`flex items-center gap-1 transition-colors ${isDark ? 'hover:text-white' : 'hover:text-slate-900'}`}>
                                         Order
                                         <ArrowUpDown className="w-3 h-3" />
                                     </button>
                                 </th>
-                                <th className="p-4 text-slate-400 font-medium text-sm">
-                                    <button onClick={() => toggleSort('customer_name')} className="flex items-center gap-1 hover:text-white transition-colors">
+                                <th className={`p-4 font-medium text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                                    <button onClick={() => toggleSort('customer_name')} className={`flex items-center gap-1 transition-colors ${isDark ? 'hover:text-white' : 'hover:text-slate-900'}`}>
                                         Customer
                                         <ArrowUpDown className="w-3 h-3" />
                                     </button>
                                 </th>
-                                <th className="p-4 text-slate-400 font-medium text-sm">Items</th>
-                                <th className="p-4 text-slate-400 font-medium text-sm">
-                                    <button onClick={() => toggleSort('total')} className="flex items-center gap-1 hover:text-white transition-colors">
+                                <th className={`p-4 font-medium text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Items</th>
+                                <th className={`p-4 font-medium text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                                    <button onClick={() => toggleSort('total')} className={`flex items-center gap-1 transition-colors ${isDark ? 'hover:text-white' : 'hover:text-slate-900'}`}>
                                         Total
                                         <ArrowUpDown className="w-3 h-3" />
                                     </button>
                                 </th>
-                                <th className="p-4 text-slate-400 font-medium text-sm">Payment</th>
-                                <th className="p-4 text-slate-400 font-medium text-sm">Status</th>
-                                <th className="p-4 text-slate-400 font-medium text-sm">Actions</th>
+                                <th className={`p-4 font-medium text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Payment</th>
+                                <th className={`p-4 font-medium text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Status</th>
+                                <th className={`p-4 font-medium text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -986,12 +1001,15 @@ const Orders: React.FC<OrdersProps> = ({ workspace }) => {
                                 </tr>
                             ) : (
                                 paginatedOrders.map((order) => {
-                                    const statusConfig = STATUS_CONFIG[order.status];
+                                    const statusConfig = STATUS_CONFIG[order.status] || STATUS_CONFIG.pending;
                                     const StatusIcon = statusConfig.icon;
                                     return (
                                         <tr
                                             key={order.id}
-                                            className="border-b border-white/5 hover:bg-white/5 transition-colors cursor-pointer"
+                                            className={`border-b transition-colors cursor-pointer ${isDark
+                                                ? 'border-white/5 hover:bg-white/5'
+                                                : 'border-slate-100 hover:bg-slate-50'
+                                                }`}
                                             onClick={() => setSelectedOrder(order)}
                                         >
                                             <td className="p-4" onClick={e => e.stopPropagation()}>
@@ -1007,29 +1025,30 @@ const Orders: React.FC<OrdersProps> = ({ workspace }) => {
                                                         }
                                                         setSelectedOrders(newSelected);
                                                     }}
-                                                    className="w-4 h-4 rounded border-slate-600 bg-black/30 text-emerald-500 focus:ring-emerald-500/30"
+                                                    className={`w-4 h-4 rounded focus:ring-emerald-500/30 ${isDark ? 'bg-black/30 border-slate-600 text-emerald-500' : 'bg-white border-slate-300 text-emerald-600'
+                                                        }`}
                                                 />
                                             </td>
                                             <td className="p-4">
-                                                <p className="text-white font-mono text-sm">{order.id.slice(0, 12)}...</p>
-                                                <p className="text-slate-500 text-xs mt-0.5">{format(new Date(order.created_at), 'MMM dd, HH:mm')}</p>
+                                                <p className={`font-mono text-sm ${isDark ? 'text-white' : 'text-slate-900'}`}>{order.id.slice(0, 12)}...</p>
+                                                <p className={`${isDark ? 'text-slate-500' : 'text-slate-600'} text-xs mt-0.5`}>{format(new Date(order.created_at), 'MMM dd, HH:mm')}</p>
                                             </td>
                                             <td className="p-4">
-                                                <p className="text-white font-medium">{order.customer_name || 'N/A'}</p>
+                                                <p className={`font-medium ${isDark ? 'text-white' : 'text-slate-900'}`}>{order.customer_name || 'N/A'}</p>
                                                 {order.customer_phone && (
-                                                    <p className="text-slate-500 text-xs mt-0.5">{order.customer_phone}</p>
+                                                    <p className={`${isDark ? 'text-slate-500' : 'text-slate-600'} text-xs mt-0.5`}>{order.customer_phone}</p>
                                                 )}
                                             </td>
                                             <td className="p-4">
-                                                <p className="text-slate-300">{order.items.length} item(s)</p>
+                                                <p className={`${isDark ? 'text-slate-300' : 'text-slate-600'}`}>{order.items.length} item(s)</p>
                                             </td>
                                             <td className="p-4">
-                                                <p className="text-emerald-400 font-bold">₱{order.total.toLocaleString()}</p>
+                                                <p className={`font-bold ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`}>₱{order.total.toLocaleString()}</p>
                                             </td>
                                             <td className="p-4">
                                                 <div className="flex items-center gap-2">
                                                     <span className="text-lg">{PAYMENT_ICONS[order.payment_method] || '💳'}</span>
-                                                    <span className="text-slate-400 text-sm">{order.payment_method_name || order.payment_method}</span>
+                                                    <span className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>{order.payment_method_name || order.payment_method}</span>
                                                 </div>
                                             </td>
                                             <td className="p-4">
@@ -1042,7 +1061,10 @@ const Orders: React.FC<OrdersProps> = ({ workspace }) => {
                                                 <div className="flex items-center gap-2">
                                                     <button
                                                         onClick={() => setSelectedOrder(order)}
-                                                        className="p-2 hover:bg-white/10 rounded-lg transition-colors text-slate-400 hover:text-white"
+                                                        className={`p-2 rounded-lg transition-colors ${isDark
+                                                            ? 'hover:bg-white/10 text-slate-400 hover:text-white'
+                                                            : 'hover:bg-slate-100 text-slate-400 hover:text-slate-900'
+                                                            }`}
                                                         title="View Details"
                                                     >
                                                         <Eye className="w-4 h-4" />
@@ -1051,7 +1073,10 @@ const Orders: React.FC<OrdersProps> = ({ workspace }) => {
                                                         value={order.status}
                                                         onChange={(e) => updateOrderStatus(order.id, e.target.value)}
                                                         disabled={updatingStatus === order.id}
-                                                        className="px-2 py-1 bg-black/30 border border-white/10 rounded-lg text-white text-xs focus:outline-none"
+                                                        className={`px-2 py-1 border rounded-lg text-xs focus:outline-none ${isDark
+                                                            ? 'bg-black/30 border-white/10 text-white'
+                                                            : 'bg-white border-slate-200 text-slate-900'
+                                                            }`}
                                                         onClick={e => e.stopPropagation()}
                                                     >
                                                         {Object.entries(STATUS_CONFIG).map(([key, config]) => (
@@ -1060,14 +1085,20 @@ const Orders: React.FC<OrdersProps> = ({ workspace }) => {
                                                     </select>
                                                     <button
                                                         onClick={() => handleEditOrder(order)}
-                                                        className="p-2 hover:bg-white/10 rounded-lg transition-colors text-indigo-400 hover:text-indigo-300"
+                                                        className={`p-2 rounded-lg transition-colors ${isDark
+                                                            ? 'hover:bg-white/10 text-indigo-400 hover:text-indigo-300'
+                                                            : 'hover:bg-indigo-50 text-indigo-600 hover:text-indigo-700'
+                                                            }`}
                                                         title="Edit Order"
                                                     >
                                                         <Pencil className="w-4 h-4" />
                                                     </button>
                                                     <button
                                                         onClick={() => setDeletingOrder(order)}
-                                                        className="p-2 hover:bg-white/10 rounded-lg transition-colors text-red-500 hover:text-red-400"
+                                                        className={`p-2 rounded-lg transition-colors ${isDark
+                                                            ? 'hover:bg-white/10 text-red-500 hover:text-red-400'
+                                                            : 'hover:bg-red-50 text-red-600 hover:text-red-700'
+                                                            }`}
                                                         title="Delete Order"
                                                     >
                                                         <Trash2 className="w-4 h-4" />
@@ -1084,15 +1115,16 @@ const Orders: React.FC<OrdersProps> = ({ workspace }) => {
 
                 {/* Pagination */}
                 {totalPages > 1 && (
-                    <div className="p-4 border-t border-white/10 flex items-center justify-between">
-                        <p className="text-slate-400 text-sm">
+                    <div className={`p-4 border-t flex items-center justify-between ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
+                        <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                             Showing {((currentPage - 1) * ordersPerPage) + 1} to {Math.min(currentPage * ordersPerPage, filteredOrders.length)} of {filteredOrders.length} orders
                         </p>
                         <div className="flex items-center gap-2">
                             <button
                                 onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                                 disabled={currentPage === 1}
-                                className="p-2 hover:bg-white/10 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-slate-400"
+                                className={`p-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${isDark ? 'hover:bg-white/10 text-slate-400' : 'hover:bg-slate-100 text-slate-500'
+                                    }`}
                             >
                                 <ChevronLeft className="w-5 h-5" />
                             </button>
@@ -1114,7 +1146,9 @@ const Orders: React.FC<OrdersProps> = ({ workspace }) => {
                                             onClick={() => setCurrentPage(pageNum)}
                                             className={`w-8 h-8 rounded-lg text-sm font-medium transition-colors ${currentPage === pageNum
                                                 ? 'bg-emerald-500 text-white'
-                                                : 'hover:bg-white/10 text-slate-400'
+                                                : isDark
+                                                    ? 'hover:bg-white/10 text-slate-400'
+                                                    : 'hover:bg-slate-100 text-slate-500'
                                                 }`}
                                         >
                                             {pageNum}
@@ -1125,7 +1159,8 @@ const Orders: React.FC<OrdersProps> = ({ workspace }) => {
                             <button
                                 onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                                 disabled={currentPage === totalPages}
-                                className="p-2 hover:bg-white/10 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-slate-400"
+                                className={`p-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${isDark ? 'hover:bg-white/10 text-slate-400' : 'hover:bg-slate-100 text-slate-500'
+                                    }`}
                             >
                                 <ChevronRight className="w-5 h-5" />
                             </button>
@@ -1142,7 +1177,7 @@ const Orders: React.FC<OrdersProps> = ({ workspace }) => {
 
             {/* Delete Confirmation Modal */}
             <DeleteConfirmModal />
-        </div>
+        </div >
     );
 };
 

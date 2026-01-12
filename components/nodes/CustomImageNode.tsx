@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
-import { Image, Settings, Trash2, ChevronDown, ChevronUp, Link, AlertCircle, Copy } from 'lucide-react';
+import { Image, ChevronDown, ChevronUp, Link, AlertCircle } from 'lucide-react';
+import NodeToolbar from '../NodeToolbar';
 import NodeInsights from '../NodeInsights';
 
 const CustomImageNode: React.FC<NodeProps> = ({ data, selected }) => {
@@ -143,29 +144,12 @@ const CustomImageNode: React.FC<NodeProps> = ({ data, selected }) => {
                 />
 
                 {/* Action Buttons */}
-                <div className="absolute -top-3 -right-3 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
-                    <button
-                        onClick={handleClone}
-                        className="w-7 h-7 bg-slate-600 rounded-full shadow-lg flex items-center justify-center hover:bg-slate-500 transition-colors"
-                        title="Clone node"
-                    >
-                        <Copy className="w-4 h-4 text-white" />
-                    </button>
-                    <button
-                        onClick={handleConfigure}
-                        className="w-7 h-7 bg-blue-500 rounded-full shadow-lg flex items-center justify-center hover:bg-blue-600 transition-colors"
-                        title="Configure"
-                    >
-                        <Settings className="w-4 h-4 text-white" />
-                    </button>
-                    <button
-                        onClick={handleDelete}
-                        className="w-7 h-7 bg-red-500 rounded-full shadow-lg flex items-center justify-center hover:bg-red-600 transition-colors"
-                        title="Delete"
-                    >
-                        <Trash2 className="w-4 h-4 text-white" />
-                    </button>
-                </div>
+                <NodeToolbar
+                    onClone={handleClone}
+                    onConfigure={handleConfigure}
+                    onDelete={handleDelete}
+                    color="blue"
+                />
             </div>
 
             {/* Handles */}

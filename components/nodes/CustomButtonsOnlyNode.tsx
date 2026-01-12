@@ -1,6 +1,7 @@
 import React from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
-import { SquareMousePointer, Settings, Trash2, Copy } from 'lucide-react';
+import { SquareMousePointer } from 'lucide-react';
+import NodeToolbar from '../NodeToolbar';
 import NodeInsights from '../NodeInsights';
 
 const CustomButtonsOnlyNode: React.FC<NodeProps> = ({ data, selected }) => {
@@ -60,35 +61,7 @@ const CustomButtonsOnlyNode: React.FC<NodeProps> = ({ data, selected }) => {
                     sent={data.analytics?.sent}
                     delivered={data.analytics?.delivered}
                     subscribers={data.analytics?.subscribers}
-                    errors={data.analytics?.errors}
                 />
-
-
-
-                {/* Action Buttons */}
-                <div className="absolute -top-3 -right-3 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
-                    <button
-                        onClick={handleClone}
-                        className="w-7 h-7 bg-slate-600 rounded-full shadow-lg flex items-center justify-center hover:bg-slate-500 transition-colors"
-                        title="Clone node"
-                    >
-                        <Copy className="w-4 h-4 text-white" />
-                    </button>
-                    <button
-                        onClick={handleConfigure}
-                        className="w-7 h-7 bg-indigo-500 rounded-full shadow-lg flex items-center justify-center hover:bg-indigo-600 transition-colors"
-                        title="Configure"
-                    >
-                        <Settings className="w-4 h-4 text-white" />
-                    </button>
-                    <button
-                        onClick={handleDelete}
-                        className="w-7 h-7 bg-red-500 rounded-full shadow-lg flex items-center justify-center hover:bg-red-600 transition-colors"
-                        title="Delete"
-                    >
-                        <Trash2 className="w-4 h-4 text-white" />
-                    </button>
-                </div>
             </div>
 
             {/* Handles */}

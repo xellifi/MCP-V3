@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ChevronDown, Facebook } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { useTheme } from '../context/ThemeContext';
 
 interface ConnectedPage {
     page_id: string;
@@ -26,7 +27,7 @@ interface FacebookPageDropdownProps {
     required?: boolean;
     /** Custom class for the container */
     className?: string;
-    /** Dark mode (defaults to true) */
+    /** Dark mode override */
     isDark?: boolean;
 }
 
@@ -41,8 +42,10 @@ const FacebookPageDropdown: React.FC<FacebookPageDropdownProps> = ({
     helperText,
     required = false,
     className = '',
-    isDark = true
+    isDark: isDarkProp
 }) => {
+    const { isDark: isDarkContext } = useTheme();
+    const isDark = isDarkProp ?? isDarkContext;
     const [pages, setPages] = useState<ConnectedPage[]>([]);
     const [isOpen, setIsOpen] = useState(false);
     const [loading, setLoading] = useState(true);
@@ -171,10 +174,10 @@ const FacebookPageDropdown: React.FC<FacebookPageDropdownProps> = ({
                     type="button"
                     onClick={() => setIsOpen(!isOpen)}
                     className={`w-full px-4 py-3 rounded-xl border text-left flex items-center justify-between transition-colors ${error
-                            ? 'border-red-500 focus:ring-red-500/50'
-                            : isDark
-                                ? 'bg-slate-800 border-slate-600 hover:bg-slate-700 focus:ring-indigo-500/50'
-                                : 'bg-white border-gray-300 hover:bg-gray-50 focus:ring-indigo-500/50'
+                        ? 'border-red-500 focus:ring-red-500/50'
+                        : isDark
+                            ? 'bg-slate-800 border-slate-600 hover:bg-slate-700 focus:ring-indigo-500/50'
+                            : 'bg-white border-gray-300 hover:bg-gray-50 focus:ring-indigo-500/50'
                         } focus:outline-none focus:ring-2`}
                 >
                     {selectedPage ? (
@@ -211,16 +214,16 @@ const FacebookPageDropdown: React.FC<FacebookPageDropdownProps> = ({
                                         setIsOpen(false);
                                     }}
                                     className={`w-full px-4 py-3 flex items-center gap-3 text-left transition-colors ${selectedPageId === page.page_id
-                                            ? isDark ? 'bg-indigo-500/20' : 'bg-indigo-50'
-                                            : isDark ? 'hover:bg-white/5' : 'hover:bg-gray-50'
+                                        ? isDark ? 'bg-indigo-500/20' : 'bg-indigo-50'
+                                        : isDark ? 'hover:bg-white/5' : 'hover:bg-gray-50'
                                         }`}
                                 >
                                     <img
                                         src={getPageImageUrl(page.page_id)}
                                         alt={page.name}
                                         className={`w-10 h-10 rounded-full object-cover border-2 ${selectedPageId === page.page_id
-                                                ? 'border-indigo-500'
-                                                : isDark ? 'border-white/20' : 'border-gray-200'
+                                            ? 'border-indigo-500'
+                                            : isDark ? 'border-white/20' : 'border-gray-200'
                                             }`}
                                         onError={(e) => {
                                             (e.target as HTMLImageElement).src = 'https://via.placeholder.com/40?text=FB';
@@ -228,8 +231,8 @@ const FacebookPageDropdown: React.FC<FacebookPageDropdownProps> = ({
                                     />
                                     <div className="flex-1 min-w-0">
                                         <p className={`font-medium truncate ${selectedPageId === page.page_id
-                                                ? 'text-indigo-400'
-                                                : textPrimary
+                                            ? 'text-indigo-400'
+                                            : textPrimary
                                             }`}>
                                             {page.name}
                                         </p>
