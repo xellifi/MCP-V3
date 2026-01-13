@@ -157,7 +157,7 @@ const SystemSettings: React.FC<SystemSettingsProps> = ({ user }) => {
   const [showOpenAi, setShowOpenAi] = useState(false);
   const [showGemini, setShowGemini] = useState(false);
   const toast = useToast();
-  const { isDark } = useTheme();
+  const { isDark, theme, toggleTheme } = useTheme();
 
   // Section states (default collapsed)
   const [openSections, setOpenSections] = useState({
@@ -232,6 +232,16 @@ const SystemSettings: React.FC<SystemSettingsProps> = ({ user }) => {
     try {
       console.log(`Saving ${sectionName}...`, settings);
       await api.admin.saveSettings(settings);
+
+      // If saving theme, also update local preference to match immediately
+      if (sectionName === 'Theme Settings') {
+        if (settings.defaultTheme !== theme) {
+          toggleTheme();
+          // Explicitly set localStorage to ensure persistence
+          localStorage.setItem('theme', settings.defaultTheme as string);
+        }
+      }
+
       console.log(`${sectionName} saved successfully!`);
       toast.success(`${sectionName} saved successfully`);
     } catch (err: any) {
