@@ -13,7 +13,7 @@ const UpgradeModal: React.FC<UpgradeModalProps> = ({
     isOpen,
     onClose,
     featureName = "this feature",
-    requiredPlan = "Pro"
+    requiredPlan = "Starter"
 }) => {
     const navigate = useNavigate();
 

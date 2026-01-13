@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     Search,
     Filter,
@@ -14,33 +14,62 @@ import {
     X,
     UserPlus
 } from 'lucide-react';
+import { api } from '../services/api';
+import { Package } from '../types';
 
 // Dummy Data
-const INITIAL_SUBSCRIBERS = [
-    { id: 1, name: "Alice Freeman", email: "alice@example.com", plan: "Pro", status: "Active", billing: "Yearly", amount: 350, nextBill: "Oct 24, 2026", avatar: "" },
-    { id: 2, name: "Bob Smith", email: "bob.smith@company.com", plan: "Pro", status: "Active", billing: "Monthly", amount: 35, nextBill: "Feb 12, 2026", avatar: "" },
-    { id: 3, name: "Charlie Davis", email: "charlie@startup.io", plan: "Starter", status: "Past Due", billing: "Monthly", amount: 15, nextBill: "Jan 05, 2026", avatar: "" },
-    { id: 4, name: "Diana Prince", email: "diana@amazon.com", plan: "Free", status: "Active", billing: "Monthly", amount: 0, nextBill: "-", avatar: "" },
-    { id: 5, name: "Evan Wright", email: "evan@agency.net", plan: "Pro", status: "Cancelled", billing: "Monthly", amount: 35, nextBill: "-", avatar: "" },
-    { id: 6, name: "Fiona Gallagher", email: "fiona@store.com", plan: "Pro", status: "Active", billing: "Yearly", amount: 350, nextBill: "Mar 15, 2026", avatar: "" },
-    { id: 7, name: "George Miller", email: "george@freelance.org", plan: "Starter", status: "Active", billing: "Monthly", amount: 15, nextBill: "Feb 20, 2026", avatar: "" },
-    { id: 8, name: "Hannah Lee", email: "hannah@design.co", plan: "Pro", status: "Active", billing: "Monthly", amount: 35, nextBill: "Feb 28, 2026", avatar: "" },
-];
+// Dummy Data Removed
 
 const AdminSubscriptions: React.FC = () => {
-    const [subscribers, setSubscribers] = useState(INITIAL_SUBSCRIBERS);
+    const [subscribers, setSubscribers] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
     const [filterStatus, setFilterStatus] = useState('All');
     const [searchTerm, setSearchTerm] = useState('');
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [packages, setPackages] = useState<Package[]>([]);
 
     // Form state
     const [newSubscriber, setNewSubscriber] = useState({
-        name: '',
+        name: '', // Not used for creation, but for local state if needed
         email: '',
-        plan: 'Starter',
+        plan: 'starter',
         billing: 'Monthly',
         status: 'Active'
     });
+
+    const loadData = async () => {
+        setLoading(true);
+        try {
+            const [subsData, packsData] = await Promise.all([
+                api.subscriptions.getAll(),
+                api.admin.getPackages()
+            ]);
+
+            // Map API data to UI format
+            const formattedSubs = subsData.map(sub => ({
+                id: sub.id,
+                name: sub.profiles?.name || 'Unknown User',
+                email: sub.profiles?.email || 'No Email',
+                plan: sub.packages?.name || 'Unknown',
+                status: sub.status,
+                billing: sub.billing_cycle,
+                amount: sub.amount,
+                nextBill: sub.next_billing_date ? new Date(sub.next_billing_date).toLocaleDateString() : '-',
+                avatar: sub.profiles?.avatar_url || ''
+            }));
+
+            setSubscribers(formattedSubs);
+            setPackages(packsData);
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        loadData();
+    }, []);
 
     const getStatusColor = (status: string) => {
         switch (status) {
@@ -60,38 +89,35 @@ const AdminSubscriptions: React.FC = () => {
         }
     };
 
-    const getPlanAmount = (plan: string, billing: string) => {
-        if (plan === 'Free') return 0;
-        if (billing === 'Yearly') {
-            if (plan === 'Starter') return 150;
-            if (plan === 'Pro') return 350;
-        } else {
-            if (plan === 'Starter') return 15;
-            if (plan === 'Pro') return 35;
-        }
-        return 0;
-    };
-
-    const handleAddSubscriber = (e: React.FormEvent) => {
+    const handleAddSubscriber = async (e: React.FormEvent) => {
         e.preventDefault();
-        const amount = getPlanAmount(newSubscriber.plan, newSubscriber.billing);
 
-        // Calculate dummy next bill date (1 month from now)
-        const date = new Date();
-        date.setMonth(date.getMonth() + 1);
-        const nextBill = date.toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
+        try {
+            // Find selected package details
+            const selectedPackage = packages.find(p => p.id === newSubscriber.plan);
+            const amount = newSubscriber.billing === 'Yearly'
+                ? (selectedPackage?.priceYearly || 0)
+                : (selectedPackage?.priceMonthly || 0);
 
-        const newItem = {
-            id: subscribers.length + 1,
-            ...newSubscriber,
-            amount,
-            nextBill,
-            avatar: ''
-        };
+            // Calculate next bill date
+            const date = new Date();
+            date.setMonth(date.getMonth() + 1);
 
-        setSubscribers([newItem, ...subscribers]);
-        setIsAddModalOpen(false);
-        setNewSubscriber({ name: '', email: '', plan: 'Starter', billing: 'Monthly', status: 'Active' });
+            await api.subscriptions.create({
+                email: newSubscriber.email,
+                package_id: newSubscriber.plan,
+                status: newSubscriber.status as any,
+                billing_cycle: newSubscriber.billing as any,
+                amount: amount,
+                next_billing_date: date.toISOString()
+            });
+
+            await loadData(); // Reload list
+            setIsAddModalOpen(false);
+            setNewSubscriber({ name: '', email: '', plan: 'starter', billing: 'Monthly', status: 'Active' });
+        } catch (error: any) {
+            alert(error.message);
+        }
     };
 
     const filteredSubscribers = subscribers.filter(sub => {
@@ -99,6 +125,11 @@ const AdminSubscriptions: React.FC = () => {
         const matchesFilter = filterStatus === 'All' || sub.status === filterStatus;
         return matchesSearch && matchesFilter;
     });
+
+    const activeSubscribers = subscribers.filter(s => s.status === 'Active').length;
+    const mrr = subscribers
+        .filter(s => s.status === 'Active')
+        .reduce((sum, s) => sum + (s.billing === 'Monthly' ? s.amount : s.amount / 12), 0);
 
     return (
         <div className="space-y-8 relative">
@@ -134,7 +165,7 @@ const AdminSubscriptions: React.FC = () => {
                             <TrendingUp className="w-3 h-3" /> +12.5%
                         </span>
                     </div>
-                    <h3 className="text-2xl font-bold text-slate-900 dark:text-white">$45,231</h3>
+                    <h3 className="text-2xl font-bold text-slate-900 dark:text-white">${mrr.toLocaleString(undefined, { maximumFractionDigits: 0 })}</h3>
                     <p className="text-sm text-slate-500 dark:text-slate-400">Monthly Recurring Revenue</p>
                 </div>
 
@@ -147,7 +178,7 @@ const AdminSubscriptions: React.FC = () => {
                             <TrendingUp className="w-3 h-3" /> +8.2%
                         </span>
                     </div>
-                    <h3 className="text-2xl font-bold text-slate-900 dark:text-white">1,234</h3>
+                    <h3 className="text-2xl font-bold text-slate-900 dark:text-white">{activeSubscribers}</h3>
                     <p className="text-sm text-slate-500 dark:text-slate-400">Active Subscribers</p>
                 </div>
 
@@ -202,13 +233,6 @@ const AdminSubscriptions: React.FC = () => {
                             <option value="Cancelled">Cancelled</option>
                         </select>
                     </div>
-                    <select
-                        className="px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none dark:text-white appearance-none cursor-pointer"
-                    >
-                        <option value="All">All Plans</option>
-                        <option value="Starter">Starter</option>
-                        <option value="Pro">Pro</option>
-                    </select>
                 </div>
             </div>
 
@@ -227,56 +251,66 @@ const AdminSubscriptions: React.FC = () => {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
-                            {filteredSubscribers.map((sub) => (
-                                <tr key={sub.id} className="group hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                                    <td className="px-6 py-4">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold text-sm">
-                                                {sub.name.charAt(0)}
-                                            </div>
-                                            <div>
-                                                <div className="font-medium text-slate-900 dark:text-white">{sub.name}</div>
-                                                <div className="text-sm text-slate-500 dark:text-slate-400">{sub.email}</div>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4 text-sm">
-                                        <span className={getPlanColor(sub.plan)}>{sub.plan}</span>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(sub.status)}`}>
-                                            {sub.status}
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <div className="text-sm font-medium text-slate-900 dark:text-white">${sub.amount}</div>
-                                        <div className="text-xs text-slate-500 dark:text-slate-400">{sub.billing}</div>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <div className="flex items-center gap-1.5 text-sm text-slate-600 dark:text-slate-300">
-                                            <Clock className="w-3.5 h-3.5 text-slate-400" />
-                                            {sub.nextBill}
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4 text-right">
-                                        <button className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
-                                            <MoreHorizontal className="w-5 h-5" />
-                                        </button>
+                            {loading ? (
+                                <tr>
+                                    <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
+                                        Loading subscriptions...
                                     </td>
                                 </tr>
-                            ))}
+                            ) : filteredSubscribers.length === 0 ? (
+                                <tr>
+                                    <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
+                                        No subscriptions found.
+                                    </td>
+                                </tr>
+                            ) : (
+                                filteredSubscribers.map((sub) => (
+                                    <tr key={sub.id} className="group hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                                        <td className="px-6 py-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold text-sm">
+                                                    {sub.name.charAt(0)}
+                                                </div>
+                                                <div>
+                                                    <div className="font-medium text-slate-900 dark:text-white">{sub.name}</div>
+                                                    <div className="text-sm text-slate-500 dark:text-slate-400">{sub.email}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4 text-sm">
+                                            <span className={getPlanColor(sub.plan)}>{sub.plan}</span>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(sub.status)}`}>
+                                                {sub.status}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className="text-sm font-medium text-slate-900 dark:text-white">${sub.amount}</div>
+                                            <div className="text-xs text-slate-500 dark:text-slate-400">{sub.billing}</div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className="flex items-center gap-1.5 text-sm text-slate-600 dark:text-slate-300">
+                                                <Clock className="w-3.5 h-3.5 text-slate-400" />
+                                                {sub.nextBill}
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4 text-right">
+                                            <button className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+                                                <MoreHorizontal className="w-5 h-5" />
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
                         </tbody>
                     </table>
                 </div>
 
-                {/* Pagination */}
+                {/* Pagination (Simplified for now) */}
                 <div className="px-6 py-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
                     <div className="text-sm text-slate-500 dark:text-slate-400">
                         Showing <span className="font-medium text-slate-900 dark:text-white">1</span> to <span className="font-medium text-slate-900 dark:text-white">{filteredSubscribers.length}</span> of <span className="font-medium text-slate-900 dark:text-white">{filteredSubscribers.length}</span> results
-                    </div>
-                    <div className="flex gap-2">
-                        <button className="px-3 py-1 text-sm border border-slate-200 dark:border-slate-700 rounded-md disabled:opacity-50 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800" disabled>Previous</button>
-                        <button className="px-3 py-1 text-sm border border-slate-200 dark:border-slate-700 rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800">Next</button>
                     </div>
                 </div>
             </div>
@@ -300,24 +334,14 @@ const AdminSubscriptions: React.FC = () => {
 
                         <form onSubmit={handleAddSubscriber} className="p-6 space-y-4">
                             <div className="space-y-2">
-                                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Full Name</label>
-                                <input
-                                    type="text"
-                                    required
-                                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none"
-                                    value={newSubscriber.name}
-                                    onChange={e => setNewSubscriber({ ...newSubscriber, name: e.target.value })}
-                                />
-                            </div>
-
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Email Address</label>
+                                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Email Address (Must be existing user)</label>
                                 <input
                                     type="email"
                                     required
                                     className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none"
                                     value={newSubscriber.email}
                                     onChange={e => setNewSubscriber({ ...newSubscriber, email: e.target.value })}
+                                    placeholder="user@example.com"
                                 />
                             </div>
 
@@ -329,9 +353,9 @@ const AdminSubscriptions: React.FC = () => {
                                         value={newSubscriber.plan}
                                         onChange={e => setNewSubscriber({ ...newSubscriber, plan: e.target.value })}
                                     >
-                                        <option value="Free">Free</option>
-                                        <option value="Starter">Starter</option>
-                                        <option value="Pro">Pro</option>
+                                        {packages.map(p => (
+                                            <option key={p.id} value={p.id}>{p.name}</option>
+                                        ))}
                                     </select>
                                 </div>
                                 <div className="space-y-2">

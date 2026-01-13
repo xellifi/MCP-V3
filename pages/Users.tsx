@@ -1,30 +1,18 @@
 import React, { useEffect, useState } from 'react';
-import { User, UserRole } from '../types';
+import { User, UserRole, Package } from '../types';
 import { api } from '../services/api';
-import { Search, Shield, User as UserIcon, Trash2, Edit2, ShieldAlert, Plus, X, CheckSquare, Square, Lock } from 'lucide-react';
+import { Search, Shield, User as UserIcon, Trash2, Edit2, ShieldAlert, Plus, X, Lock, UserPlus } from 'lucide-react';
+import { useToast } from '../context/ToastContext';
 
 interface UsersPageProps {
   user: User;
 }
 
-// Mock feature list based on sidebar items
-const AVAILABLE_FEATURES = [
-  { id: 'dashboard', label: 'Dashboard' },
-  { id: 'connections', label: 'Connections' },
-  { id: 'subscribers', label: 'Subscribers' },
-  { id: 'inbox', label: 'Inbox' },
-  { id: 'flows', label: 'Flows' },
-  { id: 'scheduler', label: 'Scheduler' },
-  { id: 'settings', label: 'Settings' },
-  { id: 'affiliates', label: 'Affiliates' },
-  { id: 'academy', label: 'Academy' },
-  { id: 'forms', label: 'Forms' },
-  { id: 'store', label: 'Store' },
-  { id: 'support', label: 'Support' },
-];
 
 const UsersPage: React.FC<UsersPageProps> = ({ user }) => {
+  const toast = useToast();
   const [users, setUsers] = useState<User[]>([]);
+  const [packages, setPackages] = useState<Package[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
@@ -33,76 +21,149 @@ const UsersPage: React.FC<UsersPageProps> = ({ user }) => {
     name: '',
     email: '',
     password: '',
-    role: UserRole.MEMBER, // Default
-    features: [] as string[]
+    packageId: '' // Selected package ID
   });
 
   useEffect(() => {
     // Basic RBAC check
     if (user.role !== UserRole.ADMIN && user.role !== UserRole.OWNER) return;
 
-    const loadUsers = async () => {
+    const loadData = async () => {
       setLoading(true);
-      // In a real app, this would be a specific admin endpoint
-      const data = await api.admin.getUsers();
-      // Mocking added feature field if not present
-      const usersWithFeatures = data.map((u: any) => ({
-        ...u,
-        features: u.features || AVAILABLE_FEATURES.map(f => f.id) // Default existing users to have all features
-      }));
-      setUsers(usersWithFeatures);
-      setLoading(false);
+      try {
+        // Load users and packages in parallel
+        const [usersData, packagesData] = await Promise.all([
+          api.admin.getUsers(),
+          api.admin.getPackages()
+        ]);
+        setUsers(usersData);
+        setPackages(packagesData);
+      } catch (error) {
+        console.error('Failed to load data:', error);
+        toast.error('Failed to load users and packages');
+      } finally {
+        setLoading(false);
+      }
     };
-    loadUsers();
+    loadData();
   }, [user]);
 
-  // Handle Role Change to preset features
-  const handleRoleChange = (role: UserRole) => {
-    let features: string[] = [];
-    if (role === UserRole.ADMIN || role === UserRole.OWNER) {
-      features = AVAILABLE_FEATURES.map(f => f.id);
-    } else if (role === UserRole.MEMBER) { // Member gets limited access
-      features = ['dashboard', 'academy'];
-    } else {
-      // Editor default
-      features = ['dashboard', 'connections', 'subscribers', 'inbox', 'flows', 'forms', 'store'];
+
+
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  const handleEditClick = async (userToEdit: User) => {
+    // Get user's current subscription to find their package
+    try {
+      const subscriptions = await api.subscriptions.getAll();
+      const userSubscription = subscriptions.find(sub => sub.user_id === userToEdit.id);
+
+      setNewUser({
+        name: userToEdit.name,
+        email: userToEdit.email,
+        password: '',
+        packageId: userSubscription?.package_id || ''
+      });
+      setEditingId(userToEdit.id);
+      setIsAddModalOpen(true);
+    } catch (error) {
+      console.error('Failed to load user subscription:', error);
+      toast.error('Failed to load user details');
     }
-    setNewUser(prev => ({ ...prev, role, features }));
   };
 
-  const toggleFeature = (featureId: string) => {
-    setNewUser(prev => {
-      const isSelected = prev.features.includes(featureId);
-      if (isSelected) {
-        return { ...prev, features: prev.features.filter(f => f !== featureId) };
-      } else {
-        return { ...prev, features: [...prev.features, featureId] };
-      }
-    });
+  const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string } | null>(null);
+
+  const handleDeleteClick = (id: string, name: string) => {
+    setDeleteConfirm({ id, name });
   };
 
-  const handleAddUser = (e: React.FormEvent) => {
+  const confirmDelete = async () => {
+    if (!deleteConfirm) return;
+
+    try {
+      await api.admin.deleteUser(deleteConfirm.id);
+      setUsers(users.filter(u => u.id !== deleteConfirm.id));
+      toast.success("User deleted successfully");
+    } catch (err: any) {
+      console.error(err);
+      toast.error("Failed to delete user: " + err.message);
+    } finally {
+      setDeleteConfirm(null);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const id = (Math.random() * 10000).toString();
-    const userToAdd: any = {
-      id,
-      name: newUser.name,
-      email: newUser.email,
-      role: newUser.role,
-      avatarUrl: '',
-      features: newUser.features
-    };
 
-    setUsers([...users, userToAdd]);
-    setIsAddModalOpen(false);
-    // Reset form
-    setNewUser({
-      name: '',
-      email: '',
-      password: '',
-      role: UserRole.MEMBER,
-      features: []
-    });
+    if (!newUser.packageId) {
+      toast.error("Please select a package");
+      return;
+    }
+
+    try {
+      if (editingId) {
+        // UPDATE USER - Update their subscription package
+        const subscriptions = await api.subscriptions.getAll();
+        const userSubscription = subscriptions.find(sub => sub.user_id === editingId);
+
+        // Update user name
+        await api.admin.updateUser(editingId, {
+          name: newUser.name
+        });
+
+        // Update or create subscription
+        if (userSubscription) {
+          // For now, we'll create a new subscription (in a real app, you'd update the existing one)
+          // This is a limitation of the current API structure
+          toast.info("User updated. Note: Subscription updates require manual intervention.");
+        }
+
+        // Update local state
+        setUsers(users.map(u => u.id === editingId ? { ...u, name: newUser.name } : u));
+        toast.success("User updated successfully");
+      } else {
+        // CREATE USER - Use server-side API to create auth user and subscription
+        if (!newUser.password) {
+          toast.error("Password is required for new users");
+          return;
+        }
+
+        const selectedPackage = packages.find(p => p.id === newUser.packageId);
+        if (!selectedPackage) {
+          toast.error("Selected package not found");
+          return;
+        }
+
+        // Call server-side endpoint to create user with auth and subscription
+        await api.admin.createUser({
+          email: newUser.email,
+          password: newUser.password,
+          name: newUser.name,
+          packageId: newUser.packageId
+        });
+
+        toast.success(`User created successfully with ${selectedPackage.name} package`);
+
+        // Reload users to show the new user
+        const updatedUsers = await api.admin.getUsers();
+        setUsers(updatedUsers);
+      }
+
+      setIsAddModalOpen(false);
+      setEditingId(null);
+      // Reset form
+      setNewUser({
+        name: '',
+        email: '',
+        password: '',
+        packageId: ''
+      });
+
+    } catch (error: any) {
+      console.error('Operation failed:', error);
+      toast.error("Operation failed: " + error.message);
+    }
   };
 
   if (user.role !== UserRole.ADMIN && user.role !== UserRole.OWNER) {
@@ -123,10 +184,14 @@ const UsersPage: React.FC<UsersPageProps> = ({ user }) => {
           <p className="text-slate-500 dark:text-slate-400 mt-2 text-lg">Manage system users and their roles.</p>
         </div>
         <button
-          onClick={() => setIsAddModalOpen(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-700 transition-colors shadow-lg shadow-primary-500/25"
+          onClick={() => {
+            setIsAddModalOpen(true);
+            setEditingId(null);
+            setNewUser({ name: '', email: '', password: '', packageId: '' });
+          }}
+          className="flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors shadow-sm"
         >
-          <Plus className="w-4 h-4" />
+          <UserPlus className="w-4 h-4" />
           Add User
         </button>
       </div>
@@ -196,16 +261,19 @@ const UsersPage: React.FC<UsersPageProps> = ({ user }) => {
                     </span>
                   </td>
                   <td className="px-6 py-4 text-sm text-slate-500 dark:text-slate-400">
-                    {u.role === UserRole.ADMIN ? 'All Access' : `${u.features?.length || 0} Features`}
+                    {u.role === UserRole.ADMIN || u.role === UserRole.OWNER ? 'All Access' : 'Package-based'}
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex justify-end gap-2">
-                      <button className="p-2 text-slate-500 hover:text-primary-600 hover:bg-primary-50 dark:text-slate-400 dark:hover:text-primary-400 dark:hover:bg-primary-900/30 rounded-lg transition-colors" title="Edit User">
+                      <button onClick={() => handleEditClick(u)} className="p-2 text-slate-500 hover:text-primary-600 hover:bg-primary-50 dark:text-slate-400 dark:hover:text-primary-400 dark:hover:bg-primary-900/30 rounded-lg transition-colors" title="Edit User">
                         <Edit2 className="w-4 h-4" />
                       </button>
-                      <button className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-50 dark:text-slate-400 dark:hover:text-red-400 dark:hover:bg-red-900/30 rounded-lg transition-colors" title="Delete User">
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      {/* Prevent deleting Owner or Self */}
+                      {u.role !== UserRole.OWNER && u.id !== user.id && (
+                        <button onClick={() => handleDeleteClick(u.id, u.name)} className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-50 dark:text-slate-400 dark:hover:text-red-400 dark:hover:bg-red-900/30 rounded-lg transition-colors" title="Delete User">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -222,7 +290,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ user }) => {
             <div className="flex items-center justify-between p-6 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shrink-0">
               <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
                 <UserIcon className="w-6 h-6 text-primary-600" />
-                Add New User
+                {editingId ? 'Edit User' : 'Add New User'}
               </h2>
               <button
                 onClick={() => setIsAddModalOpen(false)}
@@ -232,10 +300,10 @@ const UsersPage: React.FC<UsersPageProps> = ({ user }) => {
               </button>
             </div>
 
-            <form onSubmit={handleAddUser} className="flex-1 overflow-y-auto p-6 space-y-6">
+            <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6">
               {/* User Details */}
               <div className="space-y-4">
-                <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-2">Account Details</h3>
+                <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider">Account Details</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Full Name</label>
@@ -252,87 +320,99 @@ const UsersPage: React.FC<UsersPageProps> = ({ user }) => {
                     <input
                       type="email"
                       required
-                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none"
+                      disabled={!!editingId}
+                      className={`w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none ${editingId ? 'opacity-50 cursor-not-allowed' : ''}`}
                       value={newUser.email}
                       onChange={e => setNewUser({ ...newUser, email: e.target.value })}
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Password</label>
+                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                      {editingId ? 'New Password (Optional)' : 'Password'}
+                    </label>
                     <div className="relative">
                       <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                       <input
                         type="password"
-                        required
+                        required={!editingId}
                         className="w-full pl-9 pr-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none"
                         value={newUser.password}
                         onChange={e => setNewUser({ ...newUser, password: e.target.value })}
+                        placeholder={editingId ? "Leave blank to keep current" : ""}
                       />
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Role</label>
+                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Subscription Package</label>
                     <select
                       className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none"
-                      value={newUser.role}
-                      onChange={e => handleRoleChange(e.target.value as any)}
+                      value={newUser.packageId}
+                      onChange={e => setNewUser({ ...newUser, packageId: e.target.value })}
+                      required
                     >
-                      <option value={UserRole.ADMIN}>Admin (Full Access)</option>
-                      <option value={UserRole.MEMBER}>Member</option>
-                      <option value="VIEWER">Viewer</option>
-                      <option value="SUPPORT">Support</option>
+                      <option value="">Select a package...</option>
+                      {packages.map(pkg => (
+                        <option key={pkg.id} value={pkg.id}>
+                          {pkg.name} - ${pkg.priceMonthly}/{pkg.currency} monthly
+                        </option>
+                      ))}
                     </select>
                   </div>
                 </div>
               </div>
 
-              {/* Feature Permissions */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider">Feature Permissions</h3>
-                  <button
-                    type="button"
-                    onClick={() => setNewUser(prev => ({ ...prev, features: AVAILABLE_FEATURES.map(f => f.id) }))}
-                    className="text-xs text-primary-600 hover:text-primary-700 font-medium hover:underline"
-                  >
-                    Select All
-                  </button>
-                </div>
-                <div className="bg-slate-50 dark:bg-slate-950/50 rounded-xl p-4 border border-slate-200 dark:border-slate-800">
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                    {AVAILABLE_FEATURES.map(feature => {
-                      const isSelected = newUser.features.includes(feature.id);
-                      return (
-                        <div
-                          key={feature.id}
-                          onClick={() => toggleFeature(feature.id)}
-                          className={`
-                                                flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all select-none
-                                                ${isSelected
-                              ? 'bg-primary-50 dark:bg-primary-900/20 border-primary-200 dark:border-primary-800'
-                              : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'}
-                                            `}
-                        >
-                          <div className={`
-                                                w-5 h-5 rounded flex items-center justify-center border transition-colors
-                                                ${isSelected
-                              ? 'bg-primary-600 border-primary-600 text-white'
-                              : 'bg-white dark:bg-slate-950 border-slate-300 dark:border-slate-600'}
-                                            `}>
-                            {isSelected && <CheckSquare className="w-3.5 h-3.5" />}
-                          </div>
-                          <span className={`text-sm font-medium ${isSelected ? 'text-primary-900 dark:text-primary-100' : 'text-slate-700 dark:text-slate-300'}`}>
-                            {feature.label}
+              {/* Package Details */}
+              {newUser.packageId && (() => {
+                const selectedPackage = packages.find(p => p.id === newUser.packageId);
+                if (!selectedPackage) return null;
+
+                return (
+                  <div className="space-y-2">
+                    <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider">Package Details</h3>
+                    <div className="bg-slate-50 dark:bg-slate-950/50 rounded-xl p-4 border border-slate-200 dark:border-slate-800">
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Package:</span>
+                          <span className={`px-3 py-1 rounded-full text-xs font-bold bg-${selectedPackage.color}-100 text-${selectedPackage.color}-700 dark:bg-${selectedPackage.color}-900/30 dark:text-${selectedPackage.color}-400`}>
+                            {selectedPackage.name}
                           </span>
                         </div>
-                      );
-                    })}
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Price:</span>
+                          <span className="text-sm text-slate-900 dark:text-white font-semibold">
+                            ${selectedPackage.priceMonthly}/{selectedPackage.currency} monthly
+                          </span>
+                        </div>
+                        {selectedPackage.features && selectedPackage.features.length > 0 && (
+                          <div>
+                            <span className="text-sm font-medium text-slate-700 dark:text-slate-300 block mb-2">Features:</span>
+                            <ul className="space-y-1">
+                              {selectedPackage.features.map((feature, idx) => (
+                                <li key={idx} className="text-xs text-slate-600 dark:text-slate-400 flex items-center gap-2">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-primary-500"></span>
+                                  {feature}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                        {selectedPackage.allowedRoutes && selectedPackage.allowedRoutes.length > 0 && (
+                          <div>
+                            <span className="text-sm font-medium text-slate-700 dark:text-slate-300 block mb-2">Allowed Pages:</span>
+                            <div className="flex flex-wrap gap-1">
+                              {selectedPackage.allowedRoutes.map((route, idx) => (
+                                <span key={idx} className="px-2 py-1 bg-slate-200 dark:bg-slate-800 rounded text-xs text-slate-700 dark:text-slate-300">
+                                  {route}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                </div>
-                <p className="text-xs text-slate-500">
-                  Adjusting roles will preset these permissions. You can customize them individually for granular control.
-                </p>
-              </div>
+                );
+              })()}
 
             </form>
 
@@ -345,11 +425,49 @@ const UsersPage: React.FC<UsersPageProps> = ({ user }) => {
                 Cancel
               </button>
               <button
-                onClick={handleAddUser}
+                onClick={handleSubmit}
                 className="flex-1 py-2.5 bg-primary-600 text-white rounded-xl hover:bg-primary-700 transition-colors font-medium shadow-lg shadow-primary-500/25"
               >
-                Create User
+                {editingId ? 'Update User' : 'Create User'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+          <div className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+            <div className="p-6 space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                  <Trash2 className="w-6 h-6 text-red-600 dark:text-red-400" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-white">Delete User</h3>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">This action cannot be undone</p>
+                </div>
+              </div>
+
+              <p className="text-slate-700 dark:text-slate-300">
+                Are you sure you want to delete user <span className="font-semibold text-slate-900 dark:text-white">"{deleteConfirm.name}"</span>? All their data will be permanently removed.
+              </p>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={() => setDeleteConfirm(null)}
+                  className="flex-1 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmDelete}
+                  className="flex-1 py-2.5 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-colors font-medium shadow-lg shadow-red-500/25"
+                >
+                  Delete User
+                </button>
+              </div>
             </div>
           </div>
         </div>

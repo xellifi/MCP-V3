@@ -24,8 +24,8 @@ const Register: React.FC<RegisterProps> = ({ onLogin }) => {
       const user = await api.auth.register(name, email, password);
       await onLogin(user);  // Wait for workspaces to load
       toast.success(`Welcome aboard, ${user.name}!`);
-      // Explicitly navigate to dashboard after successful registration
-      navigate('/dashboard', { replace: true });
+      // Explicitly navigate to connections after successful registration
+      navigate('/connections', { replace: true });
     } catch (error) {
       console.error(error);
       toast.error('Registration failed. Please try again.');

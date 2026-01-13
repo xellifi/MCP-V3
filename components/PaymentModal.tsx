@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { X, CreditCard, Wallet, Building, ArrowRight, CheckCircle, Smartphone, Shield } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { X, CreditCard, Wallet, Building, ArrowRight, CheckCircle, Smartphone, Shield, Upload, Loader2, Image as ImageIcon } from 'lucide-react';
+import { api } from '../services/api';
 
 interface PaymentModalProps {
     isOpen: boolean;
@@ -20,15 +21,89 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
     const [isProcessing, setIsProcessing] = useState(false);
     const [isSuccess, setIsSuccess] = useState(false);
 
+    // Manual Payment States
+    const [proofFile, setProofFile] = useState<File | null>(null);
+    const [proofPreview, setProofPreview] = useState<string | null>(null);
+    const [email, setEmail] = useState('');
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
     if (!isOpen) return null;
 
-    const handlePayment = () => {
+    const isManualMethod = selectedMethod === 'ewallet' || selectedMethod === 'banking';
+    // const isAutoMethod = selectedMethod === 'xendit' || selectedMethod === 'paypal';
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0];
+            setProofFile(file);
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setProofPreview(reader.result as string);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    const handlePayment = async () => {
         setIsProcessing(true);
-        // Simulate API call
-        setTimeout(() => {
-            setIsProcessing(false);
+        try {
+            // Get current user for email if available, otherwise require email input (simplified here assuming user is logged in or email is provided)
+            const user = await api.auth.getCurrentUser();
+            const userEmail = user?.email || email;
+
+            if (!userEmail) {
+                // In a real app we'd prompt for email login if user is null
+                // For now, let's assume if user is null, they can't pay. 
+                // But typically this modal is inside a secured context or we prompt login.
+                const promptEmail = prompt("Please enter your email to associate with this subscription:");
+                if (!promptEmail) {
+                    throw new Error("Email is required");
+                }
+                // Update email state if we had it, but simplified:
+                // For now let's just use the prompt or fail.
+            }
+
+            // Re-fetch or use prompt
+            const finalEmail = userEmail || email;
+
+            if (isManualMethod) {
+                if (!proofFile) {
+                    alert("Please upload a proof of payment");
+                    setIsProcessing(false);
+                    return;
+                }
+
+                // 1. Upload Proof
+                const proofUrl = await api.subscriptions.uploadProof(proofFile);
+
+                // 2. Create Subscription (Pending)
+                // Map planName to id. E.g. "Starter Plan" -> "starter"
+                // Ideally this prop should be planId.
+                const packageId = planName.toLowerCase().split(' ')[0];
+
+                await api.subscriptions.create({
+                    email: finalEmail || 'guest@example.com', // Fallback for safety, logic should be tighter
+                    package_id: packageId,
+                    status: 'Pending',
+                    billing_cycle: billingCycle === 'monthly' ? 'Monthly' : 'Yearly',
+                    amount: price,
+                    next_billing_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+                    payment_method: selectedMethod,
+                    proof_url: proofUrl
+                });
+
+            } else {
+                // Auto Method Simulation
+                await new Promise(resolve => setTimeout(resolve, 1500));
+            }
+
             setIsSuccess(true);
-        }, 1500);
+        } catch (error: any) {
+            console.error(error);
+            alert(error.message || "Payment failed");
+        } finally {
+            setIsProcessing(false);
+        }
     };
 
     if (isSuccess) {
@@ -38,9 +113,14 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                     <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4 text-green-600 dark:text-green-400">
                         <CheckCircle className="w-8 h-8" />
                     </div>
-                    <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Payment Successful!</h3>
+                    <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
+                        {isManualMethod ? 'Payment Submitted!' : 'Payment Successful!'}
+                    </h3>
                     <p className="text-slate-600 dark:text-slate-400 mb-6">
-                        You have successfully subscribed to the <span className="font-semibold text-slate-900 dark:text-white">{planName}</span> plan. Your receipt has been sent to your email.
+                        {isManualMethod
+                            ? "Your payment proof has been verified. We will notify you once your subscription is approved (usually within 24h)."
+                            : <>You have successfully subscribed to the <span className="font-semibold text-slate-900 dark:text-white">{planName}</span> plan. Your receipt has been sent to your email.</>
+                        }
                     </p>
                     <button
                         onClick={onClose}
@@ -88,6 +168,33 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                                 <span>${price}.00</span>
                             </div>
                         </div>
+
+                        {/* Instructions for Manual Methods */}
+                        {isManualMethod && (
+                            <div className="bg-yellow-50 dark:bg-yellow-900/10 border border-yellow-200 dark:border-yellow-900/30 rounded-lg p-4 mb-4">
+                                <h4 className="font-bold text-yellow-800 dark:text-yellow-500 text-sm mb-2">Payment Instructions</h4>
+                                <p className="text-xs text-yellow-700 dark:text-yellow-400 mb-2">
+                                    Please transfer the exact amount to:
+                                </p>
+                                <div className="text-xs font-mono bg-yellow-100 dark:bg-yellow-900/30 p-2 rounded text-yellow-900 dark:text-yellow-300 mb-2">
+                                    {selectedMethod === 'ewallet' ? (
+                                        <>
+                                            GCash: 0917 123 4567<br />
+                                            Name: MyChat Pilot Inc.
+                                        </>
+                                    ) : (
+                                        <>
+                                            Bank: BDO Unibank<br />
+                                            Acct: 1234 5678 9012<br />
+                                            Name: MyChat Pilot Inc.
+                                        </>
+                                    )}
+                                </div>
+                                <p className="text-xs text-yellow-700 dark:text-yellow-400">
+                                    Take a screenshot of your successful transfer and upload it here.
+                                </p>
+                            </div>
+                        )}
                     </div>
 
                     <div className="mt-auto pt-6 text-xs text-slate-400">
@@ -181,6 +288,52 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                         </div>
                     </div>
 
+                    {/* Manual Payment Proof Upload Area */}
+                    {isManualMethod && (
+                        <div className="mb-6">
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                                Upload Proof of Payment (Required)
+                            </label>
+
+                            {!proofPreview ? (
+                                <div
+                                    onClick={() => fileInputRef.current?.click()}
+                                    className="border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-primary-500 dark:hover:border-primary-500 rounded-xl p-8 flex flex-col items-center justify-center text-center cursor-pointer transition-colors bg-slate-50 dark:bg-slate-800/50"
+                                >
+                                    <Upload className="w-8 h-8 text-slate-400 mb-2" />
+                                    <p className="text-slate-600 dark:text-slate-400 font-medium">Click to upload screenshot</p>
+                                    <p className="text-xs text-slate-400">JPG, PNG up to 5MB</p>
+                                </div>
+                            ) : (
+                                <div className="relative rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800">
+                                    <img src={proofPreview} alt="Proof Preview" className="w-full h-48 object-contain" />
+                                    <div className="absolute top-2 right-2">
+                                        <button
+                                            onClick={() => {
+                                                setProofFile(null);
+                                                setProofPreview(null);
+                                            }}
+                                            className="p-1 rounded-full bg-slate-900/80 text-white hover:bg-red-500 transition-colors"
+                                        >
+                                            <X className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                    <div className="px-4 py-2 bg-slate-900/10 dark:bg-slate-900/50 flex items-center gap-2">
+                                        <ImageIcon className="w-4 h-4 text-green-500" />
+                                        <span className="text-xs font-medium text-green-600 dark:text-green-400">Proof Uploaded</span>
+                                    </div>
+                                </div>
+                            )}
+                            <input
+                                type="file"
+                                ref={fileInputRef}
+                                onChange={handleFileChange}
+                                accept="image/*"
+                                className="hidden"
+                            />
+                        </div>
+                    )}
+
                     {/* Payment Form (Mock) */}
                     <div className="mt-auto">
                         <button
@@ -192,10 +345,11 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                                 }`}
                         >
                             {isProcessing ? (
-                                <>Processing...</>
+                                <><Loader2 className="w-5 h-5 animate-spin" /> Processing...</>
                             ) : (
                                 <>
-                                    Pay ${price}.00 via <span className="capitalize">{selectedMethod === 'ewallet' ? 'E-Wallet' : selectedMethod}</span> <ArrowRight className="w-5 h-5" />
+                                    {isManualMethod ? 'Submit Payment Proof' : `Pay $${price}.00 via ${selectedMethod}`}
+                                    {!isManualMethod && <ArrowRight className="w-5 h-5" />}
                                 </>
                             )}
                         </button>

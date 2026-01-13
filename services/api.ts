@@ -1,6 +1,6 @@
 import { supabase } from '../lib/supabase';
 import { MOCK_AUTH_DB, MOCK_WORKSPACES } from '../constants';
-import { User, Workspace, MetaConnection, ConnectedPage, Flow, ScheduledPost, AdminSettings, Subscriber, Conversation, Message, UserRole, IntegrationSettings, Referral, AffiliateStats, PayoutSettings, WithdrawalRequest, SupportTicket, TicketMessage, Reaction, ReactionType } from '../types';
+import { User, Workspace, MetaConnection, ConnectedPage, Flow, ScheduledPost, AdminSettings, Subscriber, Conversation, Message, UserRole, IntegrationSettings, Referral, AffiliateStats, PayoutSettings, WithdrawalRequest, SupportTicket, TicketMessage, Reaction, ReactionType, Package, UserSubscription } from '../types';
 
 // Simulating async API calls (for fallback/demo)
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -133,6 +133,19 @@ const mapSupportTicket = (row: any, messages: any[] = []): SupportTicket => ({
   messages: messages.map(mapTicketMessage)
 });
 
+const mapPackage = (row: any): Package => ({
+  id: row.id,
+  name: row.name,
+  priceMonthly: row.price_monthly,
+  priceYearly: row.price_yearly,
+  currency: row.currency,
+  features: row.features || [],
+  limits: row.limits || {},
+  color: row.color,
+  isActive: row.is_active,
+  allowedRoutes: row.allowed_routes || []
+});
+
 // Mock DBs for features not yet migrated
 const MOCK_INTEGRATIONS_DB: Record<string, IntegrationSettings> = {};
 const MOCK_PAYOUTS_DB: Record<string, PayoutSettings> = {};
@@ -146,28 +159,34 @@ export const api = {
       // Production: Check Supabase Auth
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
-      if (!error && data.user) {
-        // Fetch profile from Supabase
+      if (error) throw new Error(error.message);
+
+      // Fetch profile
+      if (data.user) {
         const { data: profile } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', data.user.id)
           .single();
 
-        if (profile) {
-          return mapProfile(profile);
-        }
+        if (profile) return mapProfile(profile);
       }
 
-      // Fallback to Mock for demo if Supabase fails
-      await delay(800);
-      const user = MOCK_AUTH_DB.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === password);
+      throw new Error("User not found");
+    },
 
-      if (!user) {
-        throw new Error('Invalid credentials');
-      }
-      const { password: _, ...userWithoutPassword } = user;
-      return userWithoutPassword;
+    getCurrentUser: async (): Promise<User | null> => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return null;
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+      if (profile) return mapProfile(profile);
+      return null;
     },
 
     register: async (name: string, email: string, password: string): Promise<User> => {
@@ -232,7 +251,7 @@ export const api = {
       return null;
     },
 
-    updateProfile: async (userId: string, updates: { name?: string; avatarUrl?: string; email?: string; password?: string }): Promise<void> => {
+    updateProfile: async (userId: string, updates: { name?: string; avatarUrl?: string; email?: string; password?: string; role?: string }): Promise<void> => {
       // 1. Update Auth (Email/Password) if provided
       if (updates.email || updates.password) {
         const { error } = await supabase.auth.updateUser({
@@ -249,6 +268,7 @@ export const api = {
       if (updates.name !== undefined) profileUpdates.name = updates.name;
       if (updates.avatarUrl !== undefined) profileUpdates.avatar_url = updates.avatarUrl;
       if (updates.email !== undefined) profileUpdates.email = updates.email;
+      if (updates.role !== undefined) profileUpdates.role = updates.role;
 
       if (Object.keys(profileUpdates).length > 0) {
         const { error } = await supabase
@@ -1739,48 +1759,86 @@ export const api = {
       return data?.map(mapProfile) || [];
     },
 
-    getSettings: async (): Promise<AdminSettings> => {
-      try {
-        const { data, error } = await supabase
-          .from('admin_settings')
-          .select('*')
-          .single();
+    createUser: async (userData: { email: string; password: string; name: string; packageId: string }): Promise<{ id: string; email: string; name: string }> => {
+      // Call Vercel serverless function to create user with admin privileges
+      const response = await fetch('/api/admin/create-user', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(userData)
+      });
 
-        if (data) {
-          return {
-            facebookAppId: data.facebook_app_id || '',
-            facebookAppSecret: data.facebook_app_secret || '',
-            facebookVerifyToken: data.facebook_verify_token || '',
-            openaiApiKey: data.openai_api_key || '',
-            geminiApiKey: data.gemini_api_key || '',
-            menuSequence: data.menu_sequence || [],
-            affiliateEnabled: data.affiliate_enabled,
-            affiliateCommission: data.affiliate_commission,
-            affiliateCurrency: data.affiliate_currency,
-            affiliateMinWithdrawal: data.affiliate_min_withdrawal,
-            affiliateWithdrawalDays: data.affiliate_withdrawal_days,
-            defaultTheme: data.default_theme || 'dark'
-          };
-        }
-      } catch (e) {
-        console.error('Error fetching admin settings:', e);
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to create user');
       }
 
-      // Default fallback
+      const result = await response.json();
+      return result.user;
+    },
+
+    updateUser: async (id: string, updates: Partial<User>): Promise<void> => {
+      const dbUpdates: any = {};
+      if (updates.name) dbUpdates.name = updates.name;
+      if (updates.role) dbUpdates.role = updates.role;
+      // Note: Email cannot be easily updated here as it is linked to Auth
+      // Features are managed via Subscription Packages, not directly on profile in this schema
+
+      const { error } = await supabase
+        .from('profiles')
+        .update(dbUpdates)
+        .eq('id', id);
+
+      if (error) throw new Error(error.message);
+    },
+
+    deleteUser: async (id: string): Promise<void> => {
+      // Delete from profiles (Cascade should handle related data like subscriptions)
+      // Note: This does NOT delete from auth.users, which requires server-side admin role.
+      // However, it removes their data from the app.
+      const { error } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw new Error(error.message);
+    },
+
+    getSettings: async (): Promise<AdminSettings> => {
+      const { data, error } = await supabase
+        .from('admin_settings')
+        .select('*')
+        .single();
+
+      if (error) {
+        console.warn('Error fetching admin settings:', error);
+      }
+
       return {
-        facebookAppId: '',
-        facebookAppSecret: '',
-        facebookVerifyToken: '',
-        menuSequence: ['/', '/connections', '/connected-pages', '/subscribers', '/messages', '/flows', '/scheduled', '/settings', '/affiliates', '/support'],
-        affiliateEnabled: true,
-        affiliateCommission: 15.00,
-        affiliateCurrency: 'USD',
-        affiliateMinWithdrawal: 100,
-        affiliateWithdrawalDays: [1]
+        id: data?.id || 1,
+        facebookAppId: data?.facebook_app_id || '',
+        facebookAppSecret: data?.facebook_app_secret || '',
+        facebookVerifyToken: data?.facebook_verify_token || '',
+        openaiApiKey: data?.openai_api_key || '',
+        geminiApiKey: data?.gemini_api_key || '',
+        menuSequence: data?.menu_sequence || ['/', '/connections', '/connected-pages', '/subscribers', '/messages', '/flows', '/scheduled', '/settings', '/affiliates', '/support'],
+        affiliateEnabled: data?.affiliate_enabled ?? true,
+        affiliateCommission: data?.affiliate_commission ?? 15.00,
+        affiliateCurrency: data?.affiliate_currency || 'USD',
+        affiliateMinWithdrawal: data?.affiliate_min_withdrawal ?? 100,
+        affiliateWithdrawalDays: data?.affiliate_withdrawal_days || [1],
+        paymentConfig: data?.payment_config || {
+          xendit: { enabled: false, publicKey: '', secretKey: '' },
+          paypal: { enabled: false, clientId: '', clientSecret: '' },
+          ewallet: { enabled: false, instructions: '' },
+          bank: { enabled: false, instructions: '' }
+        },
+        defaultTheme: data?.default_theme || 'dark'
       };
     },
 
-    saveSettings: async (settings: AdminSettings): Promise<void> => {
+    updateSettings: async (settings: AdminSettings): Promise<void> => {
       const dbPayload = {
         id: 1,
         facebook_app_id: settings.facebookAppId,
@@ -1794,6 +1852,7 @@ export const api = {
         affiliate_currency: settings.affiliateCurrency,
         affiliate_min_withdrawal: settings.affiliateMinWithdrawal,
         affiliate_withdrawal_days: settings.affiliateWithdrawalDays,
+        payment_config: settings.paymentConfig,
         default_theme: settings.defaultTheme
       };
 
@@ -1804,21 +1863,220 @@ export const api = {
         .upsert(dbPayload);
 
       if (error) {
-        console.error("Supabase Save Error:", error);
-        console.error("Error details:", JSON.stringify(error, null, 2));
-        console.error("Error code:", error.code);
-        console.error("Error message:", error.message);
-        console.error("Error hint:", error.hint);
         throw new Error(error.message);
       }
-
-      console.log('Admin settings saved successfully!');
     },
 
     testEmail: async (to: string): Promise<void> => {
       await delay(1500);
       if (!to.includes('@')) throw new Error("Invalid email address");
+    },
+
+    getPackages: async (): Promise<Package[]> => {
+      const { data, error } = await supabase
+        .from('packages')
+        .select('*')
+        .order('price_monthly', { ascending: true });
+
+      if (error) {
+        console.error('Error fetching packages:', error);
+        throw new Error('Failed to fetch packages');
+      }
+
+      return data?.map(mapPackage) || [];
+    },
+
+    updatePackage: async (data: Partial<Package> & { id: string }): Promise<void> => {
+      const updateData: any = {
+        name: data.name,
+        price_monthly: data.priceMonthly,
+        price_yearly: data.priceYearly,
+        currency: data.currency,
+        features: data.features,
+        limits: data.limits,
+        color: data.color,
+        is_active: data.isActive,
+        allowed_routes: data.allowedRoutes,
+        updated_at: new Date().toISOString()
+      };
+
+      // Remove undefined keys
+      Object.keys(updateData).forEach(key => updateData[key] === undefined && delete updateData[key]);
+
+      const { error } = await supabase
+        .from('packages')
+        .update(updateData)
+        .eq('id', data.id);
+
+      if (error) {
+        console.error('Error updating package:', error);
+        throw new Error('Failed to update package');
+      }
+    },
+
+    createPackage: async (data: Package): Promise<void> => {
+      const insertData = {
+        id: data.id,
+        name: data.name,
+        price_monthly: data.priceMonthly,
+        price_yearly: data.priceYearly,
+        currency: data.currency,
+        features: data.features,
+        limits: data.limits,
+        color: data.color,
+        is_active: data.isActive,
+        allowed_routes: data.allowedRoutes || []
+      };
+
+      const { error } = await supabase
+        .from('packages')
+        .insert(insertData);
+
+      if (error) {
+        console.error('Error creating package:', error);
+        throw new Error('Failed to create package');
+      }
+    },
+
+    deletePackage: async (id: string): Promise<void> => {
+      console.log('API: Deleting package with ID:', id);
+      const { data, error } = await supabase
+        .from('packages')
+        .delete()
+        .eq('id', id)
+        .select();
+
+      if (error) {
+        console.error('Error deleting package:', error);
+        throw new Error('Failed to delete package: ' + error.message);
+      }
+
+      console.log('API: Deleted rows:', data);
+
+      if (!data || data.length === 0) {
+        throw new Error(`Package not found or could not be deleted. Access denied? ID: ${id}`);
+      }
     }
+  },
+
+  subscriptions: {
+    getAll: async (): Promise<UserSubscription[]> => {
+      const { data, error } = await supabase
+        .from('user_subscriptions')
+        .select(`
+          *,
+          profiles (name, email, avatar_url),
+          packages (name, color)
+        `)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching subscriptions:', error);
+        throw new Error(error.message);
+      }
+
+      return data as UserSubscription[];
+    },
+
+    create: async (subscription: Partial<UserSubscription> & { email: string, proof_url?: string, payment_method?: string }): Promise<void> => {
+      // 1. Find user by email
+      const { data: users, error: userError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('email', subscription.email)
+        .single();
+
+      if (userError || !users) {
+        console.error('User lookup failed:', userError);
+        throw new Error(`User with email ${subscription.email} not found. They must sign up first.`);
+      }
+
+      const userId = users.id;
+
+      // 2. Create subscription
+      const { error } = await supabase
+        .from('user_subscriptions')
+        .insert({
+          user_id: userId,
+          package_id: subscription.package_id,
+          status: subscription.status,
+          billing_cycle: subscription.billing_cycle,
+          amount: subscription.amount,
+          next_billing_date: subscription.next_billing_date,
+          payment_method: subscription.payment_method,
+          proof_url: subscription.proof_url
+        });
+
+      if (error) {
+        console.error('Error creating subscription:', error);
+        throw new Error(error.message);
+      }
+    },
+
+    uploadProof: async (file: File): Promise<string> => {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('payment_proofs')
+        .upload(filePath, file);
+
+      if (uploadError) {
+        console.error('Error uploading proof:', uploadError);
+        throw new Error('Failed to upload payment proof');
+      }
+
+      const { data } = supabase.storage
+        .from('payment_proofs')
+        .getPublicUrl(filePath);
+
+      return data.publicUrl;
+    },
+
+    approve: async (id: string): Promise<void> => {
+      const { error } = await supabase
+        .from('user_subscriptions')
+        .update({ status: 'Active' })
+        .eq('id', id);
+
+      if (error) throw new Error(error.message);
+    },
+
+    reject: async (id: string): Promise<void> => {
+      const { error } = await supabase
+        .from('user_subscriptions')
+        .update({ status: 'Rejected' })
+        .eq('id', id);
+
+      if (error) throw new Error(error.message);
+    },
+
+    getCurrentSubscription: async (): Promise<UserSubscription | null> => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return null;
+
+      const { data, error } = await supabase
+        .from('user_subscriptions')
+        .select(`
+          *,
+          packages (name, color, allowed_routes)
+        `)
+        .eq('user_id', user.id)
+        .in('status', ['Active', 'Pending']) // Show Pending too so they know
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (error) {
+        if (error.code !== 'PGRST116') { // PGRST116 = no rows found
+          console.error('Error fetching current subscription:', error);
+        }
+        return null;
+      }
+
+      return data as UserSubscription;
+    },
   },
 
   affiliate: {
@@ -2034,5 +2292,7 @@ export const api = {
         .update({ status: isAdmin ? 'IN_PROGRESS' : 'OPEN', last_update_at: new Date().toISOString() })
         .eq('id', ticketId);
     }
-  }
+  },
+
+
 };

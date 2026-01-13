@@ -43,6 +43,17 @@ CREATE POLICY "Allow profile creation" ON public.profiles
 CREATE POLICY "Authenticated can view all profiles" ON public.profiles
   FOR SELECT USING (auth.role() = 'authenticated');
 
+-- Allow admins to delete profiles
+CREATE POLICY "Admins can delete profiles" ON public.profiles
+  FOR DELETE USING (
+    EXISTS (
+      SELECT 1 FROM public.profiles 
+      WHERE id = auth.uid() 
+      AND role IN ('admin', 'owner')
+    )
+  );
+
+
 -- ============================================
 -- 2. AUTO-CREATE PROFILE ON SIGNUP
 -- ============================================

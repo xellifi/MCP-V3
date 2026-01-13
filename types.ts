@@ -11,6 +11,7 @@ export interface User {
   role: UserRole;
   avatarUrl?: string;
   affiliateCode?: string; // Unique code for referrals
+  features?: string[];
 }
 
 export interface Workspace {
@@ -130,6 +131,7 @@ export enum FlowNodeType {
 }
 
 export interface AdminSettings {
+  id?: number;
   facebookAppId: string;
   facebookAppSecret: string;
   facebookVerifyToken: string;
@@ -151,7 +153,30 @@ export interface AdminSettings {
   affiliateCurrency?: string; // e.g. 'USD'
   affiliateMinWithdrawal?: number;
   affiliateWithdrawalDays?: number[]; // 0=Sun, 1=Mon...
+  paymentConfig?: any; // JSONB for payment gateways
   defaultTheme?: 'dark' | 'light';
+}
+
+export interface UserSubscription {
+  id: string;
+  user_id: string;
+  package_id: string;
+  status: 'Active' | 'Past Due' | 'Cancelled';
+  billing_cycle: 'Monthly' | 'Yearly';
+  amount: number;
+  next_billing_date: string | null;
+  created_at: string;
+
+  // Joined fields
+  profiles?: {
+    name: string;
+    email: string;
+    avatar_url: string;
+  };
+  packages?: {
+    name: string;
+    color: string;
+  };
 }
 
 export interface IntegrationSettings {
@@ -269,4 +294,17 @@ export interface FormSubmission {
   data: Record<string, any>;
   syncedToSheets: boolean;
   createdAt: string;
+}
+
+export interface Package {
+  id: string;
+  name: string;
+  priceMonthly: number;
+  priceYearly: number;
+  currency: string;
+  features: string[];
+  limits: Record<string, number | string>;
+  color: string;
+  isActive: boolean;
+  allowedRoutes?: string[]; // List of allowed paths e.g. ['/', '/dashboard', '/settings']
 }
