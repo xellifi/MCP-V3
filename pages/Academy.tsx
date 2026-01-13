@@ -16,7 +16,12 @@ import {
     MousePointer2,
     Settings,
     Plus,
-    Workflow
+    Workflow,
+    Image as ImageIcon,
+    GitFork,
+    MessageCircleMore,
+    Layers,
+    PanelTop
 } from 'lucide-react';
 import { User } from '../types';
 
@@ -98,7 +103,7 @@ const Academy: React.FC<AcademyProps> = ({ user }) => {
                                         Setting Up Comment Automation
                                     </h2>
                                     <p className="text-xl text-slate-600 dark:text-slate-400 leading-relaxed font-light">
-                                        Follow these exact steps to create a flow that automatically replies to comments and sends a private message.
+                                        Learn how to use the "Comment Template" to instantly create a complete public-reply and private-message flow.
                                     </p>
                                 </div>
 
@@ -111,7 +116,7 @@ const Academy: React.FC<AcademyProps> = ({ user }) => {
                                         </div>
 
                                         <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-4">
-                                            Add the Comment Trigger
+                                            Load the Automation Template
                                         </h3>
 
                                         <div className="mb-6 p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 overflow-x-auto">
@@ -134,21 +139,24 @@ const Academy: React.FC<AcademyProps> = ({ user }) => {
 
                                         <ul className="space-y-4 text-slate-600 dark:text-slate-400 text-sm">
                                             <li className="flex items-start gap-3">
-                                                <MousePointer2 className="w-5 h-5 text-indigo-500 flex-shrink-0 mt-0.5" />
+                                                <PanelTop className="w-5 h-5 text-indigo-500 flex-shrink-0 mt-0.5" />
                                                 <span>
-                                                    Click and Drag <strong>Comment Node</strong> on the node list of the Flow Builder.
+                                                    Look at the <strong>Top Toolbar</strong> (Top Center) of the Flow Builder.
                                                 </span>
                                             </li>
                                             <li className="flex items-start gap-3">
-                                                <div className="font-mono text-xs bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700 mt-0.5">DRAG</div>
-                                                <span>
-                                                    Locate the <strong>Choose Comment</strong> node under "Triggers" and drag it onto the canvas.
+                                                <div className="flex-shrink-0 inline-flex items-center justify-center w-7 h-7 bg-blue-500/20 border border-blue-500/30 rounded-lg text-blue-500 dark:text-blue-400 mt-0.5">
+                                                    <MessageCircle className="w-4 h-4" />
+                                                </div>
+                                                <div className="font-mono text-xs bg-slate-100 dark:bg-slate-800 text-slate-500 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700 mt-1">DRAG</div>
+                                                <span className="mt-0.5">
+                                                    Locate the <strong>New Comment</strong> node (or "Comment") icon and drag it onto the canvas.
                                                 </span>
                                             </li>
                                             <li className="flex items-start gap-3">
-                                                <Settings className="w-5 h-5 text-slate-400 flex-shrink-0 mt-0.5" />
+                                                <Layers className="w-5 h-5 text-indigo-500 flex-shrink-0 mt-0.5" />
                                                 <span>
-                                                    Click the <strong>Gear Icon</strong> on the node to open settings. Select "Specific Post" or "All Posts".
+                                                    <strong>Instant Load:</strong> The 4-node flow (Comment, Reply, Image, Message) will appear <strong>instantly</strong> when you drop the node.
                                                 </span>
                                             </li>
                                         </ul>
@@ -161,25 +169,19 @@ const Academy: React.FC<AcademyProps> = ({ user }) => {
                                         </div>
 
                                         <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-4">
-                                            Configure the Public Reply
+                                            Configure Trigger Settings
                                         </h3>
                                         <ul className="space-y-4 text-slate-600 dark:text-slate-400 text-sm">
                                             <li className="flex items-start gap-3">
-                                                <div className="font-mono text-xs bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700 mt-0.5">DRAG</div>
-                                                <span>
-                                                    Drag a <strong>Comment Reply</strong> node onto the canvas.
-                                                </span>
-                                            </li>
-                                            <li className="flex items-start gap-3">
-                                                <ArrowRight className="w-5 h-5 text-slate-400 flex-shrink-0 mt-0.5" />
-                                                <span>
-                                                    Connect the <strong>output handle</strong> of the "Comment Trigger" to the <strong>input handle</strong> of "Comment Reply".
-                                                </span>
-                                            </li>
-                                            <li className="flex items-start gap-3">
                                                 <Settings className="w-5 h-5 text-slate-400 flex-shrink-0 mt-0.5" />
                                                 <span>
-                                                    Open settings. Toggle <strong>Use AI</strong> to ON for auto-generated replies, OR keep it OFF and type a manual message.
+                                                    Click the Gear Icon on the <strong>New Comment</strong> node.
+                                                </span>
+                                            </li>
+                                            <li className="flex items-start gap-3">
+                                                <Check className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+                                                <span>
+                                                    <strong>Enable Actions:</strong> Ensure the checkboxes for "Comment Reply", "Send Message", and "Like Comment" are all checked. Use the "Specific Post" or "All Posts" toggle as needed.
                                                 </span>
                                             </li>
                                         </ul>
@@ -192,25 +194,25 @@ const Academy: React.FC<AcademyProps> = ({ user }) => {
                                         </div>
 
                                         <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-4">
-                                            Send the Private Message
+                                            Customize Your Content
                                         </h3>
                                         <ul className="space-y-4 text-slate-600 dark:text-slate-400 text-sm">
                                             <li className="flex items-start gap-3">
-                                                <div className="font-mono text-xs bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700 mt-0.5">DRAG</div>
+                                                <MessageSquare className="w-5 h-5 text-cyan-500 flex-shrink-0 mt-0.5" />
                                                 <span>
-                                                    Drag a <strong>Send Message</strong> node onto the canvas.
+                                                    <strong>Comment Reply (Cyan):</strong> Click to set your public reply text (or enable AI).
                                                 </span>
                                             </li>
                                             <li className="flex items-start gap-3">
-                                                <ArrowRight className="w-5 h-5 text-slate-400 flex-shrink-0 mt-0.5" />
+                                                <ImageIcon className="w-5 h-5 text-pink-500 flex-shrink-0 mt-0.5" />
                                                 <span>
-                                                    Connect the <strong>output handle</strong> of the "Comment Reply" node to this "Send Message" node.
+                                                    <strong>Image (Pink):</strong> Click to upload the image header for your private message.
                                                 </span>
                                             </li>
                                             <li className="flex items-start gap-3">
-                                                <Check className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+                                                <MessageCircleMore className="w-5 h-5 text-purple-500 flex-shrink-0 mt-0.5" />
                                                 <span>
-                                                    This ensures that <strong>after</strong> the public reply is posted, the user immediately receives your private DM.
+                                                    <strong>Send Message (Purple):</strong> Click to write the private DM that follows the image.
                                                 </span>
                                             </li>
                                         </ul>
@@ -313,9 +315,15 @@ const Academy: React.FC<AcademyProps> = ({ user }) => {
                                         </h3>
                                         <ul className="space-y-4 text-slate-600 dark:text-slate-400 text-sm">
                                             <li className="flex items-start gap-3">
+                                                <PanelTop className="w-5 h-5 text-indigo-500 flex-shrink-0 mt-0.5" />
+                                                <span>
+                                                    Look at the <strong>Top Toolbar</strong> (Top Center) of the Flow Builder.
+                                                </span>
+                                            </li>
+                                            <li className="flex items-start gap-3">
                                                 <div className="font-mono text-xs bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700 mt-0.5">DRAG</div>
                                                 <span>
-                                                    Find the <strong>AI Node</strong> in the sidebar and drag it onto the canvas.
+                                                    Find the <strong>AI Node</strong> icon in the toolbar and drag it onto the canvas.
                                                 </span>
                                             </li>
                                             <li className="flex items-start gap-3">
