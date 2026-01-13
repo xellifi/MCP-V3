@@ -316,6 +316,7 @@ const Layout: React.FC<LayoutProps> = ({
             // Filter logic
             // NOTE: We relaxed the check for affiliates here to show the lock icon/modal logic for demo
             if (path === '/settings' && isAdminOrOwner) return null;
+            if (path === '/packages' && isAdminOrOwner) return null;
 
             const item = ALL_NAV_ITEMS[path] || ALL_NAV_ITEMS[renderPath];
             if (!item) return null;

@@ -21,7 +21,10 @@ import {
     GitFork,
     MessageCircleMore,
     Layers,
-    PanelTop
+    PanelTop,
+    Facebook,
+    Link2,
+    ShieldCheck
 } from 'lucide-react';
 import { User } from '../types';
 
@@ -30,7 +33,7 @@ interface AcademyProps {
 }
 
 const Academy: React.FC<AcademyProps> = ({ user }) => {
-    const [activeTutorial, setActiveTutorial] = useState('comment-automation');
+    const [activeTutorial, setActiveTutorial] = useState('connect-facebook');
 
     return (
         <div className="min-h-screen bg-white dark:bg-slate-950 pb-20">
@@ -54,6 +57,19 @@ const Academy: React.FC<AcademyProps> = ({ user }) => {
                                     Getting Started
                                 </h3>
                                 <nav className="space-y-1 border-l border-slate-200 dark:border-slate-800 ml-2">
+                                    <button
+                                        onClick={() => setActiveTutorial('connect-facebook')}
+                                        className={`group flex items-center justify-between w-full pl-4 py-2 text-sm transition-colors border-l -ml-px ${activeTutorial === 'connect-facebook'
+                                            ? 'border-indigo-600 text-indigo-600 font-medium'
+                                            : 'border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:border-slate-300 dark:hover:border-slate-700'
+                                            }`}
+                                    >
+                                        <span>Connect Facebook</span>
+                                        {activeTutorial === 'connect-facebook' && (
+                                            <ChevronRight className="w-3.5 h-3.5" />
+                                        )}
+                                    </button>
+
                                     <button
                                         onClick={() => setActiveTutorial('comment-automation')}
                                         className={`group flex items-center justify-between w-full pl-4 py-2 text-sm transition-colors border-l -ml-px ${activeTutorial === 'comment-automation'
@@ -86,6 +102,120 @@ const Academy: React.FC<AcademyProps> = ({ user }) => {
 
                     {/* Main Content Area */}
                     <div className="lg:col-span-9">
+                        {activeTutorial === 'connect-facebook' && (
+                            <div className="animate-fade-in">
+                                {/* Title Section */}
+                                <div className="mb-10">
+                                    <div className="flex items-center gap-2 mb-4">
+                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 border border-blue-100 dark:border-blue-500/30">
+                                            Setup
+                                        </span>
+                                        <span className="text-sm text-slate-500 flex items-center">
+                                            <Zap className="w-3.5 h-3.5 mr-1" />
+                                            2 min read
+                                        </span>
+                                    </div>
+                                    <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-4">
+                                        Connect Your Facebook Profile
+                                    </h2>
+                                    <p className="text-xl text-slate-600 dark:text-slate-400 leading-relaxed font-light">
+                                        Link your Facebook account to start automating comments, messages, and posts for your pages.
+                                    </p>
+                                </div>
+
+                                <div className="space-y-12">
+                                    {/* Step 1 */}
+                                    <div className="relative pl-10 border-l border-slate-200 dark:border-slate-800 pb-12 last:pb-0">
+                                        <div className="absolute -left-3 top-0 w-6 h-6 rounded-full bg-white dark:bg-slate-950 border-2 border-slate-300 dark:border-slate-700 flex items-center justify-center text-xs font-semibold text-slate-600 dark:text-slate-400">
+                                            1
+                                        </div>
+
+                                        <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-4">
+                                            Go to Connections
+                                        </h3>
+
+                                        <div className="mb-6 p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 overflow-x-auto">
+                                            <span className="font-semibold text-slate-900 dark:text-white flex-shrink-0">Go to:</span>
+                                            <div className="flex items-center gap-1.5 px-2 py-1 bg-white dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700 whitespace-nowrap">
+                                                <LayoutDashboard className="w-3.5 h-3.5" />
+                                                <span>Sidebar</span>
+                                            </div>
+                                            <ChevronRight className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
+                                            <div className="flex items-center gap-1.5 px-2 py-1 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded border border-indigo-200 dark:border-indigo-500/30 whitespace-nowrap">
+                                                <Link2 className="w-3.5 h-3.5" />
+                                                <span>Connections</span>
+                                            </div>
+                                        </div>
+
+                                        <ul className="space-y-4 text-slate-600 dark:text-slate-400 text-sm">
+                                            <li className="flex items-start gap-3">
+                                                <MousePointer2 className="w-5 h-5 text-indigo-500 flex-shrink-0 mt-0.5" />
+                                                <span>
+                                                    Click <strong>Connections</strong> in the main sidebar menu.
+                                                </span>
+                                            </li>
+                                        </ul>
+                                    </div>
+
+                                    {/* Step 2 */}
+                                    <div className="relative pl-10 border-l border-slate-200 dark:border-slate-800 pb-12 last:pb-0">
+                                        <div className="absolute -left-3 top-0 w-6 h-6 rounded-full bg-white dark:bg-slate-950 border-2 border-slate-300 dark:border-slate-700 flex items-center justify-center text-xs font-semibold text-slate-600 dark:text-slate-400">
+                                            2
+                                        </div>
+
+                                        <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-4">
+                                            Initiate Connection
+                                        </h3>
+                                        <ul className="space-y-4 text-slate-600 dark:text-slate-400 text-sm">
+                                            <li className="flex items-start gap-3">
+                                                <div className="flex-shrink-0 inline-flex items-center justify-center w-7 h-7 bg-blue-600 rounded-lg text-white mt-0.5 shadow-md shadow-blue-500/20">
+                                                    <Facebook className="w-4 h-4" />
+                                                </div>
+                                                <span className="mt-1">
+                                                    Click the <strong>Connect Profile</strong> button in the top right corner.
+                                                </span>
+                                            </li>
+                                            <li className="flex items-start gap-3">
+                                                <ShieldCheck className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+                                                <span>
+                                                    A pop-up window from Facebook will appear. Log in to your Facebook account if requested.
+                                                </span>
+                                            </li>
+                                        </ul>
+                                    </div>
+
+                                    {/* Step 3 */}
+                                    <div className="relative pl-10 border-l border-slate-200 dark:border-slate-800">
+                                        <div className="absolute -left-3 top-0 w-6 h-6 rounded-full bg-indigo-600 border-2 border-indigo-600 flex items-center justify-center text-xs font-semibold text-white">
+                                            3
+                                        </div>
+
+                                        <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-4">
+                                            Select Pages & Permissions
+                                        </h3>
+                                        <ul className="space-y-4 text-slate-600 dark:text-slate-400 text-sm">
+                                            <li className="flex items-start gap-3">
+                                                <Check className="w-5 h-5 text-indigo-500 flex-shrink-0 mt-0.5" />
+                                                <span>
+                                                    <strong>Select Pages:</strong> Choose the Facebook Pages you want to manage with the platform.
+                                                </span>
+                                            </li>
+                                            <li className="flex items-start gap-3">
+                                                <Check className="w-5 h-5 text-indigo-500 flex-shrink-0 mt-0.5" />
+                                                <span>
+                                                    <strong>Grant Permissions:</strong> Allow all requested permissions (manage pages, messaging, comments).
+                                                </span>
+                                            </li>
+                                        </ul>
+                                        <div className="mt-6 bg-yellow-50 dark:bg-yellow-900/20 border-l-4 border-yellow-500 p-4 rounded-r-lg">
+                                            <p className="text-sm text-yellow-800 dark:text-yellow-200 font-medium">
+                                                Make sure not to uncheck any permissions, otherwise automation features may not work correctly.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                         {activeTutorial === 'comment-automation' && (
                             <div className="animate-fade-in">
                                 {/* Title Section */}

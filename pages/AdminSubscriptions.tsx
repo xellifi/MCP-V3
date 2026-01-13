@@ -17,14 +17,14 @@ import {
 
 // Dummy Data
 const INITIAL_SUBSCRIBERS = [
-    { id: 1, name: "Alice Freeman", email: "alice@example.com", plan: "Enterprise", status: "Active", billing: "Yearly", amount: 1990, nextBill: "Oct 24, 2026", avatar: "" },
-    { id: 2, name: "Bob Smith", email: "bob.smith@company.com", plan: "Pro", status: "Active", billing: "Monthly", amount: 79, nextBill: "Feb 12, 2026", avatar: "" },
-    { id: 3, name: "Charlie Davis", email: "charlie@startup.io", plan: "Starter", status: "Past Due", billing: "Monthly", amount: 29, nextBill: "Jan 05, 2026", avatar: "" },
-    { id: 4, name: "Diana Prince", email: "diana@amazon.com", plan: "Enterprise", status: "Active", billing: "Monthly", amount: 199, nextBill: "Feb 01, 2026", avatar: "" },
-    { id: 5, name: "Evan Wright", email: "evan@agency.net", plan: "Pro", status: "Cancelled", billing: "Monthly", amount: 79, nextBill: "-", avatar: "" },
-    { id: 6, name: "Fiona Gallagher", email: "fiona@store.com", plan: "Pro", status: "Active", billing: "Yearly", amount: 790, nextBill: "Mar 15, 2026", avatar: "" },
-    { id: 7, name: "George Miller", email: "george@freelance.org", plan: "Starter", status: "Active", billing: "Monthly", amount: 29, nextBill: "Feb 20, 2026", avatar: "" },
-    { id: 8, name: "Hannah Lee", email: "hannah@design.co", plan: "Pro", status: "Active", billing: "Monthly", amount: 79, nextBill: "Feb 28, 2026", avatar: "" },
+    { id: 1, name: "Alice Freeman", email: "alice@example.com", plan: "Pro", status: "Active", billing: "Yearly", amount: 350, nextBill: "Oct 24, 2026", avatar: "" },
+    { id: 2, name: "Bob Smith", email: "bob.smith@company.com", plan: "Pro", status: "Active", billing: "Monthly", amount: 35, nextBill: "Feb 12, 2026", avatar: "" },
+    { id: 3, name: "Charlie Davis", email: "charlie@startup.io", plan: "Starter", status: "Past Due", billing: "Monthly", amount: 15, nextBill: "Jan 05, 2026", avatar: "" },
+    { id: 4, name: "Diana Prince", email: "diana@amazon.com", plan: "Free", status: "Active", billing: "Monthly", amount: 0, nextBill: "-", avatar: "" },
+    { id: 5, name: "Evan Wright", email: "evan@agency.net", plan: "Pro", status: "Cancelled", billing: "Monthly", amount: 35, nextBill: "-", avatar: "" },
+    { id: 6, name: "Fiona Gallagher", email: "fiona@store.com", plan: "Pro", status: "Active", billing: "Yearly", amount: 350, nextBill: "Mar 15, 2026", avatar: "" },
+    { id: 7, name: "George Miller", email: "george@freelance.org", plan: "Starter", status: "Active", billing: "Monthly", amount: 15, nextBill: "Feb 20, 2026", avatar: "" },
+    { id: 8, name: "Hannah Lee", email: "hannah@design.co", plan: "Pro", status: "Active", billing: "Monthly", amount: 35, nextBill: "Feb 28, 2026", avatar: "" },
 ];
 
 const AdminSubscriptions: React.FC = () => {
@@ -63,13 +63,11 @@ const AdminSubscriptions: React.FC = () => {
     const getPlanAmount = (plan: string, billing: string) => {
         if (plan === 'Free') return 0;
         if (billing === 'Yearly') {
-            if (plan === 'Starter') return 290;
-            if (plan === 'Pro') return 790;
-            if (plan === 'Enterprise') return 1990;
+            if (plan === 'Starter') return 150;
+            if (plan === 'Pro') return 350;
         } else {
-            if (plan === 'Starter') return 29;
-            if (plan === 'Pro') return 79;
-            if (plan === 'Enterprise') return 199;
+            if (plan === 'Starter') return 15;
+            if (plan === 'Pro') return 35;
         }
         return 0;
     };
@@ -210,7 +208,6 @@ const AdminSubscriptions: React.FC = () => {
                         <option value="All">All Plans</option>
                         <option value="Starter">Starter</option>
                         <option value="Pro">Pro</option>
-                        <option value="Enterprise">Enterprise</option>
                     </select>
                 </div>
             </div>
@@ -335,7 +332,6 @@ const AdminSubscriptions: React.FC = () => {
                                         <option value="Free">Free</option>
                                         <option value="Starter">Starter</option>
                                         <option value="Pro">Pro</option>
-                                        <option value="Enterprise">Enterprise</option>
                                     </select>
                                 </div>
                                 <div className="space-y-2">

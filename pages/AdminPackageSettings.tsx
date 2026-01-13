@@ -15,9 +15,9 @@ import {
 
 // Dummy Data
 const INITIAL_PACKAGES = [
-    { id: 'free', name: 'Free', price: 0, color: 'slate', features: 3 },
-    { id: 'starter', name: 'Starter', price: 29, color: 'blue', features: 8 },
-    { id: 'pro', name: 'Pro', price: 79, color: 'purple', features: 12 },
+    { id: 'free', name: 'Free', price: 0, color: 'slate', features: 5 },
+    { id: 'starter', name: 'Starter', price: 15, color: 'blue', features: 10 },
+    { id: 'pro', name: 'Pro', price: 35, color: 'purple', features: 15 },
 ];
 
 const SIDEBAR_ITEMS = [
@@ -61,9 +61,9 @@ const INITIAL_LIMITS: Record<string, Record<string, number | string>> = {
 };
 
 const PAYMENT_REQUESTS = [
-    { id: 101, user: 'John Doe', method: 'Bank Transfer', amount: 790, plan: 'Pro Yearly', date: '2026-01-04', status: 'Pending', proofUrl: '#' },
-    { id: 102, user: 'Sarah Connor', method: 'E-Wallet (GCash)', amount: 29, plan: 'Starter Monthly', date: '2026-01-05', status: 'Pending', proofUrl: '#' },
-    { id: 103, user: 'Kyle Reese', method: 'Bank Transfer', amount: 199, plan: 'Enterprise Monthly', date: '2026-01-03', status: 'Approved', proofUrl: '#' },
+    { id: 101, user: 'John Doe', method: 'Bank Transfer', amount: 350, plan: 'Pro Yearly', date: '2026-01-04', status: 'Pending', proofUrl: '#' },
+    { id: 102, user: 'Sarah Connor', method: 'E-Wallet (GCash)', amount: 15, plan: 'Starter Monthly', date: '2026-01-05', status: 'Pending', proofUrl: '#' },
+    { id: 103, user: 'Kyle Reese', method: 'Bank Transfer', amount: 35, plan: 'Pro Monthly', date: '2026-01-03', status: 'Approved', proofUrl: '#' },
 ];
 
 const AdminPackageSettings: React.FC = () => {
@@ -123,8 +123,8 @@ const AdminPackageSettings: React.FC = () => {
                     <button
                         onClick={() => setActiveTab('packages')}
                         className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'packages'
-                                ? 'border-primary-500 text-primary-600 dark:text-primary-400'
-                                : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300'
+                            ? 'border-primary-500 text-primary-600 dark:text-primary-400'
+                            : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300'
                             }`}
                     >
                         <div className="flex items-center gap-2">
@@ -135,8 +135,8 @@ const AdminPackageSettings: React.FC = () => {
                     <button
                         onClick={() => setActiveTab('features')}
                         className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'features'
-                                ? 'border-primary-500 text-primary-600 dark:text-primary-400'
-                                : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300'
+                            ? 'border-primary-500 text-primary-600 dark:text-primary-400'
+                            : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300'
                             }`}
                     >
                         <div className="flex items-center gap-2">
@@ -147,8 +147,8 @@ const AdminPackageSettings: React.FC = () => {
                     <button
                         onClick={() => setActiveTab('payments')}
                         className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'payments'
-                                ? 'border-primary-500 text-primary-600 dark:text-primary-400'
-                                : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300'
+                            ? 'border-primary-500 text-primary-600 dark:text-primary-400'
+                            : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300'
                             }`}
                     >
                         <div className="flex items-center gap-2">
@@ -300,8 +300,8 @@ const AdminPackageSettings: React.FC = () => {
                                             </td>
                                             <td className="px-6 py-4">
                                                 <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${req.status === 'Approved' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
-                                                        req.status === 'Rejected' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
-                                                            'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
+                                                    req.status === 'Rejected' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
+                                                        'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
                                                     }`}>
                                                     {req.status}
                                                 </span>
