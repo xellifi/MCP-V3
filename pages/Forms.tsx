@@ -537,6 +537,28 @@ const Forms: React.FC<FormsProps> = ({ workspace }) => {
                     </p>
                 </div>
                 <div className="flex items-center gap-3">
+                    {/* View Toggle */}
+                    <div className={`flex items-center p-1 rounded-xl border ${isDark ? 'bg-white/5 border-white/10' : 'bg-white border-gray-200'} shadow-sm`}>
+                        <button
+                            onClick={() => setViewMode('list')}
+                            className={`p-2 rounded-lg transition-all ${viewMode === 'list'
+                                ? 'bg-indigo-500 text-white shadow-md'
+                                : `${textSecondary} hover:${textPrimary} hover:bg-gray-100/50`}`}
+                            title="List View"
+                        >
+                            <List className="w-5 h-5" />
+                        </button>
+                        <button
+                            onClick={() => setViewMode('grid')}
+                            className={`p-2 rounded-lg transition-all ${viewMode === 'grid'
+                                ? 'bg-indigo-500 text-white shadow-md'
+                                : `${textSecondary} hover:${textPrimary} hover:bg-gray-100/50`}`}
+                            title="Grid View"
+                        >
+                            <LayoutGrid className="w-5 h-5" />
+                        </button>
+                    </div>
+
                     {/* Create Form Button */}
                     <button
                         onClick={() => {
@@ -550,33 +572,11 @@ const Forms: React.FC<FormsProps> = ({ workspace }) => {
                             }
                             setShowCreateModal(true);
                         }}
-                        className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white rounded-xl font-medium transition-all shadow-lg shadow-indigo-500/25"
+                        className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white rounded-xl font-medium transition-all shadow-lg shadow-indigo-500/25 active:scale-95"
                     >
                         <Plus className="w-5 h-5" />
-                        <span className="hidden sm:inline">Create Form</span>
+                        <span>New Form</span>
                     </button>
-
-                    {/* View Toggle */}
-                    <div className={`flex ${isDark ? 'bg-white/5' : 'bg-gray-100'} p-1 rounded-lg border ${isDark ? 'border-white/10' : 'border-gray-200'}`}>
-                        <button
-                            onClick={() => setViewMode('list')}
-                            className={`p-2 rounded-md transition-all ${viewMode === 'list'
-                                ? 'bg-indigo-500 text-white shadow-lg'
-                                : `${textSecondary} hover:${textPrimary} ${isDark ? 'hover:bg-white/5' : 'hover:bg-gray-200'}`}`}
-                            title="List View"
-                        >
-                            <List className="w-5 h-5" />
-                        </button>
-                        <button
-                            onClick={() => setViewMode('grid')}
-                            className={`p-2 rounded-md transition-all ${viewMode === 'grid'
-                                ? 'bg-indigo-500 text-white shadow-lg'
-                                : `${textSecondary} hover:${textPrimary} ${isDark ? 'hover:bg-white/5' : 'hover:bg-gray-200'}`}`}
-                            title="Grid View"
-                        >
-                            <LayoutGrid className="w-5 h-5" />
-                        </button>
-                    </div>
                 </div>
             </div>
 
@@ -681,19 +681,15 @@ const Forms: React.FC<FormsProps> = ({ workspace }) => {
 
             {/* Forms Grid/List */}
             {paginatedForms.length > 0 ? (
-                <div className={viewMode === 'grid'
-                    ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4'
-                    : 'space-y-3'
-                }>
-                    {paginatedForms.map(form => (
-                        <div
-                            key={form.id}
-                            onClick={() => openFormDetails(form)}
-                            className={`${cardBg} rounded-2xl border overflow-hidden cursor-pointer group transition-all duration-300 relative ${viewMode === 'grid' ? 'p-5' : 'p-3'
-                                }`}
-                        >
-                            {viewMode === 'grid' ? (
-                                /* ===== GRID VIEW ===== */
+                viewMode === 'grid' ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                        {paginatedForms.map(form => (
+                            <div
+                                key={form.id}
+                                onClick={() => openFormDetails(form)}
+                                className={`${cardBg} rounded-2xl border overflow-hidden cursor-pointer group transition-all duration-300 relative p-5`}
+                            >
+                                {/* ===== GRID VIEW ===== */}
                                 <>
                                     {/* 3-Dot Menu - Upper Right */}
                                     <div className="absolute top-3 right-3 z-10 flex items-center gap-1">
@@ -784,7 +780,7 @@ const Forms: React.FC<FormsProps> = ({ workspace }) => {
                                         </span>
                                     </div>
 
-                                    {/* Center Icon - Form Type Icon (not FB logo, since that's shown below) */}
+                                    {/* Center Icon - Form Type Icon */}
                                     <div className="flex justify-center mb-4 mt-6">
                                         <div className="relative">
                                             {(form.submission_count || 0) > 0 && (
@@ -819,93 +815,192 @@ const Forms: React.FC<FormsProps> = ({ workspace }) => {
                                         </div>
                                     </div>
                                 </>
-                            ) : (
-                                /* ===== LIST VIEW - Redesigned ===== */
-                                <div className="flex items-center gap-4">
-                                    {/* Left: Form Type Icon with badge */}
-                                    <div className="relative flex-shrink-0">
-                                        {(form.submission_count || 0) > 0 && (
-                                            <div className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1 shadow-lg z-10">
-                                                {form.submission_count! > 99 ? '99+' : form.submission_count}
-                                            </div>
-                                        )}
-                                        {/* Glass Style Form Type Icons */}
-                                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center border-2 ${form.is_order_form
-                                            ? 'bg-emerald-500/10 border-emerald-500/30'
-                                            : 'bg-indigo-500/10 border-indigo-500/30'}`}>
-                                            {form.is_order_form
-                                                ? <ShoppingCart className="w-5 h-5 text-emerald-400" />
-                                                : <FileText className="w-5 h-5 text-indigo-400" />}
-                                        </div>
-                                    </div>
-
-                                    {/* Middle: Form Info */}
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-2 mb-0.5">
-                                            <h3 className={`font-semibold ${textPrimary} truncate group-hover:text-indigo-400 transition-colors text-sm`}>{form.name}</h3>
-                                            <span className={`flex-shrink-0 inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-medium ${form.is_order_form
-                                                ? `${isDark ? 'bg-emerald-500/20 text-emerald-400' : 'bg-emerald-50 text-emerald-600'}`
-                                                : `${isDark ? 'bg-indigo-500/20 text-indigo-400' : 'bg-indigo-50 text-indigo-600'}`
-                                                }`}>
-                                                {form.is_order_form ? 'Multi Step' : 'Regular'}
-                                            </span>
-                                        </div>
-                                        <div className="flex items-center gap-2 flex-wrap">
-                                            {form.product_name && (
-                                                <span className={`${textSecondary} text-xs truncate max-w-[200px]`}>
-                                                    {form.product_name}{form.is_order_form && form.product_price ? ` • ${getCurrencySymbol(form.currency)}${form.product_price.toLocaleString()}` : ''}
-                                                </span>
-                                            )}
-                                            {form.page_name && (
-                                                <span className={`flex items-center gap-1 text-xs ${textMuted}`}>
-                                                    <span className="w-1 h-1 rounded-full bg-slate-500" />
-                                                    {form.page_name}
-                                                </span>
-                                            )}
-                                        </div>
-                                    </div>
-
-                                    {/* Right: Date & Actions */}
-                                    <div className="flex items-center gap-3 flex-shrink-0">
-                                        <span className={`hidden sm:flex items-center gap-1 text-xs ${textMuted}`}>
-                                            <Clock className="w-3 h-3" />
-                                            {formatTimeAgo(form.created_at)}
-                                        </span>
-
-                                        {/* Action Menu */}
-                                        <div className="flex items-center gap-1">
-                                            {activeMenuId === form.id && (
-                                                <div
-                                                    className={`form-card-menu flex items-center gap-0.5 p-1 ${isDark ? 'bg-slate-800/95 border-slate-700' : 'bg-white/95 border-gray-200'} rounded-lg border shadow-xl backdrop-blur-sm animate-scale-in`}
-                                                    onClick={(e) => e.stopPropagation()}
-                                                >
-                                                    <button onClick={(e) => {
-                                                        e.stopPropagation(); setActiveMenuId(null); setEditingForm(form); setSelectedPageId(form.page_id);
-                                                        setEditFormConfig({ formName: form.name, isOrderForm: form.is_order_form, productName: form.product_name, productPrice: form.product_price, currency: form.currency, fields: form.fields, submitButtonText: form.submit_button_text, submitButtonColor: form.submit_button_color, borderRadius: form.border_radius, successMessage: form.success_message, headerImageUrl: form.header_image_url, countdownEnabled: form.countdown_enabled, countdownMinutes: form.countdown_minutes, countdownBlink: form.countdown_blink, maxQuantity: form.max_quantity, couponEnabled: form.coupon_enabled, couponCode: form.coupon_code, couponDiscount: form.coupon_discount, codEnabled: form.cod_enabled, ewalletEnabled: form.ewallet_enabled, ewalletOptions: form.ewallet_options, ewalletNumbers: form.ewallet_numbers, requireProofUpload: form.require_proof_upload, formTemplate: form.form_template, promoText: form.promo_text, promoIcon: form.promo_icon });
-                                                    }} className={`p-1.5 rounded-lg ${isDark ? 'hover:bg-white/10 text-slate-300 hover:text-white' : 'hover:bg-gray-100 text-gray-500 hover:text-gray-700'} transition-all`}>
-                                                        <Edit2 className="w-3.5 h-3.5" />
-                                                    </button>
-                                                    <button onClick={(e) => { e.stopPropagation(); setActiveMenuId(null); cloneForm(form); }} className={`p-1.5 rounded-lg ${isDark ? 'hover:bg-white/10 text-slate-300 hover:text-white' : 'hover:bg-gray-100 text-gray-500 hover:text-gray-700'} transition-all`}>
-                                                        <Copy className="w-3.5 h-3.5" />
-                                                    </button>
-                                                    <button onClick={(e) => { e.stopPropagation(); setActiveMenuId(null); openDeleteModal(form, e); }} className={`p-1.5 rounded-lg ${isDark ? 'hover:bg-red-500/20 text-red-400 hover:text-red-300' : 'hover:bg-red-50 text-red-400 hover:text-red-500'} transition-all`}>
-                                                        <Trash2 className="w-3.5 h-3.5" />
-                                                    </button>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    /* ===== LIST VIEW - Table Layout ===== */
+                    <div className={`overflow-x-auto ${panelBg} rounded-2xl border ${isDark ? 'border-white/10' : 'border-gray-200'}`}>
+                        <table className={`min-w-full divide-y ${isDark ? 'divide-white/10' : 'divide-gray-200'}`}>
+                            <thead className={isDark ? 'bg-white/5' : 'bg-gray-50'}>
+                                <tr>
+                                    <th scope="col" className={`px-6 py-3 text-left text-xs font-medium ${textMuted} uppercase tracking-wider`}>
+                                        Form
+                                    </th>
+                                    <th scope="col" className={`px-6 py-3 text-left text-xs font-medium ${textMuted} uppercase tracking-wider`}>
+                                        Details
+                                    </th>
+                                    <th scope="col" className={`px-6 py-3 text-left text-xs font-medium ${textMuted} uppercase tracking-wider`}>
+                                        Stats
+                                    </th>
+                                    <th scope="col" className={`px-6 py-3 text-left text-xs font-medium ${textMuted} uppercase tracking-wider`}>
+                                        Created
+                                    </th>
+                                    <th scope="col" className={`px-6 py-3 text-right text-xs font-medium ${textMuted} uppercase tracking-wider`}>
+                                        Actions
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody className={`divide-y ${isDark ? 'divide-white/10' : 'divide-gray-200'}`}>
+                                {paginatedForms.map(form => (
+                                    <tr
+                                        key={form.id}
+                                        onClick={() => openFormDetails(form)}
+                                        className={`group cursor-pointer transition-colors ${isDark ? 'hover:bg-white/5' : 'hover:bg-indigo-50/50'}`}
+                                    >
+                                        {/* Form Column */}
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <div className="flex items-center">
+                                                <div className="flex-shrink-0 h-10 w-10">
+                                                    <div className={`h-10 w-10 rounded-xl flex items-center justify-center border ${form.is_order_form
+                                                        ? 'bg-emerald-500/10 border-emerald-500/30'
+                                                        : 'bg-indigo-500/10 border-indigo-500/30'}`}>
+                                                        {form.is_order_form
+                                                            ? <ShoppingCart className="w-5 h-5 text-emerald-400" />
+                                                            : <FileText className="w-5 h-5 text-indigo-400" />}
+                                                    </div>
                                                 </div>
-                                            )}
-                                            <button
-                                                onClick={(e) => { e.stopPropagation(); setActiveMenuId(activeMenuId === form.id ? null : form.id); }}
-                                                className={`p-1.5 ${isDark ? 'hover:bg-white/10 text-white/50 hover:text-white' : 'hover:bg-gray-100 text-gray-400 hover:text-gray-700'} rounded-lg transition-all`}
-                                            >
-                                                <MoreVertical className="w-4 h-4" />
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    ))}
-                </div>
+                                                <div className="ml-4">
+                                                    <div className={`text-sm font-semibold ${textPrimary} group-hover:text-indigo-400 transition-colors`}>
+                                                        {form.name}
+                                                    </div>
+                                                    <div className={`text-xs ${textMuted} flex items-center gap-1 mt-0.5`}>
+                                                        <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium ${form.is_order_form
+                                                            ? `${isDark ? 'bg-emerald-500/20 text-emerald-400' : 'bg-emerald-50 text-emerald-600'}`
+                                                            : `${isDark ? 'bg-indigo-500/20 text-indigo-400' : 'bg-indigo-50 text-indigo-600'}`
+                                                            }`}>
+                                                            {form.is_order_form ? 'Multi Step' : 'Regular'}
+                                                        </span>
+                                                        {(form.submission_count || 0) > 0 && (
+                                                            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium bg-red-500/20 text-red-400">
+                                                                {form.submission_count} New
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </td>
+
+                                        {/* Details Column */}
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <div className="flex flex-col gap-1">
+                                                {form.product_name && (
+                                                    <div className={`text-sm ${textPrimary}`}>
+                                                        {form.product_name}
+                                                        {form.is_order_form && form.product_price && (
+                                                            <span className={`ml-1 ${textSecondary}`}>
+                                                                • {getCurrencySymbol(form.currency)}{form.product_price.toLocaleString()}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                )}
+                                                {form.page_name ? (
+                                                    <div className="flex items-center gap-1.5">
+                                                        {form.page_logo && <img src={form.page_logo} alt="" className="w-4 h-4 rounded-full object-cover" />}
+                                                        <span className={`text-xs ${textSecondary}`}>{form.page_name}</span>
+                                                    </div>
+                                                ) : (
+                                                    <span className={`text-xs ${textMuted} italic`}>No page connected</span>
+                                                )}
+                                            </div>
+                                        </td>
+
+                                        {/* Stats Column */}
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <div className="flex items-center gap-4">
+                                                <div className="text-center">
+                                                    <div className={`text-sm font-bold ${textPrimary}`}>{form.submission_count || 0}</div>
+                                                    <div className={`text-[10px] ${textMuted} uppercase`}>Submissions</div>
+                                                </div>
+                                            </div>
+                                        </td>
+
+                                        {/* Created Column */}
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <div className={`text-sm ${textSecondary}`}>
+                                                {formatDate(form.created_at)}
+                                            </div>
+                                            <div className={`text-xs ${textMuted}`}>
+                                                {formatTimeAgo(form.created_at)}
+                                            </div>
+                                        </td>
+
+                                        {/* Actions Column */}
+                                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                            <div className="flex items-center justify-end gap-2">
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setEditingForm(form);
+                                                        setSelectedPageId(form.page_id);
+                                                        setEditFormConfig({
+                                                            formName: form.name,
+                                                            isOrderForm: form.is_order_form,
+                                                            productName: form.product_name,
+                                                            productPrice: form.product_price,
+                                                            currency: form.currency,
+                                                            fields: form.fields,
+                                                            submitButtonText: form.submit_button_text,
+                                                            submitButtonColor: form.submit_button_color,
+                                                            borderRadius: form.border_radius,
+                                                            successMessage: form.success_message,
+                                                            headerImageUrl: form.header_image_url,
+                                                            countdownEnabled: form.countdown_enabled,
+                                                            countdownMinutes: form.countdown_minutes,
+                                                            countdownBlink: form.countdown_blink,
+                                                            maxQuantity: form.max_quantity,
+                                                            couponEnabled: form.coupon_enabled,
+                                                            couponCode: form.coupon_code,
+                                                            couponDiscount: form.coupon_discount,
+                                                            codEnabled: form.cod_enabled,
+                                                            ewalletEnabled: form.ewallet_enabled,
+                                                            ewalletOptions: form.ewallet_options,
+                                                            ewalletNumbers: form.ewallet_numbers,
+                                                            requireProofUpload: form.require_proof_upload,
+                                                            formTemplate: form.form_template,
+                                                            promoText: form.promo_text,
+                                                            promoIcon: form.promo_icon,
+                                                        });
+                                                    }}
+                                                    className={`p-1.5 rounded-lg transition-colors ${isDark
+                                                        ? 'text-slate-400 hover:text-white hover:bg-white/10'
+                                                        : 'text-gray-400 hover:text-indigo-600 hover:bg-indigo-50'
+                                                        }`}
+                                                    title="Edit Form"
+                                                >
+                                                    <Edit2 className="w-4 h-4" />
+                                                </button>
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        cloneForm(form);
+                                                    }}
+                                                    className={`p-1.5 rounded-lg transition-colors ${isDark
+                                                        ? 'text-slate-400 hover:text-white hover:bg-white/10'
+                                                        : 'text-gray-400 hover:text-indigo-600 hover:bg-indigo-50'
+                                                        }`}
+                                                    title="Duplicate Form"
+                                                >
+                                                    <Copy className="w-4 h-4" />
+                                                </button>
+                                                <button
+                                                    onClick={(e) => openDeleteModal(form, e)}
+                                                    className={`p-1.5 rounded-lg transition-colors ${isDark
+                                                        ? 'text-slate-400 hover:text-red-400 hover:bg-red-500/10'
+                                                        : 'text-gray-400 hover:text-red-600 hover:bg-red-50'
+                                                        }`}
+                                                    title="Delete Form"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )
             ) : (
                 <div className={`py-20 text-center ${panelBg} rounded-3xl border ${isDark ? 'border-dashed border-white/10' : 'border-dashed border-gray-300'}`}>
                     <div className={`w-20 h-20 ${isDark ? 'bg-indigo-500/10 text-indigo-400' : 'bg-indigo-50 text-indigo-500'} rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner`}>
