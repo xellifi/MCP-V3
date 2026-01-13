@@ -230,6 +230,51 @@ export const api = {
         }
       }
       return null;
+    },
+
+    updateProfile: async (userId: string, updates: { name?: string; avatarUrl?: string; email?: string; password?: string }): Promise<void> => {
+      // 1. Update Auth (Email/Password) if provided
+      if (updates.email || updates.password) {
+        const { error } = await supabase.auth.updateUser({
+          email: updates.email,
+          password: updates.password
+        });
+        if (error) throw new Error(error.message);
+      }
+
+      // 2. Update Profile Data (Name, Avatar)
+      // Check if we have profile specific updates or need to sync email
+      const profileUpdates: any = {};
+
+      if (updates.name !== undefined) profileUpdates.name = updates.name;
+      if (updates.avatarUrl !== undefined) profileUpdates.avatar_url = updates.avatarUrl;
+      if (updates.email !== undefined) profileUpdates.email = updates.email;
+
+      if (Object.keys(profileUpdates).length > 0) {
+        const { error } = await supabase
+          .from('profiles')
+          .update(profileUpdates)
+          .eq('id', userId);
+
+        if (error) throw new Error(error.message);
+      }
+    },
+
+    uploadAvatar: async (userId: string, file: File): Promise<string> => {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${userId}/${Date.now()}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('profile-logo')
+        .upload(fileName, file, { cacheControl: '3600', upsert: true });
+
+      if (uploadError) throw new Error(uploadError.message);
+
+      const { data } = supabase.storage
+        .from('profile-logo')
+        .getPublicUrl(fileName);
+
+      return data.publicUrl;
     }
   },
 
