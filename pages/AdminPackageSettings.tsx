@@ -164,7 +164,7 @@ const AdminPackageSettings: React.FC = () => {
         try {
             const currentSettings = await api.admin.getSettings();
             await api.admin.updateSettings({
-                id: currentSettings.id || 1,
+                ...currentSettings,
                 paymentConfig: paymentConfig
             });
             toast.success('Payment settings saved successfully');

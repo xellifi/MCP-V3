@@ -1867,6 +1867,12 @@ export const api = {
       }
     },
 
+    // Alias for backward compatibility
+    saveSettings: async (settings: Partial<AdminSettings>): Promise<void> => {
+      const fullSettings = await api.admin.getSettings();
+      return api.admin.updateSettings({ ...fullSettings, ...settings });
+    },
+
     testEmail: async (to: string): Promise<void> => {
       await delay(1500);
       if (!to.includes('@')) throw new Error("Invalid email address");

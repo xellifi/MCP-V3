@@ -27,7 +27,8 @@ import {
   FileText,
   Store,
   Package,
-  ShoppingBag
+  ShoppingBag,
+  Lock as LockIcon
 } from 'lucide-react';
 import { User, Workspace, UserRole } from '../types';
 import { api } from '../services/api';
@@ -260,7 +261,7 @@ const Layout: React.FC<LayoutProps> = ({
           <Icon className="w-5 h-5 flex-shrink-0" style={{ color: 'inherit' }} />
           {locked && isSidebarCollapsed && (
             <div className="absolute -top-1 -right-1 bg-slate-900 dark:bg-slate-950 rounded-full p-[1px] border border-slate-700">
-              <Lock className="w-2 h-2 text-slate-400" />
+              <LockIcon className="w-2 h-2 text-slate-400" />
             </div>
           )}
         </div>
@@ -272,7 +273,7 @@ const Layout: React.FC<LayoutProps> = ({
 
         {/* Lock Icon for Expanded View */}
         {!isSidebarCollapsed && locked && (
-          <Lock className="w-3 h-3 text-slate-400 opacity-70" />
+          <LockIcon className="w-3 h-3 text-slate-400 opacity-70" />
         )}
 
         {/* Active Indicator Dot (Only show if allowed) */}
@@ -283,7 +284,7 @@ const Layout: React.FC<LayoutProps> = ({
         {/* Tooltip for collapsed state - desktop only */}
         {isSidebarCollapsed && (
           <div className="hidden lg:flex items-center gap-2 absolute left-full ml-2 px-3 py-1.5 bg-slate-900 dark:bg-slate-700 text-white text-sm rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50 shadow-lg">
-            {label} {locked && <Lock className="w-3 h-3 text-slate-300" />}
+            {label} {locked && <LockIcon className="w-3 h-3 text-slate-300" />}
             <div className="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-slate-900 dark:border-r-slate-700"></div>
           </div>
         )}
