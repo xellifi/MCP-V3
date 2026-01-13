@@ -742,9 +742,9 @@ const Inbox: React.FC<InboxProps> = ({ workspace }) => {
             )}
 
             {/* Input */}
-            <div className={`p-4 border-t flex-shrink-0 z-20 ${isDark ? 'bg-slate-900/80 backdrop-blur-xl border-white/10' : 'bg-white border-slate-200'}`}>
+            <div className={`p-2 md:p-4 border-t flex-shrink-0 z-20 ${isDark ? 'bg-slate-900/80 backdrop-blur-xl border-white/10' : 'bg-white border-slate-200'}`}>
               <form onSubmit={handleSendMessage} className="flex items-end gap-2 p-1 relative">
-                <div className="flex gap-2 mb-2">
+                <div className="flex gap-2 mb-2 flex-shrink-0">
                   <input
                     type="file"
                     ref={fileInputRef}
@@ -770,7 +770,7 @@ const Inbox: React.FC<InboxProps> = ({ workspace }) => {
                   </button>
                 </div>
 
-                <div className={`flex-1 rounded-2xl flex items-center border transition-all ${isDark
+                <div className={`flex-1 min-w-0 rounded-2xl flex items-center border transition-all ${isDark
                   ? 'bg-white/5 border-white/5 focus-within:border-indigo-500/50 focus-within:bg-white/10'
                   : 'bg-slate-50 border-slate-200 focus-within:border-indigo-500/50 focus-within:bg-white'
                   } focus-within:ring-2 focus-within:ring-indigo-500/20`}>
