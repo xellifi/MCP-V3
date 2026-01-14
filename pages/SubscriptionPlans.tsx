@@ -11,11 +11,22 @@ const SubscriptionPlans: React.FC = () => {
 
     const [plans, setPlans] = useState<any[]>([]); // Using any[] for UI mapped shape, or define interface
     const [loading, setLoading] = useState(true);
+    const [currentPackageId, setCurrentPackageId] = useState<string | null>(null);
 
     React.useEffect(() => {
         const fetchPlans = async () => {
             try {
-                const data = await api.admin.getPackages();
+                // Fetch plans and current subscription in parallel
+                const [data, currentSub] = await Promise.all([
+                    api.admin.getPackages(),
+                    api.subscriptions.getCurrentSubscription()
+                ]);
+
+                // Set current package ID if user has active subscription
+                if (currentSub && currentSub.package_id) {
+                    setCurrentPackageId(currentSub.package_id);
+                }
+
                 if (data && data.length > 0) {
                     // Map DB packages to UI structure
                     const mappedPlans = data.map(pkg => {
@@ -114,64 +125,93 @@ const SubscriptionPlans: React.FC = () => {
                             <Loader2 className="w-10 h-10 animate-spin text-primary-500" />
                         </div>
                     ) : (
-                        plans.map((plan) => (
-                            <div
-                                key={plan.id || plan.name}
-                                className={`relative group flex flex-col p-8 bg-white dark:bg-slate-900/80 backdrop-blur-xl border-2 rounded-3xl transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl ${plan.popular
-                                    ? 'border-purple-500 dark:border-purple-500 shadow-purple-500/10 z-10 scale-105 md:scale-110'
-                                    : 'border-slate-100 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
-                                    }`}
-                            >
-                                {plan.popular && (
-                                    <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-xs font-bold uppercase tracking-wider rounded-full shadow-lg flex items-center gap-1">
-                                        <Rocket className="w-3 h-3" /> Most Popular
-                                    </div>
-                                )}
-
-                                <div className="mb-6 space-y-4">
-                                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center bg-${plan.color}-100 dark:bg-${plan.color}-900/30 text-${plan.color}-600 dark:text-${plan.color}-400 shadow-sm`}>
-                                        <plan.icon className="w-7 h-7" />
-                                    </div>
-                                    <div>
-                                        <h3 className="text-2xl font-bold text-slate-900 dark:text-white">{plan.name}</h3>
-                                        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{plan.description}</p>
-                                    </div>
-                                </div>
-
-                                <div className="mb-8">
-                                    <div className="flex items-baseline gap-1">
-                                        <span className="text-5xl font-extrabold text-slate-900 dark:text-white tracking-tight">${plan.price}</span>
-                                        <span className="text-lg text-slate-500 dark:text-slate-400 font-medium">/{billingCycle === 'monthly' ? 'mo' : 'yr'}</span>
-                                    </div>
-                                </div>
-
-                                <div className="flex-1 space-y-4 mb-8">
-                                    {plan.features.map((feature: string) => (
-                                        <div key={feature} className="flex items-start gap-3 group/feature">
-                                            <div className={`flex-shrink-0 p-1 rounded-full bg-${plan.color}-100 dark:bg-${plan.color}-900/50 text-${plan.color}-600 dark:text-${plan.color}-400 mt-0.5 transition-colors group-hover/feature:bg-${plan.color}-200 dark:group-hover/feature:bg-${plan.color}-800`}>
-                                                <Check className="w-3.5 h-3.5" />
-                                            </div>
-                                            <span className="text-sm text-slate-700 dark:text-slate-300 font-medium">
-                                                {feature}
-                                            </span>
-                                        </div>
-                                    ))}
-                                    {(plan.features.length === 0) && (
-                                        <div className="text-sm text-slate-400 italic">No features listed</div>
-                                    )}
-                                </div>
-
-                                <button
-                                    onClick={() => handleSelectPlan(plan)}
-                                    className={`w-full py-4 px-6 rounded-xl font-bold text-sm transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] ${plan.popular
-                                        ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg shadow-purple-500/25 hover:shadow-purple-500/40'
-                                        : 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:bg-slate-800 dark:hover:bg-slate-200'
+                        plans.map((plan) => {
+                            const isCurrentPlan = plan.id === currentPackageId;
+                            return (
+                                <div
+                                    key={plan.id || plan.name}
+                                    className={`relative group flex flex-col p-8 bg-white dark:bg-slate-900/80 backdrop-blur-xl border-2 rounded-3xl transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl ${isCurrentPlan
+                                        ? 'border-emerald-500 dark:border-emerald-500 shadow-emerald-500/20 ring-2 ring-emerald-500/30'
+                                        : plan.popular
+                                            ? 'border-purple-500 dark:border-purple-500 shadow-purple-500/10 z-10 scale-105 md:scale-110'
+                                            : 'border-slate-100 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
                                         }`}
                                 >
-                                    {plan.popular ? 'Start Your Free Trial' : `Select ${plan.name} Plan`}
-                                </button>
-                            </div>
-                        ))
+                                    {/* Current Plan Badge - Artistic & Noticeable */}
+                                    {isCurrentPlan && (
+                                        <div className="absolute -top-4 left-1/2 -translate-x-1/2 z-20">
+                                            <div className="relative">
+                                                {/* Glow effect */}
+                                                <div className="absolute inset-0 bg-gradient-to-r from-emerald-400 to-teal-500 blur-md opacity-60 rounded-full"></div>
+                                                {/* Badge */}
+                                                <div className="relative px-5 py-1.5 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 text-white text-xs font-black uppercase tracking-widest rounded-full shadow-xl flex items-center gap-1.5 animate-pulse">
+                                                    <Check className="w-3.5 h-3.5" />
+                                                    <span>Current Plan</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Popular Badge (only show if not current plan) */}
+                                    {plan.popular && !isCurrentPlan && (
+                                        <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-xs font-bold uppercase tracking-wider rounded-full shadow-lg flex items-center gap-1">
+                                            <Rocket className="w-3 h-3" /> Most Popular
+                                        </div>
+                                    )}
+
+                                    <div className="mb-6 space-y-4">
+                                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center bg-${plan.color}-100 dark:bg-${plan.color}-900/30 text-${plan.color}-600 dark:text-${plan.color}-400 shadow-sm`}>
+                                            <plan.icon className="w-7 h-7" />
+                                        </div>
+                                        <div>
+                                            <h3 className="text-2xl font-bold text-slate-900 dark:text-white">{plan.name}</h3>
+                                            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{plan.description}</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="mb-8">
+                                        <div className="flex items-baseline gap-1">
+                                            <span className="text-5xl font-extrabold text-slate-900 dark:text-white tracking-tight">${plan.price}</span>
+                                            <span className="text-lg text-slate-500 dark:text-slate-400 font-medium">/{billingCycle === 'monthly' ? 'mo' : 'yr'}</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex-1 space-y-4 mb-8">
+                                        {plan.features.map((feature: string) => (
+                                            <div key={feature} className="flex items-start gap-3 group/feature">
+                                                <div className={`flex-shrink-0 p-1 rounded-full bg-${plan.color}-100 dark:bg-${plan.color}-900/50 text-${plan.color}-600 dark:text-${plan.color}-400 mt-0.5 transition-colors group-hover/feature:bg-${plan.color}-200 dark:group-hover/feature:bg-${plan.color}-800`}>
+                                                    <Check className="w-3.5 h-3.5" />
+                                                </div>
+                                                <span className="text-sm text-slate-700 dark:text-slate-300 font-medium">
+                                                    {feature}
+                                                </span>
+                                            </div>
+                                        ))}
+                                        {(plan.features.length === 0) && (
+                                            <div className="text-sm text-slate-400 italic">No features listed</div>
+                                        )}
+                                    </div>
+
+                                    <button
+                                        onClick={() => !isCurrentPlan && handleSelectPlan(plan)}
+                                        disabled={isCurrentPlan}
+                                        className={`w-full py-4 px-6 rounded-xl font-bold text-sm transition-all duration-200 transform ${isCurrentPlan
+                                            ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 cursor-default border-2 border-emerald-500/50'
+                                            : plan.popular
+                                                ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg shadow-purple-500/25 hover:shadow-purple-500/40 hover:scale-[1.02] active:scale-[0.98]'
+                                                : 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:bg-slate-800 dark:hover:bg-slate-200 hover:scale-[1.02] active:scale-[0.98]'
+                                            }`}
+                                    >
+                                        {isCurrentPlan ? (
+                                            <span className="flex items-center justify-center gap-2">
+                                                <Check className="w-4 h-4" />
+                                                Current Plan
+                                            </span>
+                                        ) : plan.popular ? 'Start Your Free Trial' : `Select ${plan.name} Plan`}
+                                    </button>
+                                </div>
+                            );
+                        })
                     )}
                 </div>
 
