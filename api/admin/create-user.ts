@@ -40,10 +40,28 @@ export default async function handler(req: any, res: any) {
             console.error('Auth error:', authError);
 
             // Provide specific error messages
-            if (authError.message?.includes('already registered') || authError.message?.includes('already been registered')) {
-                return res.status(400).json({
-                    error: 'A user with this email address already exists. Please use a different email or contact support.'
-                });
+            // Check for email_exists error code (Supabase specific)
+            if ((authError as any).code === 'email_exists' ||
+                authError.message?.includes('already registered') ||
+                authError.message?.includes('already been registered')) {
+
+                // Try to find if profile exists
+                const { data: existingProfile } = await supabaseAdmin
+                    .from('profiles')
+                    .select('id, email, name')
+                    .eq('email', email)
+                    .maybeSingle();
+
+                if (existingProfile) {
+                    return res.status(400).json({
+                        error: `A user with email "${email}" already exists in the system.`
+                    });
+                } else {
+                    // User exists in Auth but not in profiles (orphaned auth user)
+                    return res.status(400).json({
+                        error: `This email is registered in authentication but the profile is missing. Please delete the user from Supabase Auth Dashboard first (Authentication > Users), then try again.`
+                    });
+                }
             }
 
             if (authError.message?.includes('invalid email')) {
