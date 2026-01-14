@@ -63,13 +63,17 @@ export default async function handler(req: any, res: any) {
         }
 
         // Generate a magic link for the target user
-        // Note: This will use the Site URL configured in Supabase Dashboard > Authentication > URL Configuration
-        const siteUrl = process.env.VITE_APP_URL || req.headers.origin || 'http://localhost:5173';
-        console.log('Using redirect URL:', siteUrl);
+        // Use the request origin to build the redirect URL
+        const siteUrl = req.headers.origin || process.env.VITE_APP_URL || 'http://localhost:5173';
+        const redirectUrl = `${siteUrl}/dashboard`;
+        console.log('Using redirect URL:', redirectUrl);
 
         const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
             type: 'magiclink',
-            email: targetUser.email
+            email: targetUser.email,
+            options: {
+                redirectTo: redirectUrl
+            }
         });
 
         if (linkError) {

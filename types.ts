@@ -161,7 +161,7 @@ export interface UserSubscription {
   id: string;
   user_id: string;
   package_id: string;
-  status: 'Active' | 'Past Due' | 'Cancelled';
+  status: 'Active' | 'Pending' | 'Past Due' | 'Cancelled';
   billing_cycle: 'Monthly' | 'Yearly';
   amount: number;
   next_billing_date: string | null;

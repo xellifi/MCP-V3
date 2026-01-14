@@ -84,7 +84,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                 await api.subscriptions.create({
                     email: finalEmail || 'guest@example.com', // Fallback for safety, logic should be tighter
                     package_id: packageId,
-                    status: 'Active',
+                    status: 'Pending', // Manual payments require admin approval
                     billing_cycle: billingCycle === 'monthly' ? 'Monthly' : 'Yearly',
                     amount: price,
                     next_billing_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
