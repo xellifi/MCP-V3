@@ -231,32 +231,39 @@ const Layout: React.FC<LayoutProps> = ({
     return () => document.removeEventListener('click', handleClickOutside);
   }, [profileDropdownOpen]);
 
+  // Default allowed routes for Free plan (no subscription or Pending subscription)
+  const FREE_PLAN_ROUTES = ['/', '/dashboard', '/support', '/settings', '/packages'];
+
   // Handle navigation click with permission check
   const handleNavClick = (e: React.MouseEvent, path: string, label: string) => {
-    // Check permissions - only apply package restrictions if subscription is Active
+    // Admins/Owners bypass all restrictions
+    if (isAdminOrOwner) {
+      setSidebarOpen(false);
+      return;
+    }
+
+    // Determine which routes the user can access
     const hasActiveSubscription = currentSubscription?.status === 'Active';
-    if (!isAdminOrOwner && hasActiveSubscription && currentSubscription?.packages?.allowed_routes?.length > 0) {
-      const allowed = currentSubscription.packages.allowed_routes;
+    const allowedRoutes = hasActiveSubscription && currentSubscription?.packages?.allowed_routes?.length > 0
+      ? currentSubscription.packages.allowed_routes
+      : FREE_PLAN_ROUTES; // Fall back to Free plan routes for Pending/no subscription
 
-      // Normalize dashboard paths: Package Settings stores '/' but NavItem uses '/dashboard'
-      // Check both variations for Dashboard
-      let pathIsAllowed = allowed.includes(path);
-      if (!pathIsAllowed) {
-        // Dashboard special case: check both '/' and '/dashboard'
-        if (path === '/dashboard') {
-          pathIsAllowed = allowed.includes('/');
-        } else if (path === '/') {
-          pathIsAllowed = allowed.includes('/dashboard');
-        }
+    // Normalize dashboard paths
+    let pathIsAllowed = allowedRoutes.includes(path);
+    if (!pathIsAllowed) {
+      if (path === '/dashboard') {
+        pathIsAllowed = allowedRoutes.includes('/');
+      } else if (path === '/') {
+        pathIsAllowed = allowedRoutes.includes('/dashboard');
       }
+    }
 
-      if (!pathIsAllowed) {
-        e.preventDefault();
-        setRestrictedFeature(label);
-        setShowUpgradeModal(true);
-        setSidebarOpen(false);
-        return;
-      }
+    if (!pathIsAllowed) {
+      e.preventDefault();
+      setRestrictedFeature(label);
+      setShowUpgradeModal(true);
+      setSidebarOpen(false);
+      return;
     }
     setSidebarOpen(false);
   };
@@ -436,16 +443,18 @@ const Layout: React.FC<LayoutProps> = ({
               if (path === '/packages' && isAdminOrOwner) return null;
 
               // Package Route Restriction Logic
-              // If not admin/owner AND subscription is Active, check allowed routes
-              // Pending subscriptions should NOT unlock access - they remain on their previous plan
+              // If not admin/owner, check allowed routes based on subscription status
+              // Pending/no subscription = Free plan routes only
               let isLocked = false;
-              const hasActiveSubscription = currentSubscription?.status === 'Active';
 
-              if (!isAdminOrOwner && hasActiveSubscription && currentSubscription?.packages?.allowed_routes?.length > 0) {
-                const allowed = currentSubscription.packages.allowed_routes;
-                // If the current path is NOT in the allowed list, mark it as locked
-                // We check against 'path' (from menuOrder) and 'renderPath' (url) just in case
-                const pathIsAllowed = allowed.includes(path) || allowed.includes(renderPath);
+              if (!isAdminOrOwner) {
+                const hasActiveSubscription = currentSubscription?.status === 'Active';
+                const allowedRoutes = hasActiveSubscription && currentSubscription?.packages?.allowed_routes?.length > 0
+                  ? currentSubscription.packages.allowed_routes
+                  : FREE_PLAN_ROUTES; // Free plan routes for Pending/no subscription
+
+                // Check if path is allowed
+                const pathIsAllowed = allowedRoutes.includes(path) || allowedRoutes.includes(renderPath);
                 if (!pathIsAllowed) {
                   isLocked = true;
                 }
