@@ -28,7 +28,8 @@ import {
   Store,
   Package,
   ShoppingBag,
-  Lock as LockIcon
+  Lock as LockIcon,
+  UserX
 } from 'lucide-react';
 import { User, Workspace, UserRole } from '../types';
 import { api } from '../services/api';
@@ -66,6 +67,10 @@ const Layout: React.FC<LayoutProps> = ({
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [currentSubscription, setCurrentSubscription] = useState<any>(null);
+
+  // Impersonation state
+  const [isImpersonating, setIsImpersonating] = useState(false);
+  const [impersonatedUserName, setImpersonatedUserName] = useState<string | null>(null);
 
   const handleProfileUpdate = () => {
     window.location.reload();
@@ -137,6 +142,11 @@ const Layout: React.FC<LayoutProps> = ({
       }
     };
     loadSubscription();
+
+    // Check if currently impersonating
+    const impersonationStatus = api.admin.isImpersonating();
+    setIsImpersonating(impersonationStatus.isImpersonating);
+    setImpersonatedUserName(impersonationStatus.userName);
 
   }, []);
 
@@ -302,310 +312,342 @@ const Layout: React.FC<LayoutProps> = ({
     );
   };
 
+  // Handle ending impersonation session
+  const handleEndImpersonation = async () => {
+    try {
+      await api.admin.endImpersonation();
+      // Redirect to login page - admin will need to log in again
+      window.location.href = '/login';
+    } catch (error) {
+      console.error('Failed to end impersonation:', error);
+    }
+  };
+
   const sidebarWidth = isSidebarCollapsed ? 'w-[280px] lg:w-20' : 'w-[280px]';
 
   return (
-    <div className={`h-screen flex w-full overflow-hidden bg-slate-50 dark:bg-slate-950 transition-colors duration-200 relative`}>
-      {/* Cosmic Background for Dashboard (Subtle) */}
-      <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none opacity-50 dark:opacity-100">
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-indigo-500/10 rounded-full blur-[120px]"></div>
-        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-purple-500/10 rounded-full blur-[120px]"></div>
-      </div>
-
-      {/* Mobile Sidebar Overlay */}
-      <div
-        className={`fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-40 lg:hidden transition-opacity duration-300 ${isSidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
-          }`}
-        onClick={() => setSidebarOpen(false)}
-      />
-
-      {/* Sidebar - Desktop & Mobile Drawer */}
-      <aside
-        className={`fixed lg:static inset-y-0 left-0 z-50 ${sidebarWidth} flex flex-col transition-all duration-300 ease-in-out lg:transform-none 
-        bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-r border-slate-200 dark:border-slate-800 shadow-2xl lg:shadow-none ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
-          }`}
-      >
-        {/* Brand Header */}
-        <div className="h-16 flex items-center px-6 border-b border-slate-200 dark:border-slate-800 flex-shrink-0 relative">
-          {/* Full branding - show on mobile always, on desktop when not collapsed */}
-          <div className={`flex items-center ${isSidebarCollapsed ? 'lg:hidden' : 'flex'}`}>
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-500 to-indigo-600 flex items-center justify-center text-white mr-3">
-              <Bot className="w-5 h-5" />
-            </div>
-            <span className="text-xl font-bold text-slate-900 dark:text-white">
-              Mychat Pilot
+    <div className={`h-screen flex flex-col w-full overflow-hidden bg-slate-50 dark:bg-slate-950 transition-colors duration-200 relative`}>
+      {/* Impersonation Banner */}
+      {isImpersonating && (
+        <div className="bg-amber-500 text-white px-4 py-2 flex items-center justify-between z-[100] flex-shrink-0">
+          <div className="flex items-center gap-2">
+            <UserX className="w-4 h-4" />
+            <span className="text-sm font-medium">
+              You are viewing as <strong>{impersonatedUserName || user.name}</strong>
             </span>
           </div>
-
-          {/* Collapsed branding - only show on desktop when collapsed */}
-          {isSidebarCollapsed && (
-            <div className="hidden lg:flex w-8 h-8 rounded-lg bg-gradient-to-br from-primary-500 to-indigo-600 items-center justify-center text-white mx-auto">
-              <Bot className="w-5 h-5" />
-            </div>
-          )}
-
           <button
-            className="ml-auto lg:hidden text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-            onClick={toggleSidebar}
+            onClick={handleEndImpersonation}
+            className="flex items-center gap-1.5 px-3 py-1 bg-white/20 hover:bg-white/30 rounded-lg text-sm font-medium transition-colors"
           >
-            <X className="w-5 h-5" />
-          </button>
-
-          {/* Desktop Collapse Toggle */}
-          <button
-            className="hidden lg:block absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-white dark:bg-slate-900 border-2 border-slate-300 dark:border-slate-700 rounded-full text-slate-600 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 hover:border-primary-500 transition-all"
-            onClick={toggleSidebarCollapse}
-            title={isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          >
-            {isSidebarCollapsed ? <ChevronRight className="w-3 h-3" /> : <ChevronLeft className="w-3 h-3" />}
+            <LogOut className="w-3.5 h-3.5" />
+            End Session
           </button>
         </div>
+      )}
 
-        {/* Workspace Selector */}
-        <div className={`p-4 flex-shrink-0 ${isSidebarCollapsed ? 'lg:hidden' : 'block'}`}>
-          <div className="relative">
-            <select
-              className="w-full appearance-none bg-slate-100 dark:bg-slate-950 border-2 border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-200 text-sm font-medium rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 block p-3 pr-10 transition-all cursor-pointer hover:border-primary-400 dark:hover:border-slate-700 outline-none"
-              value={currentWorkspace.id}
-              onChange={(e) => onWorkspaceChange(e.target.value)}
-            >
-              {workspaces.map(ws => (
-                <option key={ws.id} value={ws.id}>{ws.name}</option>
-              ))}
-            </select>
-            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-500">
-              <ChevronDown className="w-4 h-4" />
-            </div>
-          </div>
+      <div className="flex flex-1 min-h-0">
+        {/* Cosmic Background for Dashboard (Subtle) */}
+        <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none opacity-50 dark:opacity-100">
+          <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-indigo-500/10 rounded-full blur-[120px]"></div>
+          <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-purple-500/10 rounded-full blur-[120px]"></div>
         </div>
 
-        {/* Navigation List */}
-        <nav className="flex-1 px-4 space-y-1 overflow-y-auto py-2 custom-scrollbar">
-          <div className={`text-xs font-semibold text-slate-500 dark:text-slate-500 uppercase tracking-wider mb-2 px-3 mt-2 ${isSidebarCollapsed ? 'lg:hidden' : 'block'}`}>
-            Menu
-          </div>
+        {/* Mobile Sidebar Overlay */}
+        <div
+          className={`fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-40 lg:hidden transition-opacity duration-300 ${isSidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+            }`}
+          onClick={() => setSidebarOpen(false)}
+        />
 
-          {menuOrder.map(path => {
-            let renderPath = path;
-            if (path === '/') renderPath = '/dashboard';
-
-            // Filter logic
-            if (path === '/settings' && isAdminOrOwner) return null;
-            if (path === '/packages' && isAdminOrOwner) return null;
-
-            // Package Route Restriction Logic
-            // If not admin/owner AND subscription is loaded, check allowed routes
-            let isLocked = false;
-
-            if (!isAdminOrOwner && currentSubscription?.packages?.allowed_routes?.length > 0) {
-              const allowed = currentSubscription.packages.allowed_routes;
-              // If the current path is NOT in the allowed list, mark it as locked
-              // We check against 'path' (from menuOrder) and 'renderPath' (url) just in case
-              const pathIsAllowed = allowed.includes(path) || allowed.includes(renderPath);
-              if (!pathIsAllowed) {
-                isLocked = true;
-              }
-            }
-
-            const item = ALL_NAV_ITEMS[path] || ALL_NAV_ITEMS[renderPath];
-            if (!item) return null;
-
-            return <NavItem key={path} to={renderPath} icon={item.icon} label={item.label} locked={isLocked} />;
-          })}
-
-          {isAdminOrOwner && (
-            <div className="mt-8">
-              <div className={`text-xs font-semibold text-slate-500 dark:text-slate-500 uppercase tracking-wider mb-2 px-3 ${isSidebarCollapsed ? 'lg:hidden' : 'block'}`}>
-                Administration
+        {/* Sidebar - Desktop & Mobile Drawer */}
+        <aside
+          className={`fixed lg:static inset-y-0 left-0 z-50 ${sidebarWidth} flex flex-col transition-all duration-300 ease-in-out lg:transform-none 
+        bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-r border-slate-200 dark:border-slate-800 shadow-2xl lg:shadow-none ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+            }`}
+        >
+          {/* Brand Header */}
+          <div className="h-16 flex items-center px-6 border-b border-slate-200 dark:border-slate-800 flex-shrink-0 relative">
+            {/* Full branding - show on mobile always, on desktop when not collapsed */}
+            <div className={`flex items-center ${isSidebarCollapsed ? 'lg:hidden' : 'flex'}`}>
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-500 to-indigo-600 flex items-center justify-center text-white mr-3">
+                <Bot className="w-5 h-5" />
               </div>
-              <NavItem to="/users" icon={Users} label="Users" />
-              <NavItem to="/admin/subscriptions" icon={Banknote} label="Subscriptions" />
-              <NavItem to="/admin/packages" icon={Settings} label="Package Settings" />
-              <NavItem to="/system-settings" icon={Shield} label="System Settings" />
+              <span className="text-xl font-bold text-slate-900 dark:text-white">
+                Mychat Pilot
+              </span>
             </div>
-          )}
-        </nav>
 
-        {/* User Profile Mini - Sidebar Footer */}
-        <div className={`p-4 border-t border-slate-200 dark:border-slate-800 ${isSidebarCollapsed ? 'lg:hidden' : 'block'}`}>
-          <div className="flex items-center gap-3 p-2 rounded-xl bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50">
-            {user.avatarUrl ? (
-              <img src={user.avatarUrl} alt={user.name} className="w-8 h-8 rounded-full object-cover" />
-            ) : (
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-400 to-indigo-500 flex items-center justify-center text-white text-xs font-bold">
-                {user.name.charAt(0)}
+            {/* Collapsed branding - only show on desktop when collapsed */}
+            {isSidebarCollapsed && (
+              <div className="hidden lg:flex w-8 h-8 rounded-lg bg-gradient-to-br from-primary-500 to-indigo-600 items-center justify-center text-white mx-auto">
+                <Bot className="w-5 h-5" />
               </div>
             )}
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-slate-900 dark:text-white truncate">{user.name}</p>
-              <p className="text-xs text-slate-500 dark:text-slate-400 truncate capitalize">{user.role.toLowerCase()}</p>
-            </div>
-          </div>
-        </div>
 
-        {/* Collapsed User Avatar - Desktop only when collapsed */}
-        {isSidebarCollapsed && (
-          <div className="hidden lg:flex p-4 border-t border-slate-200 dark:border-slate-800 justify-center">
-            {user.avatarUrl ? (
-              <img src={user.avatarUrl} alt={user.name} className="w-10 h-10 rounded-full object-cover border-2 border-slate-200 dark:border-slate-700" />
-            ) : (
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-400 to-indigo-500 flex items-center justify-center text-white text-sm font-bold border-2 border-slate-200 dark:border-slate-700">
-                {user.name.charAt(0)}
-              </div>
-            )}
-          </div>
-        )}
-      </aside>
-
-      {/* Main Content Area */}
-      <main className="flex-1 flex flex-col min-w-0 h-full relative">
-        {/* Sticky Header */}
-        <header className="sticky top-0 z-30 flex items-center justify-between px-4 sm:px-6 h-16 bg-white/95 dark:bg-slate-950/95 backdrop-blur-md border-b-2 border-slate-200 dark:border-slate-800">
-          <div className="flex items-center gap-4">
             <button
+              className="ml-auto lg:hidden text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
               onClick={toggleSidebar}
-              className="lg:hidden p-2 -ml-2 text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 rounded-lg transition-colors"
             >
-              <Menu className="w-6 h-6" />
+              <X className="w-5 h-5" />
             </button>
-            <h1 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white transition-opacity duration-200 flex items-center gap-3">
-              {getCurrentPageTitle()}
-              <div className="hidden sm:block">
-                {(!currentSubscription) ? (
-                  <span className="px-2 py-0.5 rounded text-xs font-bold bg-slate-200 text-slate-600 border border-slate-300">Free</span>
-                ) : (
-                  currentSubscription.status === 'Pending' ? (
-                    <span className="px-2 py-0.5 rounded text-xs font-bold bg-yellow-100 text-yellow-700 border border-yellow-200">Pending</span>
-                  ) : (
-                    <span className={`px-2 py-0.5 rounded text-xs font-bold border uppercase tracking-wider bg-${currentSubscription.packages?.color || 'primary'}-100 text-${currentSubscription.packages?.color || 'primary'}-700 border-${currentSubscription.packages?.color || 'primary'}-200 dark:bg-${currentSubscription.packages?.color || 'primary'}-900/30 dark:text-${currentSubscription.packages?.color || 'primary'}-400 dark:border-${currentSubscription.packages?.color || 'primary'}-800`}>
-                      {currentSubscription.packages?.name || currentSubscription.package_id}
-                    </span>
-                  )
-                )}
-              </div>
-            </h1>
+
+            {/* Desktop Collapse Toggle */}
+            <button
+              className="hidden lg:block absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-white dark:bg-slate-900 border-2 border-slate-300 dark:border-slate-700 rounded-full text-slate-600 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 hover:border-primary-500 transition-all"
+              onClick={toggleSidebarCollapse}
+              title={isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            >
+              {isSidebarCollapsed ? <ChevronRight className="w-3 h-3" /> : <ChevronLeft className="w-3 h-3" />}
+            </button>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-4">
-            {/* Theme Toggle */}
-            <button
-              onClick={toggleTheme}
-              className="p-2 text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 rounded-full transition-all duration-200 hover:scale-105"
-              title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-            >
-              {isDark ? (
-                <Sun className="w-5 h-5 text-amber-400" />
-              ) : (
-                <Moon className="w-5 h-5 text-indigo-600" />
-              )}
-            </button>
-
-            {/* Desktop Profile Menu */}
-
-            {/* Desktop Profile Menu */}
+          {/* Workspace Selector */}
+          <div className={`p-4 flex-shrink-0 ${isSidebarCollapsed ? 'lg:hidden' : 'block'}`}>
             <div className="relative">
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setProfileDropdownOpen(!profileDropdownOpen);
-                }}
-                className="flex items-center gap-2 p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                title="Account Menu"
+              <select
+                className="w-full appearance-none bg-slate-100 dark:bg-slate-950 border-2 border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-200 text-sm font-medium rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 block p-3 pr-10 transition-all cursor-pointer hover:border-primary-400 dark:hover:border-slate-700 outline-none"
+                value={currentWorkspace.id}
+                onChange={(e) => onWorkspaceChange(e.target.value)}
               >
-                {user.avatarUrl ? (
-                  <img src={user.avatarUrl} alt={user.name} className="w-8 h-8 rounded-full border-2 border-slate-300 dark:border-slate-700 object-cover" />
-                ) : (
-                  <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300">
-                    <UserIcon className="w-4 h-4" />
-                  </div>
-                )}
-                <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${profileDropdownOpen ? 'rotate-180' : ''}`} />
-              </button>
+                {workspaces.map(ws => (
+                  <option key={ws.id} value={ws.id}>{ws.name}</option>
+                ))}
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-500">
+                <ChevronDown className="w-4 h-4" />
+              </div>
+            </div>
+          </div>
 
-              {/* Dropdown Menu */}
-              {profileDropdownOpen && (
-                <div className="absolute right-0 top-full mt-2 w-64 rounded-2xl shadow-xl shadow-slate-300/50 dark:shadow-black/50 border-2 border-slate-200 dark:border-slate-800 overflow-hidden z-50 bg-white dark:bg-slate-900 animate-fade-in origin-top-right">
-                  <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
-                    <p className="text-sm font-bold text-slate-900 dark:text-white">{user.name}</p>
-                    <div className="flex items-center justify-between mt-1">
-                      <p className="text-xs text-slate-500 dark:text-slate-400 truncate max-w-[100px]">{user.email}</p>
-                      {(!currentSubscription) ? (
-                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-200 text-slate-600 border border-slate-300">Free</span>
-                      ) : (
-                        currentSubscription.status === 'Pending' ? (
-                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-yellow-100 text-yellow-700 border border-yellow-200">Pending</span>
-                        ) : (
-                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold border uppercase tracking-wider bg-${currentSubscription.packages?.color || 'primary'}-100 text-${currentSubscription.packages?.color || 'primary'}-700 border-${currentSubscription.packages?.color || 'primary'}-200 dark:bg-${currentSubscription.packages?.color || 'primary'}-900/30 dark:text-${currentSubscription.packages?.color || 'primary'}-400 dark:border-${currentSubscription.packages?.color || 'primary'}-800`}>
-                            {currentSubscription.packages?.name || currentSubscription.package_id}
-                          </span>
-                        )
-                      )}
-                    </div>
-                  </div>
-                  <div className="p-2 space-y-1">
-                    {/* Profile Button */}
-                    <button
-                      onClick={() => {
-                        setProfileDropdownOpen(false);
-                        setShowProfileModal(true);
-                      }}
-                      className="flex items-center gap-3 w-full px-3 py-2.5 text-sm font-medium rounded-xl transition-colors text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
-                    >
-                      <UserIcon className="w-4 h-4 text-slate-400" />
-                      Profile
-                    </button>
+          {/* Navigation List */}
+          <nav className="flex-1 px-4 space-y-1 overflow-y-auto py-2 custom-scrollbar">
+            <div className={`text-xs font-semibold text-slate-500 dark:text-slate-500 uppercase tracking-wider mb-2 px-3 mt-2 ${isSidebarCollapsed ? 'lg:hidden' : 'block'}`}>
+              Menu
+            </div>
 
-                    {/* Settings Link */}
-                    <button
-                      onClick={() => {
-                        setProfileDropdownOpen(false);
-                        navigate('/settings');
-                      }}
-                      className="flex items-center gap-3 w-full px-3 py-2.5 text-sm font-medium rounded-xl transition-colors text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
-                    >
-                      <Settings className="w-4 h-4 text-slate-400" />
-                      Settings
-                    </button>
+            {menuOrder.map(path => {
+              let renderPath = path;
+              if (path === '/') renderPath = '/dashboard';
 
-                    <div className="h-px bg-slate-200 dark:bg-slate-700 my-1 mx-2" />
+              // Filter logic
+              if (path === '/settings' && isAdminOrOwner) return null;
+              if (path === '/packages' && isAdminOrOwner) return null;
 
-                    {/* Sign Out */}
-                    <button
-                      onClick={onLogout}
-                      className="flex items-center gap-3 w-full px-3 py-2.5 text-sm font-medium rounded-xl transition-colors text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
-                    >
-                      <LogOut className="w-4 h-4" />
-                      Sign Out
-                    </button>
-                  </div>
+              // Package Route Restriction Logic
+              // If not admin/owner AND subscription is loaded, check allowed routes
+              let isLocked = false;
+
+              if (!isAdminOrOwner && currentSubscription?.packages?.allowed_routes?.length > 0) {
+                const allowed = currentSubscription.packages.allowed_routes;
+                // If the current path is NOT in the allowed list, mark it as locked
+                // We check against 'path' (from menuOrder) and 'renderPath' (url) just in case
+                const pathIsAllowed = allowed.includes(path) || allowed.includes(renderPath);
+                if (!pathIsAllowed) {
+                  isLocked = true;
+                }
+              }
+
+              const item = ALL_NAV_ITEMS[path] || ALL_NAV_ITEMS[renderPath];
+              if (!item) return null;
+
+              return <NavItem key={path} to={renderPath} icon={item.icon} label={item.label} locked={isLocked} />;
+            })}
+
+            {isAdminOrOwner && (
+              <div className="mt-8">
+                <div className={`text-xs font-semibold text-slate-500 dark:text-slate-500 uppercase tracking-wider mb-2 px-3 ${isSidebarCollapsed ? 'lg:hidden' : 'block'}`}>
+                  Administration
+                </div>
+                <NavItem to="/users" icon={Users} label="Users" />
+                <NavItem to="/admin/subscriptions" icon={Banknote} label="Subscriptions" />
+                <NavItem to="/admin/packages" icon={Settings} label="Package Settings" />
+                <NavItem to="/system-settings" icon={Shield} label="System Settings" />
+              </div>
+            )}
+          </nav>
+
+          {/* User Profile Mini - Sidebar Footer */}
+          <div className={`p-4 border-t border-slate-200 dark:border-slate-800 ${isSidebarCollapsed ? 'lg:hidden' : 'block'}`}>
+            <div className="flex items-center gap-3 p-2 rounded-xl bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50">
+              {user.avatarUrl ? (
+                <img src={user.avatarUrl} alt={user.name} className="w-8 h-8 rounded-full object-cover" />
+              ) : (
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-400 to-indigo-500 flex items-center justify-center text-white text-xs font-bold">
+                  {user.name.charAt(0)}
+                </div>
+              )}
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-slate-900 dark:text-white truncate">{user.name}</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 truncate capitalize">{user.role.toLowerCase()}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Collapsed User Avatar - Desktop only when collapsed */}
+          {isSidebarCollapsed && (
+            <div className="hidden lg:flex p-4 border-t border-slate-200 dark:border-slate-800 justify-center">
+              {user.avatarUrl ? (
+                <img src={user.avatarUrl} alt={user.name} className="w-10 h-10 rounded-full object-cover border-2 border-slate-200 dark:border-slate-700" />
+              ) : (
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-400 to-indigo-500 flex items-center justify-center text-white text-sm font-bold border-2 border-slate-200 dark:border-slate-700">
+                  {user.name.charAt(0)}
                 </div>
               )}
             </div>
+          )}
+        </aside>
+
+        {/* Main Content Area */}
+        <main className="flex-1 flex flex-col min-w-0 h-full relative">
+          {/* Sticky Header */}
+          <header className="sticky top-0 z-30 flex items-center justify-between px-4 sm:px-6 h-16 bg-white/95 dark:bg-slate-950/95 backdrop-blur-md border-b-2 border-slate-200 dark:border-slate-800">
+            <div className="flex items-center gap-4">
+              <button
+                onClick={toggleSidebar}
+                className="lg:hidden p-2 -ml-2 text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 rounded-lg transition-colors"
+              >
+                <Menu className="w-6 h-6" />
+              </button>
+              <h1 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white transition-opacity duration-200 flex items-center gap-3">
+                {getCurrentPageTitle()}
+                <div className="hidden sm:block">
+                  {(!currentSubscription) ? (
+                    <span className="px-2 py-0.5 rounded text-xs font-bold bg-slate-200 text-slate-600 border border-slate-300">Free</span>
+                  ) : (
+                    currentSubscription.status === 'Pending' ? (
+                      <span className="px-2 py-0.5 rounded text-xs font-bold bg-yellow-100 text-yellow-700 border border-yellow-200">Pending</span>
+                    ) : (
+                      <span className={`px-2 py-0.5 rounded text-xs font-bold border uppercase tracking-wider bg-${currentSubscription.packages?.color || 'primary'}-100 text-${currentSubscription.packages?.color || 'primary'}-700 border-${currentSubscription.packages?.color || 'primary'}-200 dark:bg-${currentSubscription.packages?.color || 'primary'}-900/30 dark:text-${currentSubscription.packages?.color || 'primary'}-400 dark:border-${currentSubscription.packages?.color || 'primary'}-800`}>
+                        {currentSubscription.packages?.name || currentSubscription.package_id}
+                      </span>
+                    )
+                  )}
+                </div>
+              </h1>
+            </div>
+
+            <div className="flex items-center gap-2 sm:gap-4">
+              {/* Theme Toggle */}
+              <button
+                onClick={toggleTheme}
+                className="p-2 text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 rounded-full transition-all duration-200 hover:scale-105"
+                title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+              >
+                {isDark ? (
+                  <Sun className="w-5 h-5 text-amber-400" />
+                ) : (
+                  <Moon className="w-5 h-5 text-indigo-600" />
+                )}
+              </button>
+
+              {/* Desktop Profile Menu */}
+
+              {/* Desktop Profile Menu */}
+              <div className="relative">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setProfileDropdownOpen(!profileDropdownOpen);
+                  }}
+                  className="flex items-center gap-2 p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                  title="Account Menu"
+                >
+                  {user.avatarUrl ? (
+                    <img src={user.avatarUrl} alt={user.name} className="w-8 h-8 rounded-full border-2 border-slate-300 dark:border-slate-700 object-cover" />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300">
+                      <UserIcon className="w-4 h-4" />
+                    </div>
+                  )}
+                  <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${profileDropdownOpen ? 'rotate-180' : ''}`} />
+                </button>
+
+                {/* Dropdown Menu */}
+                {profileDropdownOpen && (
+                  <div className="absolute right-0 top-full mt-2 w-64 rounded-2xl shadow-xl shadow-slate-300/50 dark:shadow-black/50 border-2 border-slate-200 dark:border-slate-800 overflow-hidden z-50 bg-white dark:bg-slate-900 animate-fade-in origin-top-right">
+                    <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
+                      <p className="text-sm font-bold text-slate-900 dark:text-white">{user.name}</p>
+                      <div className="flex items-center justify-between mt-1">
+                        <p className="text-xs text-slate-500 dark:text-slate-400 truncate max-w-[100px]">{user.email}</p>
+                        {(!currentSubscription) ? (
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-200 text-slate-600 border border-slate-300">Free</span>
+                        ) : (
+                          currentSubscription.status === 'Pending' ? (
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-yellow-100 text-yellow-700 border border-yellow-200">Pending</span>
+                          ) : (
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold border uppercase tracking-wider bg-${currentSubscription.packages?.color || 'primary'}-100 text-${currentSubscription.packages?.color || 'primary'}-700 border-${currentSubscription.packages?.color || 'primary'}-200 dark:bg-${currentSubscription.packages?.color || 'primary'}-900/30 dark:text-${currentSubscription.packages?.color || 'primary'}-400 dark:border-${currentSubscription.packages?.color || 'primary'}-800`}>
+                              {currentSubscription.packages?.name || currentSubscription.package_id}
+                            </span>
+                          )
+                        )}
+                      </div>
+                    </div>
+                    <div className="p-2 space-y-1">
+                      {/* Profile Button */}
+                      <button
+                        onClick={() => {
+                          setProfileDropdownOpen(false);
+                          setShowProfileModal(true);
+                        }}
+                        className="flex items-center gap-3 w-full px-3 py-2.5 text-sm font-medium rounded-xl transition-colors text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
+                      >
+                        <UserIcon className="w-4 h-4 text-slate-400" />
+                        Profile
+                      </button>
+
+                      {/* Settings Link */}
+                      <button
+                        onClick={() => {
+                          setProfileDropdownOpen(false);
+                          navigate('/settings');
+                        }}
+                        className="flex items-center gap-3 w-full px-3 py-2.5 text-sm font-medium rounded-xl transition-colors text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
+                      >
+                        <Settings className="w-4 h-4 text-slate-400" />
+                        Settings
+                      </button>
+
+                      <div className="h-px bg-slate-200 dark:bg-slate-700 my-1 mx-2" />
+
+                      {/* Sign Out */}
+                      <button
+                        onClick={onLogout}
+                        className="flex items-center gap-3 w-full px-3 py-2.5 text-sm font-medium rounded-xl transition-colors text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
+                      >
+                        <LogOut className="w-4 h-4" />
+                        Sign Out
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </header>
+
+          {/* Content Viewport */}
+          <div className="flex-1 overflow-auto bg-slate-50 dark:bg-slate-950 p-4 sm:p-6 lg:p-8">
+            <div className="max-w-[1600px] mx-auto animate-fade-in">
+              {children}
+            </div>
           </div>
-        </header>
+        </main>
 
-        {/* Content Viewport */}
-        <div className="flex-1 overflow-auto bg-slate-50 dark:bg-slate-950 p-4 sm:p-6 lg:p-8">
-          <div className="max-w-[1600px] mx-auto animate-fade-in">
-            {children}
-          </div>
-        </div>
-      </main>
+        {/* Profile Edit Modal */}
+        <ProfileModal
+          isOpen={showProfileModal}
+          onClose={() => setShowProfileModal(false)}
+          user={user}
+          onUpdate={handleProfileUpdate}
+        />
 
-      {/* Profile Edit Modal */}
-      <ProfileModal
-        isOpen={showProfileModal}
-        onClose={() => setShowProfileModal(false)}
-        user={user}
-        onUpdate={handleProfileUpdate}
-      />
-
-      {/* Upgrade Modal */}
-      <UpgradeModal
-        isOpen={showUpgradeModal}
-        onClose={() => setShowUpgradeModal(false)}
-        featureName={restrictedFeature}
-      />
+        {/* Upgrade Modal */}
+        <UpgradeModal
+          isOpen={showUpgradeModal}
+          onClose={() => setShowUpgradeModal(false)}
+          featureName={restrictedFeature}
+        />
+      </div>
     </div>
 
   );
