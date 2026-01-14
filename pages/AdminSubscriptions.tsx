@@ -16,7 +16,9 @@ import {
     Edit,
     Trash2,
     PauseCircle,
-    PlayCircle
+    PlayCircle,
+    Eye,
+    Image
 } from 'lucide-react';
 import { api } from '../services/api';
 import { Package } from '../types';
@@ -71,7 +73,8 @@ const AdminSubscriptions: React.FC = () => {
                 billing: sub.billing_cycle,
                 amount: sub.amount,
                 nextBill: sub.next_billing_date ? new Date(sub.next_billing_date).toLocaleDateString() : '-',
-                avatar: sub.profiles?.avatar_url || ''
+                avatar: sub.profiles?.avatar_url || '',
+                proofUrl: sub.proof_url || ''
             }));
 
             setSubscribers(formattedSubs);
@@ -342,19 +345,20 @@ const AdminSubscriptions: React.FC = () => {
                                 <th className="px-6 py-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Status</th>
                                 <th className="px-6 py-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Recurring</th>
                                 <th className="px-6 py-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Next Billing</th>
+                                <th className="px-6 py-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Proof</th>
                                 <th className="px-6 py-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
                             {loading ? (
                                 <tr>
-                                    <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
+                                    <td colSpan={7} className="px-6 py-12 text-center text-slate-500">
                                         Loading subscriptions...
                                     </td>
                                 </tr>
                             ) : filteredSubscribers.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
+                                    <td colSpan={7} className="px-6 py-12 text-center text-slate-500">
                                         No subscriptions found.
                                     </td>
                                 </tr>
@@ -389,6 +393,24 @@ const AdminSubscriptions: React.FC = () => {
                                                 <Clock className="w-3.5 h-3.5 text-slate-400" />
                                                 {sub.nextBill}
                                             </div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            {sub.proofUrl ? (
+                                                <a
+                                                    href={sub.proofUrl}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors"
+                                                >
+                                                    <Eye className="w-4 h-4" />
+                                                    View
+                                                </a>
+                                            ) : (
+                                                <span className="text-sm text-slate-400 dark:text-slate-500 flex items-center gap-1">
+                                                    <Image className="w-4 h-4" />
+                                                    None
+                                                </span>
+                                            )}
                                         </td>
                                         <td className="px-6 py-4 text-right">
                                             <div className="flex justify-end gap-1">
