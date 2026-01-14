@@ -1794,15 +1794,15 @@ export const api = {
     },
 
     deleteUser: async (id: string): Promise<void> => {
-      // Delete from profiles (Cascade should handle related data like subscriptions)
-      // Note: This does NOT delete from auth.users, which requires server-side admin role.
-      // However, it removes their data from the app.
-      const { error } = await supabase
-        .from('profiles')
-        .delete()
-        .eq('id', id);
+      // Use admin API to delete from both auth.users and profiles
+      const response = await fetch(`/api/admin/delete-user?userId=${id}`, {
+        method: 'DELETE'
+      });
 
-      if (error) throw new Error(error.message);
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to delete user');
+      }
     },
 
     getSettings: async (): Promise<AdminSettings> => {
