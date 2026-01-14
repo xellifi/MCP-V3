@@ -38,7 +38,30 @@ export default async function handler(req: any, res: any) {
 
         if (authError) {
             console.error('Auth error:', authError);
-            return res.status(400).json({ error: authError.message });
+
+            // Provide specific error messages
+            if (authError.message?.includes('already registered') || authError.message?.includes('already been registered')) {
+                return res.status(400).json({
+                    error: 'A user with this email address already exists. Please use a different email or contact support.'
+                });
+            }
+
+            if (authError.message?.includes('invalid email')) {
+                return res.status(400).json({
+                    error: 'Invalid email address format. Please check and try again.'
+                });
+            }
+
+            if (authError.message?.includes('password')) {
+                return res.status(400).json({
+                    error: 'Password does not meet requirements. Please use a stronger password.'
+                });
+            }
+
+            // Generic error fallback
+            return res.status(400).json({
+                error: authError.message || 'Failed to create user account'
+            });
         }
 
         if (!authData.user) {

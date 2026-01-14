@@ -26,9 +26,23 @@ const Register: React.FC<RegisterProps> = ({ onLogin }) => {
       toast.success(`Welcome aboard, ${user.name}!`);
       // Explicitly navigate to connections after successful registration
       navigate('/connections', { replace: true });
-    } catch (error) {
-      console.error(error);
-      toast.error('Registration failed. Please try again.');
+    } catch (error: any) {
+      console.error('Registration error:', error);
+
+
+      // Extract error message and provide user-friendly alternatives
+      let errorMessage = error?.response?.data?.error || error?.message || 'Registration failed. Please try again.';
+
+      // Make common errors more user-friendly
+      if (errorMessage.includes('already registered') || errorMessage.includes('already been registered')) {
+        errorMessage = 'This email address is already registered. Please use a different email or try logging in.';
+      } else if (errorMessage.includes('invalid email')) {
+        errorMessage = 'Please enter a valid email address.';
+      } else if (errorMessage.toLowerCase().includes('password')) {
+        errorMessage = 'Password must be at least 6 characters long.';
+      }
+
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
