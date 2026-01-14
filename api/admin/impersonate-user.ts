@@ -37,12 +37,18 @@ export default async function handler(req: any, res: any) {
             .eq('id', adminId)
             .single();
 
+        console.log('Admin check:', { adminId, adminProfile, adminError });
+
         if (adminError || !adminProfile) {
-            return res.status(403).json({ error: 'Unauthorized' });
+            console.error('Admin profile lookup failed:', adminError);
+            return res.status(403).json({ error: 'Unauthorized - could not verify admin status' });
         }
 
-        if (adminProfile.role !== 'admin' && adminProfile.role !== 'owner') {
-            return res.status(403).json({ error: 'Only admins can impersonate users' });
+        // Case-insensitive role check
+        const role = (adminProfile.role || '').toLowerCase();
+        if (role !== 'admin' && role !== 'owner') {
+            console.log('Role check failed:', { role, expected: ['admin', 'owner'] });
+            return res.status(403).json({ error: `Only admins can impersonate users (your role: ${adminProfile.role})` });
         }
 
         // Get the target user's email
