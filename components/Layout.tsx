@@ -233,8 +233,9 @@ const Layout: React.FC<LayoutProps> = ({
 
   // Handle navigation click with permission check
   const handleNavClick = (e: React.MouseEvent, path: string, label: string) => {
-    // Check permissions
-    if (!isAdminOrOwner && currentSubscription?.packages?.allowed_routes?.length > 0) {
+    // Check permissions - only apply package restrictions if subscription is Active
+    const hasActiveSubscription = currentSubscription?.status === 'Active';
+    if (!isAdminOrOwner && hasActiveSubscription && currentSubscription?.packages?.allowed_routes?.length > 0) {
       const allowed = currentSubscription.packages.allowed_routes;
 
       // Normalize dashboard paths: Package Settings stores '/' but NavItem uses '/dashboard'
@@ -435,10 +436,12 @@ const Layout: React.FC<LayoutProps> = ({
               if (path === '/packages' && isAdminOrOwner) return null;
 
               // Package Route Restriction Logic
-              // If not admin/owner AND subscription is loaded, check allowed routes
+              // If not admin/owner AND subscription is Active, check allowed routes
+              // Pending subscriptions should NOT unlock access - they remain on their previous plan
               let isLocked = false;
+              const hasActiveSubscription = currentSubscription?.status === 'Active';
 
-              if (!isAdminOrOwner && currentSubscription?.packages?.allowed_routes?.length > 0) {
+              if (!isAdminOrOwner && hasActiveSubscription && currentSubscription?.packages?.allowed_routes?.length > 0) {
                 const allowed = currentSubscription.packages.allowed_routes;
                 // If the current path is NOT in the allowed list, mark it as locked
                 // We check against 'path' (from menuOrder) and 'renderPath' (url) just in case
