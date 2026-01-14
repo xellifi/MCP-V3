@@ -46,14 +46,30 @@ const SubscriptionPlans: React.FC = () => {
                         else if (pkg.id === 'starter') Icon = Zap;
                         else if (pkg.id === 'pro') Icon = Crown;
 
+                        // Check if this is a lifetime-only package (no monthly/yearly pricing)
+                        const isLifetimeOnly = (!pkg.priceMonthly || pkg.priceMonthly === 0) &&
+                            (!pkg.priceYearly || pkg.priceYearly === 0) &&
+                            (pkg.priceLifetime && pkg.priceLifetime > 0);
+
                         // Determine price based on billing cycle
+                        // For lifetime-only packages, always show lifetime price
                         let price = pkg.priceMonthly;
-                        if (billingCycle === 'yearly') price = pkg.priceYearly;
-                        else if (billingCycle === 'lifetime') price = pkg.priceLifetime || 0;
+                        let effectiveBillingCycle = billingCycle;
+
+                        if (isLifetimeOnly) {
+                            price = pkg.priceLifetime;
+                            effectiveBillingCycle = 'lifetime';
+                        } else if (billingCycle === 'yearly') {
+                            price = pkg.priceYearly;
+                        } else if (billingCycle === 'lifetime') {
+                            price = pkg.priceLifetime || 0;
+                        }
 
                         return {
                             ...pkg, // id, name, priceMonthly, priceYearly, priceLifetime, color, features (string[])
                             price: price,
+                            isLifetimeOnly: isLifetimeOnly, // Flag for UI rendering
+                            effectiveBillingCycle: effectiveBillingCycle,
                             description: getDescriptionForPlan(pkg.id),
                             icon: Icon,
                             popular: pkg.id === 'pro', // Default popular logic
@@ -204,7 +220,7 @@ const SubscriptionPlans: React.FC = () => {
                                     <div className="mb-8">
                                         <div className="flex items-baseline gap-1">
                                             <span className="text-5xl font-extrabold text-slate-900 dark:text-white tracking-tight">${plan.price}</span>
-                                            {billingCycle === 'lifetime' ? (
+                                            {(plan.effectiveBillingCycle === 'lifetime' || plan.isLifetimeOnly) ? (
                                                 <span className="text-lg text-slate-500 dark:text-slate-400 font-medium">one-time</span>
                                             ) : (
                                                 <span className="text-lg text-slate-500 dark:text-slate-400 font-medium">/{billingCycle === 'monthly' ? 'mo' : 'yr'}</span>
