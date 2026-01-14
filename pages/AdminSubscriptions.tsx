@@ -224,10 +224,26 @@ const AdminSubscriptions: React.FC = () => {
         return matchesSearch && matchesFilter;
     });
 
+    // Calculate real stats
     const activeSubscribers = subscribers.filter(s => s.status === 'Active').length;
+    const cancelledSubscribers = subscribers.filter(s => s.status === 'Cancelled').length;
+    const pendingSubscribers = subscribers.filter(s => s.status === 'Pending').length;
+    const totalSubscribers = subscribers.length;
+
+    // Calculate MRR (Monthly Recurring Revenue)
     const mrr = subscribers
         .filter(s => s.status === 'Active')
         .reduce((sum, s) => sum + (s.billing === 'Monthly' ? s.amount : s.amount / 12), 0);
+
+    // Calculate churn rate (cancelled / total * 100)
+    const churnRate = totalSubscribers > 0 ? ((cancelledSubscribers / totalSubscribers) * 100).toFixed(1) : '0.0';
+
+    // Count Pro/Enterprise plans (higher tier plans)
+    const proPlanSubscribers = subscribers.filter(s =>
+        s.plan?.toLowerCase().includes('pro') ||
+        s.plan?.toLowerCase().includes('enterprise') ||
+        s.plan?.toLowerCase().includes('lifetime')
+    ).length;
 
     return (
         <div className="space-y-8 relative">
@@ -259,9 +275,7 @@ const AdminSubscriptions: React.FC = () => {
                         <div className="w-10 h-10 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
                             <DollarSign className="w-5 h-5" />
                         </div>
-                        <span className="flex items-center gap-1 text-green-600 text-xs font-semibold bg-green-50 dark:bg-green-900/20 px-2 py-1 rounded-full">
-                            <TrendingUp className="w-3 h-3" /> +12.5%
-                        </span>
+                        <span className="text-slate-400 text-xs">Monthly</span>
                     </div>
                     <h3 className="text-2xl font-bold text-slate-900 dark:text-white">${mrr.toLocaleString(undefined, { maximumFractionDigits: 0 })}</h3>
                     <p className="text-sm text-slate-500 dark:text-slate-400">Monthly Recurring Revenue</p>
@@ -269,12 +283,10 @@ const AdminSubscriptions: React.FC = () => {
 
                 <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-sm">
                     <div className="flex items-center justify-between mb-4">
-                        <div className="w-10 h-10 rounded-lg bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center text-orange-600 dark:text-orange-400">
+                        <div className="w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center text-green-600 dark:text-green-400">
                             <Users className="w-5 h-5" />
                         </div>
-                        <span className="flex items-center gap-1 text-green-600 text-xs font-semibold bg-green-50 dark:bg-green-900/20 px-2 py-1 rounded-full">
-                            <TrendingUp className="w-3 h-3" /> +8.2%
-                        </span>
+                        <span className="text-slate-400 text-xs">{totalSubscribers} Total</span>
                     </div>
                     <h3 className="text-2xl font-bold text-slate-900 dark:text-white">{activeSubscribers}</h3>
                     <p className="text-sm text-slate-500 dark:text-slate-400">Active Subscribers</p>
@@ -282,26 +294,24 @@ const AdminSubscriptions: React.FC = () => {
 
                 <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-sm">
                     <div className="flex items-center justify-between mb-4">
-                        <div className="w-10 h-10 rounded-lg bg-pink-100 dark:bg-pink-900/30 flex items-center justify-center text-pink-600 dark:text-pink-400">
-                            <AlertCircle className="w-5 h-5" />
+                        <div className="w-10 h-10 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center text-amber-600 dark:text-amber-400">
+                            <Clock className="w-5 h-5" />
                         </div>
-                        <span className="flex items-center gap-1 text-red-600 text-xs font-semibold bg-red-50 dark:bg-red-900/20 px-2 py-1 rounded-full">
-                            <TrendingUp className="w-3 h-3" /> +2.4%
-                        </span>
+                        <span className="text-slate-400 text-xs">Awaiting</span>
                     </div>
-                    <h3 className="text-2xl font-bold text-slate-900 dark:text-white">2.4%</h3>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">Churn Rate (Avg)</p>
+                    <h3 className="text-2xl font-bold text-slate-900 dark:text-white">{pendingSubscribers}</h3>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">Pending Approvals</p>
                 </div>
 
                 <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-sm">
                     <div className="flex items-center justify-between mb-4">
-                        <div className="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400">
+                        <div className="w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center text-purple-600 dark:text-purple-400">
                             <CheckCircle className="w-5 h-5" />
                         </div>
-                        <span className="text-slate-400 text-xs">High End</span>
+                        <span className="text-slate-400 text-xs">Premium</span>
                     </div>
-                    <h3 className="text-2xl font-bold text-slate-900 dark:text-white">142</h3>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">Enterprise Plans</p>
+                    <h3 className="text-2xl font-bold text-slate-900 dark:text-white">{proPlanSubscribers}</h3>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">Pro/Lifetime Plans</p>
                 </div>
             </div>
 
