@@ -559,7 +559,11 @@ const AdminPackageSettings: React.FC = () => {
                                                 </div>
                                                 <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-1">{pkg.name}</h3>
                                                 <div className="text-2xl font-bold text-slate-900 dark:text-white mb-4 flex items-end gap-1">
-                                                    ${pkg.priceMonthly}<span className="text-sm font-normal text-slate-500 mb-1">/mo</span>
+                                                    {(!pkg.priceMonthly && !pkg.priceYearly && pkg.priceLifetime) ? (
+                                                        <>${pkg.priceLifetime}<span className="text-sm font-normal text-slate-500 mb-1">one-time</span></>
+                                                    ) : (
+                                                        <>${pkg.priceMonthly}<span className="text-sm font-normal text-slate-500 mb-1">/mo</span></>
+                                                    )}
                                                 </div>
                                                 <ul className="space-y-2 mb-6 min-h-[100px]">
                                                     {(pkg.features && Array.isArray(pkg.features) && pkg.features.length > 0) ? (
