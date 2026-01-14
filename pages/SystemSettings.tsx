@@ -30,6 +30,8 @@ const DEFAULT_MENU_ORDER = [
   { id: '/flows', label: 'Flows' },
   { id: '/forms-manager', label: 'Forms' },
   { id: '/store', label: 'Store' },
+  { id: '/orders', label: 'Orders' },
+  { id: '/packages', label: 'Packages' },
   { id: '/scheduled', label: 'Posts' },
   { id: '/academy', label: 'Academy' },
   { id: '/settings', label: 'Settings' },
