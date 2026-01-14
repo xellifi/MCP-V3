@@ -84,11 +84,6 @@ const SubscriptionPlans: React.FC = () => {
                     <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 text-sm font-medium mb-4">
                         <Star className="w-4 h-4 fill-current" />
                         <span>Upgrade your business capability</span>
-                        {isPending && (
-                            <span className="ml-2 px-2 py-0.5 bg-amber-500 text-white text-xs font-bold rounded-full animate-pulse">
-                                Pending
-                            </span>
-                        )}
                     </div>
                     <h1 className="text-4xl md:text-5xl font-extrabold text-slate-900 dark:text-white tracking-tight">
                         Simple Pricing, Maximum Power <br className="hidden md:block" />
@@ -147,7 +142,7 @@ const SubscriptionPlans: React.FC = () => {
                                     {/* Current Plan Badge - Artistic & Noticeable */}
                                     {isCurrentPlan && (
                                         <div className="absolute -top-4 left-1/2 -translate-x-1/2 z-20">
-                                            <div className="relative">
+                                            <div className="relative flex items-center gap-2">
                                                 {/* Glow effect */}
                                                 <div className="absolute inset-0 bg-gradient-to-r from-emerald-400 to-teal-500 blur-md opacity-60 rounded-full"></div>
                                                 {/* Badge */}
@@ -155,6 +150,12 @@ const SubscriptionPlans: React.FC = () => {
                                                     <Check className="w-3.5 h-3.5" />
                                                     <span>Current Plan</span>
                                                 </div>
+                                                {/* Pending Badge */}
+                                                {isPending && (
+                                                    <div className="relative px-3 py-1.5 bg-amber-500 text-white text-xs font-bold uppercase tracking-wide rounded-full shadow-lg">
+                                                        Pending
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                     )}
