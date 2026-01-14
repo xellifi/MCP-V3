@@ -364,6 +364,18 @@ const ScheduledPosts: React.FC<ScheduledPostsProps> = ({ workspace }) => {
     checkConnections();
   }, [workspace.id]);
 
+  // Helper to check if user can create schedules
+  const canCreateSchedule = connectionStatus.hasConnection && connectionStatus.hasActivePages;
+
+  // Handler for create schedule button when requirements not met
+  const handleCreateClick = () => {
+    if (!canCreateSchedule) {
+      setShowConnectionModal(true);
+    } else {
+      setView('builder');
+    }
+  };
+
   return (
     <div className="animate-fade-in w-full h-full">
       {/* Connection Required Modal */}
@@ -476,8 +488,13 @@ const ScheduledPosts: React.FC<ScheduledPostsProps> = ({ workspace }) => {
                 </button>
               </div>
               <button
-                onClick={() => setView('builder')}
-                className="flex items-center gap-2 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white px-5 py-2.5 rounded-xl font-bold shadow-lg shadow-indigo-500/20 transition-all active:scale-95 border border-white/20"
+                onClick={handleCreateClick}
+                disabled={connectionStatus.loading}
+                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold shadow-lg transition-all border border-white/20 ${canCreateSchedule
+                    ? 'bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white shadow-indigo-500/20 active:scale-95'
+                    : 'bg-slate-600 text-slate-300 cursor-not-allowed opacity-70'
+                  }`}
+                title={!canCreateSchedule ? 'Connect Facebook and activate pages first' : 'Create new schedule'}
               >
                 <Plus className="w-5 h-5" />
                 New Schedule
@@ -500,8 +517,13 @@ const ScheduledPosts: React.FC<ScheduledPostsProps> = ({ workspace }) => {
                   Create your first automated schedule to publish content automatically.
                 </p>
                 <button
-                  onClick={() => setView('builder')}
-                  className="flex items-center gap-2 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white px-8 py-3 rounded-xl font-bold shadow-xl shadow-indigo-500/20 transition-all active:scale-95 border border-white/20 transform hover:-translate-y-1"
+                  onClick={handleCreateClick}
+                  disabled={connectionStatus.loading}
+                  className={`flex items-center gap-2 px-8 py-3 rounded-xl font-bold shadow-xl transition-all border border-white/20 transform ${canCreateSchedule
+                      ? 'bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white shadow-indigo-500/20 active:scale-95 hover:-translate-y-1'
+                      : 'bg-slate-600 text-slate-300 cursor-not-allowed opacity-70'
+                    }`}
+                  title={!canCreateSchedule ? 'Connect Facebook and activate pages first' : 'Create new schedule'}
                 >
                   <Plus className="w-5 h-5" />
                   Create New Schedule
