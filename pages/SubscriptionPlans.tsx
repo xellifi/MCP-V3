@@ -12,6 +12,7 @@ const SubscriptionPlans: React.FC = () => {
     const [plans, setPlans] = useState<any[]>([]); // Using any[] for UI mapped shape, or define interface
     const [loading, setLoading] = useState(true);
     const [currentPackageId, setCurrentPackageId] = useState<string | null>(null);
+    const [isPending, setIsPending] = useState(false);
 
     React.useEffect(() => {
         const fetchPlans = async () => {
@@ -22,9 +23,10 @@ const SubscriptionPlans: React.FC = () => {
                     api.subscriptions.getCurrentSubscription()
                 ]);
 
-                // Set current package ID if user has active subscription
+                // Set current package ID and check if pending
                 if (currentSub && currentSub.package_id) {
                     setCurrentPackageId(currentSub.package_id);
+                    setIsPending(currentSub.status === 'Pending');
                 }
 
                 if (data && data.length > 0) {
@@ -82,6 +84,11 @@ const SubscriptionPlans: React.FC = () => {
                     <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 text-sm font-medium mb-4">
                         <Star className="w-4 h-4 fill-current" />
                         <span>Upgrade your business capability</span>
+                        {isPending && (
+                            <span className="ml-2 px-2 py-0.5 bg-amber-500 text-white text-xs font-bold rounded-full animate-pulse">
+                                Pending
+                            </span>
+                        )}
                     </div>
                     <h1 className="text-4xl md:text-5xl font-extrabold text-slate-900 dark:text-white tracking-tight">
                         Simple Pricing, Maximum Power <br className="hidden md:block" />
