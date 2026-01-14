@@ -13,6 +13,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ user }) => {
   const toast = useToast();
   const [users, setUsers] = useState<User[]>([]);
   const [packages, setPackages] = useState<Package[]>([]);
+  const [subscriptions, setSubscriptions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
@@ -45,13 +46,15 @@ const UsersPage: React.FC<UsersPageProps> = ({ user }) => {
     const loadData = async () => {
       setLoading(true);
       try {
-        // Load users and packages in parallel
-        const [usersData, packagesData] = await Promise.all([
+        // Load users, packages, and subscriptions in parallel
+        const [usersData, packagesData, subscriptionsData] = await Promise.all([
           api.admin.getUsers(),
-          api.admin.getPackages()
+          api.admin.getPackages(),
+          api.subscriptions.getAll()
         ]);
         setUsers(usersData);
         setPackages(packagesData);
+        setSubscriptions(subscriptionsData);
       } catch (error) {
         console.error('Failed to load data:', error);
         toast.error('Failed to load users and packages');
@@ -284,6 +287,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ user }) => {
               <tr>
                 <th className="px-6 py-4">User</th>
                 <th className="px-6 py-4">Role</th>
+                <th className="px-6 py-4">Plan</th>
                 <th className="px-6 py-4">Status</th>
                 <th className="px-6 py-4">Access Count</th>
                 <th className="px-6 py-4 text-right">Actions</th>
@@ -292,78 +296,96 @@ const UsersPage: React.FC<UsersPageProps> = ({ user }) => {
             <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
               {loading ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-slate-500">
+                  <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
                     <div className="flex items-center justify-center">
                       <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-500"></div>
                     </div>
                   </td>
                 </tr>
-              ) : users.map((u: any) => (
-                <tr key={u.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      {u.avatarUrl ? (
-                        <img src={u.avatarUrl} alt={u.name} className="w-10 h-10 rounded-full object-cover ring-2 ring-white dark:ring-slate-800" />
-                      ) : (
-                        <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400">
-                          <UserIcon className="w-5 h-5" />
+              ) : users.map((u: any) => {
+                // Find user's active subscription
+                const userSub = subscriptions.find(sub => sub.user_id === u.id && sub.status === 'Active');
+                const planName = userSub?.packages?.name || 'No Plan';
+                const planColor = userSub?.packages?.color || 'slate';
+
+                return (
+                  <tr key={u.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        {u.avatarUrl ? (
+                          <img src={u.avatarUrl} alt={u.name} className="w-10 h-10 rounded-full object-cover ring-2 ring-white dark:ring-slate-800" />
+                        ) : (
+                          <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400">
+                            <UserIcon className="w-5 h-5" />
+                          </div>
+                        )}
+                        <div>
+                          <p className="font-semibold text-slate-900 dark:text-white">{u.name}</p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400">{u.email}</p>
                         </div>
-                      )}
-                      <div>
-                        <p className="font-semibold text-slate-900 dark:text-white">{u.name}</p>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">{u.email}</p>
                       </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${u.role === UserRole.ADMIN
-                      ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 border border-purple-200 dark:border-purple-900/50'
-                      : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border border-slate-200 dark:border-slate-700'
-                      }`}>
-                      {u.role === UserRole.ADMIN && <Shield className="w-3 h-3" />}
-                      {u.role}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="inline-flex px-3 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-900/50">
-                      Active
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-sm text-slate-500 dark:text-slate-400">
-                    {u.role === UserRole.ADMIN || u.role === UserRole.OWNER ? 'All Access' : 'Package-based'}
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <div className="flex justify-end gap-1">
-                      {/* View - Amber/Orange */}
-                      <button
-                        onClick={() => handleViewClick(u)}
-                        className="p-2 text-amber-500 hover:text-amber-600 hover:bg-amber-50 dark:text-amber-400 dark:hover:text-amber-300 dark:hover:bg-amber-900/20 rounded-lg transition-colors"
-                        title="View Profile"
-                      >
-                        <Eye className="w-4 h-4" />
-                      </button>
-                      {/* Edit - Green/Success */}
-                      <button
-                        onClick={() => handleEditClick(u)}
-                        className="p-2 text-emerald-500 hover:text-emerald-600 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:text-emerald-300 dark:hover:bg-emerald-900/20 rounded-lg transition-colors"
-                        title="Edit User"
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </button>
-                      {/* Delete - Red/Danger (hidden for protected roles) */}
-                      {u.role !== UserRole.OWNER && u.role !== UserRole.ADMIN && u.id !== user.id && (
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${u.role === UserRole.ADMIN
+                        ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 border border-purple-200 dark:border-purple-900/50'
+                        : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border border-slate-200 dark:border-slate-700'
+                        }`}>
+                        {u.role === UserRole.ADMIN && <Shield className="w-3 h-3" />}
+                        {u.role}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`inline-flex px-3 py-1 rounded-full text-xs font-bold
+                      ${planColor === 'blue' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 border border-blue-200 dark:border-blue-900/50' :
+                          planColor === 'purple' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 border border-purple-200 dark:border-purple-900/50' :
+                            planColor === 'amber' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border border-amber-200 dark:border-amber-900/50' :
+                              planColor === 'green' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-900/50' :
+                                planColor === 'red' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 border border-red-200 dark:border-red-900/50' :
+                                  'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border border-slate-200 dark:border-slate-700'}`}>
+                        {planName}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="inline-flex px-3 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-900/50">
+                        Active
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-slate-500 dark:text-slate-400">
+                      {u.role === UserRole.ADMIN || u.role === UserRole.OWNER ? 'All Access' : 'Package-based'}
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex justify-end gap-1">
+                        {/* View - Amber/Orange */}
                         <button
-                          onClick={() => handleDeleteClick(u.id, u.name)}
-                          className="p-2 text-red-500 hover:text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                          title="Delete User"
+                          onClick={() => handleViewClick(u)}
+                          className="p-2 text-amber-500 hover:text-amber-600 hover:bg-amber-50 dark:text-amber-400 dark:hover:text-amber-300 dark:hover:bg-amber-900/20 rounded-lg transition-colors"
+                          title="View Profile"
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Eye className="w-4 h-4" />
                         </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                        {/* Edit - Green/Success */}
+                        <button
+                          onClick={() => handleEditClick(u)}
+                          className="p-2 text-emerald-500 hover:text-emerald-600 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:text-emerald-300 dark:hover:bg-emerald-900/20 rounded-lg transition-colors"
+                          title="Edit User"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        {/* Delete - Red/Danger (hidden for protected roles) */}
+                        {u.role !== UserRole.OWNER && u.role !== UserRole.ADMIN && u.id !== user.id && (
+                          <button
+                            onClick={() => handleDeleteClick(u.id, u.name)}
+                            className="p-2 text-red-500 hover:text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                            title="Delete User"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
