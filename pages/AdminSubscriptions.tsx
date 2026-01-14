@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
     Search,
     Filter,
@@ -12,7 +12,11 @@ import {
     XCircle,
     Clock,
     X,
-    UserPlus
+    UserPlus,
+    Edit,
+    Trash2,
+    PauseCircle,
+    PlayCircle
 } from 'lucide-react';
 import { api } from '../services/api';
 import { Package } from '../types';
@@ -27,6 +31,18 @@ const AdminSubscriptions: React.FC = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [packages, setPackages] = useState<Package[]>([]);
+
+    // Actions dropdown state
+    const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
+    const dropdownRef = useRef<HTMLDivElement>(null);
+
+    // Edit modal state
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [editingSubscription, setEditingSubscription] = useState<any>(null);
+
+    // Delete confirmation state
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [deletingSubscription, setDeletingSubscription] = useState<any>(null);
 
     // Form state
     const [newSubscriber, setNewSubscriber] = useState({
@@ -71,10 +87,89 @@ const AdminSubscriptions: React.FC = () => {
         loadData();
     }, []);
 
+    // Close dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+                setOpenDropdownId(null);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    // Handle freeze/unfreeze (toggle between Active and Frozen)
+    const handleFreeze = async (sub: any) => {
+        try {
+            const newStatus = sub.status === 'Active' ? 'Frozen' : 'Active';
+            await api.subscriptions.update(sub.id, { status: newStatus });
+            await loadData();
+            setOpenDropdownId(null);
+        } catch (error: any) {
+            alert('Failed to update subscription: ' + error.message);
+        }
+    };
+
+    // Handle edit
+    const handleEditClick = (sub: any) => {
+        setEditingSubscription({
+            ...sub,
+            packageId: packages.find(p => p.name === sub.plan)?.id || ''
+        });
+        setIsEditModalOpen(true);
+        setOpenDropdownId(null);
+    };
+
+    const handleEditSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!editingSubscription) return;
+
+        try {
+            const selectedPackage = packages.find(p => p.id === editingSubscription.packageId);
+            const amount = editingSubscription.billing === 'Yearly'
+                ? (selectedPackage?.priceYearly || 0)
+                : (selectedPackage?.priceMonthly || 0);
+
+            await api.subscriptions.update(editingSubscription.id, {
+                package_id: editingSubscription.packageId,
+                status: editingSubscription.status,
+                billing_cycle: editingSubscription.billing,
+                amount: amount,
+                next_billing_date: editingSubscription.nextBillDate || undefined
+            });
+            await loadData();
+            setIsEditModalOpen(false);
+            setEditingSubscription(null);
+        } catch (error: any) {
+            alert('Failed to update subscription: ' + error.message);
+        }
+    };
+
+    // Handle delete
+    const handleDeleteClick = (sub: any) => {
+        setDeletingSubscription(sub);
+        setIsDeleteModalOpen(true);
+        setOpenDropdownId(null);
+    };
+
+    const handleDeleteConfirm = async () => {
+        if (!deletingSubscription) return;
+
+        try {
+            await api.subscriptions.delete(deletingSubscription.id);
+            await loadData();
+            setIsDeleteModalOpen(false);
+            setDeletingSubscription(null);
+        } catch (error: any) {
+            alert('Failed to delete subscription: ' + error.message);
+        }
+    };
+
     const getStatusColor = (status: string) => {
         switch (status) {
             case 'Active': return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400';
             case 'Past Due': return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400';
+            case 'Frozen': return 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-400';
             case 'Cancelled': return 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400';
             default: return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400';
         }
@@ -296,9 +391,49 @@ const AdminSubscriptions: React.FC = () => {
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 text-right">
-                                            <button className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
-                                                <MoreHorizontal className="w-5 h-5" />
-                                            </button>
+                                            <div className="relative" ref={openDropdownId === sub.id ? dropdownRef : null}>
+                                                <button
+                                                    onClick={() => setOpenDropdownId(openDropdownId === sub.id ? null : sub.id)}
+                                                    className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                                                >
+                                                    <MoreHorizontal className="w-5 h-5" />
+                                                </button>
+                                                {openDropdownId === sub.id && (
+                                                    <div className="absolute right-0 top-full mt-1 w-40 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-xl z-50 py-1 animate-fade-in">
+                                                        <button
+                                                            onClick={() => handleEditClick(sub)}
+                                                            className="w-full flex items-center gap-2 px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                                                        >
+                                                            <Edit className="w-4 h-4" />
+                                                            Edit
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleFreeze(sub)}
+                                                            className="w-full flex items-center gap-2 px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                                                        >
+                                                            {sub.status === 'Active' ? (
+                                                                <>
+                                                                    <PauseCircle className="w-4 h-4" />
+                                                                    Freeze
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    <PlayCircle className="w-4 h-4" />
+                                                                    Unfreeze
+                                                                </>
+                                                            )}
+                                                        </button>
+                                                        <hr className="my-1 border-slate-200 dark:border-slate-700" />
+                                                        <button
+                                                            onClick={() => handleDeleteClick(sub)}
+                                                            className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                                                        >
+                                                            <Trash2 className="w-4 h-4" />
+                                                            Delete
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </div>
                                         </td>
                                     </tr>
                                 ))
@@ -400,6 +535,124 @@ const AdminSubscriptions: React.FC = () => {
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Edit Subscription Modal */}
+            {isEditModalOpen && editingSubscription && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+                    <div className="relative w-full max-w-lg bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden animate-fade-in">
+                        <div className="flex items-center justify-between p-6 border-b border-slate-200 dark:border-slate-800">
+                            <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                <Edit className="w-6 h-6 text-primary-600" />
+                                Edit Subscription
+                            </h2>
+                            <button
+                                onClick={() => { setIsEditModalOpen(false); setEditingSubscription(null); }}
+                                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+                            >
+                                <X className="w-6 h-6" />
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleEditSubmit} className="p-6 space-y-4">
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Subscriber</label>
+                                <div className="px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                                    {editingSubscription.name} ({editingSubscription.email})
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Plan</label>
+                                    <select
+                                        className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none"
+                                        value={editingSubscription.packageId}
+                                        onChange={e => setEditingSubscription({ ...editingSubscription, packageId: e.target.value })}
+                                    >
+                                        {packages.map(p => (
+                                            <option key={p.id} value={p.id}>{p.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Billing Cycle</label>
+                                    <select
+                                        className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none"
+                                        value={editingSubscription.billing}
+                                        onChange={e => setEditingSubscription({ ...editingSubscription, billing: e.target.value })}
+                                    >
+                                        <option value="Monthly">Monthly</option>
+                                        <option value="Yearly">Yearly</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Status</label>
+                                <select
+                                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none"
+                                    value={editingSubscription.status}
+                                    onChange={e => setEditingSubscription({ ...editingSubscription, status: e.target.value })}
+                                >
+                                    <option value="Active">Active</option>
+                                    <option value="Past Due">Past Due</option>
+                                    <option value="Frozen">Frozen</option>
+                                    <option value="Cancelled">Cancelled</option>
+                                </select>
+                            </div>
+
+                            <div className="pt-4 flex gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => { setIsEditModalOpen(false); setEditingSubscription(null); }}
+                                    className="flex-1 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors font-medium"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="flex-1 py-2.5 bg-primary-600 text-white rounded-xl hover:bg-primary-700 transition-colors font-medium shadow-lg shadow-primary-500/25"
+                                >
+                                    Save Changes
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Delete Confirmation Modal */}
+            {isDeleteModalOpen && deletingSubscription && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+                    <div className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden animate-fade-in">
+                        <div className="p-6 text-center">
+                            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                                <Trash2 className="w-8 h-8 text-red-600 dark:text-red-400" />
+                            </div>
+                            <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
+                                Delete Subscription
+                            </h2>
+                            <p className="text-slate-500 dark:text-slate-400 mb-6">
+                                Are you sure you want to delete the subscription for <span className="font-semibold text-slate-700 dark:text-slate-200">{deletingSubscription.name}</span>? This action cannot be undone.
+                            </p>
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => { setIsDeleteModalOpen(false); setDeletingSubscription(null); }}
+                                    className="flex-1 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors font-medium"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleDeleteConfirm}
+                                    className="flex-1 py-2.5 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-colors font-medium shadow-lg shadow-red-500/25"
+                                >
+                                    Delete
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}

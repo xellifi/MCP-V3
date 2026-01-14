@@ -2101,6 +2101,36 @@ export const api = {
 
       return data as UserSubscription;
     },
+
+    update: async (id: string, updates: Partial<{
+      package_id: string;
+      status: string;
+      billing_cycle: string;
+      amount: number;
+      next_billing_date: string;
+    }>): Promise<void> => {
+      const { error } = await supabase
+        .from('user_subscriptions')
+        .update(updates)
+        .eq('id', id);
+
+      if (error) {
+        console.error('Error updating subscription:', error);
+        throw new Error(error.message);
+      }
+    },
+
+    delete: async (id: string): Promise<void> => {
+      const { error } = await supabase
+        .from('user_subscriptions')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        console.error('Error deleting subscription:', error);
+        throw new Error(error.message);
+      }
+    },
   },
 
   affiliate: {
