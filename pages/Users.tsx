@@ -245,9 +245,13 @@ const UsersPage: React.FC<UsersPageProps> = ({ user }) => {
 
         toast.success(`User created successfully with ${selectedPackage.name} package`);
 
-        // Reload users to show the new user
-        const updatedUsers = await api.admin.getUsers();
+        // Reload users and subscriptions to show the new user with their plan
+        const [updatedUsers, updatedSubs] = await Promise.all([
+          api.admin.getUsers(),
+          api.subscriptions.getAll()
+        ]);
         setUsers(updatedUsers);
+        setSubscriptions(updatedSubs);
       }
 
       setIsAddModalOpen(false);
