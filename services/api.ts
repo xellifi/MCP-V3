@@ -2187,32 +2187,57 @@ export const api = {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return null;
 
-      const { data, error } = await supabase
+      // Fetch all subscriptions (Active and Pending) to find both current and previous
+      const { data: allSubs, error } = await supabase
         .from('user_subscriptions')
         .select(`
           *,
           packages (name, color, allowed_routes)
         `)
         .eq('user_id', user.id)
-        .in('status', ['Active', 'Pending']) // Show Pending too so they know
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
+        .in('status', ['Active', 'Pending'])
+        .order('created_at', { ascending: false });
 
       if (error) {
-        if (error.code !== 'PGRST116') { // PGRST116 = no rows found
+        if (error.code !== 'PGRST116') {
           console.error('Error fetching current subscription:', error);
         }
         return null;
       }
 
+      if (!allSubs || allSubs.length === 0) {
+        return null;
+      }
+
+      // The most recent subscription (could be Pending or Active)
+      const currentSub = allSubs[0];
+
+      // If current is Pending, find the previous Active subscription for access control
+      let accessSub = currentSub;
+      if (currentSub.status === 'Pending') {
+        const previousActive = allSubs.find(sub => sub.status === 'Active');
+        if (previousActive) {
+          accessSub = previousActive;
+        }
+      }
+
+      // Attach the access subscription's routes to the current subscription
+      // This way the UI shows the Pending info but uses the previous plan's routes
+      const result = {
+        ...currentSub,
+        // Add a special field for access control routes
+        access_packages: accessSub.packages,
+        access_package_id: accessSub.package_id
+      };
+
       console.log('[getCurrentSubscription] Fetched subscription:', {
-        package_id: data?.package_id,
-        packages: data?.packages,
-        allowed_routes: data?.packages?.allowed_routes
+        display_status: currentSub.status,
+        display_package: currentSub.packages?.name,
+        access_package: accessSub.packages?.name,
+        access_routes: accessSub.packages?.allowed_routes
       });
 
-      return data as UserSubscription;
+      return result as UserSubscription;
     },
 
     update: async (id: string, updates: Partial<{

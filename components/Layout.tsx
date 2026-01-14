@@ -244,10 +244,11 @@ const Layout: React.FC<LayoutProps> = ({
     }
 
     // Determine which routes the user can access
-    const hasActiveSubscription = currentSubscription?.status === 'Active';
-    const allowedRoutes = hasActiveSubscription && currentSubscription?.packages?.allowed_routes?.length > 0
-      ? currentSubscription.packages.allowed_routes
-      : FREE_PLAN_ROUTES; // Fall back to Free plan routes for Pending/no subscription
+    // Use access_packages which contains previous Active subscription routes if current is Pending
+    const accessPackages = (currentSubscription as any)?.access_packages || currentSubscription?.packages;
+    const allowedRoutes = accessPackages?.allowed_routes?.length > 0
+      ? accessPackages.allowed_routes
+      : FREE_PLAN_ROUTES; // Fall back to Free plan routes if no access routes
 
     // Normalize dashboard paths
     let pathIsAllowed = allowedRoutes.includes(path);
@@ -444,15 +445,14 @@ const Layout: React.FC<LayoutProps> = ({
               if (path === '/packages' && isAdminOrOwner) return null;
 
               // Package Route Restriction Logic
-              // If not admin/owner, check allowed routes based on subscription status
-              // Pending/no subscription = Free plan routes only
+              // Use access_packages for access control (previous Active when current is Pending)
               let isLocked = false;
 
               if (!isAdminOrOwner) {
-                const hasActiveSubscription = currentSubscription?.status === 'Active';
-                const allowedRoutes = hasActiveSubscription && currentSubscription?.packages?.allowed_routes?.length > 0
-                  ? currentSubscription.packages.allowed_routes
-                  : FREE_PLAN_ROUTES; // Free plan routes for Pending/no subscription
+                const accessPackages = (currentSubscription as any)?.access_packages || currentSubscription?.packages;
+                const allowedRoutes = accessPackages?.allowed_routes?.length > 0
+                  ? accessPackages.allowed_routes
+                  : FREE_PLAN_ROUTES; // Free plan routes if no access routes
 
                 // Check if path is allowed
                 const pathIsAllowed = allowedRoutes.includes(path) || allowedRoutes.includes(renderPath);
