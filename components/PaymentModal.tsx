@@ -6,7 +6,7 @@ interface PaymentModalProps {
     isOpen: boolean;
     onClose: () => void;
     planName: string;
-    billingCycle: 'monthly' | 'yearly';
+    billingCycle: 'monthly' | 'yearly' | 'lifetime';
     price: number;
 }
 
@@ -85,9 +85,9 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                     email: finalEmail || 'guest@example.com', // Fallback for safety, logic should be tighter
                     package_id: packageId,
                     status: 'Pending', // Manual payments require admin approval
-                    billing_cycle: billingCycle === 'monthly' ? 'Monthly' : 'Yearly',
+                    billing_cycle: billingCycle === 'monthly' ? 'Monthly' : billingCycle === 'yearly' ? 'Yearly' : 'Lifetime',
                     amount: price,
-                    next_billing_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+                    next_billing_date: billingCycle === 'lifetime' ? null : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
                     payment_method: selectedMethod,
                     proof_url: proofUrl
                 });

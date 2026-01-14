@@ -138,11 +138,13 @@ const mapPackage = (row: any): Package => ({
   name: row.name,
   priceMonthly: row.price_monthly,
   priceYearly: row.price_yearly,
+  priceLifetime: row.price_lifetime,
   currency: row.currency,
   features: row.features || [],
   limits: row.limits || {},
   color: row.color,
   isActive: row.is_active,
+  isVisible: row.is_visible !== false, // Default to true if not set
   allowedRoutes: row.allowed_routes || []
 });
 
@@ -2010,11 +2012,13 @@ export const api = {
         name: data.name,
         price_monthly: data.priceMonthly,
         price_yearly: data.priceYearly,
+        price_lifetime: data.priceLifetime,
         currency: data.currency,
         features: data.features,
         limits: data.limits,
         color: data.color,
         is_active: data.isActive,
+        is_visible: data.isVisible,
         allowed_routes: data.allowedRoutes,
         updated_at: new Date().toISOString()
       };
@@ -2039,11 +2043,13 @@ export const api = {
         name: data.name,
         price_monthly: data.priceMonthly,
         price_yearly: data.priceYearly,
+        price_lifetime: data.priceLifetime || null,
         currency: data.currency,
         features: data.features,
         limits: data.limits,
         color: data.color,
         is_active: data.isActive,
+        is_visible: data.isVisible !== false, // Default to true
         allowed_routes: data.allowedRoutes || []
       };
 

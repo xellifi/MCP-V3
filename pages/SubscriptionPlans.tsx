@@ -5,7 +5,7 @@ import { api } from '../services/api';
 import { Package } from '../types';
 
 const SubscriptionPlans: React.FC = () => {
-    const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
+    const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly' | 'lifetime'>('monthly');
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
     const [selectedPlan, setSelectedPlan] = useState<{ name: string, price: number } | null>(null);
 
@@ -13,6 +13,7 @@ const SubscriptionPlans: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [currentPackageId, setCurrentPackageId] = useState<string | null>(null);
     const [isPending, setIsPending] = useState(false);
+    const [hasLifetimeOptions, setHasLifetimeOptions] = useState(false);
 
     React.useEffect(() => {
         const fetchPlans = async () => {
@@ -30,17 +31,29 @@ const SubscriptionPlans: React.FC = () => {
                 }
 
                 if (data && data.length > 0) {
+                    // Filter only visible packages
+                    const visiblePackages = data.filter(pkg => pkg.isVisible !== false);
+
+                    // Check if any package has lifetime pricing
+                    const anyLifetime = visiblePackages.some(pkg => pkg.priceLifetime && pkg.priceLifetime > 0);
+                    setHasLifetimeOptions(anyLifetime);
+
                     // Map DB packages to UI structure
-                    const mappedPlans = data.map(pkg => {
+                    const mappedPlans = visiblePackages.map(pkg => {
                         // Determine Icon based on ID or Name
                         let Icon = Star;
                         if (pkg.id === 'free') Icon = Rocket;
                         else if (pkg.id === 'starter') Icon = Zap;
                         else if (pkg.id === 'pro') Icon = Crown;
 
+                        // Determine price based on billing cycle
+                        let price = pkg.priceMonthly;
+                        if (billingCycle === 'yearly') price = pkg.priceYearly;
+                        else if (billingCycle === 'lifetime') price = pkg.priceLifetime || 0;
+
                         return {
-                            ...pkg, // id, name, priceMonthly, priceYearly, color, features (string[])
-                            price: billingCycle === 'monthly' ? pkg.priceMonthly : pkg.priceYearly, // Dynamic price based on toggle
+                            ...pkg, // id, name, priceMonthly, priceYearly, priceLifetime, color, features (string[])
+                            price: price,
                             description: getDescriptionForPlan(pkg.id),
                             icon: Icon,
                             popular: pkg.id === 'pro', // Default popular logic
@@ -113,6 +126,17 @@ const SubscriptionPlans: React.FC = () => {
                             >
                                 Yearly billing <span className="ml-1 text-xs text-green-600 font-bold bg-green-100 dark:bg-green-900/30 px-1.5 py-0.5 rounded-full">-20%</span>
                             </button>
+                            {hasLifetimeOptions && (
+                                <button
+                                    onClick={() => setBillingCycle('lifetime')}
+                                    className={`relative z-10 px-6 py-2 text-sm font-semibold rounded-lg transition-all duration-300 ${billingCycle === 'lifetime'
+                                        ? 'text-slate-900 dark:text-white shadow-sm bg-white dark:bg-slate-700'
+                                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                                        }`}
+                                >
+                                    Lifetime <span className="ml-1 text-xs text-amber-600 font-bold bg-amber-100 dark:bg-amber-900/30 px-1.5 py-0.5 rounded-full">∞</span>
+                                </button>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -180,7 +204,11 @@ const SubscriptionPlans: React.FC = () => {
                                     <div className="mb-8">
                                         <div className="flex items-baseline gap-1">
                                             <span className="text-5xl font-extrabold text-slate-900 dark:text-white tracking-tight">${plan.price}</span>
-                                            <span className="text-lg text-slate-500 dark:text-slate-400 font-medium">/{billingCycle === 'monthly' ? 'mo' : 'yr'}</span>
+                                            {billingCycle === 'lifetime' ? (
+                                                <span className="text-lg text-slate-500 dark:text-slate-400 font-medium">one-time</span>
+                                            ) : (
+                                                <span className="text-lg text-slate-500 dark:text-slate-400 font-medium">/{billingCycle === 'monthly' ? 'mo' : 'yr'}</span>
+                                            )}
                                         </div>
                                     </div>
 

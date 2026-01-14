@@ -162,7 +162,7 @@ export interface UserSubscription {
   user_id: string;
   package_id: string;
   status: 'Active' | 'Pending' | 'Past Due' | 'Cancelled';
-  billing_cycle: 'Monthly' | 'Yearly';
+  billing_cycle: 'Monthly' | 'Yearly' | 'Lifetime';
   amount: number;
   next_billing_date: string | null;
   created_at: string;
@@ -302,10 +302,12 @@ export interface Package {
   name: string;
   priceMonthly: number;
   priceYearly: number;
+  priceLifetime?: number; // Lifetime one-time payment price
   currency: string;
   features: string[];
   limits: Record<string, number | string>;
   color: string;
   isActive: boolean;
+  isVisible?: boolean; // Show on pricing page (default true)
   allowedRoutes?: string[]; // List of allowed paths e.g. ['/', '/dashboard', '/settings']
 }
