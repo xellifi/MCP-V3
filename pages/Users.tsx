@@ -204,23 +204,28 @@ const UsersPage: React.FC<UsersPageProps> = ({ user }) => {
     try {
       if (editingId) {
         // UPDATE USER - Update their subscription package
-        const subscriptions = await api.subscriptions.getAll();
-        const userSubscription = subscriptions.find(sub => sub.user_id === editingId);
+        const currentSubs = await api.subscriptions.getAll();
+        const userSubscription = currentSubs.find(sub => sub.user_id === editingId);
 
         // Update user name
         await api.admin.updateUser(editingId, {
           name: newUser.name
         });
 
-        // Update or create subscription
-        if (userSubscription) {
-          // For now, we'll create a new subscription (in a real app, you'd update the existing one)
-          // This is a limitation of the current API structure
-          toast.info("User updated. Note: Subscription updates require manual intervention.");
+        // Update subscription package if changed
+        if (userSubscription && newUser.packageId) {
+          await api.subscriptions.update(userSubscription.id, {
+            package_id: newUser.packageId
+          });
         }
 
-        // Update local state
-        setUsers(users.map(u => u.id === editingId ? { ...u, name: newUser.name } : u));
+        // Reload users and subscriptions to reflect changes
+        const [updatedUsers, updatedSubs] = await Promise.all([
+          api.admin.getUsers(),
+          api.subscriptions.getAll()
+        ]);
+        setUsers(updatedUsers);
+        setSubscriptions(updatedSubs);
         toast.success("User updated successfully");
       } else {
         // CREATE USER - Use server-side API to create auth user and subscription
