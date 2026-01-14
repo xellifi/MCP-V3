@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { User, UserRole, Package } from '../types';
 import { api } from '../services/api';
-import { Search, Shield, User as UserIcon, Trash2, Edit2, ShieldAlert, Plus, X, Lock, UserPlus, MoreHorizontal, Eye, Calendar, CreditCard, Layers, Clock } from 'lucide-react';
+import { Search, Shield, User as UserIcon, Trash2, Edit2, ShieldAlert, Plus, X, Lock, UserPlus, MoreHorizontal, Eye, Calendar, CreditCard, Layers, Clock, LogIn } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 
 interface UsersPageProps {
@@ -38,6 +38,9 @@ const UsersPage: React.FC<UsersPageProps> = ({ user }) => {
     password: '',
     packageId: '' // Selected package ID
   });
+
+  // Impersonation state
+  const [impersonatingId, setImpersonatingId] = useState<string | null>(null);
 
   useEffect(() => {
     // Basic RBAC check
@@ -162,6 +165,31 @@ const UsersPage: React.FC<UsersPageProps> = ({ user }) => {
       toast.error("Failed to delete user: " + err.message);
     } finally {
       setDeleteConfirm(null);
+    }
+  };
+
+  // Handle impersonate click
+  const handleImpersonate = async (targetUser: User) => {
+    if (impersonatingId) return; // Already in progress
+
+    try {
+      setImpersonatingId(targetUser.id);
+      toast.info(`Generating login link for ${targetUser.name}...`);
+
+      const result = await api.admin.impersonateUser(targetUser.id, user.id);
+
+      if (result.actionLink) {
+        // Open the magic link in a new tab
+        window.open(result.actionLink, '_blank');
+        toast.success(`Opened ${result.userName}'s account in a new tab`);
+      } else {
+        throw new Error('No action link returned');
+      }
+    } catch (error: any) {
+      console.error('Impersonation error:', error);
+      toast.error(error.message || 'Failed to impersonate user');
+    } finally {
+      setImpersonatingId(null);
     }
   };
 
@@ -371,6 +399,17 @@ const UsersPage: React.FC<UsersPageProps> = ({ user }) => {
                         >
                           <Edit2 className="w-4 h-4" />
                         </button>
+                        {/* Impersonate - Blue/Primary (hidden for self) */}
+                        {u.id !== user.id && (
+                          <button
+                            onClick={() => handleImpersonate(u)}
+                            disabled={impersonatingId === u.id}
+                            className={`p-2 text-blue-500 hover:text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:text-blue-300 dark:hover:bg-blue-900/20 rounded-lg transition-colors ${impersonatingId === u.id ? 'opacity-50 cursor-wait' : ''}`}
+                            title="Login as this user"
+                          >
+                            <LogIn className="w-4 h-4" />
+                          </button>
+                        )}
                         {/* Delete - Red/Danger (hidden for protected roles) */}
                         {u.role !== UserRole.OWNER && u.role !== UserRole.ADMIN && u.id !== user.id && (
                           <button

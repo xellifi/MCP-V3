@@ -1820,6 +1820,49 @@ export const api = {
       }
     },
 
+    impersonateUser: async (userId: string, adminId: string): Promise<{ actionLink: string; userName: string }> => {
+      // Call the impersonate endpoint to get a magic link
+      const response = await fetch('/api/admin/impersonate-user', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId, adminId })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to impersonate user');
+      }
+
+      const result = await response.json();
+
+      // Store the admin's ID so they can return to their account
+      localStorage.setItem('impersonating_admin_id', adminId);
+      localStorage.setItem('impersonating_user_name', result.userName);
+
+      return {
+        actionLink: result.actionLink,
+        userName: result.userName
+      };
+    },
+
+    endImpersonation: async (): Promise<void> => {
+      // Clear impersonation data and sign out
+      localStorage.removeItem('impersonating_admin_id');
+      localStorage.removeItem('impersonating_user_name');
+      await supabase.auth.signOut();
+    },
+
+    isImpersonating: (): { isImpersonating: boolean; userName: string | null } => {
+      const adminId = localStorage.getItem('impersonating_admin_id');
+      const userName = localStorage.getItem('impersonating_user_name');
+      return {
+        isImpersonating: !!adminId,
+        userName
+      };
+    },
+
     getSettings: async (): Promise<AdminSettings> => {
       const { data, error } = await supabase
         .from('admin_settings')
