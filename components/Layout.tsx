@@ -79,6 +79,8 @@ const Layout: React.FC<LayoutProps> = ({
   // Upgrade Modal State
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [restrictedFeature, setRestrictedFeature] = useState('');
+  const [requiredPlan, setRequiredPlan] = useState('Pro');
+  const [allPackages, setAllPackages] = useState<any[]>([]);
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -142,6 +144,17 @@ const Layout: React.FC<LayoutProps> = ({
       }
     };
     loadSubscription();
+
+    // Fetch all packages to determine route requirements
+    const loadPackages = async () => {
+      try {
+        const packages = await api.admin.getPackages();
+        setAllPackages(packages);
+      } catch (error) {
+        console.error("Failed to load packages", error);
+      }
+    };
+    loadPackages();
 
     // Check if currently impersonating
     const impersonationStatus = api.admin.isImpersonating();
@@ -263,6 +276,15 @@ const Layout: React.FC<LayoutProps> = ({
     if (!pathIsAllowed) {
       e.preventDefault();
       setRestrictedFeature(label);
+
+      // Find the minimum required plan that has this route
+      // Sort packages by price (lowest first) and find the first one that includes this route
+      const sortedPackages = [...allPackages].sort((a, b) => (a.priceMonthly || 0) - (b.priceMonthly || 0));
+      const requiredPackage = sortedPackages.find(pkg =>
+        pkg.allowedRoutes?.includes(path) || pkg.allowedRoutes?.includes(path === '/dashboard' ? '/' : path)
+      );
+      setRequiredPlan(requiredPackage?.name || 'Pro');
+
       setShowUpgradeModal(true);
       setSidebarOpen(false);
       return;
@@ -659,6 +681,7 @@ const Layout: React.FC<LayoutProps> = ({
           isOpen={showUpgradeModal}
           onClose={() => setShowUpgradeModal(false)}
           featureName={restrictedFeature}
+          requiredPlan={requiredPlan}
         />
       </div>
     </div>
