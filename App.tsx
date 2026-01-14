@@ -75,6 +75,15 @@ const App: React.FC = () => {
           if (userWorkspaces.length > 0) {
             setWorkspaces(userWorkspaces);
             setCurrentWorkspace(userWorkspaces[0]);
+          } else {
+            // Create a default workspace in the database if none exist
+            try {
+              const newWorkspace = await api.workspace.create(`${existingUser.name}'s Workspace`, existingUser.id);
+              setWorkspaces([newWorkspace]);
+              setCurrentWorkspace(newWorkspace);
+            } catch (wsError) {
+              console.error('Failed to create workspace:', wsError);
+            }
           }
         }
       } catch (error) {
@@ -95,17 +104,32 @@ const App: React.FC = () => {
         setWorkspaces(userWorkspaces);
         setCurrentWorkspace(userWorkspaces[0]);
       } else {
-        // Create a default workspace if none exist
-        const defaultWs = { id: 'default', name: 'My Workspace', ownerId: u.id };
-        setWorkspaces([defaultWs]);
-        setCurrentWorkspace(defaultWs);
+        // Create a default workspace in the database if none exist
+        try {
+          const newWorkspace = await api.workspace.create(`${u.name}'s Workspace`, u.id);
+          setWorkspaces([newWorkspace]);
+          setCurrentWorkspace(newWorkspace);
+        } catch (wsError) {
+          console.error('Failed to create workspace:', wsError);
+          // Last resort fallback (shouldn't normally reach here)
+          const fallbackWs = { id: 'fallback-' + Date.now(), name: 'My Workspace', ownerId: u.id };
+          setWorkspaces([fallbackWs]);
+          setCurrentWorkspace(fallbackWs);
+        }
       }
     } catch (error) {
       console.error('Failed to load workspaces:', error);
-      // Fallback workspace
-      const defaultWs = { id: 'default', name: 'My Workspace', ownerId: u.id };
-      setWorkspaces([defaultWs]);
-      setCurrentWorkspace(defaultWs);
+      // Try to create a workspace even if list fails
+      try {
+        const newWorkspace = await api.workspace.create(`${u.name}'s Workspace`, u.id);
+        setWorkspaces([newWorkspace]);
+        setCurrentWorkspace(newWorkspace);
+      } catch (wsError) {
+        console.error('Failed to create workspace:', wsError);
+        const fallbackWs = { id: 'fallback-' + Date.now(), name: 'My Workspace', ownerId: u.id };
+        setWorkspaces([fallbackWs]);
+        setCurrentWorkspace(fallbackWs);
+      }
     }
   };
 

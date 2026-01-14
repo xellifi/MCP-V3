@@ -346,6 +346,21 @@ export const api = {
       return data?.map(mapWorkspace) || [];
     },
 
+    create: async (name: string, ownerId: string): Promise<Workspace> => {
+      const { data, error } = await supabase
+        .from('workspaces')
+        .insert({ name, owner_id: ownerId })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error creating workspace:', error);
+        throw new Error(error.message);
+      }
+
+      return mapWorkspace(data);
+    },
+
     getConnections: async (workspaceId: string): Promise<MetaConnection[]> => {
       const { data, error } = await supabase
         .from('meta_connections')
