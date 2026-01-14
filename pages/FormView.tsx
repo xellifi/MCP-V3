@@ -349,7 +349,7 @@ const FormView: React.FC = () => {
             };
 
             // Use server-side API to insert submission (bypasses RLS)
-            const submitResponse = await fetch('/api/forms/submit', {
+            const submitResponse = await fetch('/api/forms/handler?action=submit', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -400,7 +400,7 @@ const FormView: React.FC = () => {
 
             // Mark form as submitted to prevent follow-up messages
             if (subscriberId) {
-                fetch('/api/forms/submit?action=mark-submitted', {
+                fetch('/api/forms/handler?action=mark-submitted', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ formId, subscriberId })

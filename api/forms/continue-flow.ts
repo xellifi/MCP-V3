@@ -633,7 +633,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     if (companyLogo) params.set('logo', companyLogo);
                     if (companyAddress) params.set('address', companyAddress);
 
-                    invoiceUrl = `${baseUrl}/api/invoices/view?${params.toString()}`;
+                    invoiceUrl = `${baseUrl}/api/views/handler?type=invoice&${params.toString()}`;
                     console.log('[Continue Flow] Invoice URL:', invoiceUrl);
                 } else {
                     console.log('[Continue Flow] No invoice ID available - neither order nor submission found');

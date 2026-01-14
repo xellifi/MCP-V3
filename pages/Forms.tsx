@@ -1291,7 +1291,7 @@ const Forms: React.FC<FormsProps> = ({ workspace }) => {
                                                                         ))}
                                                                     </select>
                                                                     <a
-                                                                        href={`/api/invoices/view?id=${submission.id}&company=${encodeURIComponent(selectedForm.name)}&color=${encodeURIComponent('#6366f1')}`}
+                                                                        href={`/api/views/handler?type=invoice&id=${submission.id}&company=${encodeURIComponent(selectedForm.name)}&color=${encodeURIComponent('#6366f1')}`}
                                                                         target="_blank"
                                                                         rel="noopener noreferrer"
                                                                         className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium bg-indigo-500/20 text-indigo-400"
@@ -1408,7 +1408,7 @@ const Forms: React.FC<FormsProps> = ({ workspace }) => {
                                                                         ))}
                                                                     </select>
                                                                     <a
-                                                                        href={`/api/invoices/view?id=${submission.id}&company=${encodeURIComponent(selectedForm.name)}&color=${encodeURIComponent('#6366f1')}`}
+                                                                        href={`/api/views/handler?type=invoice&id=${submission.id}&company=${encodeURIComponent(selectedForm.name)}&color=${encodeURIComponent('#6366f1')}`}
                                                                         target="_blank"
                                                                         rel="noopener noreferrer"
                                                                         className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-indigo-500/20 text-indigo-400 hover:bg-indigo-500/30 transition-colors"
@@ -1417,7 +1417,7 @@ const Forms: React.FC<FormsProps> = ({ workspace }) => {
                                                                         Invoice
                                                                     </a>
                                                                     <a
-                                                                        href={`/api/track/view?id=${submission.id}&company=${encodeURIComponent(selectedForm.name)}&color=${encodeURIComponent('#6366f1')}`}
+                                                                        href={`/api/views/handler?type=track&id=${submission.id}&company=${encodeURIComponent(selectedForm.name)}&color=${encodeURIComponent('#6366f1')}`}
                                                                         target="_blank"
                                                                         rel="noopener noreferrer"
                                                                         className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-purple-500/20 text-purple-400 hover:bg-purple-500/30 transition-colors"
