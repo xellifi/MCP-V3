@@ -232,7 +232,8 @@ const Layout: React.FC<LayoutProps> = ({
   }, [profileDropdownOpen]);
 
   // Default allowed routes for Free plan (no subscription or Pending subscription)
-  const FREE_PLAN_ROUTES = ['/', '/dashboard', '/support', '/settings', '/packages'];
+  // This should match the routes configured in the Free package in admin settings
+  const FREE_PLAN_ROUTES = ['/', '/dashboard', '/connected-pages', '/flows', '/settings', '/academy', '/orders', '/packages'];
 
   // Handle navigation click with permission check
   const handleNavClick = (e: React.MouseEvent, path: string, label: string) => {
