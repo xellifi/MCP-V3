@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { Workspace, ConnectedPage } from '../types';
 import { api } from '../services/api';
-import { Facebook, Instagram, RefreshCw, ExternalLink, CheckCircle, Bot, Users, AlertTriangle, LayoutGrid, List, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Facebook, Instagram, RefreshCw, ExternalLink, CheckCircle, Bot, Users, AlertTriangle, LayoutGrid, List, ChevronLeft, ChevronRight, Info } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import { useTheme } from '../context/ThemeContext';
+import { Link } from 'react-router-dom';
 
 interface ConnectedPagesProps {
   workspace: Workspace;
@@ -19,12 +20,25 @@ const ConnectedPages: React.FC<ConnectedPagesProps> = ({ workspace }) => {
   const [filter, setFilter] = useState<FilterType | null>(null);
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid');
   const [currentPage, setCurrentPage] = useState(1);
+  const [hasConnection, setHasConnection] = useState<boolean | null>(null); // null = loading
   const itemsPerPage = 10; // 5 columns * 2 rows
   const toast = useToast();
 
   useEffect(() => {
     loadPages();
+    checkConnection();
   }, [workspace.id]);
+
+  // Check if Facebook is connected
+  const checkConnection = async () => {
+    try {
+      const connections = await api.workspace.getConnections(workspace.id);
+      setHasConnection(connections.length > 0);
+    } catch (error) {
+      console.error('Failed to check connections:', error);
+      setHasConnection(false);
+    }
+  };
 
   const loadPages = async () => {
     setLoading(true);
@@ -184,6 +198,28 @@ const ConnectedPages: React.FC<ConnectedPagesProps> = ({ workspace }) => {
           </div>
         </div>
       </div>
+
+      {/* Connection Tip Banner */}
+      {hasConnection === false && (
+        <div className={`flex items-center gap-3 px-4 py-3 rounded-xl border ${isDark
+            ? 'bg-amber-500/10 border-amber-500/20 text-amber-400'
+            : 'bg-amber-50 border-amber-200 text-amber-700'
+          }`}>
+          <Info className="w-5 h-5 flex-shrink-0" />
+          <p className="text-sm">
+            <span className="font-medium">No Facebook profile connected.</span>
+            {' To see your pages here, '}
+            <Link
+              to="/connections"
+              className={`font-bold underline hover:no-underline ${isDark ? 'text-amber-300 hover:text-amber-200' : 'text-amber-800 hover:text-amber-900'
+                }`}
+            >
+              connect your Facebook profile
+            </Link>
+            {' first.'}
+          </p>
+        </div>
+      )}
       {/* Filter Tabs */}
       <div className={`flex gap-2 border-b ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
         <button

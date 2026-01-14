@@ -54,13 +54,30 @@ const edgeTypes = {
 interface SchedulerBuilderProps {
   workspace: Workspace;
   onBack: () => void;
+  connectionStatus: {
+    hasConnection: boolean;
+    hasActivePages: boolean;
+    loading: boolean;
+  };
 }
 
-const SchedulerBuilder: React.FC<SchedulerBuilderProps> = ({ workspace, onBack }) => {
+const SchedulerBuilder: React.FC<SchedulerBuilderProps> = ({ workspace, onBack, connectionStatus }) => {
   const { isDark } = useTheme();
   const toast = useToast();
+  const navigate = useNavigate();
   const { screenToFlowPosition } = useReactFlow();
   const [isFullScreen, setIsFullScreen] = useState(false);
+  const [showConnectionWarning, setShowConnectionWarning] = useState(false);
+
+  // Handle save flow - check connection requirements
+  const handleSaveFlow = useCallback(() => {
+    if (!connectionStatus.hasConnection || !connectionStatus.hasActivePages) {
+      setShowConnectionWarning(true);
+      return;
+    }
+    // TODO: Implement actual save logic
+    toast.success('Flow saved successfully!');
+  }, [connectionStatus, toast]);
 
   // Handle Escape key to exit full screen
   useEffect(() => {
@@ -262,6 +279,7 @@ const SchedulerBuilder: React.FC<SchedulerBuilderProps> = ({ workspace, onBack }
           </span>
         </button>
         <button
+          onClick={handleSaveFlow}
           className={`group relative p-2.5 backdrop-blur-md rounded-xl border shadow-lg transition-all ${isDark
             ? 'bg-white/5 hover:bg-white/10 text-white border-white/10'
             : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200 shadow-slate-200/50'
@@ -284,102 +302,8 @@ const SchedulerBuilder: React.FC<SchedulerBuilderProps> = ({ workspace, onBack }
         </button>
       </div>
 
-      <ReactFlow
-        nodes={nodes}
-        edges={edges}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
-        maxZoom={3}
-        onConnect={onConnect}
-        nodeTypes={nodeTypes}
-        edgeTypes={edgeTypes}
-        defaultViewport={{ x: 300, y: -100, zoom: 1.5 }}
-        minZoom={0.3}
-
-        className={isDark ? 'bg-slate-950' : 'bg-slate-50'}
-      >
-        <Background
-          color={isDark ? '#334155' : '#cbd5e1'}
-          gap={20}
-          size={1}
-        />
-        <Controls
-          className={isDark
-            ? '!bg-slate-800 !border-white/10 !shadow-xl [&>button]:!fill-slate-400 [&>button:hover]:!fill-white'
-            : '!bg-white !border-slate-200 !shadow-xl [&>button]:!fill-slate-500 [&>button:hover]:!fill-slate-800'
-          }
-        />
-      </ReactFlow>
-    </div>
-  );
-};
-
-
-// --- Main Component ---
-
-const ScheduledPosts: React.FC<ScheduledPostsProps> = ({ workspace }) => {
-  const { isDark } = useTheme();
-  const navigate = useNavigate();
-  const [view, setView] = useState<'list' | 'builder'>('list');
-  const [scheduledItems, setScheduledItems] = useState<any[]>([]); // Start empty to show empty state
-  const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid');
-
-  // Connection check state
-  const [showConnectionModal, setShowConnectionModal] = useState(false);
-  const [connectionStatus, setConnectionStatus] = useState<{
-    hasConnection: boolean;
-    hasActivePages: boolean;
-    loading: boolean;
-  }>({ hasConnection: true, hasActivePages: true, loading: true });
-
-  // Check Facebook connection and active pages on mount
-  useEffect(() => {
-    const checkConnections = async () => {
-      try {
-        const [connections, pages] = await Promise.all([
-          api.workspace.getConnections(workspace.id),
-          api.workspace.getConnectedPages(workspace.id)
-        ]);
-
-        const hasConnection = connections.length > 0;
-        const hasActivePages = pages.some(page => page.isAutomationEnabled);
-
-        setConnectionStatus({
-          hasConnection,
-          hasActivePages,
-          loading: false
-        });
-
-        // Show modal if either condition is not met
-        if (!hasConnection || !hasActivePages) {
-          setShowConnectionModal(true);
-        }
-      } catch (error) {
-        console.error('Failed to check connections:', error);
-        setConnectionStatus({ hasConnection: false, hasActivePages: false, loading: false });
-        setShowConnectionModal(true);
-      }
-    };
-
-    checkConnections();
-  }, [workspace.id]);
-
-  // Helper to check if user can create schedules
-  const canCreateSchedule = connectionStatus.hasConnection && connectionStatus.hasActivePages;
-
-  // Handler for create schedule button when requirements not met
-  const handleCreateClick = () => {
-    if (!canCreateSchedule) {
-      setShowConnectionModal(true);
-    } else {
-      setView('builder');
-    }
-  };
-
-  return (
-    <div className="animate-fade-in w-full h-full">
-      {/* Connection Required Modal */}
-      {showConnectionModal && (
+      {/* Connection Warning Modal */}
+      {showConnectionWarning && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm">
           <div className={`relative w-full max-w-md rounded-2xl shadow-2xl border overflow-hidden animate-fade-in ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'
             }`}>
@@ -389,10 +313,10 @@ const ScheduledPosts: React.FC<ScheduledPostsProps> = ({ workspace }) => {
                 <AlertTriangle className="w-8 h-8 text-amber-500" />
               </div>
               <h2 className={`text-xl font-bold mb-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                Setup Required
+                Setup Required to Save
               </h2>
               <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-                To use the Scheduler feature, you need to complete the following:
+                To save your flow, you need to complete the following:
               </p>
             </div>
 
@@ -443,18 +367,93 @@ const ScheduledPosts: React.FC<ScheduledPostsProps> = ({ workspace }) => {
                 </button>
               )}
               <button
-                onClick={() => setShowConnectionModal(false)}
+                onClick={() => setShowConnectionWarning(false)}
                 className={`w-full px-4 py-3 rounded-xl font-medium transition-all ${isDark
                   ? 'bg-slate-800 text-slate-300 hover:bg-slate-700'
                   : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                   }`}
               >
-                Dismiss
+                Continue Without Saving
               </button>
             </div>
           </div>
         </div>
       )}
+
+      <ReactFlow
+        nodes={nodes}
+        edges={edges}
+        onNodesChange={onNodesChange}
+        onEdgesChange={onEdgesChange}
+        maxZoom={3}
+        onConnect={onConnect}
+        nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
+        defaultViewport={{ x: 300, y: -100, zoom: 1.5 }}
+        minZoom={0.3}
+
+        className={isDark ? 'bg-slate-950' : 'bg-slate-50'}
+      >
+        <Background
+          color={isDark ? '#334155' : '#cbd5e1'}
+          gap={20}
+          size={1}
+        />
+        <Controls
+          className={isDark
+            ? '!bg-slate-800 !border-white/10 !shadow-xl [&>button]:!fill-slate-400 [&>button:hover]:!fill-white'
+            : '!bg-white !border-slate-200 !shadow-xl [&>button]:!fill-slate-500 [&>button:hover]:!fill-slate-800'
+          }
+        />
+      </ReactFlow>
+    </div>
+  );
+};
+
+
+// --- Main Component ---
+
+const ScheduledPosts: React.FC<ScheduledPostsProps> = ({ workspace }) => {
+  const { isDark } = useTheme();
+  const [view, setView] = useState<'list' | 'builder'>('list');
+  const [scheduledItems, setScheduledItems] = useState<any[]>([]); // Start empty to show empty state
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid');
+
+  // Connection check state (used when saving)
+  const [connectionStatus, setConnectionStatus] = useState<{
+    hasConnection: boolean;
+    hasActivePages: boolean;
+    loading: boolean;
+  }>({ hasConnection: true, hasActivePages: true, loading: true });
+
+  // Check Facebook connection and active pages on mount
+  useEffect(() => {
+    const checkConnections = async () => {
+      try {
+        const [connections, pages] = await Promise.all([
+          api.workspace.getConnections(workspace.id),
+          api.workspace.getConnectedPages(workspace.id)
+        ]);
+
+        const hasConnection = connections.length > 0;
+        const hasActivePages = pages.some(page => page.isAutomationEnabled);
+
+        setConnectionStatus({
+          hasConnection,
+          hasActivePages,
+          loading: false
+        });
+      } catch (error) {
+        console.error('Failed to check connections:', error);
+        setConnectionStatus({ hasConnection: false, hasActivePages: false, loading: false });
+      }
+    };
+
+    checkConnections();
+  }, [workspace.id]);
+
+  return (
+    <div className="animate-fade-in w-full h-full">
 
       {view === 'list' && (
         <div className="space-y-6">
@@ -488,13 +487,8 @@ const ScheduledPosts: React.FC<ScheduledPostsProps> = ({ workspace }) => {
                 </button>
               </div>
               <button
-                onClick={handleCreateClick}
-                disabled={connectionStatus.loading}
-                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold shadow-lg transition-all border border-white/20 ${canCreateSchedule
-                    ? 'bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white shadow-indigo-500/20 active:scale-95'
-                    : 'bg-slate-600 text-slate-300 cursor-not-allowed opacity-70'
-                  }`}
-                title={!canCreateSchedule ? 'Connect Facebook and activate pages first' : 'Create new schedule'}
+                onClick={() => setView('builder')}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold shadow-lg transition-all border border-white/20 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white shadow-indigo-500/20 active:scale-95"
               >
                 <Plus className="w-5 h-5" />
                 New Schedule
@@ -517,13 +511,8 @@ const ScheduledPosts: React.FC<ScheduledPostsProps> = ({ workspace }) => {
                   Create your first automated schedule to publish content automatically.
                 </p>
                 <button
-                  onClick={handleCreateClick}
-                  disabled={connectionStatus.loading}
-                  className={`flex items-center gap-2 px-8 py-3 rounded-xl font-bold shadow-xl transition-all border border-white/20 transform ${canCreateSchedule
-                      ? 'bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white shadow-indigo-500/20 active:scale-95 hover:-translate-y-1'
-                      : 'bg-slate-600 text-slate-300 cursor-not-allowed opacity-70'
-                    }`}
-                  title={!canCreateSchedule ? 'Connect Facebook and activate pages first' : 'Create new schedule'}
+                  onClick={() => setView('builder')}
+                  className="flex items-center gap-2 px-8 py-3 rounded-xl font-bold shadow-xl transition-all border border-white/20 transform bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white shadow-indigo-500/20 active:scale-95 hover:-translate-y-1"
                 >
                   <Plus className="w-5 h-5" />
                   Create New Schedule
@@ -572,7 +561,7 @@ const ScheduledPosts: React.FC<ScheduledPostsProps> = ({ workspace }) => {
 
       {view === 'builder' && (
         <ReactFlowProvider>
-          <SchedulerBuilder workspace={workspace} onBack={() => setView('list')} />
+          <SchedulerBuilder workspace={workspace} onBack={() => setView('list')} connectionStatus={connectionStatus} />
         </ReactFlowProvider>
       )}
     </div>
