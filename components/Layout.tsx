@@ -226,8 +226,18 @@ const Layout: React.FC<LayoutProps> = ({
     // Check permissions
     if (!isAdminOrOwner && currentSubscription?.packages?.allowed_routes?.length > 0) {
       const allowed = currentSubscription.packages.allowed_routes;
-      // Check if path or renderPath is allowed
-      const pathIsAllowed = allowed.includes(path) || (path === '/' && allowed.includes('/dashboard'));
+
+      // Normalize dashboard paths: Package Settings stores '/' but NavItem uses '/dashboard'
+      // Check both variations for Dashboard
+      let pathIsAllowed = allowed.includes(path);
+      if (!pathIsAllowed) {
+        // Dashboard special case: check both '/' and '/dashboard'
+        if (path === '/dashboard') {
+          pathIsAllowed = allowed.includes('/');
+        } else if (path === '/') {
+          pathIsAllowed = allowed.includes('/dashboard');
+        }
+      }
 
       if (!pathIsAllowed) {
         e.preventDefault();
