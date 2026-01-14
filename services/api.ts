@@ -206,6 +206,61 @@ export const api = {
         // Wait a moment for trigger to complete
         await delay(500);
 
+        // Create a Free subscription for the new user
+        try {
+          // Look for a Free package (case-insensitive search)
+          let { data: packages, error: pkgError } = await supabase
+            .from('packages')
+            .select('*')
+            .ilike('name', '%free%')
+            .eq('is_active', true)
+            .limit(1);
+
+          console.log('Free package search result:', { packages, pkgError });
+
+          // Fallback: if no "free" package found, get the cheapest active package
+          if ((!packages || packages.length === 0) && !pkgError) {
+            const { data: allPackages } = await supabase
+              .from('packages')
+              .select('*')
+              .eq('is_active', true)
+              .order('price_monthly', { ascending: true })
+              .limit(1);
+
+            packages = allPackages;
+            console.log('Fallback to cheapest package:', packages);
+          }
+
+          if (packages && packages.length > 0) {
+            const freePackage = packages[0];
+            console.log('Assigning package to new user:', freePackage.name, freePackage.id);
+
+            // Create subscription with Free plan
+            const { error: subError } = await supabase
+              .from('user_subscriptions')
+              .insert({
+                user_id: data.user.id,
+                package_id: freePackage.id,
+                status: 'Active',
+                billing_cycle: 'Monthly',
+                amount: freePackage.price_monthly || 0,
+                next_billing_date: null, // Free plan doesn't need billing
+                payment_method: 'free'
+              });
+
+            if (subError) {
+              console.error('Failed to insert subscription:', subError);
+            } else {
+              console.log('Created Free subscription for user:', data.user.id);
+            }
+          } else {
+            console.warn('No packages found - user registered without subscription');
+          }
+        } catch (subError) {
+          console.error('Failed to create Free subscription:', subError);
+          // Don't fail registration if subscription creation fails
+        }
+
         // Fetch the created profile
         const { data: profile } = await supabase
           .from('profiles')
