@@ -133,6 +133,13 @@ const mapSupportTicket = (row: any, messages: any[] = []): SupportTicket => ({
   messages: messages.map(mapTicketMessage)
 });
 
+// Helper to safely convert is_visible to boolean (handles null, undefined, strings)
+const parseIsVisible = (value: any): boolean => {
+  if (value === false || value === 'false' || value === 0) return false;
+  if (value === null || value === undefined) return true; // Default to visible
+  return Boolean(value);
+};
+
 const mapPackage = (row: any): Package => ({
   id: row.id,
   name: row.name,
@@ -144,7 +151,7 @@ const mapPackage = (row: any): Package => ({
   limits: row.limits || {},
   color: row.color,
   isActive: row.is_active,
-  isVisible: row.is_visible !== false, // Default to true if not set
+  isVisible: parseIsVisible(row.is_visible),
   allowedRoutes: row.allowed_routes || []
 });
 
@@ -2003,6 +2010,9 @@ export const api = {
         console.error('Error fetching packages:', error);
         throw new Error('Failed to fetch packages');
       }
+
+      // Debug: Log raw data from Supabase to verify is_visible values
+      console.log('Raw packages from DB:', data?.map(p => ({ id: p.id, name: p.name, is_visible: p.is_visible, typeof_is_visible: typeof p.is_visible })));
 
       return data?.map(mapPackage) || [];
     },

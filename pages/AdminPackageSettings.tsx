@@ -236,6 +236,7 @@ const AdminPackageSettings: React.FC = () => {
             currency: 'USD',
             color: 'slate',
             isActive: true,
+            isVisible: true, // Default to visible
             features: [],
             limits: {}
         });
@@ -276,7 +277,10 @@ const AdminPackageSettings: React.FC = () => {
                     color: currentPackage.color || 'slate',
                     priceMonthly: Number(currentPackage.priceMonthly) || 0,
                     priceYearly: Number(currentPackage.priceYearly) || 0,
+                    priceLifetime: currentPackage.priceLifetime ? Number(currentPackage.priceLifetime) : undefined,
                     currency: currentPackage.currency || 'USD',
+                    isActive: currentPackage.isActive !== false,
+                    isVisible: currentPackage.isVisible !== false, // Explicitly pass visibility
                 } as Package);
                 toast.success('Package created successfully');
             }

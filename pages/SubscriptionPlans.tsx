@@ -31,8 +31,13 @@ const SubscriptionPlans: React.FC = () => {
                 }
 
                 if (data && data.length > 0) {
-                    // Filter only visible packages
-                    const visiblePackages = data.filter(pkg => pkg.isVisible !== false);
+                    // Debug: Log all packages and their visibility
+                    console.log('All packages from API:', data.map(p => ({ id: p.id, name: p.name, isVisible: p.isVisible })));
+
+                    // Filter only visible packages (isVisible must be explicitly true or undefined/null to show)
+                    const visiblePackages = data.filter(pkg => pkg.isVisible === true || pkg.isVisible === undefined);
+
+                    console.log('Visible packages after filter:', visiblePackages.map(p => ({ id: p.id, name: p.name })));
 
                     // Check if any package has lifetime pricing
                     const anyLifetime = visiblePackages.some(pkg => pkg.priceLifetime && pkg.priceLifetime > 0);
@@ -76,8 +81,22 @@ const SubscriptionPlans: React.FC = () => {
                             features: pkg.features || [] // Already string[]
                         };
                     });
-                    // Sort by price (Free -> Starter -> Pro)
-                    mappedPlans.sort((a, b) => a.priceMonthly - b.priceMonthly);
+
+                    // Custom sort order: Free -> Starter -> Pro -> Lifetime (lifetime-only packages last)
+                    const planOrder: Record<string, number> = { 'free': 1, 'starter': 2, 'pro': 3 };
+                    mappedPlans.sort((a, b) => {
+                        // Lifetime-only packages go to the end
+                        if (a.isLifetimeOnly && !b.isLifetimeOnly) return 1;
+                        if (!a.isLifetimeOnly && b.isLifetimeOnly) return -1;
+
+                        // Use custom order for known packages
+                        const orderA = planOrder[a.id] || 100;
+                        const orderB = planOrder[b.id] || 100;
+                        if (orderA !== orderB) return orderA - orderB;
+
+                        // Fallback to price for unknown packages
+                        return (a.priceMonthly || 0) - (b.priceMonthly || 0);
+                    });
                     setPlans(mappedPlans);
                 }
             } catch (error) {
