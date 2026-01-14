@@ -391,48 +391,35 @@ const AdminSubscriptions: React.FC = () => {
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 text-right">
-                                            <div className="relative" ref={openDropdownId === sub.id ? dropdownRef : null}>
+                                            <div className="flex justify-end gap-1">
+                                                {/* Edit - Green/Success */}
                                                 <button
-                                                    onClick={() => setOpenDropdownId(openDropdownId === sub.id ? null : sub.id)}
-                                                    className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                                                    onClick={() => handleEditClick(sub)}
+                                                    className="p-2 text-emerald-500 hover:text-emerald-600 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:text-emerald-300 dark:hover:bg-emerald-900/20 rounded-lg transition-colors"
+                                                    title="Edit Subscription"
                                                 >
-                                                    <MoreHorizontal className="w-5 h-5" />
+                                                    <Edit className="w-4 h-4" />
                                                 </button>
-                                                {openDropdownId === sub.id && (
-                                                    <div className="absolute right-0 top-full mt-1 w-40 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-xl z-50 py-1 animate-fade-in">
-                                                        <button
-                                                            onClick={() => handleEditClick(sub)}
-                                                            className="w-full flex items-center gap-2 px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
-                                                        >
-                                                            <Edit className="w-4 h-4" />
-                                                            Edit
-                                                        </button>
-                                                        <button
-                                                            onClick={() => handleFreeze(sub)}
-                                                            className="w-full flex items-center gap-2 px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
-                                                        >
-                                                            {sub.status === 'Active' ? (
-                                                                <>
-                                                                    <PauseCircle className="w-4 h-4" />
-                                                                    Freeze
-                                                                </>
-                                                            ) : (
-                                                                <>
-                                                                    <PlayCircle className="w-4 h-4" />
-                                                                    Unfreeze
-                                                                </>
-                                                            )}
-                                                        </button>
-                                                        <hr className="my-1 border-slate-200 dark:border-slate-700" />
-                                                        <button
-                                                            onClick={() => handleDeleteClick(sub)}
-                                                            className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-                                                        >
-                                                            <Trash2 className="w-4 h-4" />
-                                                            Delete
-                                                        </button>
-                                                    </div>
-                                                )}
+                                                {/* Freeze/Unfreeze - Amber/Orange */}
+                                                <button
+                                                    onClick={() => handleFreeze(sub)}
+                                                    className="p-2 text-amber-500 hover:text-amber-600 hover:bg-amber-50 dark:text-amber-400 dark:hover:text-amber-300 dark:hover:bg-amber-900/20 rounded-lg transition-colors"
+                                                    title={sub.status === 'Active' ? 'Freeze Subscription' : 'Unfreeze Subscription'}
+                                                >
+                                                    {sub.status === 'Active' ? (
+                                                        <PauseCircle className="w-4 h-4" />
+                                                    ) : (
+                                                        <PlayCircle className="w-4 h-4" />
+                                                    )}
+                                                </button>
+                                                {/* Delete - Red/Danger */}
+                                                <button
+                                                    onClick={() => handleDeleteClick(sub)}
+                                                    className="p-2 text-red-500 hover:text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                                                    title="Delete Subscription"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
                                             </div>
                                         </td>
                                     </tr>

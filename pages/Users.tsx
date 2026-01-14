@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { User, UserRole, Package } from '../types';
 import { api } from '../services/api';
-import { Search, Shield, User as UserIcon, Trash2, Edit2, ShieldAlert, Plus, X, Lock, UserPlus } from 'lucide-react';
+import { Search, Shield, User as UserIcon, Trash2, Edit2, ShieldAlert, Plus, X, Lock, UserPlus, MoreHorizontal, Eye, Calendar, CreditCard, Layers, Clock } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 
 interface UsersPageProps {
@@ -15,6 +15,20 @@ const UsersPage: React.FC<UsersPageProps> = ({ user }) => {
   const [packages, setPackages] = useState<Package[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+
+  // Actions dropdown state
+  const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // View profile modal state
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [viewingUser, setViewingUser] = useState<any>(null);
+  const [viewingUserData, setViewingUserData] = useState<{
+    subscription: any;
+    flowsCount: number;
+    scheduledCount: number;
+  } | null>(null);
+  const [loadingUserData, setLoadingUserData] = useState(false);
 
   // New User Form State
   const [newUser, setNewUser] = useState({
@@ -48,7 +62,62 @@ const UsersPage: React.FC<UsersPageProps> = ({ user }) => {
     loadData();
   }, [user]);
 
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setOpenDropdownId(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
+  // Handle view profile click
+  const handleViewClick = async (userToView: User) => {
+    setViewingUser(userToView);
+    setIsViewModalOpen(true);
+    setOpenDropdownId(null);
+    setLoadingUserData(true);
+
+    try {
+      // Get user's subscription
+      const subscriptions = await api.subscriptions.getAll();
+      const userSubscription = subscriptions.find(sub => sub.user_id === userToView.id && sub.status === 'Active');
+
+      // Get flows count (we need to find the user's workspace first)
+      // For now, we'll show 0 as we don't have direct workspace access per user
+      // In a real implementation, you'd query flows by user's workspace
+      let flowsCount = 0;
+      let scheduledCount = 0;
+
+      // Try to get workspace and counts if available
+      try {
+        const workspaces = await api.workspace.list();
+        const userWorkspace = workspaces.find(w => w.name.toLowerCase().includes(userToView.email.split('@')[0].toLowerCase()));
+        if (userWorkspace) {
+          const flows = await api.workspace.getFlows(userWorkspace.id);
+          flowsCount = flows.length;
+          const scheduled = await api.workspace.getScheduledPosts(userWorkspace.id);
+          scheduledCount = scheduled.length;
+        }
+      } catch (e) {
+        // Workspace access might be limited, that's okay
+        console.log('Could not fetch workspace data for user');
+      }
+
+      setViewingUserData({
+        subscription: userSubscription || null,
+        flowsCount,
+        scheduledCount
+      });
+    } catch (error) {
+      console.error('Failed to load user data:', error);
+      setViewingUserData(null);
+    } finally {
+      setLoadingUserData(false);
+    }
+  };
 
   const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -264,13 +333,30 @@ const UsersPage: React.FC<UsersPageProps> = ({ user }) => {
                     {u.role === UserRole.ADMIN || u.role === UserRole.OWNER ? 'All Access' : 'Package-based'}
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <div className="flex justify-end gap-2">
-                      <button onClick={() => handleEditClick(u)} className="p-2 text-slate-500 hover:text-primary-600 hover:bg-primary-50 dark:text-slate-400 dark:hover:text-primary-400 dark:hover:bg-primary-900/30 rounded-lg transition-colors" title="Edit User">
+                    <div className="flex justify-end gap-1">
+                      {/* View - Amber/Orange */}
+                      <button
+                        onClick={() => handleViewClick(u)}
+                        className="p-2 text-amber-500 hover:text-amber-600 hover:bg-amber-50 dark:text-amber-400 dark:hover:text-amber-300 dark:hover:bg-amber-900/20 rounded-lg transition-colors"
+                        title="View Profile"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </button>
+                      {/* Edit - Green/Success */}
+                      <button
+                        onClick={() => handleEditClick(u)}
+                        className="p-2 text-emerald-500 hover:text-emerald-600 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:text-emerald-300 dark:hover:bg-emerald-900/20 rounded-lg transition-colors"
+                        title="Edit User"
+                      >
                         <Edit2 className="w-4 h-4" />
                       </button>
-                      {/* Prevent deleting Owner or Self */}
-                      {u.role !== UserRole.OWNER && u.id !== user.id && (
-                        <button onClick={() => handleDeleteClick(u.id, u.name)} className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-50 dark:text-slate-400 dark:hover:text-red-400 dark:hover:bg-red-900/30 rounded-lg transition-colors" title="Delete User">
+                      {/* Delete - Red/Danger (hidden for protected roles) */}
+                      {u.role !== UserRole.OWNER && u.role !== UserRole.ADMIN && u.id !== user.id && (
+                        <button
+                          onClick={() => handleDeleteClick(u.id, u.name)}
+                          className="p-2 text-red-500 hover:text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                          title="Delete User"
+                        >
                           <Trash2 className="w-4 h-4" />
                         </button>
                       )}
@@ -468,6 +554,151 @@ const UsersPage: React.FC<UsersPageProps> = ({ user }) => {
                   Delete User
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* View Profile Modal */}
+      {isViewModalOpen && viewingUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+          <div className="relative w-full max-w-lg bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+            {/* Header */}
+            <div className="flex items-center justify-between p-6 border-b border-slate-200 dark:border-slate-800">
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <Eye className="w-6 h-6 text-primary-600" />
+                User Profile
+              </h2>
+              <button
+                onClick={() => { setIsViewModalOpen(false); setViewingUser(null); setViewingUserData(null); }}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-6 space-y-6">
+              {/* User Info */}
+              <div className="flex items-center gap-4">
+                {viewingUser.avatarUrl ? (
+                  <img src={viewingUser.avatarUrl} alt={viewingUser.name} className="w-16 h-16 rounded-full object-cover ring-4 ring-white dark:ring-slate-800 shadow-lg" />
+                ) : (
+                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary-500 to-indigo-600 flex items-center justify-center text-white text-xl font-bold shadow-lg">
+                    {viewingUser.name.charAt(0).toUpperCase()}
+                  </div>
+                )}
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-white">{viewingUser.name}</h3>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">{viewingUser.email}</p>
+                  <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-bold mt-1 ${viewingUser.role === UserRole.ADMIN
+                    ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400'
+                    : viewingUser.role === UserRole.OWNER
+                      ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+                      : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
+                    }`}>
+                    {viewingUser.role === UserRole.ADMIN && <Shield className="w-3 h-3" />}
+                    {viewingUser.role}
+                  </span>
+                </div>
+              </div>
+
+              {/* Details Grid */}
+              {loadingUserData ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"></div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Created At */}
+                  <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4 border border-slate-200 dark:border-slate-700">
+                    <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 mb-1">
+                      <Calendar className="w-4 h-4" />
+                      <span className="text-xs font-medium uppercase">Created At</span>
+                    </div>
+                    <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                      {viewingUser.createdAt ? new Date(viewingUser.createdAt).toLocaleDateString() : 'N/A'}
+                    </p>
+                  </div>
+
+                  {/* Expires At */}
+                  <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4 border border-slate-200 dark:border-slate-700">
+                    <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 mb-1">
+                      <Clock className="w-4 h-4" />
+                      <span className="text-xs font-medium uppercase">Expires At</span>
+                    </div>
+                    <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                      {viewingUserData?.subscription?.next_billing_date
+                        ? new Date(viewingUserData.subscription.next_billing_date).toLocaleDateString()
+                        : 'N/A'}
+                    </p>
+                  </div>
+
+                  {/* Mode of Payment */}
+                  <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4 border border-slate-200 dark:border-slate-700">
+                    <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 mb-1">
+                      <CreditCard className="w-4 h-4" />
+                      <span className="text-xs font-medium uppercase">Payment Method</span>
+                    </div>
+                    <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                      {viewingUserData?.subscription?.payment_method || viewingUserData?.subscription?.billing_cycle || 'N/A'}
+                    </p>
+                  </div>
+
+                  {/* Plan */}
+                  <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4 border border-slate-200 dark:border-slate-700">
+                    <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 mb-1">
+                      <Layers className="w-4 h-4" />
+                      <span className="text-xs font-medium uppercase">Plan</span>
+                    </div>
+                    <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                      {viewingUserData?.subscription?.packages?.name || 'No Active Plan'}
+                    </p>
+                  </div>
+
+                  {/* Flows Created */}
+                  <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4 border border-slate-200 dark:border-slate-700">
+                    <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 mb-1">
+                      <Layers className="w-4 h-4" />
+                      <span className="text-xs font-medium uppercase">Flows Created</span>
+                    </div>
+                    <p className="text-2xl font-bold text-slate-900 dark:text-white">
+                      {viewingUserData?.flowsCount || 0}
+                    </p>
+                  </div>
+
+                  {/* Scheduled Posts */}
+                  <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4 border border-slate-200 dark:border-slate-700">
+                    <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 mb-1">
+                      <Calendar className="w-4 h-4" />
+                      <span className="text-xs font-medium uppercase">Scheduled Posts</span>
+                    </div>
+                    <p className="text-2xl font-bold text-slate-900 dark:text-white">
+                      {viewingUserData?.scheduledCount || 0}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Footer Actions */}
+            <div className="p-6 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/50 flex gap-3">
+              <button
+                onClick={() => { setIsViewModalOpen(false); handleEditClick(viewingUser); }}
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-primary-600 text-white rounded-xl hover:bg-primary-700 transition-colors font-medium shadow-lg shadow-primary-500/25"
+              >
+                <Edit2 className="w-4 h-4" />
+                Edit User
+              </button>
+              {viewingUser.role !== UserRole.OWNER && viewingUser.role !== UserRole.ADMIN && viewingUser.id !== user.id && (
+                <button
+                  onClick={() => { setIsViewModalOpen(false); handleDeleteClick(viewingUser.id, viewingUser.name); }}
+                  className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-colors font-medium shadow-lg shadow-red-500/25"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Delete User
+                </button>
+              )}
             </div>
           </div>
         </div>
