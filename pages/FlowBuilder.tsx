@@ -132,6 +132,9 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
   const [flowStatus, setFlowStatus] = useState<'ACTIVE' | 'DRAFT'>('DRAFT');
   const [pageSaved, setPageSaved] = useState(false);
 
+  // FB Connection required modal state
+  const [showFbConnectionModal, setShowFbConnectionModal] = useState(false);
+
   // Node configuration state
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
   const [showConfigModal, setShowConfigModal] = useState(false);
@@ -1036,6 +1039,13 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
   const handleSave = async () => {
     console.log('handleSave called, id:', id);
     console.log('Is new flow?', !id || id.startsWith('new'));
+
+    // Check if user has connected their FB profile (has available pages)
+    if (availablePages.length === 0) {
+      console.log('No FB pages connected, showing connection modal');
+      setShowFbConnectionModal(true);
+      return;
+    }
 
     // Always show name dialog for both new and existing flows
     // Pre-populate with current name for existing flows
@@ -2510,6 +2520,53 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
           </div>
         </div>
       )}
+
+      {/* FB Connection Required Modal */}
+      {showFbConnectionModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className={`w-full max-w-md mx-4 rounded-2xl shadow-2xl border ${isDark ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'}`}>
+            <div className="p-6 text-center">
+              {/* Icon */}
+              <div className={`w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center ${isDark ? 'bg-amber-500/20' : 'bg-amber-100'}`}>
+                <Globe className={`w-8 h-8 ${isDark ? 'text-amber-400' : 'text-amber-600'}`} />
+              </div>
+
+              {/* Title */}
+              <h3 className={`text-xl font-bold mb-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                Connect Your Facebook Profile
+              </h3>
+
+              {/* Description */}
+              <p className={`text-sm mb-6 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+                To save and publish a flow, you need to connect your Facebook profile and enable automation on at least one page.
+              </p>
+
+              {/* Buttons */}
+              <div className="flex flex-col gap-3">
+                <button
+                  onClick={() => {
+                    setShowFbConnectionModal(false);
+                    navigate('/connections');
+                  }}
+                  className="w-full py-3 px-4 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-xl transition-colors flex items-center justify-center gap-2"
+                >
+                  <Globe className="w-5 h-5" />
+                  Go to Connections
+                </button>
+                <button
+                  onClick={() => setShowFbConnectionModal(false)}
+                  className={`w-full py-3 px-4 font-medium rounded-xl transition-colors ${isDark
+                    ? 'bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700'
+                    : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200'}`}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Mobile Node Grid Overlay - Centered Popup */}
       {showMobileNodeGrid && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-200">
@@ -2522,19 +2579,19 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
 
           {/* Modal Container */}
           <div className={`relative w-full max-w-sm border rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh] animate-in zoom-in-95 duration-200 ${isDark
-              ? 'bg-slate-900 border-white/10'
-              : 'bg-white border-gray-200'
+            ? 'bg-slate-900 border-white/10'
+            : 'bg-white border-gray-200'
             }`}>
             <div className={`flex items-center justify-between p-4 border-b shrink-0 ${isDark
-                ? 'border-white/10 bg-slate-900/50'
-                : 'border-gray-100 bg-white/50'
+              ? 'border-white/10 bg-slate-900/50'
+              : 'border-gray-100 bg-white/50'
               }`}>
               <h2 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>Add Node</h2>
               <button
                 onClick={() => setShowMobileNodeGrid(false)}
                 className={`p-2 rounded-full transition-colors ${isDark
-                    ? 'bg-white/5 text-white hover:bg-white/10'
-                    : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                  ? 'bg-white/5 text-white hover:bg-white/10'
+                  : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
                   }`}
               >
                 <X className="w-5 h-5" />
@@ -2548,8 +2605,8 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
 
                 <button onClick={() => { addNode('startNode', 'Start'); setShowMobileNodeGrid(false); }} className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform group">
                   <div className={`w-12 h-12 border rounded-2xl flex items-center justify-center shadow-lg transition-colors ${isDark
-                      ? 'bg-emerald-500/10 border-emerald-500/20 group-hover:bg-emerald-500/20 group-hover:border-emerald-500/30 text-emerald-400'
-                      : 'bg-emerald-50 border-emerald-200 group-hover:bg-emerald-100 group-hover:border-emerald-300 text-emerald-600'
+                    ? 'bg-emerald-500/10 border-emerald-500/20 group-hover:bg-emerald-500/20 group-hover:border-emerald-500/30 text-emerald-400'
+                    : 'bg-emerald-50 border-emerald-200 group-hover:bg-emerald-100 group-hover:border-emerald-300 text-emerald-600'
                     }`}>
                     <Play className="w-5 h-5 fill-current" />
                   </div>
@@ -2558,8 +2615,8 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
 
                 <button onClick={() => { addCommentReplyTemplate(); setShowMobileNodeGrid(false); }} className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform group">
                   <div className={`w-12 h-12 border rounded-2xl flex items-center justify-center shadow-lg transition-colors ${isDark
-                      ? 'bg-blue-500/10 border-blue-500/20 group-hover:bg-blue-500/20 group-hover:border-blue-500/30 text-blue-400'
-                      : 'bg-blue-50 border-blue-200 group-hover:bg-blue-100 group-hover:border-blue-300 text-blue-600'
+                    ? 'bg-blue-500/10 border-blue-500/20 group-hover:bg-blue-500/20 group-hover:border-blue-500/30 text-blue-400'
+                    : 'bg-blue-50 border-blue-200 group-hover:bg-blue-100 group-hover:border-blue-300 text-blue-600'
                     }`}>
                     <MessageCircle className="w-5 h-5" />
                   </div>
@@ -2568,8 +2625,8 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
 
                 <button onClick={() => { addNode('textNode', 'Text'); setShowMobileNodeGrid(false); }} className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform group">
                   <div className={`w-12 h-12 border rounded-2xl flex items-center justify-center shadow-lg transition-colors ${isDark
-                      ? 'bg-amber-500/10 border-amber-500/20 group-hover:bg-amber-500/20 group-hover:border-amber-500/30 text-amber-400'
-                      : 'bg-amber-50 border-amber-200 group-hover:bg-amber-100 group-hover:border-amber-300 text-amber-600'
+                    ? 'bg-amber-500/10 border-amber-500/20 group-hover:bg-amber-500/20 group-hover:border-amber-500/30 text-amber-400'
+                    : 'bg-amber-50 border-amber-200 group-hover:bg-amber-100 group-hover:border-amber-300 text-amber-600'
                     }`}>
                     <MessageSquare className="w-5 h-5" />
                   </div>
@@ -2578,8 +2635,8 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
 
                 <button onClick={() => { addNode('imageNode', 'Image'); setShowMobileNodeGrid(false); }} className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform group">
                   <div className={`w-12 h-12 border rounded-2xl flex items-center justify-center shadow-lg transition-colors ${isDark
-                      ? 'bg-rose-500/10 border-rose-500/20 group-hover:bg-rose-500/20 group-hover:border-rose-500/30 text-rose-400'
-                      : 'bg-rose-50 border-rose-200 group-hover:bg-rose-100 group-hover:border-rose-300 text-rose-600'
+                    ? 'bg-rose-500/10 border-rose-500/20 group-hover:bg-rose-500/20 group-hover:border-rose-500/30 text-rose-400'
+                    : 'bg-rose-50 border-rose-200 group-hover:bg-rose-100 group-hover:border-rose-300 text-rose-600'
                     }`}>
                     <Image className="w-5 h-5" />
                   </div>
@@ -2588,8 +2645,8 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
 
                 <button onClick={() => { addNode('videoNode', 'Video'); setShowMobileNodeGrid(false); }} className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform group">
                   <div className={`w-12 h-12 border rounded-2xl flex items-center justify-center shadow-lg transition-colors ${isDark
-                      ? 'bg-cyan-500/10 border-cyan-500/20 group-hover:bg-cyan-500/20 group-hover:border-cyan-500/30 text-cyan-400'
-                      : 'bg-cyan-50 border-cyan-200 group-hover:bg-cyan-100 group-hover:border-cyan-300 text-cyan-600'
+                    ? 'bg-cyan-500/10 border-cyan-500/20 group-hover:bg-cyan-500/20 group-hover:border-cyan-500/30 text-cyan-400'
+                    : 'bg-cyan-50 border-cyan-200 group-hover:bg-cyan-100 group-hover:border-cyan-300 text-cyan-600'
                     }`}>
                     <Video className="w-5 h-5" />
                   </div>
@@ -2601,8 +2658,8 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
 
                 <button onClick={() => { addNode('aiNode', 'AI Agent'); setShowMobileNodeGrid(false); }} className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform group">
                   <div className={`w-12 h-12 border rounded-2xl flex items-center justify-center shadow-lg transition-colors ${isDark
-                      ? 'bg-indigo-500/10 border-indigo-500/20 group-hover:bg-indigo-500/20 group-hover:border-indigo-500/30 text-indigo-400'
-                      : 'bg-indigo-50 border-indigo-200 group-hover:bg-indigo-100 group-hover:border-indigo-300 text-indigo-600'
+                    ? 'bg-indigo-500/10 border-indigo-500/20 group-hover:bg-indigo-500/20 group-hover:border-indigo-500/30 text-indigo-400'
+                    : 'bg-indigo-50 border-indigo-200 group-hover:bg-indigo-100 group-hover:border-indigo-300 text-indigo-600'
                     }`}>
                     <Sparkles className="w-5 h-5" />
                   </div>
@@ -2611,8 +2668,8 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
 
                 <button onClick={() => { addNode('conditionNode', 'Condition'); setShowMobileNodeGrid(false); }} className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform group">
                   <div className={`w-12 h-12 border rounded-2xl flex items-center justify-center shadow-lg transition-colors ${isDark
-                      ? 'bg-orange-500/10 border-orange-500/20 group-hover:bg-orange-500/20 group-hover:border-orange-500/30 text-orange-400'
-                      : 'bg-orange-50 border-orange-200 group-hover:bg-orange-100 group-hover:border-orange-300 text-orange-600'
+                    ? 'bg-orange-500/10 border-orange-500/20 group-hover:bg-orange-500/20 group-hover:border-orange-500/30 text-orange-400'
+                    : 'bg-orange-50 border-orange-200 group-hover:bg-orange-100 group-hover:border-orange-300 text-orange-600'
                     }`}>
                     <GitBranch className="w-5 h-5" />
                   </div>
@@ -2621,8 +2678,8 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
 
                 <button onClick={() => { addNode('followupNode', 'Follow-up'); setShowMobileNodeGrid(false); }} className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform group">
                   <div className={`w-12 h-12 border rounded-2xl flex items-center justify-center shadow-lg transition-colors ${isDark
-                      ? 'bg-rose-500/10 border-rose-500/20 group-hover:bg-rose-500/20 group-hover:border-rose-500/30 text-rose-400'
-                      : 'bg-rose-50 border-rose-200 group-hover:bg-rose-100 group-hover:border-rose-300 text-rose-600'
+                    ? 'bg-rose-500/10 border-rose-500/20 group-hover:bg-rose-500/20 group-hover:border-rose-500/30 text-rose-400'
+                    : 'bg-rose-50 border-rose-200 group-hover:bg-rose-100 group-hover:border-rose-300 text-rose-600'
                     }`}>
                     <RefreshCw className="w-5 h-5" />
                   </div>
@@ -2634,8 +2691,8 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
 
                 <button onClick={() => { addNode('productWebviewNode', 'Product Webview'); setShowMobileNodeGrid(false); }} className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform group">
                   <div className={`w-12 h-12 border rounded-2xl flex items-center justify-center shadow-lg relative transition-colors ${isDark
-                      ? 'bg-indigo-500/10 border-indigo-500/20 group-hover:bg-indigo-500/20 group-hover:border-indigo-500/30 text-indigo-400'
-                      : 'bg-indigo-50 border-indigo-200 group-hover:bg-indigo-100 group-hover:border-indigo-300 text-indigo-600'
+                    ? 'bg-indigo-500/10 border-indigo-500/20 group-hover:bg-indigo-500/20 group-hover:border-indigo-500/30 text-indigo-400'
+                    : 'bg-indigo-50 border-indigo-200 group-hover:bg-indigo-100 group-hover:border-indigo-300 text-indigo-600'
                     }`}>
                     <ShoppingBag className="w-5 h-5" />
                     <Globe className="w-2.5 h-2.5 text-white absolute bottom-1 right-1 bg-indigo-600 rounded-full p-0.5" />
@@ -2645,8 +2702,8 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
 
                 <button onClick={() => { addNode('upsellNode', 'Upsell'); setShowMobileNodeGrid(false); }} className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform group">
                   <div className={`w-12 h-12 border rounded-2xl flex items-center justify-center shadow-lg relative transition-colors ${isDark
-                      ? 'bg-teal-500/10 border-teal-500/20 group-hover:bg-teal-500/20 group-hover:border-teal-500/30 text-teal-400'
-                      : 'bg-teal-50 border-teal-200 group-hover:bg-teal-100 group-hover:border-teal-300 text-teal-600'
+                    ? 'bg-teal-500/10 border-teal-500/20 group-hover:bg-teal-500/20 group-hover:border-teal-500/30 text-teal-400'
+                    : 'bg-teal-50 border-teal-200 group-hover:bg-teal-100 group-hover:border-teal-300 text-teal-600'
                     }`}>
                     <ShoppingCart className="w-5 h-5" />
                     <ArrowUp className="w-2.5 h-2.5 text-white absolute bottom-1 right-1 bg-teal-600 rounded-full p-0.5" />
@@ -2656,8 +2713,8 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
 
                 <button onClick={() => { addNode('downsellNode', 'Downsell'); setShowMobileNodeGrid(false); }} className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform group">
                   <div className={`w-12 h-12 border rounded-2xl flex items-center justify-center shadow-lg relative transition-colors ${isDark
-                      ? 'bg-orange-500/10 border-orange-500/20 group-hover:bg-orange-500/20 group-hover:border-orange-500/30 text-orange-400'
-                      : 'bg-orange-50 border-orange-200 group-hover:bg-orange-100 group-hover:border-orange-300 text-orange-600'
+                    ? 'bg-orange-500/10 border-orange-500/20 group-hover:bg-orange-500/20 group-hover:border-orange-500/30 text-orange-400'
+                    : 'bg-orange-50 border-orange-200 group-hover:bg-orange-100 group-hover:border-orange-300 text-orange-600'
                     }`}>
                     <ShoppingCart className="w-5 h-5" />
                     <ArrowDown className="w-2.5 h-2.5 text-white absolute bottom-1 right-1 bg-orange-600 rounded-full p-0.5" />
@@ -2667,8 +2724,8 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
 
                 <button onClick={() => { addNode('formNode', 'Form'); setShowMobileNodeGrid(false); }} className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform group">
                   <div className={`w-12 h-12 border rounded-2xl flex items-center justify-center shadow-lg transition-colors ${isDark
-                      ? 'bg-purple-500/10 border-purple-500/20 group-hover:bg-purple-500/20 group-hover:border-purple-500/30 text-purple-400'
-                      : 'bg-purple-50 border-purple-200 group-hover:bg-purple-100 group-hover:border-purple-300 text-purple-600'
+                    ? 'bg-purple-500/10 border-purple-500/20 group-hover:bg-purple-500/20 group-hover:border-purple-500/30 text-purple-400'
+                    : 'bg-purple-50 border-purple-200 group-hover:bg-purple-100 group-hover:border-purple-300 text-purple-600'
                     }`}>
                     <FileText className="w-5 h-5" />
                   </div>
@@ -2677,8 +2734,8 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
 
                 <button onClick={() => { addNode('sheetsNode', 'Sheets'); setShowMobileNodeGrid(false); }} className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform group">
                   <div className={`w-12 h-12 border rounded-2xl flex items-center justify-center shadow-lg transition-colors ${isDark
-                      ? 'bg-green-500/10 border-green-500/20 group-hover:bg-green-500/20 group-hover:border-green-500/30 text-green-400'
-                      : 'bg-green-50 border-green-200 group-hover:bg-green-100 group-hover:border-green-300 text-green-600'
+                    ? 'bg-green-500/10 border-green-500/20 group-hover:bg-green-500/20 group-hover:border-green-500/30 text-green-400'
+                    : 'bg-green-50 border-green-200 group-hover:bg-green-100 group-hover:border-green-300 text-green-600'
                     }`}>
                     <Table className="w-5 h-5" />
                   </div>
@@ -2687,8 +2744,8 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
 
                 <button onClick={() => { addNode('invoiceNode', 'Invoice'); setShowMobileNodeGrid(false); }} className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform group">
                   <div className={`w-12 h-12 border rounded-2xl flex items-center justify-center shadow-lg transition-colors ${isDark
-                      ? 'bg-violet-500/10 border-violet-500/20 group-hover:bg-violet-500/20 group-hover:border-violet-500/30 text-violet-400'
-                      : 'bg-violet-50 border-violet-200 group-hover:bg-violet-100 group-hover:border-violet-300 text-violet-600'
+                    ? 'bg-violet-500/10 border-violet-500/20 group-hover:bg-violet-500/20 group-hover:border-violet-500/30 text-violet-400'
+                    : 'bg-violet-50 border-violet-200 group-hover:bg-violet-100 group-hover:border-violet-300 text-violet-600'
                     }`}>
                     <Receipt className="w-5 h-5" />
                   </div>
@@ -2697,8 +2754,8 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
 
                 <button onClick={() => { addNode('productNode', 'Product'); setShowMobileNodeGrid(false); }} className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform group">
                   <div className={`w-12 h-12 border rounded-2xl flex items-center justify-center shadow-lg transition-colors ${isDark
-                      ? 'bg-emerald-500/10 border-emerald-500/20 group-hover:bg-emerald-500/20 group-hover:border-emerald-500/30 text-emerald-400'
-                      : 'bg-emerald-50 border-emerald-200 group-hover:bg-emerald-100 group-hover:border-emerald-300 text-emerald-600'
+                    ? 'bg-emerald-500/10 border-emerald-500/20 group-hover:bg-emerald-500/20 group-hover:border-emerald-500/30 text-emerald-400'
+                    : 'bg-emerald-50 border-emerald-200 group-hover:bg-emerald-100 group-hover:border-emerald-300 text-emerald-600'
                     }`}>
                     <Package className="w-5 h-5" />
                   </div>
@@ -2707,8 +2764,8 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
 
                 <button onClick={() => { addNode('checkoutNode', 'Checkout'); setShowMobileNodeGrid(false); }} className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform group">
                   <div className={`w-12 h-12 border rounded-2xl flex items-center justify-center shadow-lg transition-colors ${isDark
-                      ? 'bg-emerald-500/10 border-emerald-500/20 group-hover:bg-emerald-500/20 group-hover:border-emerald-500/30 text-emerald-400'
-                      : 'bg-emerald-50 border-emerald-200 group-hover:bg-emerald-100 group-hover:border-emerald-300 text-emerald-600'
+                    ? 'bg-emerald-500/10 border-emerald-500/20 group-hover:bg-emerald-500/20 group-hover:border-emerald-500/30 text-emerald-400'
+                    : 'bg-emerald-50 border-emerald-200 group-hover:bg-emerald-100 group-hover:border-emerald-300 text-emerald-600'
                     }`}>
                     <ShoppingCart className="w-5 h-5" />
                   </div>
@@ -2719,8 +2776,8 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
 
             <div className={`p-4 border-t ${isDark ? 'border-white/10 bg-slate-900/50' : 'border-gray-100 bg-white/50'}`}>
               <button onClick={() => setShowMobileNodeGrid(false)} className={`w-full py-2.5 border rounded-xl font-medium transition-colors text-sm ${isDark
-                  ? 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10 hover:text-white'
-                  : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                ? 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10 hover:text-white'
+                : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100 hover:text-slate-900'
                 }`}>Cancel</button>
             </div>
           </div>

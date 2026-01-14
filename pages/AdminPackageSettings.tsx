@@ -552,18 +552,20 @@ const AdminPackageSettings: React.FC = () => {
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                         {packages.map((pkg) => (
                                             <div key={pkg.id} className={`bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 relative group hover:border-primary-500/50 hover:shadow-lg hover:shadow-primary-500/5 transition-all duration-300 ${pkg.isVisible === false ? 'opacity-60' : ''}`}>
-                                                {/* Hidden indicator */}
-                                                {pkg.isVisible === false && (
-                                                    <div className="absolute top-4 left-4 px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 text-xs font-medium">
-                                                        Hidden
-                                                    </div>
-                                                )}
-                                                <button
-                                                    onClick={() => handleEditClick(pkg)}
-                                                    className="absolute top-4 right-4 text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-colors"
-                                                >
-                                                    <Edit3 className="w-4 h-4" />
-                                                </button>
+                                                {/* Top-right controls: Hidden badge + Edit button */}
+                                                <div className="absolute top-4 right-4 flex items-center gap-2">
+                                                    {pkg.isVisible === false && (
+                                                        <span className="px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 text-xs font-medium">
+                                                            Hidden
+                                                        </span>
+                                                    )}
+                                                    <button
+                                                        onClick={() => handleEditClick(pkg)}
+                                                        className="text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-colors"
+                                                    >
+                                                        <Edit3 className="w-4 h-4" />
+                                                    </button>
+                                                </div>
                                                 <div className={`w-12 h-12 rounded-xl bg-${pkg.color}-100 dark:bg-${pkg.color}-900/30 flex items-center justify-center text-${pkg.color}-600 dark:text-${pkg.color}-400 mb-4 shadow-sm`}>
                                                     <PackageIcon className="w-6 h-6" />
                                                 </div>
@@ -622,6 +624,7 @@ const AdminPackageSettings: React.FC = () => {
                                                         <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Order</th>
                                                         <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Plan Name</th>
                                                         <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Price (Mo/Yr)</th>
+                                                        <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
                                                         <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Limits</th>
                                                         <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Actions</th>
                                                     </tr>
@@ -644,6 +647,17 @@ const AdminPackageSettings: React.FC = () => {
                                                             <td className="px-6 py-4">
                                                                 <div className="text-sm text-slate-900 dark:text-white font-medium">${pkg.priceMonthly} <span className="text-slate-400 font-normal">/mo</span></div>
                                                                 <div className="text-xs text-slate-500">${pkg.priceYearly} /yr</div>
+                                                            </td>
+                                                            <td className="px-6 py-4">
+                                                                {pkg.isVisible === false ? (
+                                                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400">
+                                                                        Hidden
+                                                                    </span>
+                                                                ) : (
+                                                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400">
+                                                                        Visible
+                                                                    </span>
+                                                                )}
                                                             </td>
                                                             <td className="px-6 py-4">
                                                                 <div className="flex flex-wrap gap-2">
