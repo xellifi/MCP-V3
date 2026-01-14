@@ -166,6 +166,7 @@ export interface UserSubscription {
   amount: number;
   next_billing_date: string | null;
   created_at: string;
+  proof_url?: string;
 
   // Joined fields
   profiles?: {
