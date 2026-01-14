@@ -31,13 +31,8 @@ const SubscriptionPlans: React.FC = () => {
                 }
 
                 if (data && data.length > 0) {
-                    // Debug: Log all packages and their visibility
-                    console.log('All packages from API:', data.map(p => ({ id: p.id, name: p.name, isVisible: p.isVisible })));
-
-                    // Filter only visible packages (isVisible must be explicitly true or undefined/null to show)
+                    // Filter only visible packages
                     const visiblePackages = data.filter(pkg => pkg.isVisible === true || pkg.isVisible === undefined);
-
-                    console.log('Visible packages after filter:', visiblePackages.map(p => ({ id: p.id, name: p.name })));
 
                     // Check if any package has lifetime pricing
                     const anyLifetime = visiblePackages.some(pkg => pkg.priceLifetime && pkg.priceLifetime > 0);

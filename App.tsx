@@ -6,6 +6,7 @@ import { User, Workspace } from './types';
 import { MOCK_WORKSPACES } from './constants';
 import { ThemeProvider } from './context/ThemeContext';
 import LoadingSpinner from './components/LoadingSpinner';
+import ChunkErrorBoundary from './components/ChunkErrorBoundary';
 
 // Public Pages - Load immediately (small, needed for initial render)
 import Home from './pages/Home';
@@ -273,35 +274,39 @@ const App: React.FC = () => {
                 onWorkspaceChange={handleWorkspaceChange}
                 onLogout={handleLogout}
               >
-                <Routes>
-                  <Route path="/dashboard" element={<Dashboard workspace={currentWorkspace} />} />
-                  <Route path="/connections" element={<Connections workspace={currentWorkspace} />} />
-                  <Route path="/connected-pages" element={<ConnectedPages workspace={currentWorkspace} />} />
-                  <Route path="/subscribers" element={<Subscribers workspace={currentWorkspace} />} />
-                  <Route path="/messages" element={<Inbox workspace={currentWorkspace} />} />
-                  <Route path="/flows" element={<Flows workspace={currentWorkspace} />} />
-                  <Route path="/flows/:id" element={<FlowBuilder workspace={currentWorkspace} />} />
-                  <Route path="/scheduled" element={<ScheduledPosts workspace={currentWorkspace} />} />
-                  <Route path="/settings" element={<Settings user={user} workspace={currentWorkspace} />} />
-                  <Route path="/affiliates" element={<Affiliates user={user} />} />
-                  <Route path="/support" element={<Support user={user} workspace={currentWorkspace} />} />
-                  <Route path="/academy" element={<Academy user={user} />} />
-                  <Route path="/forms-manager" element={<Forms workspace={currentWorkspace} />} />
-                  <Route path="/store" element={<Store workspace={currentWorkspace} />} />
-                  <Route path="/orders" element={<Orders workspace={currentWorkspace} />} />
-                  <Route path="/packages" element={<SubscriptionPlans />} />
+                <ChunkErrorBoundary>
+                  <Suspense fallback={<LoadingSpinner />}>
+                    <Routes>
+                      <Route path="/dashboard" element={<Dashboard workspace={currentWorkspace} />} />
+                      <Route path="/connections" element={<Connections workspace={currentWorkspace} />} />
+                      <Route path="/connected-pages" element={<ConnectedPages workspace={currentWorkspace} />} />
+                      <Route path="/subscribers" element={<Subscribers workspace={currentWorkspace} />} />
+                      <Route path="/messages" element={<Inbox workspace={currentWorkspace} />} />
+                      <Route path="/flows" element={<Flows workspace={currentWorkspace} />} />
+                      <Route path="/flows/:id" element={<FlowBuilder workspace={currentWorkspace} />} />
+                      <Route path="/scheduled" element={<ScheduledPosts workspace={currentWorkspace} />} />
+                      <Route path="/settings" element={<Settings user={user} workspace={currentWorkspace} />} />
+                      <Route path="/affiliates" element={<Affiliates user={user} />} />
+                      <Route path="/support" element={<Support user={user} workspace={currentWorkspace} />} />
+                      <Route path="/academy" element={<Academy user={user} />} />
+                      <Route path="/forms-manager" element={<Forms workspace={currentWorkspace} />} />
+                      <Route path="/store" element={<Store workspace={currentWorkspace} />} />
+                      <Route path="/orders" element={<Orders workspace={currentWorkspace} />} />
+                      <Route path="/packages" element={<SubscriptionPlans />} />
 
-                  {/* Admin Only Routes */}
-                  <Route path="/users" element={<UsersPage user={user} />} />
-                  <Route path="/system-settings" element={<SystemSettings user={user} />} />
-                  <Route path="/admin/subscriptions" element={<AdminSubscriptions />} />
-                  <Route path="/admin/packages" element={<AdminPackageSettings />} />
+                      {/* Admin Only Routes */}
+                      <Route path="/users" element={<UsersPage user={user} />} />
+                      <Route path="/system-settings" element={<SystemSettings user={user} />} />
+                      <Route path="/admin/subscriptions" element={<AdminSubscriptions />} />
+                      <Route path="/admin/packages" element={<AdminPackageSettings />} />
 
-                  {/* Redirect root in app context to dashboard */}
-                  <Route path="/" element={<Navigate to="/dashboard" replace />} />
-                  {/* Redirect legacy route */}
-                  <Route path="/api-keys" element={<Navigate to="/settings" replace />} />
-                </Routes>
+                      {/* Redirect root in app context to dashboard */}
+                      <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                      {/* Redirect legacy route */}
+                      <Route path="/api-keys" element={<Navigate to="/settings" replace />} />
+                    </Routes>
+                  </Suspense>
+                </ChunkErrorBoundary>
               </Layout>
             ) : (
               <Navigate to="/login" replace />

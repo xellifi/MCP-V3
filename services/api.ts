@@ -2011,9 +2011,6 @@ export const api = {
         throw new Error('Failed to fetch packages');
       }
 
-      // Debug: Log raw data from Supabase to verify is_visible values
-      console.log('Raw packages from DB:', data?.map(p => ({ id: p.id, name: p.name, is_visible: p.is_visible, typeof_is_visible: typeof p.is_visible })));
-
       return data?.map(mapPackage) || [];
     },
 
