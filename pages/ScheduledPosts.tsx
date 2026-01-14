@@ -15,7 +15,7 @@ import ReactFlow, {
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { Workspace } from '../types';
-import { Plus, Zap, Sparkles, Table, Globe, Save, Play, Settings, Wrench, X, Eye, Database, BrainCircuit, CalendarDays, ArrowLeft, Clock, MoreHorizontal, Edit, Trash, LayoutGrid, List, Maximize2, Minimize2 } from 'lucide-react';
+import { Plus, Zap, Sparkles, Table, Globe, Save, Play, Settings, Wrench, X, Eye, Database, BrainCircuit, CalendarDays, ArrowLeft, Clock, MoreHorizontal, Edit, Trash, LayoutGrid, List, Maximize2, Minimize2, AlertTriangle, Link as LinkIcon } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import VisualTriggerNode from '../components/visual_nodes/VisualTriggerNode';
 import VisualAINode from '../components/visual_nodes/VisualAINode';
@@ -27,6 +27,8 @@ import VisualToolNode from '../components/visual_nodes/VisualToolNode';
 import VisualModelNode from '../components/visual_nodes/VisualModelNode';
 import CustomEdge from '../components/edges/CustomEdge';
 import { useToast } from '../context/ToastContext';
+import { api } from '../services/api';
+import { useNavigate } from 'react-router-dom';
 
 interface ScheduledPostsProps {
   workspace: Workspace;
@@ -317,12 +319,131 @@ const SchedulerBuilder: React.FC<SchedulerBuilderProps> = ({ workspace, onBack }
 
 const ScheduledPosts: React.FC<ScheduledPostsProps> = ({ workspace }) => {
   const { isDark } = useTheme();
+  const navigate = useNavigate();
   const [view, setView] = useState<'list' | 'builder'>('list');
   const [scheduledItems, setScheduledItems] = useState<any[]>([]); // Start empty to show empty state
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid');
 
+  // Connection check state
+  const [showConnectionModal, setShowConnectionModal] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState<{
+    hasConnection: boolean;
+    hasActivePages: boolean;
+    loading: boolean;
+  }>({ hasConnection: true, hasActivePages: true, loading: true });
+
+  // Check Facebook connection and active pages on mount
+  useEffect(() => {
+    const checkConnections = async () => {
+      try {
+        const [connections, pages] = await Promise.all([
+          api.workspace.getConnections(workspace.id),
+          api.workspace.getConnectedPages(workspace.id)
+        ]);
+
+        const hasConnection = connections.length > 0;
+        const hasActivePages = pages.some(page => page.isAutomationEnabled);
+
+        setConnectionStatus({
+          hasConnection,
+          hasActivePages,
+          loading: false
+        });
+
+        // Show modal if either condition is not met
+        if (!hasConnection || !hasActivePages) {
+          setShowConnectionModal(true);
+        }
+      } catch (error) {
+        console.error('Failed to check connections:', error);
+        setConnectionStatus({ hasConnection: false, hasActivePages: false, loading: false });
+        setShowConnectionModal(true);
+      }
+    };
+
+    checkConnections();
+  }, [workspace.id]);
+
   return (
     <div className="animate-fade-in w-full h-full">
+      {/* Connection Required Modal */}
+      {showConnectionModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm">
+          <div className={`relative w-full max-w-md rounded-2xl shadow-2xl border overflow-hidden animate-fade-in ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'
+            }`}>
+            {/* Header */}
+            <div className="p-6 text-center">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-amber-500/10 flex items-center justify-center">
+                <AlertTriangle className="w-8 h-8 text-amber-500" />
+              </div>
+              <h2 className={`text-xl font-bold mb-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                Setup Required
+              </h2>
+              <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+                To use the Scheduler feature, you need to complete the following:
+              </p>
+            </div>
+
+            {/* Checklist */}
+            <div className={`px-6 py-4 space-y-3 border-t border-b ${isDark ? 'border-slate-800 bg-slate-800/50' : 'border-slate-100 bg-slate-50'}`}>
+              <div className="flex items-center gap-3">
+                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${connectionStatus.hasConnection
+                  ? 'bg-green-500/20 text-green-500'
+                  : 'bg-red-500/20 text-red-500'
+                  }`}>
+                  {connectionStatus.hasConnection ? '✓' : '1'}
+                </div>
+                <span className={`text-sm font-medium ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+                  Connect your Facebook Profile
+                </span>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${connectionStatus.hasActivePages
+                  ? 'bg-green-500/20 text-green-500'
+                  : 'bg-red-500/20 text-red-500'
+                  }`}>
+                  {connectionStatus.hasActivePages ? '✓' : '2'}
+                </div>
+                <span className={`text-sm font-medium ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+                  Activate automation on at least one Facebook Page
+                </span>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="p-6 space-y-3">
+              {!connectionStatus.hasConnection && (
+                <button
+                  onClick={() => navigate('/connections')}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold rounded-xl shadow-lg shadow-blue-500/20 transition-all"
+                >
+                  <LinkIcon className="w-5 h-5" />
+                  Connect Facebook Profile
+                </button>
+              )}
+              {connectionStatus.hasConnection && !connectionStatus.hasActivePages && (
+                <button
+                  onClick={() => navigate('/connected-pages')}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold rounded-xl shadow-lg shadow-blue-500/20 transition-all"
+                >
+                  <Zap className="w-5 h-5" />
+                  Activate Page Automation
+                </button>
+              )}
+              <button
+                onClick={() => setShowConnectionModal(false)}
+                className={`w-full px-4 py-3 rounded-xl font-medium transition-all ${isDark
+                  ? 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                  }`}
+              >
+                Dismiss
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {view === 'list' && (
         <div className="space-y-6">
           {/* Header */}
