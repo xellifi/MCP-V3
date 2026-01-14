@@ -547,7 +547,13 @@ const AdminPackageSettings: React.FC = () => {
                                 {viewMode === 'grid' ? (
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                         {packages.map((pkg) => (
-                                            <div key={pkg.id} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 relative group hover:border-primary-500/50 hover:shadow-lg hover:shadow-primary-500/5 transition-all duration-300">
+                                            <div key={pkg.id} className={`bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 relative group hover:border-primary-500/50 hover:shadow-lg hover:shadow-primary-500/5 transition-all duration-300 ${pkg.isVisible === false ? 'opacity-60' : ''}`}>
+                                                {/* Hidden indicator */}
+                                                {pkg.isVisible === false && (
+                                                    <div className="absolute top-4 left-4 px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 text-xs font-medium">
+                                                        Hidden
+                                                    </div>
+                                                )}
                                                 <button
                                                     onClick={() => handleEditClick(pkg)}
                                                     className="absolute top-4 right-4 text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-colors"
