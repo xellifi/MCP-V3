@@ -1999,7 +1999,19 @@ export const api = {
 
       const userId = users.id;
 
-      // 2. Create subscription
+      // 2. Deactivate any existing Active subscriptions for this user
+      const { error: deactivateError } = await supabase
+        .from('user_subscriptions')
+        .update({ status: 'Cancelled' })
+        .eq('user_id', userId)
+        .eq('status', 'Active');
+
+      if (deactivateError) {
+        console.error('Error deactivating old subscriptions:', deactivateError);
+        // Continue anyway - we still want to create the new subscription
+      }
+
+      // 3. Create new subscription
       const { error } = await supabase
         .from('user_subscriptions')
         .insert({
@@ -2080,6 +2092,12 @@ export const api = {
         }
         return null;
       }
+
+      console.log('[getCurrentSubscription] Fetched subscription:', {
+        package_id: data?.package_id,
+        packages: data?.packages,
+        allowed_routes: data?.packages?.allowed_routes
+      });
 
       return data as UserSubscription;
     },
