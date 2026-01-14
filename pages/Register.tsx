@@ -25,7 +25,13 @@ const Register: React.FC<RegisterProps> = ({ onLogin }) => {
       await onLogin(user);  // Wait for workspaces to load
       toast.success(`Welcome aboard, ${user.name}!`);
       // Explicitly navigate to connections after successful registration
-      navigate('/connections', { replace: true });
+      try {
+        navigate('/connections', { replace: true });
+      } catch (navError) {
+        // Fallback if connections page fails to load
+        console.error('Navigation error, redirecting to home:', navError);
+        navigate('/', { replace: true });
+      }
     } catch (error: any) {
       console.error('Registration error:', error);
 
