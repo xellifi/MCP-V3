@@ -224,7 +224,7 @@ const Layout: React.FC<LayoutProps> = ({
   // Handle navigation click with permission check
   const handleNavClick = (e: React.MouseEvent, path: string, label: string) => {
     // Check permissions
-    if (!isAdminOrOwner && currentSubscription?.packages?.allowed_routes) {
+    if (!isAdminOrOwner && currentSubscription?.packages?.allowed_routes?.length > 0) {
       const allowed = currentSubscription.packages.allowed_routes;
       // Check if path or renderPath is allowed
       const pathIsAllowed = allowed.includes(path) || (path === '/' && allowed.includes('/dashboard'));
@@ -387,7 +387,7 @@ const Layout: React.FC<LayoutProps> = ({
             // If not admin/owner AND subscription is loaded, check allowed routes
             let isLocked = false;
 
-            if (!isAdminOrOwner && currentSubscription?.packages?.allowed_routes) {
+            if (!isAdminOrOwner && currentSubscription?.packages?.allowed_routes?.length > 0) {
               const allowed = currentSubscription.packages.allowed_routes;
               // If the current path is NOT in the allowed list, mark it as locked
               // We check against 'path' (from menuOrder) and 'renderPath' (url) just in case
