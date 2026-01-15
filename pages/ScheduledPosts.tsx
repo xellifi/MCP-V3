@@ -948,6 +948,48 @@ const ScheduledPosts: React.FC<ScheduledPostsProps> = ({ workspace }) => {
     return [workflow.scheduleTime || '09:00'];
   };
 
+  // Helper to get status of each scheduled time (posted, pending, upcoming)
+  const getTimeStatus = (time: string, allTimes: string[], workflow: any): 'posted' | 'pending' | 'upcoming' => {
+    const now = new Date();
+    const [hours, minutes] = time.split(':').map(Number);
+    const timeDate = new Date();
+    timeDate.setHours(hours, minutes, 0, 0);
+
+    // Sort times chronologically
+    const sortedTimes = [...allTimes].sort((a, b) => {
+      const [aH, aM] = a.split(':').map(Number);
+      const [bH, bM] = b.split(':').map(Number);
+      return (aH * 60 + aM) - (bH * 60 + bM);
+    });
+
+    // Find the first time that hasn't passed yet
+    let nextPendingIndex = -1;
+    for (let i = 0; i < sortedTimes.length; i++) {
+      const [h, m] = sortedTimes[i].split(':').map(Number);
+      const checkTime = new Date();
+      checkTime.setHours(h, m, 0, 0);
+      if (checkTime > now) {
+        nextPendingIndex = i;
+        break;
+      }
+    }
+
+    const currentTimeIndex = sortedTimes.indexOf(time);
+
+    if (nextPendingIndex === -1) {
+      // All times have passed today
+      return 'posted';
+    }
+
+    if (currentTimeIndex < nextPendingIndex) {
+      return 'posted';
+    } else if (currentTimeIndex === nextPendingIndex) {
+      return 'pending';
+    } else {
+      return 'upcoming';
+    }
+  };
+
   // State for expanded schedule times
   const [expandedScheduleId, setExpandedScheduleId] = useState<string | null>(null);
 
@@ -1186,13 +1228,25 @@ const ScheduledPosts: React.FC<ScheduledPostsProps> = ({ workspace }) => {
                                   )}
                                 </button>
                                 {isExpanded && hasMultipleTimes && (
-                                  <div className={`mt-2 ml-6 p-2 rounded-lg space-y-1 ${isDark ? 'bg-white/5' : 'bg-slate-100'}`}>
-                                    {scheduleTimes.map((time, idx) => (
-                                      <div key={idx} className={`flex items-center gap-2 text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                                        <div className={`w-1.5 h-1.5 rounded-full ${isDark ? 'bg-indigo-400' : 'bg-indigo-500'}`} />
-                                        {formatTo12Hour(time)}
-                                      </div>
-                                    ))}
+                                  <div className={`mt-2 ml-6 p-2 rounded-lg space-y-1.5 ${isDark ? 'bg-white/5' : 'bg-slate-100'}`}>
+                                    {scheduleTimes.map((time, idx) => {
+                                      const status = getTimeStatus(time, scheduleTimes, item);
+                                      return (
+                                        <div key={idx} className={`flex items-center gap-2 text-xs ${status === 'posted' ? 'text-green-400' : status === 'pending' ? 'text-amber-400' : isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                                          {status === 'posted' ? (
+                                            <CheckCircle className="w-3.5 h-3.5 text-green-500" />
+                                          ) : status === 'pending' ? (
+                                            <div className="w-3.5 h-3.5 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+                                          ) : (
+                                            <div className={`w-1.5 h-1.5 rounded-full ${isDark ? 'bg-slate-500' : 'bg-slate-400'}`} />
+                                          )}
+                                          <span>{formatTo12Hour(time)}</span>
+                                          {status === 'pending' && (
+                                            <span className="ml-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-500/20 text-amber-400">NEXT</span>
+                                          )}
+                                        </div>
+                                      );
+                                    })}
                                   </div>
                                 )}
                               </div>
@@ -1314,14 +1368,26 @@ const ScheduledPosts: React.FC<ScheduledPostsProps> = ({ workspace }) => {
                                     )}
                                   </span>
                                   {hasMultipleTimes && (
-                                    <div className={`absolute left-0 top-full mt-1 p-2 rounded-lg shadow-xl border z-50 opacity-0 group-hover:opacity-100 transition-opacity min-w-32 ${isDark ? 'bg-slate-800 border-white/10' : 'bg-white border-slate-200'}`}>
-                                      <p className={`text-xs font-semibold mb-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Scheduled Times:</p>
-                                      {scheduleTimes.map((time, idx) => (
-                                        <div key={idx} className={`flex items-center gap-2 text-xs py-0.5 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
-                                          <div className={`w-1.5 h-1.5 rounded-full ${isDark ? 'bg-indigo-400' : 'bg-indigo-500'}`} />
-                                          {formatTo12Hour(time)}
-                                        </div>
-                                      ))}
+                                    <div className={`absolute left-0 top-full mt-1 p-2 rounded-lg shadow-xl border z-50 opacity-0 group-hover:opacity-100 transition-opacity min-w-36 ${isDark ? 'bg-slate-800 border-white/10' : 'bg-white border-slate-200'}`}>
+                                      <p className={`text-xs font-semibold mb-1.5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Scheduled Times:</p>
+                                      {scheduleTimes.map((time, idx) => {
+                                        const status = getTimeStatus(time, scheduleTimes, item);
+                                        return (
+                                          <div key={idx} className={`flex items-center gap-2 text-xs py-0.5 ${status === 'posted' ? 'text-green-500' : status === 'pending' ? 'text-amber-500' : isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+                                            {status === 'posted' ? (
+                                              <CheckCircle className="w-3.5 h-3.5" />
+                                            ) : status === 'pending' ? (
+                                              <div className="w-3.5 h-3.5 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+                                            ) : (
+                                              <div className={`w-1.5 h-1.5 rounded-full ml-1 ${isDark ? 'bg-slate-500' : 'bg-slate-400'}`} />
+                                            )}
+                                            <span>{formatTo12Hour(time)}</span>
+                                            {status === 'pending' && (
+                                              <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-100 text-amber-600">NEXT</span>
+                                            )}
+                                          </div>
+                                        );
+                                      })}
                                     </div>
                                   )}
                                 </div>
