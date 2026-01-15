@@ -1,11 +1,27 @@
 import React, { memo } from 'react';
 import { Handle, Position } from 'reactflow';
-import { Lightbulb, Settings, Trash2 } from 'lucide-react';
+import { Lightbulb, Settings, Trash2, CheckCircle, Loader } from 'lucide-react';
 
 import { useTheme } from '../../context/ThemeContext';
 
 const VisualTopicNode = ({ data }: { data: any }) => {
     const { isDark } = useTheme();
+    const executionStatus = data.executionStatus as 'idle' | 'executing' | 'completed' | 'error' | undefined;
+
+    const getBorderClasses = () => {
+        if (executionStatus === 'executing') {
+            return 'border-amber-500 animate-pulse shadow-[0_0_25px_rgba(245,158,11,0.5)]';
+        }
+        if (executionStatus === 'completed') {
+            return isDark
+                ? 'border-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.4)]'
+                : 'border-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.3)]';
+        }
+        return isDark
+            ? 'border-amber-500/50 hover:border-amber-500'
+            : 'border-slate-300 hover:border-amber-500 hover:shadow-amber-500/20';
+    };
+
     return (
         <div className="relative group">
             {/* Input Handle - Left */}
@@ -16,10 +32,7 @@ const VisualTopicNode = ({ data }: { data: any }) => {
             />
 
             {/* Node Container - Rectangular */}
-            <div className={`w-[200px] h-20 border-2 rounded-xl shadow-lg flex items-center justify-center gap-3 relative group/node transition-colors ${isDark
-                ? 'bg-[#1e1e1e] border-amber-500/50 hover:border-amber-500'
-                : 'bg-white border-slate-300 hover:border-amber-500 hover:shadow-amber-500/20'
-                }`}>
+            <div className={`w-[200px] h-20 border-2 rounded-xl shadow-lg flex items-center justify-center gap-3 relative group/node transition-all ${isDark ? 'bg-[#1e1e1e]' : 'bg-white'} ${getBorderClasses()}`}>
 
                 {/* Controls */}
                 <div className="absolute -top-3 -right-3 flex gap-1 opacity-0 group-hover/node:opacity-100 transition-opacity z-20">
@@ -46,13 +59,19 @@ const VisualTopicNode = ({ data }: { data: any }) => {
                 </div>
 
                 {/* Content: Icon + Text */}
-                <div className={`w-10 h-10 rounded-lg flex items-center justify-center shadow-md bg-gradient-to-br from-amber-500 to-orange-600 ${isDark ? 'shadow-amber-900/40' : 'shadow-amber-500/30'}`}>
-                    <Lightbulb className="w-6 h-6 text-white" />
+                <div className={`w-10 h-10 rounded-lg flex items-center justify-center shadow-md ${executionStatus === 'executing' ? 'bg-amber-500' : executionStatus === 'completed' ? 'bg-emerald-500' : 'bg-gradient-to-br from-amber-500 to-orange-600'} ${isDark ? 'shadow-amber-900/40' : 'shadow-amber-500/30'}`}>
+                    {executionStatus === 'executing' ? (
+                        <Loader className="w-6 h-6 text-white animate-spin" />
+                    ) : executionStatus === 'completed' ? (
+                        <CheckCircle className="w-6 h-6 text-white" />
+                    ) : (
+                        <Lightbulb className="w-6 h-6 text-white" />
+                    )}
                 </div>
                 <div className="flex flex-col">
                     <span className={`font-bold text-sm ${isDark ? 'text-white' : 'text-slate-900'}`}>Topic Generator</span>
                     <span className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                        {data.aiProvider === 'gemini' ? 'Gemini' : 'OpenAI'}
+                        {executionStatus === 'executing' ? 'Generating...' : executionStatus === 'completed' ? 'Done!' : data.aiProvider === 'gemini' ? 'Gemini' : 'OpenAI'}
                     </span>
                 </div>
             </div>
@@ -68,3 +87,4 @@ const VisualTopicNode = ({ data }: { data: any }) => {
 };
 
 export default memo(VisualTopicNode);
+

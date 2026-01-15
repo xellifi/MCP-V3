@@ -1,11 +1,28 @@
 import React, { memo } from 'react';
 import { Handle, Position } from 'reactflow';
-import { Zap, AlarmClock, Settings, Trash2 } from 'lucide-react';
+import { Zap, AlarmClock, Settings, Trash2, CheckCircle, Loader } from 'lucide-react';
 
 import { useTheme } from '../../context/ThemeContext';
 
 const VisualTriggerNode = ({ data }: { data: any }) => {
     const { isDark } = useTheme();
+    const executionStatus = data.executionStatus as 'idle' | 'executing' | 'completed' | 'error' | undefined;
+
+    // Determine border and glow based on execution status
+    const getBorderClasses = () => {
+        if (executionStatus === 'executing') {
+            return 'border-amber-500 animate-pulse shadow-[0_0_25px_rgba(245,158,11,0.5)]';
+        }
+        if (executionStatus === 'completed') {
+            return isDark
+                ? 'border-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.4)]'
+                : 'border-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.3)]';
+        }
+        return isDark
+            ? 'border-orange-500/50 hover:border-orange-500'
+            : 'border-orange-200 hover:border-orange-400 hover:shadow-orange-500/20';
+    };
+
     return (
         <div className="relative group flex flex-col items-center !bg-transparent" style={{ background: 'transparent', borderRadius: '50%' }}>
             {/* Output Handle - Right (Connects to next node) */}
@@ -19,10 +36,7 @@ const VisualTriggerNode = ({ data }: { data: any }) => {
             />
 
             {/* Node Container - Circle */}
-            <div className={`w-20 h-20 border-2 rounded-full shadow-lg flex flex-col items-center justify-center relative z-0 overflow-visible transition-all duration-200 group-hover:shadow-[0_0_20px_rgba(249,115,22,0.3)] ${isDark
-                ? 'bg-slate-900 border-orange-500/50 hover:border-orange-500'
-                : 'bg-orange-50/50 border-orange-200 hover:border-orange-400 hover:shadow-orange-500/20'
-                }`}>
+            <div className={`w-20 h-20 border-2 rounded-full shadow-lg flex flex-col items-center justify-center relative z-0 overflow-visible transition-all duration-200 group-hover:shadow-[0_0_20px_rgba(249,115,22,0.3)] ${isDark ? 'bg-slate-900' : 'bg-orange-50/50'} ${getBorderClasses()}`}>
                 <div className={`absolute inset-0 pointer-events-none rounded-full ${isDark ? 'bg-orange-500/10' : 'bg-orange-100/50'}`} />
 
                 {/* Left Badge: Blue Lightning (Satellite) */}
@@ -35,8 +49,14 @@ const VisualTriggerNode = ({ data }: { data: any }) => {
                     </div>
                 </div>
 
-                {/* Main Icon */}
-                <AlarmClock className={`w-8 h-8 ${isDark ? 'text-orange-400' : 'text-orange-600'}`} strokeWidth={1.5} />
+                {/* Main Icon - Shows status indicator */}
+                {executionStatus === 'executing' ? (
+                    <Loader className="w-8 h-8 text-amber-500 animate-spin" strokeWidth={2} />
+                ) : executionStatus === 'completed' ? (
+                    <CheckCircle className="w-8 h-8 text-emerald-500" strokeWidth={2} />
+                ) : (
+                    <AlarmClock className={`w-8 h-8 ${isDark ? 'text-orange-400' : 'text-orange-600'}`} strokeWidth={1.5} />
+                )}
             </div>
 
             {/* Controls - Outside circle, positioned to top-right like Memory node */}
@@ -67,3 +87,4 @@ const VisualTriggerNode = ({ data }: { data: any }) => {
 };
 
 export default memo(VisualTriggerNode);
+

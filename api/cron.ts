@@ -18,6 +18,13 @@ const supabase = createClient(supabaseUrl, supabaseKey);
  */
 export default async function handler(req: VercelRequest, res: VercelResponse) {
     const job = req.query.job as string;
+    const execute = req.query.execute as string;
+    const step = req.query.step as string;
+
+    // Handle step-by-step execution from frontend
+    if (execute === 'true' && step) {
+        return handleExecuteStep(req, res, step);
+    }
 
     console.log(`[Cron] Running job: ${job}`);
 
@@ -32,6 +39,91 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 validJobs: ['form-followup', 'scheduler'],
                 usage: '/api/cron?job=form-followup or /api/cron?job=scheduler'
             });
+    }
+}
+
+// ============================================
+// STEP-BY-STEP EXECUTION FROM FRONTEND
+// ============================================
+async function handleExecuteStep(req: VercelRequest, res: VercelResponse, step: string) {
+    console.log(`[Execute Step] Starting step: ${step}`);
+
+    try {
+        const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+        const { workspaceId, configurations, previousResults } = body;
+
+        // Get API keys from workspace
+        const { data: settings } = await supabase
+            .from('workspace_settings')
+            .select('openai_api_key, gemini_api_key')
+            .eq('workspace_id', workspaceId)
+            .single();
+
+        const openaiKey = settings?.openai_api_key;
+        const geminiKey = settings?.gemini_api_key;
+
+        if (!openaiKey && !geminiKey) {
+            return res.status(400).json({ error: 'No API keys configured' });
+        }
+
+        const provider = openaiKey ? 'openai' : 'gemini';
+        const apiKey = openaiKey || geminiKey;
+
+        switch (step) {
+            case 'topic-1': {
+                const topicConfig = configurations?.['topic-1'] || {};
+                const topic = await generateTopic(topicConfig, apiKey, provider as any, []);
+                console.log(`[Execute Step] Generated topic: ${topic}`);
+                return res.json({ success: true, step, result: { topic } });
+            }
+
+            case 'image-1': {
+                const imageConfig = configurations?.['image-1'] || {};
+                const topic = previousResults?.['topic-1']?.result?.topic || 'Social media post';
+                const imageUrl = await generateImage(topic, imageConfig, openaiKey || '');
+                console.log(`[Execute Step] Generated image`);
+                return res.json({ success: true, step, result: { imageUrl } });
+            }
+
+            case 'caption-1': {
+                const captionConfig = configurations?.['caption-1'] || {};
+                const topic = previousResults?.['topic-1']?.result?.topic || 'Social media post';
+                const caption = await generateCaption(topic, captionConfig, apiKey, provider as any);
+                console.log(`[Execute Step] Generated caption`);
+                return res.json({ success: true, step, result: { caption } });
+            }
+
+            case 'facebook-1': {
+                const fbConfig = configurations?.['facebook-1'] || {};
+                const topic = previousResults?.['topic-1']?.result?.topic || '';
+                const imageUrl = previousResults?.['image-1']?.result?.imageUrl || '';
+                const caption = previousResults?.['caption-1']?.result?.caption || '';
+
+                // Get Facebook page access token
+                const { data: pages } = await supabase
+                    .from('connected_pages')
+                    .select('page_id, access_token')
+                    .eq('workspace_id', workspaceId)
+                    .eq('automation_enabled', true)
+                    .limit(1);
+
+                if (!pages || pages.length === 0) {
+                    return res.status(400).json({ error: 'No connected Facebook pages' });
+                }
+
+                const page = pages[0];
+                const postId = await postToFacebook(page.page_id, page.access_token, imageUrl, caption);
+                console.log(`[Execute Step] Posted to Facebook: ${postId}`);
+                return res.json({ success: true, step, result: { postId, topic, imageUrl, caption } });
+            }
+
+            default:
+                return res.status(400).json({ error: `Unknown step: ${step}` });
+        }
+
+    } catch (error: any) {
+        console.error(`[Execute Step] Error:`, error.message);
+        return res.status(500).json({ error: error.message });
     }
 }
 

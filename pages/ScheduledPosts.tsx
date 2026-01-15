@@ -96,6 +96,13 @@ const SchedulerBuilder: React.FC<SchedulerBuilderProps> = ({
   const [workflowName, setWorkflowName] = useState(editWorkflow?.name || '');
   const [isSaving, setIsSaving] = useState(false);
 
+  // Execution visualization state
+  const [isExecuting, setIsExecuting] = useState(false);
+  const [executingNodeId, setExecutingNodeId] = useState<string | null>(null);
+  const [completedNodeIds, setCompletedNodeIds] = useState<Set<string>>(new Set());
+  const [executionResults, setExecutionResults] = useState<Record<string, any>>({});
+  const [showExecuteTooltip, setShowExecuteTooltip] = useState(false);
+
   // Check for API keys
   const hasOpenAiKey = Boolean(integrationSettings?.openaiApiKey);
   const hasGeminiKey = Boolean(integrationSettings?.geminiApiKey);
@@ -417,8 +424,8 @@ const SchedulerBuilder: React.FC<SchedulerBuilderProps> = ({
     }
   }, [connectionStatus, nodes, edges, nodeConfigurations, workspace.id, toast, editWorkflow, onSave, workflowName]);
 
-  // Handle test run
-  const handleTestRun = useCallback(() => {
+  // Handle workflow execution with visual feedback
+  const handleExecuteWorkflow = useCallback(async () => {
     if (!connectionStatus.hasConnection || !connectionStatus.hasActivePages) {
       setShowConnectionWarning(true);
       return;
@@ -429,9 +436,64 @@ const SchedulerBuilder: React.FC<SchedulerBuilderProps> = ({
       return;
     }
 
-    toast.info('Test run started! Check back in a few moments...');
-    // TODO: Implement actual test run
-  }, [connectionStatus, hasOpenAiKey, hasGeminiKey, toast]);
+    // Reset execution state
+    setIsExecuting(true);
+    setCompletedNodeIds(new Set());
+    setExecutionResults({});
+
+    // Get node order from edges
+    const nodeOrder = ['trigger-1', 'topic-1', 'image-1', 'caption-1', 'facebook-1'];
+
+    try {
+      // Execute each node with visual feedback
+      for (const nodeId of nodeOrder) {
+        setExecutingNodeId(nodeId);
+
+        // Simulate API call delay for trigger (instant)
+        if (nodeId === 'trigger-1') {
+          await new Promise(resolve => setTimeout(resolve, 500));
+          setCompletedNodeIds(prev => new Set([...prev, nodeId]));
+          continue;
+        }
+
+        // For other nodes, call the execute API
+        try {
+          const response = await fetch('/api/cron?execute=true&step=' + nodeId, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              workspaceId: workspace.id,
+              configurations: nodeConfigurations,
+              previousResults: executionResults
+            })
+          });
+
+          const result = await response.json();
+
+          if (result.error) {
+            throw new Error(result.error);
+          }
+
+          setExecutionResults(prev => ({ ...prev, [nodeId]: result }));
+          setCompletedNodeIds(prev => new Set([...prev, nodeId]));
+
+        } catch (stepError: any) {
+          toast.error(`Failed at ${nodeId}: ${stepError.message}`);
+          setIsExecuting(false);
+          setExecutingNodeId(null);
+          return;
+        }
+      }
+
+      toast.success('Workflow executed successfully! Post created on Facebook.');
+
+    } catch (error: any) {
+      toast.error('Execution failed: ' + error.message);
+    } finally {
+      setIsExecuting(false);
+      setExecutingNodeId(null);
+    }
+  }, [connectionStatus, hasOpenAiKey, hasGeminiKey, toast, workspace.id, nodeConfigurations, executionResults]);
 
   // Handle Escape key to exit full screen
   useEffect(() => {
@@ -444,6 +506,33 @@ const SchedulerBuilder: React.FC<SchedulerBuilderProps> = ({
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isFullScreen]);
+
+  // Update nodes with execution status
+  useEffect(() => {
+    setNodes((nds) =>
+      nds.map((node) => {
+        let executionStatus: 'idle' | 'executing' | 'completed' | undefined = undefined;
+
+        if (executingNodeId === node.id) {
+          executionStatus = 'executing';
+        } else if (completedNodeIds.has(node.id)) {
+          executionStatus = 'completed';
+        }
+
+        // Only update if status changed
+        if (node.data.executionStatus !== executionStatus) {
+          return {
+            ...node,
+            data: {
+              ...node.data,
+              executionStatus,
+            },
+          };
+        }
+        return node;
+      })
+    );
+  }, [executingNodeId, completedNodeIds, setNodes]);
 
   const onConnect = useCallback(
     (params: Connection) => setEdges((eds) => addEdge({
@@ -616,13 +705,30 @@ const SchedulerBuilder: React.FC<SchedulerBuilderProps> = ({
         >
           <Save className="w-5 h-5" />
         </button>
-        <button
-          onClick={handleTestRun}
-          className="group relative p-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl shadow-lg shadow-indigo-500/20 transition-all"
-          title="Run Test"
-        >
-          <Play className="w-5 h-5 fill-current" />
-        </button>
+        <div className="relative">
+          <button
+            onClick={handleExecuteWorkflow}
+            onMouseEnter={() => setShowExecuteTooltip(true)}
+            onMouseLeave={() => setShowExecuteTooltip(false)}
+            disabled={isExecuting}
+            className={`group relative p-2.5 rounded-xl shadow-lg transition-all ${isExecuting
+              ? 'bg-amber-500 animate-pulse cursor-not-allowed'
+              : 'bg-indigo-600 hover:bg-indigo-500 shadow-indigo-500/20'
+              } text-white`}
+            title="Execute Workflow"
+          >
+            {isExecuting ? (
+              <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            ) : (
+              <Zap className="w-5 h-5" />
+            )}
+          </button>
+          {showExecuteTooltip && !isExecuting && (
+            <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-900 text-white text-xs rounded whitespace-nowrap">
+              Execute
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Connection Warning Modal */}
