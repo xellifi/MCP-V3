@@ -927,11 +927,11 @@ async function generateTopic(
 ): Promise<string> {
     const seedTopics = config.seedTopics || ['general interest', 'trending topics'];
     const tone = config.tone || 'professional';
-    const industry = config.industry || 'general';
+    const niche = config.niche || 'general';
 
     const prompt = `You are a social media content strategist. Generate ONE unique, engaging topic idea for a Facebook post.
 
-Industry/Niche: ${industry}
+Industry/Niche: ${niche}
 Tone: ${tone}
 Seed topic ideas to draw inspiration from: ${seedTopics.join(', ')}
 
