@@ -353,7 +353,8 @@ export interface SchedulerExecution {
 // Node configuration types for scheduler
 export interface ScheduleTriggerConfig {
   frequency: 'daily' | 'weekly' | 'monthly' | 'custom';
-  time: string; // "09:00"
+  time: string; // "09:00" - primary time (backward compatible)
+  times?: string[]; // Multiple times for daily frequency ["09:00", "12:00", "18:00"]
   daysOfWeek?: number[]; // [1,2,3,4,5] for Mon-Fri (0=Sunday)
   dayOfMonth?: number; // 1-31
   customCron?: string;

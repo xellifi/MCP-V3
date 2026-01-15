@@ -108,10 +108,10 @@ const ScheduleTriggerForm: React.FC<ScheduleTriggerFormProps> = ({
                                     key={freq}
                                     onClick={() => setConfig({ ...config, frequency: freq })}
                                     className={`px-4 py-3 rounded-xl font-semibold text-sm capitalize transition-all ${config.frequency === freq
-                                            ? 'bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-lg shadow-indigo-500/20'
-                                            : isDark
-                                                ? 'bg-white/5 text-slate-300 hover:bg-white/10 border border-white/10'
-                                                : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
+                                        ? 'bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-lg shadow-indigo-500/20'
+                                        : isDark
+                                            ? 'bg-white/5 text-slate-300 hover:bg-white/10 border border-white/10'
+                                            : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
                                         }`}
                                 >
                                     {freq}
@@ -120,19 +120,88 @@ const ScheduleTriggerForm: React.FC<ScheduleTriggerFormProps> = ({
                         </div>
                     </div>
 
-                    {/* Time Picker */}
-                    <div>
-                        <label className={labelClasses}>
-                            <Clock className="w-4 h-4 inline mr-2" />
-                            Time
-                        </label>
-                        <input
-                            type="time"
-                            value={config.time}
-                            onChange={(e) => setConfig({ ...config, time: e.target.value })}
-                            className={inputClasses}
-                        />
-                    </div>
+                    {/* Time Picker - Multiple times for daily, weekly, monthly */}
+                    {(config.frequency === 'daily' || config.frequency === 'weekly' || config.frequency === 'monthly') ? (
+                        <div>
+                            <div className="flex items-center justify-between mb-2">
+                                <label className={labelClasses.replace('mb-2', '')}>
+                                    <Clock className="w-4 h-4 inline mr-2" />
+                                    Post Times
+                                </label>
+                                <button
+                                    onClick={() => {
+                                        const currentTimes = config.times || [config.time || '09:00'];
+                                        setConfig({
+                                            ...config,
+                                            times: [...currentTimes, '12:00']
+                                        });
+                                    }}
+                                    className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all ${isDark
+                                        ? 'bg-indigo-500/20 text-indigo-400 hover:bg-indigo-500/30'
+                                        : 'bg-indigo-100 text-indigo-600 hover:bg-indigo-200'
+                                        }`}
+                                >
+                                    <span className="text-lg leading-none">+</span> Add Time
+                                </button>
+                            </div>
+                            <div className="space-y-2">
+                                {(config.times || [config.time || '09:00']).map((t, index) => (
+                                    <div key={index} className="flex items-center gap-2">
+                                        <input
+                                            type="time"
+                                            value={t}
+                                            onChange={(e) => {
+                                                const currentTimes = config.times || [config.time || '09:00'];
+                                                const newTimes = [...currentTimes];
+                                                newTimes[index] = e.target.value;
+                                                setConfig({
+                                                    ...config,
+                                                    times: newTimes,
+                                                    time: newTimes[0] // Keep primary time in sync
+                                                });
+                                            }}
+                                            className={`${inputClasses} flex-1`}
+                                        />
+                                        {(config.times || [config.time]).length > 1 && (
+                                            <button
+                                                onClick={() => {
+                                                    const currentTimes = config.times || [config.time || '09:00'];
+                                                    const newTimes = currentTimes.filter((_, i) => i !== index);
+                                                    setConfig({
+                                                        ...config,
+                                                        times: newTimes,
+                                                        time: newTimes[0] // Keep primary time in sync
+                                                    });
+                                                }}
+                                                className={`p-3 rounded-xl transition-colors ${isDark
+                                                    ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30'
+                                                    : 'bg-red-100 text-red-600 hover:bg-red-200'
+                                                    }`}
+                                            >
+                                                <X className="w-4 h-4" />
+                                            </button>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                            <p className={`mt-2 text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                                Add multiple times to post several times per {config.frequency === 'daily' ? 'day' : config.frequency === 'weekly' ? 'scheduled day' : 'month'}
+                            </p>
+                        </div>
+                    ) : (
+                        <div>
+                            <label className={labelClasses}>
+                                <Clock className="w-4 h-4 inline mr-2" />
+                                Time
+                            </label>
+                            <input
+                                type="time"
+                                value={config.time}
+                                onChange={(e) => setConfig({ ...config, time: e.target.value })}
+                                className={inputClasses}
+                            />
+                        </div>
+                    )}
 
                     {/* Days of Week (for weekly) */}
                     {config.frequency === 'weekly' && (
@@ -153,10 +222,10 @@ const ScheduleTriggerForm: React.FC<ScheduleTriggerFormProps> = ({
                                             setConfig({ ...config, daysOfWeek: newDays });
                                         }}
                                         className={`w-12 h-12 rounded-xl font-bold text-sm transition-all ${(config.daysOfWeek || []).includes(day.value)
-                                                ? 'bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-lg'
-                                                : isDark
-                                                    ? 'bg-white/5 text-slate-300 hover:bg-white/10 border border-white/10'
-                                                    : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
+                                            ? 'bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-lg'
+                                            : isDark
+                                                ? 'bg-white/5 text-slate-300 hover:bg-white/10 border border-white/10'
+                                                : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
                                             }`}
                                     >
                                         {day.label}
@@ -234,9 +303,21 @@ const ScheduleTriggerForm: React.FC<ScheduleTriggerFormProps> = ({
                             This workflow will run:
                         </p>
                         <p className={`mt-1 text-sm ${isDark ? 'text-indigo-200' : 'text-indigo-600'}`}>
-                            {config.frequency === 'daily' && `Every day at ${config.time}`}
-                            {config.frequency === 'weekly' && `Every ${(config.daysOfWeek || []).map(d => DAYS_OF_WEEK.find(x => x.value === d)?.label).join(', ')} at ${config.time}`}
-                            {config.frequency === 'monthly' && `On the ${config.dayOfMonth}${config.dayOfMonth === 1 ? 'st' : config.dayOfMonth === 2 ? 'nd' : config.dayOfMonth === 3 ? 'rd' : 'th'} of each month at ${config.time}`}
+                            {config.frequency === 'daily' && (
+                                (config.times && config.times.length > 1)
+                                    ? `Every day at ${config.times.join(', ')} (${config.times.length} posts/day)`
+                                    : `Every day at ${config.time}`
+                            )}
+                            {config.frequency === 'weekly' && (
+                                (config.times && config.times.length > 1)
+                                    ? `Every ${(config.daysOfWeek || []).map(d => DAYS_OF_WEEK.find(x => x.value === d)?.label).join(', ')} at ${config.times.join(', ')} (${config.times.length} posts/day)`
+                                    : `Every ${(config.daysOfWeek || []).map(d => DAYS_OF_WEEK.find(x => x.value === d)?.label).join(', ')} at ${config.time}`
+                            )}
+                            {config.frequency === 'monthly' && (
+                                (config.times && config.times.length > 1)
+                                    ? `On the ${config.dayOfMonth}${config.dayOfMonth === 1 ? 'st' : config.dayOfMonth === 2 ? 'nd' : config.dayOfMonth === 3 ? 'rd' : 'th'} at ${config.times.join(', ')} (${config.times.length} posts)`
+                                    : `On the ${config.dayOfMonth}${config.dayOfMonth === 1 ? 'st' : config.dayOfMonth === 2 ? 'nd' : config.dayOfMonth === 3 ? 'rd' : 'th'} of each month at ${config.time}`
+                            )}
                             {config.frequency === 'custom' && `Custom schedule: ${config.customCron || 'Not set'}`}
                         </p>
                     </div>

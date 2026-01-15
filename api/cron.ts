@@ -829,41 +829,92 @@ function calculateNextRun(workflow: any): Date | null {
     const scheduleTime = workflow.schedule_time || '09:00';
     const scheduleDays = workflow.schedule_days || [];
 
-    const [hours, minutes] = scheduleTime.split(':').map(Number);
+    // Get times array from configurations (trigger node)
+    const configurations = workflow.configurations || {};
+    let times: string[] = [scheduleTime]; // Default to single time
+
+    // Find trigger config and get times array
+    for (const [nodeId, config] of Object.entries(configurations)) {
+        const cfg = config as any;
+        if (cfg?.times && Array.isArray(cfg.times) && cfg.times.length > 0) {
+            times = cfg.times;
+            break;
+        }
+    }
 
     switch (scheduleType) {
         case 'daily': {
-            const next = new Date(now);
-            next.setHours(hours, minutes, 0, 0);
-            if (next <= now) {
-                next.setDate(next.getDate() + 1);
+            // Find the next upcoming time from the list
+            const candidates: Date[] = [];
+
+            for (const timeStr of times) {
+                const [hours, minutes] = timeStr.split(':').map(Number);
+
+                // Check today
+                const todayRun = new Date(now);
+                todayRun.setHours(hours, minutes, 0, 0);
+                if (todayRun > now) {
+                    candidates.push(todayRun);
+                }
+
+                // Also check tomorrow (in case all today's times have passed)
+                const tomorrowRun = new Date(now);
+                tomorrowRun.setDate(tomorrowRun.getDate() + 1);
+                tomorrowRun.setHours(hours, minutes, 0, 0);
+                candidates.push(tomorrowRun);
             }
-            return next;
+
+            // Return the earliest upcoming time
+            candidates.sort((a, b) => a.getTime() - b.getTime());
+            return candidates[0] || null;
         }
 
         case 'weekly': {
             const targetDays = scheduleDays.map(Number);
             if (targetDays.length === 0) return null;
 
-            const next = new Date(now);
-            next.setHours(hours, minutes, 0, 0);
+            const candidates: Date[] = [];
 
-            for (let i = 0; i < 8; i++) {
-                if (i > 0) next.setDate(next.getDate() + 1);
-                if (targetDays.includes(next.getDay()) && next > now) {
-                    return next;
+            // Check each time slot for the next 8 days
+            for (const timeStr of times) {
+                const [hours, minutes] = timeStr.split(':').map(Number);
+
+                for (let i = 0; i < 8; i++) {
+                    const checkDate = new Date(now);
+                    checkDate.setDate(checkDate.getDate() + i);
+                    checkDate.setHours(hours, minutes, 0, 0);
+
+                    if (targetDays.includes(checkDate.getDay()) && checkDate > now) {
+                        candidates.push(checkDate);
+                        break; // Found next occurrence for this time
+                    }
                 }
             }
-            return null;
+
+            candidates.sort((a, b) => a.getTime() - b.getTime());
+            return candidates[0] || null;
         }
 
         case 'monthly': {
             const dayOfMonth = scheduleDays[0] || 1;
-            const next = new Date(now.getFullYear(), now.getMonth(), dayOfMonth, hours, minutes, 0, 0);
-            if (next <= now) {
-                next.setMonth(next.getMonth() + 1);
+            const candidates: Date[] = [];
+
+            for (const timeStr of times) {
+                const [hours, minutes] = timeStr.split(':').map(Number);
+
+                // Check this month
+                const thisMonth = new Date(now.getFullYear(), now.getMonth(), dayOfMonth, hours, minutes, 0, 0);
+                if (thisMonth > now) {
+                    candidates.push(thisMonth);
+                }
+
+                // Check next month
+                const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, dayOfMonth, hours, minutes, 0, 0);
+                candidates.push(nextMonth);
             }
-            return next;
+
+            candidates.sort((a, b) => a.getTime() - b.getTime());
+            return candidates[0] || null;
         }
 
         default:

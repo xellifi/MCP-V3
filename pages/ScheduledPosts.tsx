@@ -57,6 +57,7 @@ type SchedulerNodeType = 'scheduleTrigger' | 'topicGenerator' | 'imageGenerator'
 interface SchedulerBuilderProps {
   workspace: Workspace;
   onBack: () => void;
+  onSave: () => void;
   connectionStatus: {
     hasConnection: boolean;
     hasActivePages: boolean;
@@ -64,14 +65,17 @@ interface SchedulerBuilderProps {
   };
   connectedPages: ConnectedPage[];
   integrationSettings: IntegrationSettings | null;
+  editWorkflow?: any; // Workflow being edited
 }
 
 const SchedulerBuilder: React.FC<SchedulerBuilderProps> = ({
   workspace,
   onBack,
+  onSave,
   connectionStatus,
   connectedPages,
-  integrationSettings
+  integrationSettings,
+  editWorkflow
 }) => {
   const { isDark } = useTheme();
   const toast = useToast();
@@ -195,6 +199,33 @@ const SchedulerBuilder: React.FC<SchedulerBuilderProps> = ({
 
   const [nodes, setNodes, onNodesChange] = useNodesState(createInitialNodes());
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+
+  // Initialize with edit workflow data if provided
+  useEffect(() => {
+    if (editWorkflow) {
+      // Restore nodes with callbacks
+      const restoredNodes = (editWorkflow.nodes || []).map((n: any) => ({
+        ...n,
+        data: {
+          ...n.data,
+          onConfigure: () => handleConfigureNode(n.id),
+          onDelete: () => handleDeleteNode(n.id),
+        }
+      }));
+
+      if (restoredNodes.length > 0) {
+        setNodes(restoredNodes);
+      }
+
+      if (editWorkflow.edges?.length > 0) {
+        setEdges(editWorkflow.edges);
+      }
+
+      if (editWorkflow.configurations) {
+        setNodeConfigurations(editWorkflow.configurations);
+      }
+    }
+  }, [editWorkflow]);
 
   // Keep ref in sync with nodes state
   useEffect(() => {
@@ -322,7 +353,7 @@ const SchedulerBuilder: React.FC<SchedulerBuilderProps> = ({
 
       // Prepare workflow data
       const workflowData = {
-        name: 'Auto-Post Workflow',
+        name: editWorkflow?.name || 'Auto-Post Workflow',
         description: 'AI-powered content automation for Facebook',
         status: 'active',
         nodes: nodes.map(n => ({
@@ -341,14 +372,20 @@ const SchedulerBuilder: React.FC<SchedulerBuilderProps> = ({
         nextRunAt: nextRunAt.toISOString()
       };
 
-      // Save to database
-      await api.scheduler.createWorkflow(workspace.id, workflowData);
-      toast.success('Workflow saved successfully!');
+      // Save to database - update if editing, create if new
+      if (editWorkflow?.id) {
+        await api.scheduler.updateWorkflow(editWorkflow.id, workflowData);
+        toast.success('Workflow updated successfully!');
+      } else {
+        await api.scheduler.createWorkflow(workspace.id, workflowData);
+        toast.success('Workflow saved successfully!');
+      }
+      onSave(); // Callback to refresh list and go back
     } catch (error) {
       console.error('Failed to save workflow:', error);
       toast.error('Failed to save workflow. Please try again.');
     }
-  }, [connectionStatus, nodes, edges, nodeConfigurations, workspace.id, toast]);
+  }, [connectionStatus, nodes, edges, nodeConfigurations, workspace.id, toast, editWorkflow, onSave]);
 
   // Handle test run
   const handleTestRun = useCallback(() => {
@@ -716,6 +753,7 @@ const ScheduledPosts: React.FC<ScheduledPostsProps> = ({ workspace }) => {
   // Action menu state
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [editWorkflow, setEditWorkflow] = useState<any>(null);
 
   // Load data on mount
   useEffect(() => {
@@ -793,6 +831,39 @@ const ScheduledPosts: React.FC<ScheduledPostsProps> = ({ workspace }) => {
       console.error('Failed to run workflow:', error);
       toast.error('Failed to trigger workflow');
     }
+  };
+
+  const handleEditWorkflow = (workflow: any) => {
+    setEditWorkflow(workflow);
+    setActiveMenuId(null);
+    setView('builder');
+  };
+
+  const handleSaveComplete = async () => {
+    // Refresh workflows list and go back to list view
+    const workflows = await api.scheduler.getWorkflows(workspace.id);
+    setScheduledItems(workflows);
+    setEditWorkflow(null);
+    setView('list');
+  };
+
+  // Helper to get page info from workflow configurations
+  const getWorkflowPageInfo = (workflow: any) => {
+    const configs = workflow.configurations || {};
+    for (const [nodeId, config] of Object.entries(configs)) {
+      const cfg = config as any;
+      if (cfg?.pageId) {
+        const page = connectedPages.find(p => p.pageId === cfg.pageId);
+        if (page) {
+          return { name: page.name, imageUrl: page.pageImageUrl || '' };
+        }
+        // Fallback to pageName if stored in config
+        if (cfg?.pageName) {
+          return { name: cfg.pageName, imageUrl: '' };
+        }
+      }
+    }
+    return null;
   };
 
   // Close menu when clicking outside
@@ -873,12 +944,172 @@ const ScheduledPosts: React.FC<ScheduledPostsProps> = ({ workspace }) => {
                   Create Workflow
                 </button>
               </div>
+            ) : viewMode === 'grid' ? (
+              /* Grid View */
+              <div className="w-full self-start">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {scheduledItems.map(item => {
+                    const hasError = item.lastExecution?.status === 'failed';
+                    const wasPosted = item.lastExecution?.status === 'completed';
+                    const isRunning = item.lastExecution?.status === 'running';
+                    const pageInfo = getWorkflowPageInfo(item);
+
+                    return (
+                      <div
+                        key={item.id}
+                        className={`rounded-xl border p-5 transition-all hover:shadow-lg ${isDark ? 'bg-white/5 border-white/10 hover:bg-white/10' : 'bg-white border-slate-200 hover:border-indigo-300'}`}
+                      >
+                        {/* Header */}
+                        <div className="flex items-start justify-between mb-4 relative">
+                          <div className="flex-1">
+                            <h3 className={`font-bold text-lg mb-1 ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                              {item.name}
+                            </h3>
+                            <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-bold capitalize ${item.status === 'active'
+                              ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                              : item.status === 'paused'
+                                ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                                : 'bg-slate-500/20 text-slate-400 border border-slate-500/30'
+                              }`}>
+                              {item.status}
+                            </span>
+                          </div>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setActiveMenuId(activeMenuId === item.id ? null : item.id);
+                            }}
+                            className={`p-2 transition-colors rounded-lg ${isDark ? 'text-slate-400 hover:text-white hover:bg-white/10' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-100'}`}
+                          >
+                            <MoreHorizontal className="w-5 h-5" />
+                          </button>
+
+                          {/* Dropdown Menu for Grid */}
+                          {activeMenuId === item.id && (
+                            <div
+                              className={`absolute right-0 top-10 w-44 rounded-xl shadow-xl border z-50 overflow-hidden ${isDark ? 'bg-slate-800 border-white/10' : 'bg-white border-slate-200'}`}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <button
+                                onClick={() => handleRunNow(item.id)}
+                                className={`w-full flex items-center gap-3 px-4 py-3 text-left text-sm transition-colors ${isDark ? 'text-slate-300 hover:bg-white/5' : 'text-slate-700 hover:bg-slate-50'}`}
+                              >
+                                <PlayCircle className="w-4 h-4 text-blue-500" />
+                                Run Now
+                              </button>
+                              <button
+                                onClick={() => handleEditWorkflow(item)}
+                                className={`w-full flex items-center gap-3 px-4 py-3 text-left text-sm transition-colors ${isDark ? 'text-slate-300 hover:bg-white/5' : 'text-slate-700 hover:bg-slate-50'}`}
+                              >
+                                <Edit3 className="w-4 h-4 text-indigo-500" />
+                                Edit
+                              </button>
+                              <button
+                                onClick={() => handleTogglePause(item.id, item.status)}
+                                className={`w-full flex items-center gap-3 px-4 py-3 text-left text-sm transition-colors ${isDark ? 'text-slate-300 hover:bg-white/5' : 'text-slate-700 hover:bg-slate-50'}`}
+                              >
+                                {item.status === 'active' ? (
+                                  <><Pause className="w-4 h-4 text-amber-500" /> Pause</>
+                                ) : (
+                                  <><Play className="w-4 h-4 text-green-500" /> Resume</>
+                                )}
+                              </button>
+                              <div className={`border-t ${isDark ? 'border-white/10' : 'border-slate-100'}`} />
+                              <button
+                                onClick={() => {
+                                  handleDeleteWorkflow(item.id);
+                                }}
+                                className={`w-full flex items-center gap-3 px-4 py-3 text-left text-sm transition-colors text-red-500 ${isDark ? 'hover:bg-red-500/10' : 'hover:bg-red-50'}`}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                                Delete
+                              </button>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Facebook Page */}
+                        <div className={`flex items-center gap-3 mb-4 p-3 rounded-lg ${isDark ? 'bg-white/5' : 'bg-slate-50'}`}>
+                          {pageInfo ? (
+                            <>
+                              {pageInfo.imageUrl ? (
+                                <img
+                                  src={pageInfo.imageUrl}
+                                  alt={pageInfo.name}
+                                  className="w-10 h-10 rounded-full object-cover border-2 border-blue-500/30"
+                                />
+                              ) : (
+                                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isDark ? 'bg-blue-500/20' : 'bg-blue-100'}`}>
+                                  <Facebook className="w-5 h-5 text-blue-500" />
+                                </div>
+                              )}
+                              <div>
+                                <p className={`text-sm font-medium ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                                  {pageInfo.name}
+                                </p>
+                                <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Facebook Page</p>
+                              </div>
+                            </>
+                          ) : (
+                            <div className="flex items-center gap-2">
+                              <Facebook className={`w-5 h-5 ${isDark ? 'text-slate-500' : 'text-slate-400'}`} />
+                              <span className={`text-sm ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>No page set</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Schedule & Status Info */}
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <Clock className={`w-4 h-4 ${isDark ? 'text-slate-500' : 'text-slate-400'}`} />
+                            <span className={`text-sm capitalize ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+                              {item.scheduleType} at {item.scheduleTime}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {hasError ? (
+                              <><XCircle className="w-4 h-4 text-red-500" /><span className="text-sm text-red-400">Failed</span></>
+                            ) : wasPosted ? (
+                              <><CheckCircle className="w-4 h-4 text-green-500" /><span className="text-sm text-green-400">Posted</span></>
+                            ) : isRunning ? (
+                              <><div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" /><span className="text-sm text-blue-400">Running...</span></>
+                            ) : (
+                              <span className={`text-sm ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                                {item.lastRunAt ? new Date(item.lastRunAt).toLocaleDateString() : 'Never run'}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Quick Actions */}
+                        <div className="flex gap-2 mt-4 pt-4 border-t border-white/10">
+                          <button
+                            onClick={() => handleRunNow(item.id)}
+                            className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors bg-blue-500/20 text-blue-400 hover:bg-blue-500/30"
+                          >
+                            <PlayCircle className="w-4 h-4" />
+                            Run
+                          </button>
+                          <button
+                            onClick={() => handleEditWorkflow(item)}
+                            className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors bg-indigo-500/20 text-indigo-400 hover:bg-indigo-500/30"
+                          >
+                            <Edit3 className="w-4 h-4" />
+                            Edit
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
             ) : (
               <div className="w-full self-start">
                 <table className="w-full text-left">
                   <thead className={`text-xs uppercase font-bold border-b ${isDark ? 'bg-white/5 text-slate-400 border-white/10' : 'bg-slate-50 text-slate-500 border-slate-200'}`}>
                     <tr>
                       <th className="px-6 py-4">Name</th>
+                      <th className="px-6 py-4">Facebook Page</th>
                       <th className="px-6 py-4">Schedule</th>
                       <th className="px-6 py-4">Last Run</th>
                       <th className="px-6 py-4">Status</th>
@@ -892,6 +1123,7 @@ const ScheduledPosts: React.FC<ScheduledPostsProps> = ({ workspace }) => {
                       const wasPosted = item.lastExecution?.status === 'completed';
                       const isRunning = item.lastExecution?.status === 'running';
                       const neverRun = !item.lastRunAt;
+                      const pageInfo = getWorkflowPageInfo(item);
 
                       return (
                         <tr key={item.id} className={`transition-colors ${isDark ? 'hover:bg-white/5' : 'hover:bg-slate-50'}`}>
@@ -907,6 +1139,28 @@ const ScheduledPosts: React.FC<ScheduledPostsProps> = ({ workspace }) => {
                                 </span>
                               )}
                             </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            {pageInfo ? (
+                              <div className="flex items-center gap-3">
+                                {pageInfo.imageUrl ? (
+                                  <img
+                                    src={pageInfo.imageUrl}
+                                    alt={pageInfo.name}
+                                    className="w-8 h-8 rounded-full object-cover border border-white/10"
+                                  />
+                                ) : (
+                                  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isDark ? 'bg-blue-500/20' : 'bg-blue-100'}`}>
+                                    <Facebook className="w-4 h-4 text-blue-500" />
+                                  </div>
+                                )}
+                                <span className={`text-sm font-medium ${isDark ? 'text-white' : 'text-slate-700'}`}>
+                                  {pageInfo.name}
+                                </span>
+                              </div>
+                            ) : (
+                              <span className={`text-sm ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Not set</span>
+                            )}
                           </td>
                           <td className="px-6 py-4 text-slate-400 capitalize">
                             {item.scheduleType} at {item.scheduleTime}
@@ -971,6 +1225,13 @@ const ScheduledPosts: React.FC<ScheduledPostsProps> = ({ workspace }) => {
                                     Run Now
                                   </button>
                                   <button
+                                    onClick={() => handleEditWorkflow(item)}
+                                    className={`w-full flex items-center gap-3 px-4 py-3 text-left text-sm transition-colors ${isDark ? 'text-slate-300 hover:bg-white/5' : 'text-slate-700 hover:bg-slate-50'}`}
+                                  >
+                                    <Edit3 className="w-4 h-4 text-indigo-500" />
+                                    Edit
+                                  </button>
+                                  <button
                                     onClick={() => handleTogglePause(item.id, item.status)}
                                     className={`w-full flex items-center gap-3 px-4 py-3 text-left text-sm transition-colors ${isDark ? 'text-slate-300 hover:bg-white/5' : 'text-slate-700 hover:bg-slate-50'}`}
                                   >
@@ -1026,10 +1287,15 @@ const ScheduledPosts: React.FC<ScheduledPostsProps> = ({ workspace }) => {
         <ReactFlowProvider>
           <SchedulerBuilder
             workspace={workspace}
-            onBack={() => setView('list')}
+            onBack={() => {
+              setEditWorkflow(null);
+              setView('list');
+            }}
+            onSave={handleSaveComplete}
             connectionStatus={connectionStatus}
             connectedPages={connectedPages}
             integrationSettings={integrationSettings}
+            editWorkflow={editWorkflow}
           />
         </ReactFlowProvider>
       )}
