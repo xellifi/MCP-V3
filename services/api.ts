@@ -1840,7 +1840,7 @@ export const api = {
 
     createUser: async (userData: { email: string; password: string; name: string; packageId: string }): Promise<{ id: string; email: string; name: string }> => {
       // Call Vercel serverless function to create user with admin privileges
-      const response = await fetch('/api/admin/create-user', {
+      const response = await fetch('/api/admin?action=create-user', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1874,7 +1874,7 @@ export const api = {
 
     deleteUser: async (id: string): Promise<void> => {
       // Use admin API to delete from both auth.users and profiles
-      const response = await fetch(`/api/admin/delete-user?userId=${id}`, {
+      const response = await fetch(`/api/admin?action=delete-user&userId=${id}`, {
         method: 'DELETE'
       });
 
@@ -1886,7 +1886,7 @@ export const api = {
 
     impersonateUser: async (userId: string, adminId: string): Promise<{ actionLink: string; userName: string }> => {
       // Call the impersonate endpoint to get a magic link
-      const response = await fetch('/api/admin/impersonate-user', {
+      const response = await fetch('/api/admin?action=impersonate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
