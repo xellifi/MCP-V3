@@ -852,6 +852,7 @@ function calculateNextRun(workflow: any): Date | null {
     const scheduleType = workflow.schedule_type || 'daily';
     const scheduleTime = workflow.schedule_time || '09:00';
     const scheduleDays = workflow.schedule_days || [];
+    const scheduleTimezone = workflow.schedule_timezone || 'Asia/Manila';
 
     // Get times array from schedule_times column (new approach)
     // Falls back to single schedule_time if schedule_times is empty
@@ -859,13 +860,28 @@ function calculateNextRun(workflow: any): Date | null {
         ? workflow.schedule_times
         : [scheduleTime];
 
-    console.log(`[Scheduler] calculateNextRun for "${workflow.name}" - type: ${scheduleType}, times: [${times.join(', ')}], schedule_times from DB: ${JSON.stringify(workflow.schedule_times)}`);
+    // Get timezone offset in hours (Asia/Manila = +8, so offset = 8)
+    // We need to subtract this from the local time to get UTC
+    const timezoneOffsets: { [key: string]: number } = {
+        'Asia/Manila': 8,
+        'Asia/Singapore': 8,
+        'Asia/Tokyo': 9,
+        'America/New_York': -5, // EST (or -4 for EDT)
+        'America/Los_Angeles': -8, // PST (or -7 for PDT)
+        'Europe/London': 0,
+        'Europe/Paris': 1,
+        'Australia/Sydney': 11,
+        'UTC': 0
+    };
+    const tzOffset = timezoneOffsets[scheduleTimezone] ?? 8; // Default to PHT
+
+    console.log(`[Scheduler] calculateNextRun for "${workflow.name}" - type: ${scheduleType}, times: [${times.join(', ')}], timezone: ${scheduleTimezone} (offset: +${tzOffset})`);
 
     switch (scheduleType) {
         case 'daily': {
-            // Use a fresh timestamp with 30-second buffer to ensure times are truly in future
+            // Use a fresh timestamp with 60-second buffer to ensure times are truly in future
             const currentTime = new Date();
-            currentTime.setSeconds(currentTime.getSeconds() + 30); // Add 30s buffer
+            currentTime.setSeconds(currentTime.getSeconds() + 60); // Add 60s buffer
 
             // Find the next upcoming time from the list
             const candidates: Date[] = [];
@@ -878,18 +894,32 @@ function calculateNextRun(workflow: any): Date | null {
                     continue;
                 }
 
-                // Check today
+                // Convert local time to UTC by subtracting timezone offset
+                // e.g., 16:05 PHT -> 08:05 UTC (16 - 8 = 8)
+                let utcHours = hours - tzOffset;
+                let dayOffset = 0;
+
+                if (utcHours < 0) {
+                    utcHours += 24;
+                    dayOffset = -1; // Previous day in UTC
+                } else if (utcHours >= 24) {
+                    utcHours -= 24;
+                    dayOffset = 1; // Next day in UTC
+                }
+
+                // Check today (in UTC)
                 const todayRun = new Date();
-                todayRun.setHours(hours, minutes, 0, 0);
+                todayRun.setUTCDate(todayRun.getUTCDate() + dayOffset);
+                todayRun.setUTCHours(utcHours, minutes, 0, 0);
+
                 if (todayRun > currentTime) {
                     candidates.push(todayRun);
-                    console.log(`[Scheduler] Candidate today: ${todayRun.toISOString()} for time ${timeStr}`);
+                    console.log(`[Scheduler] Candidate: ${todayRun.toISOString()} for local time ${timeStr} ${scheduleTimezone}`);
                 }
 
                 // Also check tomorrow (in case all today's times have passed)
-                const tomorrowRun = new Date();
-                tomorrowRun.setDate(tomorrowRun.getDate() + 1);
-                tomorrowRun.setHours(hours, minutes, 0, 0);
+                const tomorrowRun = new Date(todayRun);
+                tomorrowRun.setUTCDate(tomorrowRun.getUTCDate() + 1);
                 candidates.push(tomorrowRun);
             }
 
