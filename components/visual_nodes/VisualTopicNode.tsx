@@ -7,12 +7,14 @@ import { useTheme } from '../../context/ThemeContext';
 const VisualTopicNode = ({ data }: { data: any }) => {
     const { isDark } = useTheme();
     const executionStatus = data.executionStatus as 'idle' | 'executing' | 'completed' | 'error' | undefined;
+    const isExecuting = executionStatus === 'executing';
+    const isCompleted = executionStatus === 'completed';
 
     const getBorderClasses = () => {
-        if (executionStatus === 'executing') {
-            return 'border-amber-500 animate-pulse shadow-[0_0_25px_rgba(245,158,11,0.5)]';
+        if (isExecuting) {
+            return 'border-blue-500 shadow-[0_0_25px_rgba(59,130,246,0.6)]';
         }
-        if (executionStatus === 'completed') {
+        if (isCompleted) {
             return isDark
                 ? 'border-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.4)]'
                 : 'border-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.3)]';
@@ -32,7 +34,40 @@ const VisualTopicNode = ({ data }: { data: any }) => {
             />
 
             {/* Node Container - Rectangular */}
-            <div className={`w-[200px] h-20 border-2 rounded-xl shadow-lg flex items-center justify-center gap-3 relative group/node transition-all ${isDark ? 'bg-[#1e1e1e]' : 'bg-white'} ${getBorderClasses()}`}>
+            <div className={`w-[200px] h-20 border-2 rounded-xl shadow-lg flex items-center justify-center gap-3 relative group/node transition-all overflow-hidden ${isDark ? 'bg-[#1e1e1e]' : 'bg-white'} ${getBorderClasses()}`}>
+
+                {/* Animated border orbs when executing */}
+                {isExecuting && (
+                    <>
+                        {/* Top orb - travels left to right along top border */}
+                        <div
+                            className="absolute w-3 h-3 rounded-full bg-blue-400 shadow-[0_0_15px_#3b82f6,0_0_30px_#3b82f6] z-30"
+                            style={{
+                                top: '-6px',
+                                animation: 'orbTop 1s linear infinite',
+                            }}
+                        />
+                        {/* Bottom orb - travels left to right along bottom border */}
+                        <div
+                            className="absolute w-3 h-3 rounded-full bg-blue-400 shadow-[0_0_15px_#3b82f6,0_0_30px_#3b82f6] z-30"
+                            style={{
+                                bottom: '-6px',
+                                animation: 'orbBottom 1s linear infinite',
+                            }}
+                        />
+                        {/* CSS Keyframes for border animation */}
+                        <style>{`
+                            @keyframes orbTop {
+                                0% { left: -6px; }
+                                100% { left: calc(100% - 6px); }
+                            }
+                            @keyframes orbBottom {
+                                0% { left: -6px; }
+                                100% { left: calc(100% - 6px); }
+                            }
+                        `}</style>
+                    </>
+                )}
 
                 {/* Controls */}
                 <div className="absolute -top-3 -right-3 flex gap-1 opacity-0 group-hover/node:opacity-100 transition-opacity z-20">
@@ -59,10 +94,10 @@ const VisualTopicNode = ({ data }: { data: any }) => {
                 </div>
 
                 {/* Content: Icon + Text */}
-                <div className={`w-10 h-10 rounded-lg flex items-center justify-center shadow-md ${executionStatus === 'executing' ? 'bg-amber-500' : executionStatus === 'completed' ? 'bg-emerald-500' : 'bg-gradient-to-br from-amber-500 to-orange-600'} ${isDark ? 'shadow-amber-900/40' : 'shadow-amber-500/30'}`}>
-                    {executionStatus === 'executing' ? (
+                <div className={`w-10 h-10 rounded-lg flex items-center justify-center shadow-md ${isExecuting ? 'bg-blue-500' : isCompleted ? 'bg-emerald-500' : 'bg-gradient-to-br from-amber-500 to-orange-600'} ${isDark ? 'shadow-amber-900/40' : 'shadow-amber-500/30'}`}>
+                    {isExecuting ? (
                         <Loader className="w-6 h-6 text-white animate-spin" />
-                    ) : executionStatus === 'completed' ? (
+                    ) : isCompleted ? (
                         <CheckCircle className="w-6 h-6 text-white" />
                     ) : (
                         <Lightbulb className="w-6 h-6 text-white" />
@@ -71,7 +106,7 @@ const VisualTopicNode = ({ data }: { data: any }) => {
                 <div className="flex flex-col">
                     <span className={`font-bold text-sm ${isDark ? 'text-white' : 'text-slate-900'}`}>Topic Generator</span>
                     <span className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                        {executionStatus === 'executing' ? 'Generating...' : executionStatus === 'completed' ? 'Done!' : data.aiProvider === 'gemini' ? 'Gemini' : 'OpenAI'}
+                        {isExecuting ? 'Generating...' : isCompleted ? 'Done!' : data.aiProvider === 'gemini' ? 'Gemini' : 'OpenAI'}
                     </span>
                 </div>
             </div>
@@ -87,4 +122,5 @@ const VisualTopicNode = ({ data }: { data: any }) => {
 };
 
 export default memo(VisualTopicNode);
+
 

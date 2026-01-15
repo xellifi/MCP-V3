@@ -7,13 +7,14 @@ import { useTheme } from '../../context/ThemeContext';
 const VisualTriggerNode = ({ data }: { data: any }) => {
     const { isDark } = useTheme();
     const executionStatus = data.executionStatus as 'idle' | 'executing' | 'completed' | 'error' | undefined;
+    const isExecuting = executionStatus === 'executing';
+    const isCompleted = executionStatus === 'completed';
 
-    // Determine border and glow based on execution status
     const getBorderClasses = () => {
-        if (executionStatus === 'executing') {
-            return 'border-amber-500 animate-pulse shadow-[0_0_25px_rgba(245,158,11,0.5)]';
+        if (isExecuting) {
+            return 'border-blue-500 shadow-[0_0_25px_rgba(59,130,246,0.6)]';
         }
-        if (executionStatus === 'completed') {
+        if (isCompleted) {
             return isDark
                 ? 'border-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.4)]'
                 : 'border-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.3)]';
@@ -25,7 +26,7 @@ const VisualTriggerNode = ({ data }: { data: any }) => {
 
     return (
         <div className="relative group flex flex-col items-center !bg-transparent" style={{ background: 'transparent', borderRadius: '50%' }}>
-            {/* Output Handle - Right (Connects to next node) */}
+            {/* Output Handle */}
             <Handle
                 type="source"
                 position={Position.Right}
@@ -37,9 +38,34 @@ const VisualTriggerNode = ({ data }: { data: any }) => {
 
             {/* Node Container - Circle */}
             <div className={`w-20 h-20 border-2 rounded-full shadow-lg flex flex-col items-center justify-center relative z-0 overflow-visible transition-all duration-200 group-hover:shadow-[0_0_20px_rgba(249,115,22,0.3)] ${isDark ? 'bg-slate-900' : 'bg-orange-50/50'} ${getBorderClasses()}`}>
+
+                {/* Animated orbiting orbs when executing */}
+                {isExecuting && (
+                    <>
+                        <div className="absolute w-3 h-3 rounded-full bg-blue-400 shadow-[0_0_15px_#3b82f6,0_0_30px_#3b82f6] z-30" style={{ animation: 'orbitTrigger1 1s linear infinite' }} />
+                        <div className="absolute w-3 h-3 rounded-full bg-blue-400 shadow-[0_0_15px_#3b82f6,0_0_30px_#3b82f6] z-30" style={{ animation: 'orbitTrigger2 1s linear infinite' }} />
+                        <style>{`
+                            @keyframes orbitTrigger1 {
+                                0% { top: -6px; left: 50%; transform: translateX(-50%); }
+                                25% { top: 50%; left: calc(100% - 6px); transform: translateY(-50%); }
+                                50% { top: calc(100% - 6px); left: 50%; transform: translateX(-50%); }
+                                75% { top: 50%; left: -6px; transform: translateY(-50%); }
+                                100% { top: -6px; left: 50%; transform: translateX(-50%); }
+                            }
+                            @keyframes orbitTrigger2 {
+                                0% { bottom: -6px; left: 50%; transform: translateX(-50%); }
+                                25% { bottom: 50%; left: -6px; transform: translateY(50%); }
+                                50% { bottom: calc(100% - 6px); left: 50%; transform: translateX(-50%); }
+                                75% { bottom: 50%; left: calc(100% - 6px); transform: translateY(50%); }
+                                100% { bottom: -6px; left: 50%; transform: translateX(-50%); }
+                            }
+                        `}</style>
+                    </>
+                )}
+
                 <div className={`absolute inset-0 pointer-events-none rounded-full ${isDark ? 'bg-orange-500/10' : 'bg-orange-100/50'}`} />
 
-                {/* Left Badge: Blue Lightning (Satellite) */}
+                {/* Left Badge */}
                 <div className="absolute -left-[34px] top-1/2 -translate-y-1/2 z-10">
                     <div className={`rounded-full p-1 border shadow-[0_0_10px_rgba(236,72,153,0.4)] ${isDark
                         ? 'bg-slate-900 border-pink-500/50'
@@ -49,36 +75,22 @@ const VisualTriggerNode = ({ data }: { data: any }) => {
                     </div>
                 </div>
 
-                {/* Main Icon - Shows status indicator */}
-                {executionStatus === 'executing' ? (
-                    <Loader className="w-8 h-8 text-amber-500 animate-spin" strokeWidth={2} />
-                ) : executionStatus === 'completed' ? (
+                {/* Main Icon */}
+                {isExecuting ? (
+                    <Loader className="w-8 h-8 text-blue-500 animate-spin" strokeWidth={2} />
+                ) : isCompleted ? (
                     <CheckCircle className="w-8 h-8 text-emerald-500" strokeWidth={2} />
                 ) : (
                     <AlarmClock className={`w-8 h-8 ${isDark ? 'text-orange-400' : 'text-orange-600'}`} strokeWidth={1.5} />
                 )}
             </div>
 
-            {/* Controls - Outside circle, positioned to top-right like Memory node */}
+            {/* Controls */}
             <div className="absolute -top-2 -right-10 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-50">
-                <button
-                    onClick={(e) => { e.stopPropagation(); data.onConfigure?.(); }}
-                    className={`w-7 h-7 rounded-full flex items-center justify-center border shadow-md transform hover:scale-110 transition-all ${isDark
-                        ? 'bg-slate-800 hover:bg-slate-700 border-white/10'
-                        : 'bg-white hover:bg-slate-50 border-slate-200'
-                        }`}
-                    title="Configure"
-                >
+                <button onClick={(e) => { e.stopPropagation(); data.onConfigure?.(); }} className={`w-7 h-7 rounded-full flex items-center justify-center border shadow-md transform hover:scale-110 transition-all ${isDark ? 'bg-slate-800 hover:bg-slate-700 border-white/10' : 'bg-white hover:bg-slate-50 border-slate-200'}`} title="Configure">
                     <Settings className={`w-3.5 h-3.5 ${isDark ? 'text-slate-300' : 'text-slate-600'}`} />
                 </button>
-                <button
-                    onClick={(e) => { e.stopPropagation(); data.onDelete?.(); }}
-                    className={`w-7 h-7 rounded-full flex items-center justify-center border shadow-md transform hover:scale-110 transition-all group/delete ${isDark
-                        ? 'bg-slate-800 hover:bg-red-900/50 border-white/10'
-                        : 'bg-white hover:bg-red-50 border-slate-200'
-                        }`}
-                    title="Delete"
-                >
+                <button onClick={(e) => { e.stopPropagation(); data.onDelete?.(); }} className={`w-7 h-7 rounded-full flex items-center justify-center border shadow-md transform hover:scale-110 transition-all group/delete ${isDark ? 'bg-slate-800 hover:bg-red-900/50 border-white/10' : 'bg-white hover:bg-red-50 border-slate-200'}`} title="Delete">
                     <Trash2 className={`w-3.5 h-3.5 ${isDark ? 'text-slate-300 group-hover/delete:text-red-400' : 'text-slate-600 group-hover/delete:text-red-500'}`} />
                 </button>
             </div>
@@ -87,4 +99,5 @@ const VisualTriggerNode = ({ data }: { data: any }) => {
 };
 
 export default memo(VisualTriggerNode);
+
 

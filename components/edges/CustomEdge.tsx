@@ -53,7 +53,7 @@ const CustomEdge: React.FC<EdgeProps<CustomEdgeData>> = ({
     const getStrokeColor = () => {
         if (showDeleteButton) return '#f59e0b';
         if (isCompleted) return '#10b981'; // green
-        if (isExecuting) return '#f59e0b'; // amber
+        if (isExecuting) return '#3b82f6'; // blue for lightning
         return style.stroke?.toString() || '#94a3b8';
     };
 
@@ -65,6 +65,7 @@ const CustomEdge: React.FC<EdgeProps<CustomEdgeData>> = ({
 
     // Unique ID for gradient
     const gradientId = `lightning-gradient-${id}`;
+    const glowId = `glow-${id}`;
 
     return (
         <g
@@ -72,27 +73,30 @@ const CustomEdge: React.FC<EdgeProps<CustomEdgeData>> = ({
             onMouseLeave={() => setIsHovered(false)}
             onTouchStart={() => setIsHovered(true)}
         >
-            {/* Define animated gradient for lightning effect */}
+            {/* Define animated gradient and glow for blue lightning effect */}
             <defs>
                 <linearGradient id={gradientId} gradientUnits="userSpaceOnUse" x1={sourceX} y1={sourceY} x2={targetX} y2={targetY}>
                     <stop offset="0%" stopColor={isCompleted ? '#10b981' : '#94a3b8'} />
                     <stop offset="40%" stopColor={isCompleted ? '#10b981' : '#94a3b8'}>
-                        {isExecuting && <animate attributeName="offset" values="0;0.8;0" dur="1.5s" repeatCount="indefinite" />}
+                        {isExecuting && <animate attributeName="offset" values="0;0.8;0" dur="1s" repeatCount="indefinite" />}
                     </stop>
-                    <stop offset="50%" stopColor={isExecuting ? '#fbbf24' : (isCompleted ? '#10b981' : '#94a3b8')}>
-                        {isExecuting && <animate attributeName="offset" values="0.1;0.9;0.1" dur="1.5s" repeatCount="indefinite" />}
+                    <stop offset="50%" stopColor={isExecuting ? '#60a5fa' : (isCompleted ? '#10b981' : '#94a3b8')}>
+                        {isExecuting && <animate attributeName="offset" values="0.1;0.9;0.1" dur="1s" repeatCount="indefinite" />}
                     </stop>
                     <stop offset="60%" stopColor={isCompleted ? '#10b981' : '#94a3b8'}>
-                        {isExecuting && <animate attributeName="offset" values="0.2;1;0.2" dur="1.5s" repeatCount="indefinite" />}
+                        {isExecuting && <animate attributeName="offset" values="0.2;1;0.2" dur="1s" repeatCount="indefinite" />}
                     </stop>
                     <stop offset="100%" stopColor={isCompleted ? '#10b981' : '#94a3b8'} />
                 </linearGradient>
 
-                {/* Glow filter for executing state */}
-                <filter id={`glow-${id}`} x="-50%" y="-50%" width="200%" height="200%">
-                    <feGaussianBlur stdDeviation="3" result="coloredBlur" />
+                {/* Strong blue glow filter for lightning effect */}
+                <filter id={glowId} x="-100%" y="-100%" width="300%" height="300%">
+                    <feGaussianBlur stdDeviation="4" result="coloredBlur" />
+                    <feFlood floodColor="#3b82f6" floodOpacity="0.8" result="glowColor" />
+                    <feComposite in="glowColor" in2="coloredBlur" operator="in" result="softGlow" />
                     <feMerge>
-                        <feMergeNode in="coloredBlur" />
+                        <feMergeNode in="softGlow" />
+                        <feMergeNode in="softGlow" />
                         <feMergeNode in="SourceGraphic" />
                     </feMerge>
                 </filter>
@@ -107,15 +111,15 @@ const CustomEdge: React.FC<EdgeProps<CustomEdgeData>> = ({
                 style={{ cursor: 'pointer' }}
             />
 
-            {/* Glow effect when executing */}
+            {/* Blue glow effect when executing */}
             {isExecuting && (
                 <path
                     d={edgePath}
                     fill="none"
-                    stroke="#fbbf24"
-                    strokeWidth={6}
-                    strokeOpacity={0.4}
-                    filter={`url(#glow-${id})`}
+                    stroke="#3b82f6"
+                    strokeWidth={8}
+                    strokeOpacity={0.3}
+                    filter={`url(#${glowId})`}
                     style={{ pointerEvents: 'none' }}
                     className="animate-pulse"
                 />
@@ -136,19 +140,25 @@ const CustomEdge: React.FC<EdgeProps<CustomEdgeData>> = ({
                 className={`react-flow__edge-path ${isVertical ? 'animated-edge' : ''}`}
             />
 
-            {/* Animated orb traveling along path when executing */}
+            {/* Animated BLUE lightning orb traveling along path when executing */}
             {isExecuting && (
                 <>
-                    <circle r="6" fill="#fbbf24" filter={`url(#glow-${id})`}>
-                        <animateMotion dur="1.5s" repeatCount="indefinite" path={edgePath} />
+                    {/* Outer glow orb */}
+                    <circle r="10" fill="#3b82f6" opacity="0.4" filter={`url(#${glowId})`}>
+                        <animateMotion dur="1s" repeatCount="indefinite" path={edgePath} />
                     </circle>
+                    {/* Middle orb */}
+                    <circle r="6" fill="#60a5fa" filter={`url(#${glowId})`}>
+                        <animateMotion dur="1s" repeatCount="indefinite" path={edgePath} />
+                    </circle>
+                    {/* Inner bright core */}
                     <circle r="3" fill="white">
-                        <animateMotion dur="1.5s" repeatCount="indefinite" path={edgePath} />
+                        <animateMotion dur="1s" repeatCount="indefinite" path={edgePath} />
                     </circle>
                 </>
             )}
 
-            {/* Green check orb when completed */}
+            {/* Green dot when completed */}
             {isCompleted && (
                 <circle cx={labelX} cy={labelY} r="4" fill="#10b981" />
             )}

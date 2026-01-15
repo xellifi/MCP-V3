@@ -142,7 +142,7 @@ async function handleExecuteStep(req: VercelRequest, res: VercelResponse, step: 
                 }
 
                 console.log(`[Execute Step] Posting to page: ${page.page_id}`);
-                const postId = await postToFacebook(page.page_id, page.access_token, imageUrl, caption);
+                const postId = await postToFacebook(page.access_token, page.page_id, caption, imageUrl);
                 console.log(`[Execute Step] Posted to Facebook: ${postId}`);
                 return res.json({ success: true, step, result: { postId, topic, imageUrl, caption } });
             }
