@@ -446,6 +446,37 @@ const SchedulerBuilder: React.FC<SchedulerBuilderProps> = ({
     const nodeOrder = ['trigger-1', 'topic-1', 'image-1', 'caption-1', 'facebook-1'];
     let currentResults: Record<string, any> = {};
 
+    // Helper function to check if a node is properly configured
+    const isNodeConfigured = (nodeId: string): { configured: boolean; errorMessage: string } => {
+      const config = nodeConfigurations[nodeId];
+
+      switch (nodeId) {
+        case 'topic-1':
+          if (!config?.niche || !config.niche.trim()) {
+            return { configured: false, errorMessage: 'Topic Generator requires a Niche/Industry to be set' };
+          }
+          break;
+        case 'image-1':
+          // Image generator has defaults, but check if user has opened config
+          if (!config) {
+            return { configured: false, errorMessage: 'Image Generator must be configured' };
+          }
+          break;
+        case 'caption-1':
+          // Caption writer has defaults, but check if user has opened config
+          if (!config) {
+            return { configured: false, errorMessage: 'Caption Writer must be configured' };
+          }
+          break;
+        case 'facebook-1':
+          if (!config?.pageId) {
+            return { configured: false, errorMessage: 'Facebook Post requires a page to be selected' };
+          }
+          break;
+      }
+      return { configured: true, errorMessage: '' };
+    };
+
     try {
       // Execute each node with visual feedback
       for (const nodeId of nodeOrder) {
@@ -456,6 +487,19 @@ const SchedulerBuilder: React.FC<SchedulerBuilderProps> = ({
           await new Promise(resolve => setTimeout(resolve, 500));
           setCompletedNodeIds(prev => new Set([...prev, nodeId]));
           continue;
+        }
+
+        // Wait 3 seconds while showing the glowing orb
+        await new Promise(resolve => setTimeout(resolve, 3000));
+
+        // Check if node is configured
+        const validation = isNodeConfigured(nodeId);
+        if (!validation.configured) {
+          toast.error(validation.errorMessage);
+          setErrorNodeId(nodeId);
+          setExecutingNodeId(null);
+          setIsExecuting(false);
+          return;
         }
 
         // For other nodes, call the execute API step-by-step
