@@ -43,14 +43,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 }
 
 // ============================================
-// STEP-BY-STEP EXECUTION FROM FRONTEND
+// FULL WORKFLOW EXECUTION FROM FRONTEND (mirrors working cron execution)
 // ============================================
 async function handleExecuteStep(req: VercelRequest, res: VercelResponse, step: string) {
-    console.log(`[Execute Step] Starting step: ${step}`);
+    // If step is 'full', run the complete workflow
+    if (step === 'full') {
+        return handleExecuteFullWorkflow(req, res);
+    }
+
+    // Otherwise return error - we now only support full execution
+    return res.status(400).json({ error: 'Use step=full for complete workflow execution' });
+}
+
+async function handleExecuteFullWorkflow(req: VercelRequest, res: VercelResponse) {
+    console.log(`[Execute Full] Starting full workflow execution`);
 
     try {
         const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
-        const { workspaceId, configurations, previousResults } = body;
+        const { workspaceId, configurations } = body;
+
+        console.log(`[Execute Full] WorkspaceId: ${workspaceId}`);
+        console.log(`[Execute Full] Configurations keys:`, Object.keys(configurations || {}));
 
         // Get API keys from workspace
         const { data: settings } = await supabase
@@ -63,120 +76,185 @@ async function handleExecuteStep(req: VercelRequest, res: VercelResponse, step: 
         const geminiKey = settings?.gemini_api_key;
 
         if (!openaiKey && !geminiKey) {
-            return res.status(400).json({ error: 'No API keys configured' });
+            return res.status(400).json({
+                error: 'No API keys configured',
+                failedStep: 'topic-1'
+            });
         }
 
-        const provider = openaiKey ? 'openai' : 'gemini';
-        const apiKey = openaiKey || geminiKey;
+        // Extract configs by node type (same pattern as working executeWorkflow)
+        let topicConfig: any = null;
+        let imageConfig: any = null;
+        let captionConfig: any = null;
+        let facebookConfig: any = null;
 
-        switch (step) {
-            case 'topic-1': {
-                const topicConfig = configurations?.['topic-1'] || {};
-                const topic = await generateTopic(topicConfig, apiKey, provider as any, []);
-                console.log(`[Execute Step] Generated topic: ${topic}`);
-                return res.json({ success: true, step, result: { topic } });
+        for (const [nodeId, config] of Object.entries(configurations || {})) {
+            if (nodeId.startsWith('topic') || nodeId === 'topic-1') {
+                topicConfig = config;
+            } else if (nodeId.startsWith('image') || nodeId === 'image-1') {
+                imageConfig = config;
+            } else if (nodeId.startsWith('caption') || nodeId === 'caption-1') {
+                captionConfig = config;
+            } else if (nodeId.startsWith('facebook') || nodeId === 'facebook-1') {
+                facebookConfig = config;
             }
-
-            case 'image-1': {
-                const imageConfig = configurations?.['image-1'] || {};
-                const topic = previousResults?.['topic-1']?.result?.topic || 'Social media post';
-                const imageUrl = await generateImage(topic, imageConfig, openaiKey || '');
-                console.log(`[Execute Step] Generated image`);
-                return res.json({ success: true, step, result: { imageUrl } });
-            }
-
-            case 'caption-1': {
-                const captionConfig = configurations?.['caption-1'] || {};
-                const topic = previousResults?.['topic-1']?.result?.topic || 'Social media post';
-                const caption = await generateCaption(topic, captionConfig, apiKey, provider as any);
-                console.log(`[Execute Step] Generated caption`);
-                return res.json({ success: true, step, result: { caption } });
-            }
-
-            case 'facebook-1': {
-                const fbConfig = configurations?.['facebook-1'] || {};
-                const topic = previousResults?.['topic-1']?.result?.topic || '';
-                const imageUrl = previousResults?.['image-1']?.result?.imageUrl || '';
-                const caption = previousResults?.['caption-1']?.result?.caption || '';
-
-                console.log(`[Execute Step] Facebook config:`, JSON.stringify(fbConfig));
-                console.log(`[Execute Step] WorkspaceId:`, workspaceId);
-
-                // Get Facebook page access token - try multiple approaches
-                let page: any = null;
-
-                // First, try to get the specific page from config
-                if (fbConfig.pageId) {
-                    console.log(`[Execute Step] Trying fbConfig.pageId: ${fbConfig.pageId}`);
-                    const { data: configuredPage, error: err1 } = await supabase
-                        .from('connected_pages')
-                        .select('page_id, page_access_token')
-                        .eq('page_id', fbConfig.pageId)
-                        .single();
-                    console.log(`[Execute Step] Config page result:`, configuredPage, err1?.message);
-                    if (configuredPage) page = configuredPage;
-                }
-
-                // Second, try any page with automation enabled
-                if (!page) {
-                    console.log(`[Execute Step] Trying automation_enabled pages for workspace`);
-                    const { data: automatedPages, error: err2 } = await supabase
-                        .from('connected_pages')
-                        .select('page_id, page_access_token')
-                        .eq('workspace_id', workspaceId)
-                        .eq('automation_enabled', true)
-                        .limit(1);
-                    console.log(`[Execute Step] Automated pages result:`, automatedPages, err2?.message);
-                    if (automatedPages && automatedPages.length > 0) {
-                        page = automatedPages[0];
-                    }
-                }
-
-                // Third, try any connected page for this workspace
-                if (!page) {
-                    console.log(`[Execute Step] Trying any page for workspace`);
-                    const { data: anyPages, error: err3 } = await supabase
-                        .from('connected_pages')
-                        .select('page_id, page_access_token')
-                        .eq('workspace_id', workspaceId)
-                        .limit(1);
-                    console.log(`[Execute Step] Any pages result:`, anyPages, err3?.message);
-                    if (anyPages && anyPages.length > 0) {
-                        page = anyPages[0];
-                    }
-                }
-
-                // Fourth fallback - get ANY page at all (for debugging)
-                if (!page) {
-                    console.log(`[Execute Step] Trying ANY page without workspace filter`);
-                    const { data: allPages, error: err4 } = await supabase
-                        .from('connected_pages')
-                        .select('page_id, page_access_token, workspace_id')
-                        .limit(5);
-                    console.log(`[Execute Step] All pages in DB:`, allPages, err4?.message);
-                    if (allPages && allPages.length > 0) {
-                        // Use first available page
-                        page = allPages[0];
-                        console.log(`[Execute Step] Using fallback page from workspace: ${page.workspace_id}`);
-                    }
-                }
-
-                if (!page) {
-                    return res.status(400).json({ error: 'No connected Facebook pages. Please connect a page first.' });
-                }
-
-                console.log(`[Execute Step] Posting to page: ${page.page_id}`);
-                const postId = await postToFacebook(page.page_access_token, page.page_id, caption, imageUrl);
-                console.log(`[Execute Step] Posted to Facebook: ${postId}`);
-                return res.json({ success: true, step, result: { postId, topic, imageUrl, caption } });
-            }
-
-            default:
-                return res.status(400).json({ error: `Unknown step: ${step}` });
         }
+
+        console.log(`[Execute Full] topicConfig:`, JSON.stringify(topicConfig));
+        console.log(`[Execute Full] imageConfig:`, JSON.stringify(imageConfig));
+        console.log(`[Execute Full] captionConfig:`, JSON.stringify(captionConfig));
+        console.log(`[Execute Full] facebookConfig:`, JSON.stringify(facebookConfig));
+
+        const results: Record<string, any> = {};
+
+        // Step 1: Generate Topic
+        console.log(`[Execute Full] Step 1: Generating topic...`);
+        const provider = (topicConfig?.provider || (openaiKey ? 'openai' : 'gemini')) as 'openai' | 'gemini';
+        const apiKey = provider === 'openai' ? openaiKey : geminiKey;
+
+        if (!apiKey) {
+            return res.status(400).json({
+                error: `${provider} API key not configured`,
+                failedStep: 'topic-1'
+            });
+        }
+
+        let topic = '';
+        try {
+            topic = await generateTopic(topicConfig || {}, apiKey, provider, []);
+            console.log(`[Execute Full] Generated topic: "${topic}"`);
+            results['topic-1'] = { success: true, result: { topic } };
+        } catch (err: any) {
+            console.error(`[Execute Full] Topic generation failed:`, err.message);
+            return res.status(400).json({
+                error: `Topic generation failed: ${err.message}`,
+                failedStep: 'topic-1',
+                results
+            });
+        }
+
+        // Step 2: Generate Image
+        console.log(`[Execute Full] Step 2: Generating image...`);
+        let imageUrl = '';
+        if (openaiKey) {
+            try {
+                imageUrl = await generateImage(topic, imageConfig || {}, openaiKey);
+                console.log(`[Execute Full] Generated image URL: ${imageUrl?.substring(0, 60)}...`);
+                results['image-1'] = { success: true, result: { imageUrl } };
+            } catch (err: any) {
+                console.error(`[Execute Full] Image generation failed:`, err.message);
+                return res.status(400).json({
+                    error: `Image generation failed: ${err.message}`,
+                    failedStep: 'image-1',
+                    results
+                });
+            }
+        } else {
+            console.log(`[Execute Full] Skipping image - no OpenAI key`);
+            results['image-1'] = { success: true, result: { imageUrl: '' }, skipped: true };
+        }
+
+        // Step 3: Generate Caption
+        console.log(`[Execute Full] Step 3: Generating caption...`);
+        let caption = '';
+        try {
+            const captionProvider = (captionConfig?.provider || provider) as 'openai' | 'gemini';
+            const captionApiKey = captionProvider === 'openai' ? openaiKey : geminiKey;
+
+            if (!captionApiKey) {
+                throw new Error(`${captionProvider} API key not available for caption`);
+            }
+
+            caption = await generateCaption(topic, captionConfig || {}, captionApiKey, captionProvider);
+            console.log(`[Execute Full] Generated caption (${caption.length} chars): "${caption.substring(0, 100)}..."`);
+            results['caption-1'] = { success: true, result: { caption } };
+        } catch (err: any) {
+            console.error(`[Execute Full] Caption generation failed:`, err.message);
+            return res.status(400).json({
+                error: `Caption generation failed: ${err.message}`,
+                failedStep: 'caption-1',
+                results
+            });
+        }
+
+        // Step 4: Post to Facebook
+        console.log(`[Execute Full] Step 4: Posting to Facebook...`);
+
+        if (!caption) {
+            return res.status(400).json({
+                error: 'Cannot post to Facebook - no caption generated',
+                failedStep: 'facebook-1',
+                results
+            });
+        }
+
+        // Get Facebook page - use the config pageId OR find one from workspace
+        let page: any = null;
+
+        if (facebookConfig?.pageId) {
+            const { data: configuredPage } = await supabase
+                .from('connected_pages')
+                .select('page_id, page_access_token')
+                .eq('page_id', facebookConfig.pageId)
+                .single();
+            if (configuredPage) page = configuredPage;
+        }
+
+        if (!page) {
+            const { data: workspacePages } = await supabase
+                .from('connected_pages')
+                .select('page_id, page_access_token')
+                .eq('workspace_id', workspaceId)
+                .eq('automation_enabled', true)
+                .limit(1);
+            if (workspacePages?.length) page = workspacePages[0];
+        }
+
+        if (!page) {
+            const { data: anyPages } = await supabase
+                .from('connected_pages')
+                .select('page_id, page_access_token')
+                .eq('workspace_id', workspaceId)
+                .limit(1);
+            if (anyPages?.length) page = anyPages[0];
+        }
+
+        if (!page?.page_access_token) {
+            return res.status(400).json({
+                error: 'No connected Facebook pages found. Please connect a page first.',
+                failedStep: 'facebook-1',
+                results
+            });
+        }
+
+        try {
+            console.log(`[Execute Full] Posting to page: ${page.page_id}`);
+            const postId = await postToFacebook(page.page_access_token, page.page_id, caption, imageUrl);
+            console.log(`[Execute Full] Posted to Facebook! Post ID: ${postId}`);
+            results['facebook-1'] = { success: true, result: { postId, topic, imageUrl, caption } };
+        } catch (err: any) {
+            console.error(`[Execute Full] Facebook posting failed:`, err.message);
+            return res.status(400).json({
+                error: `Facebook posting failed: ${err.message}`,
+                failedStep: 'facebook-1',
+                results
+            });
+        }
+
+        console.log(`[Execute Full] Workflow completed successfully!`);
+        return res.json({
+            success: true,
+            results,
+            summary: {
+                topic,
+                imageUrl,
+                caption,
+                postId: results['facebook-1']?.result?.postId
+            }
+        });
 
     } catch (error: any) {
-        console.error(`[Execute Step] Error:`, error.message);
+        console.error(`[Execute Full] Unexpected error:`, error.message);
         return res.status(500).json({ error: error.message });
     }
 }

@@ -1,6 +1,6 @@
 import React, { memo } from 'react';
 import { Handle, Position } from 'reactflow';
-import { Facebook, Settings, Trash2, CheckCircle, Loader } from 'lucide-react';
+import { Facebook, Settings, Trash2, CheckCircle, Loader, XCircle } from 'lucide-react';
 
 import { useTheme } from '../../context/ThemeContext';
 
@@ -9,8 +9,12 @@ const VisualFacebookNode = ({ data }: { data: any }) => {
     const executionStatus = data.executionStatus as 'idle' | 'executing' | 'completed' | 'error' | undefined;
     const isExecuting = executionStatus === 'executing';
     const isCompleted = executionStatus === 'completed';
+    const isError = executionStatus === 'error';
 
     const getBorderClasses = () => {
+        if (isError) {
+            return 'border-red-500 shadow-[0_0_25px_rgba(239,68,68,0.6)]';
+        }
         if (isExecuting) {
             return 'border-blue-500 shadow-[0_0_25px_rgba(59,130,246,0.6)]';
         }
@@ -51,18 +55,18 @@ const VisualFacebookNode = ({ data }: { data: any }) => {
                     </button>
                 </div>
 
-                <div className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-lg ${isExecuting ? 'bg-blue-500' : isCompleted ? 'bg-emerald-500' : 'bg-gradient-to-br from-blue-600 to-blue-700'} ${isDark ? 'shadow-blue-900/40' : 'shadow-blue-500/30'}`}>
-                    {isExecuting ? <Loader className="w-7 h-7 text-white animate-spin" /> : isCompleted ? <CheckCircle className="w-7 h-7 text-white" /> : <Facebook className="w-7 h-7 text-white fill-white" />}
+                <div className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-lg ${isError ? 'bg-red-500' : isExecuting ? 'bg-blue-500' : isCompleted ? 'bg-emerald-500' : 'bg-gradient-to-br from-blue-600 to-blue-700'} ${isDark ? 'shadow-blue-900/40' : 'shadow-blue-500/30'}`}>
+                    {isError ? <XCircle className="w-7 h-7 text-white" /> : isExecuting ? <Loader className="w-7 h-7 text-white animate-spin" /> : isCompleted ? <CheckCircle className="w-7 h-7 text-white" /> : <Facebook className="w-7 h-7 text-white fill-white" />}
                 </div>
             </div>
 
             <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 w-48 text-center">
-                <p className={`font-bold text-sm leading-tight ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>
-                    {isExecuting ? 'Posting...' : isCompleted ? 'Posted!' : data.pageName || 'Facebook Post'}
+                <p className={`font-bold text-sm leading-tight ${isError ? 'text-red-400' : isDark ? 'text-slate-200' : 'text-slate-700'}`}>
+                    {isError ? 'Post Failed!' : isExecuting ? 'Posting...' : isCompleted ? 'Posted!' : data.pageName || 'Facebook Post'}
                 </p>
                 <div className="flex justify-center mt-1">
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded border font-bold ${isCompleted ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : data.isConfigured ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' : 'bg-slate-500/20 text-slate-400 border-slate-500/30'}`}>
-                        {isCompleted ? 'Success' : data.isConfigured ? 'Connected' : 'Not Configured'}
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded border font-bold ${isError ? 'bg-red-500/20 text-red-400 border-red-500/30' : isCompleted ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : data.isConfigured ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' : 'bg-slate-500/20 text-slate-400 border-slate-500/30'}`}>
+                        {isError ? 'Error' : isCompleted ? 'Success' : data.isConfigured ? 'Connected' : 'Not Configured'}
                     </span>
                 </div>
             </div>

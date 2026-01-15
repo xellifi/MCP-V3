@@ -100,6 +100,7 @@ const SchedulerBuilder: React.FC<SchedulerBuilderProps> = ({
   const [isExecuting, setIsExecuting] = useState(false);
   const [executingNodeId, setExecutingNodeId] = useState<string | null>(null);
   const [completedNodeIds, setCompletedNodeIds] = useState<Set<string>>(new Set());
+  const [errorNodeId, setErrorNodeId] = useState<string | null>(null);
   const [executionResults, setExecutionResults] = useState<Record<string, any>>({});
   const [showExecuteTooltip, setShowExecuteTooltip] = useState(false);
 
@@ -439,61 +440,83 @@ const SchedulerBuilder: React.FC<SchedulerBuilderProps> = ({
     // Reset execution state
     setIsExecuting(true);
     setCompletedNodeIds(new Set());
+    setErrorNodeId(null);
     setExecutionResults({});
 
-    // Get node order from edges
     const nodeOrder = ['trigger-1', 'topic-1', 'image-1', 'caption-1', 'facebook-1'];
 
     try {
-      // Execute each node with visual feedback
-      for (const nodeId of nodeOrder) {
-        setExecutingNodeId(nodeId);
+      // Start with trigger animation
+      setExecutingNodeId('trigger-1');
+      await new Promise(resolve => setTimeout(resolve, 800));
+      setCompletedNodeIds(prev => new Set([...prev, 'trigger-1']));
 
-        // Simulate API call delay for trigger (instant)
-        if (nodeId === 'trigger-1') {
-          await new Promise(resolve => setTimeout(resolve, 500));
-          setCompletedNodeIds(prev => new Set([...prev, nodeId]));
-          continue;
-        }
+      // Show topic as executing while API runs
+      setExecutingNodeId('topic-1');
 
-        // For other nodes, call the execute API
-        try {
-          const response = await fetch('/api/cron?execute=true&step=' + nodeId, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              workspaceId: workspace.id,
-              configurations: nodeConfigurations,
-              previousResults: executionResults
-            })
-          });
+      // Call the full workflow API (same code as working cron jobs)
+      const response = await fetch('/api/cron?execute=true&step=full', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          workspaceId: workspace.id,
+          configurations: nodeConfigurations
+        })
+      });
 
-          const result = await response.json();
+      const result = await response.json();
 
-          if (result.error) {
-            throw new Error(result.error);
+      if (result.error) {
+        // Handle failure - set error on the failed step
+        const failedStep = result.failedStep || 'topic-1';
+
+        // Animate up to failed step
+        const completedSteps = result.results ? Object.keys(result.results) : [];
+        for (const completedStep of completedSteps) {
+          if (completedStep !== failedStep) {
+            setCompletedNodeIds(prev => new Set([...prev, completedStep]));
           }
-
-          setExecutionResults(prev => ({ ...prev, [nodeId]: result }));
-          setCompletedNodeIds(prev => new Set([...prev, nodeId]));
-
-        } catch (stepError: any) {
-          toast.error(`Failed at ${nodeId}: ${stepError.message}`);
-          setIsExecuting(false);
-          setExecutingNodeId(null);
-          return;
         }
+
+        setExecutingNodeId(null);
+        setErrorNodeId(failedStep);
+        toast.error(`Failed at ${failedStep}: ${result.error}`);
+        setIsExecuting(false);
+        return;
       }
+
+      // Success! Animate through the completed nodes
+      setExecutionResults(result.results || {});
+
+      // Mark topic as complete, start image animation
+      setCompletedNodeIds(prev => new Set([...prev, 'topic-1']));
+      setExecutingNodeId('image-1');
+      await new Promise(resolve => setTimeout(resolve, 600));
+
+      // Mark image complete, start caption animation  
+      setCompletedNodeIds(prev => new Set([...prev, 'image-1']));
+      setExecutingNodeId('caption-1');
+      await new Promise(resolve => setTimeout(resolve, 600));
+
+      // Mark caption complete, start facebook animation
+      setCompletedNodeIds(prev => new Set([...prev, 'caption-1']));
+      setExecutingNodeId('facebook-1');
+      await new Promise(resolve => setTimeout(resolve, 600));
+
+      // All done!
+      setCompletedNodeIds(prev => new Set([...prev, 'facebook-1']));
+      setExecutingNodeId(null);
+      setIsExecuting(false);
 
       toast.success('Workflow executed successfully! Post created on Facebook.');
 
     } catch (error: any) {
       toast.error('Execution failed: ' + error.message);
-    } finally {
+      setErrorNodeId('topic-1');
       setIsExecuting(false);
       setExecutingNodeId(null);
     }
-  }, [connectionStatus, hasOpenAiKey, hasGeminiKey, toast, workspace.id, nodeConfigurations, executionResults]);
+  }, [connectionStatus, hasOpenAiKey, hasGeminiKey, toast, workspace.id, nodeConfigurations]);
 
   // Handle Escape key to exit full screen
   useEffect(() => {
@@ -511,9 +534,11 @@ const SchedulerBuilder: React.FC<SchedulerBuilderProps> = ({
   useEffect(() => {
     setNodes((nds) =>
       nds.map((node) => {
-        let executionStatus: 'idle' | 'executing' | 'completed' | undefined = undefined;
+        let executionStatus: 'idle' | 'executing' | 'completed' | 'error' | undefined = undefined;
 
-        if (executingNodeId === node.id) {
+        if (errorNodeId === node.id) {
+          executionStatus = 'error';
+        } else if (executingNodeId === node.id) {
           executionStatus = 'executing';
         } else if (completedNodeIds.has(node.id)) {
           executionStatus = 'completed';
@@ -532,7 +557,7 @@ const SchedulerBuilder: React.FC<SchedulerBuilderProps> = ({
         return node;
       })
     );
-  }, [executingNodeId, completedNodeIds, setNodes]);
+  }, [executingNodeId, completedNodeIds, errorNodeId, setNodes]);
 
   // Update edges with execution state
   useEffect(() => {

@@ -1,6 +1,6 @@
 import React, { memo } from 'react';
 import { Handle, Position } from 'reactflow';
-import { PenTool, Settings, Trash2, CheckCircle, Loader } from 'lucide-react';
+import { PenTool, Settings, Trash2, CheckCircle, Loader, XCircle } from 'lucide-react';
 
 import { useTheme } from '../../context/ThemeContext';
 
@@ -9,8 +9,12 @@ const VisualCaptionNode = ({ data }: { data: any }) => {
     const executionStatus = data.executionStatus as 'idle' | 'executing' | 'completed' | 'error' | undefined;
     const isExecuting = executionStatus === 'executing';
     const isCompleted = executionStatus === 'completed';
+    const isError = executionStatus === 'error';
 
     const getBorderClasses = () => {
+        if (isError) {
+            return 'border-red-500 shadow-[0_0_25px_rgba(239,68,68,0.6)]';
+        }
         if (isExecuting) {
             return 'border-blue-500 shadow-[0_0_25px_rgba(59,130,246,0.6)]';
         }
@@ -51,13 +55,13 @@ const VisualCaptionNode = ({ data }: { data: any }) => {
                     </button>
                 </div>
 
-                <div className={`w-10 h-10 rounded-lg flex items-center justify-center shadow-md ${isExecuting ? 'bg-blue-500' : isCompleted ? 'bg-emerald-500' : 'bg-gradient-to-br from-teal-500 to-emerald-600'} ${isDark ? 'shadow-teal-900/40' : 'shadow-teal-500/30'}`}>
-                    {isExecuting ? <Loader className="w-6 h-6 text-white animate-spin" /> : isCompleted ? <CheckCircle className="w-6 h-6 text-white" /> : <PenTool className="w-6 h-6 text-white" />}
+                <div className={`w-10 h-10 rounded-lg flex items-center justify-center shadow-md ${isError ? 'bg-red-500' : isExecuting ? 'bg-blue-500' : isCompleted ? 'bg-emerald-500' : 'bg-gradient-to-br from-teal-500 to-emerald-600'} ${isDark ? 'shadow-teal-900/40' : 'shadow-teal-500/30'}`}>
+                    {isError ? <XCircle className="w-6 h-6 text-white" /> : isExecuting ? <Loader className="w-6 h-6 text-white animate-spin" /> : isCompleted ? <CheckCircle className="w-6 h-6 text-white" /> : <PenTool className="w-6 h-6 text-white" />}
                 </div>
                 <div className="flex flex-col">
                     <span className={`font-bold text-sm ${isDark ? 'text-white' : 'text-slate-900'}`}>Caption Writer</span>
-                    <span className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                        {isExecuting ? 'Writing...' : isCompleted ? 'Done!' : data.tone || 'AI Caption'}
+                    <span className={`text-xs ${isError ? 'text-red-400' : isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                        {isError ? 'Failed!' : isExecuting ? 'Writing...' : isCompleted ? 'Done!' : data.tone || 'AI Caption'}
                     </span>
                 </div>
             </div>
