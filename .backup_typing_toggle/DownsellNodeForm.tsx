@@ -1,0 +1,1356 @@
+import React, { useState, useRef, useMemo, useEffect, memo, useCallback } from 'react';
+import {
+    ShoppingBag, Type, Image, DollarSign, MousePointer2, Palette,
+    Upload, Link, X, AlertCircle, Eye, Flame, Check, Sparkles,
+    Circle, Square, RectangleHorizontal, ShoppingCart, ChevronLeft,
+    ChevronRight, Smartphone, Monitor, Tablet, ExternalLink, RotateCcw, Save, Trash2,
+    ChevronDown, ChevronUp, Clock, Timer, ArrowUp, PlusCircle, ArrowDown, MinusCircle, LogOut
+} from 'lucide-react';
+import { supabase } from '../lib/supabase';
+import { useTheme } from '../context/ThemeContext';
+
+interface DownsellNodeFormProps {
+    workspaceId: string;
+    initialConfig?: {
+        headline?: string;
+        headlineColor?: string;
+        headlineBgColor?: string;
+        headlineAnimation?: 'none' | 'blink' | 'shake';
+        headlineAnimationSpeed?: number; // blinks per second (1-4)
+        showEmoji?: boolean;
+        emojiType?: 'fire' | 'star' | 'sparkle' | 'heart' | 'none';
+        imageUrl?: string;
+        imageSource?: 'url' | 'upload' | 'gallery';
+        imageBorderRadius?: number;
+        imageBorderColor?: string;
+        imageBorderWidth?: number;
+        price?: string;
+        priceBadgeColor?: string;
+        priceTextColor?: string;
+        priceBadgeSize?: number;
+        description?: string;
+        descriptionColor?: string;
+        buttonText?: string;
+        buttonBgColor?: string;
+        buttonTextColor?: string;
+        buttonBorderRadius?: number;
+        showButtonIcon?: boolean;
+        backgroundColor?: string;
+        pageBackgroundColor?: string;
+        showProductName?: boolean;
+        productNameBgColor?: string;
+        productNameTextColor?: string;
+        productNameFontSize?: number;
+        productNameBorderRadius?: number;
+        productNameFullWidth?: boolean;
+        showCountdown?: boolean;
+        countdownMinutes?: number;
+        countdownPosition?: 'above' | 'middle' | 'below';
+        countdownBgColor?: string;
+        countdownTextColor?: string;
+        countdownFontSize?: number;
+        countdownShowBg?: boolean;
+        countdownBorderRadius?: number;
+        countdownFullWidth?: boolean;
+        cartAction?: 'add' | 'replace';
+        productName?: string;
+        productPrice?: number;
+        useWebview?: boolean;
+        imagePreviewSize?: number;
+    };
+    onChange: (config: any) => void;
+    onClose?: () => void;
+}
+
+const EMOJI_OPTIONS = [
+    { value: 'fire', label: '🔥', name: 'Fire' },
+    { value: 'star', label: '⭐', name: 'Star' },
+    { value: 'sparkle', label: '✨', name: 'Sparkle' },
+    { value: 'heart', label: '❤️', name: 'Heart' },
+    { value: 'none', label: '—', name: 'None' },
+] as const;
+
+const PRESET_COLORS = [
+    '#dc2626', '#ea580c', '#ca8a04', '#16a34a', '#0891b2',
+    '#2563eb', '#7c3aed', '#db2777', '#1f2937', '#ffffff',
+];
+
+const WIZARD_STEPS = [
+    { id: 'basic', title: 'Basic Info', icon: Type },
+    { id: 'image', title: 'Product Image', icon: Image },
+    { id: 'style', title: 'Styling', icon: Palette },
+    { id: 'action', title: 'Cart Action', icon: ShoppingCart }
+];
+
+// Enhanced ColorPicker with "None" option and Reset button
+const ColorPickerComponent = memo(({
+    value,
+    onChange,
+    label,
+    defaultValue,
+    allowNone = false
+}: {
+    value: string;
+    onChange: (c: string) => void;
+    label: string;
+    defaultValue?: string;
+    allowNone?: boolean;
+}) => {
+    const inputRef = useRef<HTMLInputElement>(null);
+
+    const handleColorChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+        onChange(e.target.value);
+    }, [onChange]);
+
+    const isNone = value === 'transparent' || value === 'none' || value === '';
+    const { isDark } = useTheme();
+
+    return (
+        <div className="space-y-2">
+            <div className="flex items-center justify-between">
+                <label className={`block text-xs font-medium ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>{label}</label>
+                {defaultValue && (
+                    <button
+                        type="button"
+                        onClick={() => onChange(defaultValue)}
+                        className="p-1 text-slate-500 hover:text-teal-400 transition-colors"
+                        title="Reset to default"
+                    >
+                        <RotateCcw className="w-3 h-3" />
+                    </button>
+                )}
+            </div>
+            <div className="flex flex-wrap gap-1.5 items-center">
+                {/* None Option */}
+                {allowNone && (
+                    <button
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); onChange('transparent'); }}
+                        type="button"
+                        className={`w-6 h-6 rounded-full border-2 transition-all hover:scale-110 flex items-center justify-center ${isNone ? 'border-white scale-110' : 'border-slate-500'}`}
+                        style={{ background: 'linear-gradient(135deg, #334155 45%, transparent 45%, transparent 55%, #334155 55%), linear-gradient(45deg, #334155 45%, #ef4444 45%, #ef4444 55%, #334155 55%)' }}
+                        title="None / Transparent"
+                    >
+                        <X className="w-3 h-3 text-red-400" />
+                    </button>
+                )}
+                {/* Preset Colors */}
+                {PRESET_COLORS.map(c => (
+                    <button key={c} onClick={(e) => { e.preventDefault(); e.stopPropagation(); onChange(c); }}
+                        type="button"
+                        className={`w-6 h-6 rounded-full border-2 transition-all hover:scale-110 ${value === c ? 'border-white scale-110' : 'border-transparent'}`}
+                        style={{ backgroundColor: c }} />
+                ))}
+                {/* Custom Color Picker */}
+                <label className="relative w-7 h-7 group cursor-pointer">
+                    <div
+                        className={`absolute inset-0 rounded-full border-2 flex items-center justify-center pointer-events-none ${!PRESET_COLORS.includes(value) && !isNone ? 'border-white' : 'border-slate-500'}`}
+                        style={{ background: `conic-gradient(from 0deg, red, yellow, lime, cyan, blue, magenta, red)` }}
+                    >
+                        <Palette className="w-3.5 h-3.5 text-white drop-shadow-md" />
+                    </div>
+                    <input
+                        ref={inputRef}
+                        type="color"
+                        value={isNone ? '#000000' : value}
+                        onChange={handleColorChange}
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    />
+                </label>
+            </div>
+        </div>
+    );
+});
+ColorPickerComponent.displayName = 'ColorPicker';
+
+// Collapsible Section Component
+const CollapsibleSection = ({
+    title,
+    icon: Icon,
+    children,
+    defaultOpen = true
+}: {
+    title: string;
+    icon?: React.ElementType;
+    children: React.ReactNode;
+    defaultOpen?: boolean;
+}) => {
+    const [isOpen, setIsOpen] = useState(defaultOpen);
+    const { isDark } = useTheme();
+
+    return (
+        <div className={`${isDark ? 'bg-black/20 border-white/5' : 'bg-white border-slate-200 shadow-sm'} rounded-xl overflow-hidden border`}>
+            <button
+                type="button"
+                onClick={() => setIsOpen(!isOpen)}
+                className={`w-full px-4 py-3 flex items-center justify-between text-left ${isDark ? 'hover:bg-white/5' : 'hover:bg-slate-50'} transition-colors`}
+            >
+                <div className="flex items-center gap-2">
+                    {Icon && <Icon className={`w-4 h-4 text-teal-400`} />}
+                    <span className={`text-sm font-semibold ${isDark ? 'text-white' : 'text-slate-900'}`}>{title}</span>
+                </div>
+                {isOpen ? (
+                    <ChevronUp className="w-4 h-4 text-slate-400" />
+                ) : (
+                    <ChevronDown className="w-4 h-4 text-slate-400" />
+                )}
+            </button>
+            {isOpen && (
+                <div className={`px-4 pb-4 space-y-4 ${isDark ? 'border-white/5' : 'border-slate-100'} border-t pt-4`}>
+                    {children}
+                </div>
+            )}
+        </div>
+    );
+};
+
+// Reset Button Component (kept for backward compatibility)
+const ResetButton = ({ onClick, title = 'Reset to default' }: { onClick: () => void; title?: string }) => (
+    <button
+        type="button"
+        onClick={onClick}
+        title={title}
+        className="p-1 text-slate-500 hover:text-white hover:bg-white/10 rounded transition-colors"
+    >
+        <RotateCcw className="w-3 h-3" />
+    </button>
+);
+
+const DownsellNodeForm: React.FC<DownsellNodeFormProps> = ({
+    workspaceId,
+    initialConfig,
+    onChange,
+    onClose
+}) => {
+    const { isDark } = useTheme();
+    // ================== STATE ==================
+    const [headline, setHeadline] = useState(initialConfig?.headline || 'Want to Add this item?');
+    const [headlineColor, setHeadlineColor] = useState(initialConfig?.headlineColor || '#ffffff');
+    const [headlineBgColor, setHeadlineBgColor] = useState(initialConfig?.headlineBgColor || '#ea580c');
+    const [headlineAnimation, setHeadlineAnimation] = useState<'none' | 'blink' | 'shake'>(initialConfig?.headlineAnimation || 'shake');
+    const [headlineAnimationSpeed, setHeadlineAnimationSpeed] = useState(initialConfig?.headlineAnimationSpeed ?? 2); // blinks per second (1-4)
+    const [showEmoji, setShowEmoji] = useState(initialConfig?.showEmoji ?? true);
+    const [emojiType, setEmojiType] = useState<'fire' | 'star' | 'sparkle' | 'heart' | 'none'>(initialConfig?.emojiType || 'fire');
+    const [imageUrl, setImageUrl] = useState(initialConfig?.imageUrl || '');
+    const [imageSource, setImageSource] = useState<'url' | 'upload' | 'gallery'>(initialConfig?.imageSource || 'upload');
+    const [imageBorderRadius, setImageBorderRadius] = useState(initialConfig?.imageBorderRadius ?? 15);
+    const [imageBorderColor, setImageBorderColor] = useState(initialConfig?.imageBorderColor || 'transparent');
+    const [imageBorderWidth, setImageBorderWidth] = useState(initialConfig?.imageBorderWidth ?? 0);
+    const [isUploading, setIsUploading] = useState(false);
+    const [uploadError, setUploadError] = useState('');
+    const [galleryImages, setGalleryImages] = useState<string[]>([]);
+    const [loadingGallery, setLoadingGallery] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [price, setPrice] = useState(initialConfig?.price || '₱588');
+    const [priceBadgeColor, setPriceBadgeColor] = useState(initialConfig?.priceBadgeColor || '#22c55e');
+    const [priceTextColor, setPriceTextColor] = useState(initialConfig?.priceTextColor || '#ffffff');
+    const [priceBadgeSize, setPriceBadgeSize] = useState(initialConfig?.priceBadgeSize ?? 80);
+    const [description, setDescription] = useState(initialConfig?.description || 'High quality shoes from Korea!');
+    const [descriptionColor, setDescriptionColor] = useState(initialConfig?.descriptionColor || '#1f2937');
+    const [buttonText, setButtonText] = useState(initialConfig?.buttonText || 'ok add this item!');
+    const [buttonBgColor, setButtonBgColor] = useState(initialConfig?.buttonBgColor || '#22c55e');
+    const [buttonTextColor, setButtonTextColor] = useState(initialConfig?.buttonTextColor || '#ffffff');
+    const [buttonBorderRadius, setButtonBorderRadius] = useState(initialConfig?.buttonBorderRadius ?? 12);
+    const [showButtonIcon, setShowButtonIcon] = useState(initialConfig?.showButtonIcon ?? true);
+    const [backgroundColor, setBackgroundColor] = useState(initialConfig?.backgroundColor || '#ffffff');
+    const [pageBackgroundColor, setPageBackgroundColor] = useState(initialConfig?.pageBackgroundColor || '#ffffff');
+    const [showProductName, setShowProductName] = useState(initialConfig?.showProductName ?? true);
+    const [productNameBgColor, setProductNameBgColor] = useState(initialConfig?.productNameBgColor || '#22c55e');
+    const [productNameTextColor, setProductNameTextColor] = useState(initialConfig?.productNameTextColor || '#ffffff');
+    const [productNameFontSize, setProductNameFontSize] = useState(initialConfig?.productNameFontSize ?? 16);
+    const [productNameBorderRadius, setProductNameBorderRadius] = useState(initialConfig?.productNameBorderRadius ?? 0);
+    const [productNameFullWidth, setProductNameFullWidth] = useState(initialConfig?.productNameFullWidth ?? true);
+    const [showCountdown, setShowCountdown] = useState(initialConfig?.showCountdown ?? true);
+    const [countdownMinutes, setCountdownMinutes] = useState(initialConfig?.countdownMinutes ?? 10);
+    const [countdownPosition, setCountdownPosition] = useState<'above' | 'middle' | 'below'>(initialConfig?.countdownPosition || 'middle');
+    const [countdownBgColor, setCountdownBgColor] = useState(initialConfig?.countdownBgColor || 'transparent');
+    const [countdownTextColor, setCountdownTextColor] = useState(initialConfig?.countdownTextColor || '#22c55e');
+    const [countdownFontSize, setCountdownFontSize] = useState(initialConfig?.countdownFontSize ?? 18);
+    const [countdownShowBg, setCountdownShowBg] = useState(initialConfig?.countdownShowBg ?? false);
+    const [countdownBorderRadius, setCountdownBorderRadius] = useState(initialConfig?.countdownBorderRadius ?? 12);
+    const [countdownFullWidth, setCountdownFullWidth] = useState(initialConfig?.countdownFullWidth ?? true);
+    const [cartAction, setCartAction] = useState<'add' | 'replace'>(initialConfig?.cartAction || 'add');
+    const [productName, setProductName] = useState(initialConfig?.productName || '');
+    const [productPrice, setProductPrice] = useState(initialConfig?.productPrice || 0);
+    const [useWebview, setUseWebview] = useState(initialConfig?.useWebview ?? true);
+
+    // UI State
+    const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1024);
+    const [mobileStep, setMobileStep] = useState(0);
+    const [showMobilePreview, setShowMobilePreview] = useState(false);
+    const [previewDevice, setPreviewDevice] = useState<'desktop' | 'tablet' | 'mobile'>('mobile');
+    const [imagePreviewSize, setImagePreviewSize] = useState(initialConfig?.imagePreviewSize ?? 100);
+    const [saveNotification, setSaveNotification] = useState(false);
+
+    // Handle window resize
+    useEffect(() => {
+        const handleResize = () => setIsDesktop(window.innerWidth >= 1024);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
+    // ================== HELPERS ==================
+    const notifyChange = (updates: Partial<typeof initialConfig> = {}) => {
+        onChange({
+            headline, headlineColor, showEmoji, emojiType, imageUrl, imageSource,
+            imageBorderRadius, imageBorderColor, imageBorderWidth, price, priceBadgeColor,
+            priceTextColor, description, descriptionColor, buttonText, buttonBgColor,
+            buttonTextColor, buttonBorderRadius, showButtonIcon, backgroundColor, cartAction,
+            productName: productName || headline,
+            productPrice: parseFloat(price.replace(/[^0-9.]/g, '')) || 0,
+            useWebview, imagePreviewSize, ...updates
+        });
+    };
+
+    const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        if (!file.type.startsWith('image/')) { setUploadError('Please select an image'); return; }
+        if (file.size > 5 * 1024 * 1024) { setUploadError('Max 5MB'); return; }
+
+        setIsUploading(true);
+        setUploadError('');
+        try {
+            const fileName = `upsell-${Date.now()}-${file.name}`;
+            const filePath = `${workspaceId}/${fileName}`;
+            const { error } = await supabase.storage.from('attachments').upload(filePath, file);
+            if (error) throw error;
+            const { data: { publicUrl } } = supabase.storage.from('attachments').getPublicUrl(filePath);
+            setImageUrl(publicUrl);
+            notifyChange({ imageUrl: publicUrl, imageSource: 'upload' });
+        } catch (error: any) {
+            setUploadError(error.message || 'Upload failed');
+        } finally {
+            setIsUploading(false);
+        }
+    };
+
+    // Delete image from gallery/storage
+    const handleDeleteGalleryImage = async (url: string) => {
+        if (!confirm('Are you sure you want to delete this image? This cannot be undone.')) return;
+
+        try {
+            // Extract filename from URL
+            const urlParts = url.split('/');
+            const fileName = urlParts[urlParts.length - 1];
+            const filePath = `${workspaceId}/${fileName}`;
+
+            const { error } = await supabase.storage.from('attachments').remove([filePath]);
+            if (error) {
+                console.error('Failed to delete image:', error);
+                alert('Failed to delete image: ' + error.message);
+                return;
+            }
+
+            // Remove from gallery list
+            setGalleryImages(prev => prev.filter(img => img !== url));
+
+            // If this was the selected image, clear it
+            if (imageUrl === url) {
+                setImageUrl('');
+                notifyChange({ imageUrl: '' });
+            }
+        } catch (e: any) {
+            console.error('Delete error:', e);
+            alert('Failed to delete image');
+        }
+    };
+
+    const getEmoji = () => EMOJI_OPTIONS.find(e => e.value === emojiType)?.label || '';
+
+    // ================== COMPONENTS ==================
+    // Use the memoized ColorPicker to prevent re-creation and native picker closing
+    const ColorPicker = ColorPickerComponent;
+
+    const Toggle = ({ value, onChange: onToggle, label }: { value: boolean; onChange: (v: boolean) => void; label: string }) => {
+        const { isDark } = useTheme();
+        return (
+            <div className="flex items-center justify-between">
+                <label className={`text-sm font-medium ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>{label}</label>
+                <button onClick={() => onToggle(!value)} className={`w-12 h-6 rounded-full transition-all ${value ? 'bg-teal-500' : (isDark ? 'bg-slate-600' : 'bg-slate-300')}`}>
+                    <div className={`w-5 h-5 bg-white rounded-full shadow transition-transform ${value ? 'translate-x-6' : 'translate-x-0.5'}`} />
+                </button>
+            </div>
+        );
+    };
+
+    // ================== PREVIEW (DEVICE MOCKUP) ==================
+    const deviceSizes = {
+        mobile: { width: 280, height: 480, radius: 40, notch: true },
+        tablet: { width: 340, height: 440, radius: 24, notch: false },
+        desktop: { width: 480, height: 280, radius: 8, notch: false }
+    };
+
+    const DevicePreview = () => {
+        const size = deviceSizes[previewDevice];
+        // Scale factors for different devices - desktop is much smaller to fit
+        const getImageSize = () => {
+            const base = previewDevice === 'desktop' ? 70 : previewDevice === 'tablet' ? 160 : 140;
+            return base * (imagePreviewSize / 100);
+        };
+        const getFontSize = () => {
+            return previewDevice === 'desktop' ? 'text-[8px]' : previewDevice === 'tablet' ? 'text-base' : 'text-sm';
+        };
+        const getDescFontSize = () => {
+            return previewDevice === 'desktop' ? 'text-[7px]' : 'text-xs';
+        };
+        const getButtonPadding = () => {
+            return previewDevice === 'desktop' ? 'py-1 text-[7px]' : 'py-2 text-xs';
+        };
+        const getPriceBadgeSize = () => {
+            return previewDevice === 'desktop' ? 'w-6 h-6 text-[6px]' : 'w-12 h-12 text-xs';
+        };
+        const getContentPadding = () => {
+            return previewDevice === 'desktop' ? 'p-1' : 'p-2';
+        };
+        const getCardPadding = () => {
+            return previewDevice === 'desktop' ? 'p-1.5' : 'p-3';
+        };
+        // Desktop has white background, others have dark
+        const getScreenBg = () => {
+            return previewDevice === 'desktop' ? 'bg-white' : 'bg-slate-50';
+        };
+        const getStatusBarStyle = () => {
+            return previewDevice === 'desktop'
+                ? 'text-slate-500 bg-slate-100 border-b border-slate-200'
+                : 'text-slate-900';
+        };
+
+        // Helper for countdown background gradient
+        const getCountdownBackground = () => {
+            if (!countdownShowBg) return 'transparent';
+            const hex = countdownBgColor || '#ec4899';
+            // Create gradient from selected color to darker shade
+            const num = parseInt(hex.replace('#', ''), 16);
+            const amt = Math.round(2.55 * -30);
+            const R = Math.max(0, Math.min(255, (num >> 16) + amt));
+            const G = Math.max(0, Math.min(255, ((num >> 8) & 0x00ff) + amt));
+            const B = Math.max(0, Math.min(255, (num & 0x0000ff) + amt));
+            const darkerColor = `#${(0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1)}`;
+            return `linear-gradient(135deg, ${hex} 0%, ${darkerColor} 100%)`;
+        };
+
+        // Helper for countdown font size in preview
+        const getCountdownFontSize = () => {
+            const size = countdownFontSize || 18;
+            return previewDevice === 'desktop' ? size / 3 : size / 2;
+        };
+
+        return (
+            <div className="flex flex-col items-center">
+                <div className="relative" style={{ width: size.width, height: size.height }}>
+                    {/* Device Frame */}
+                    <div
+                        className={`w-full h-full shadow-2xl border-4 flex flex-col ${previewDevice === 'desktop' ? 'bg-slate-200 border-slate-400' : 'bg-white border-slate-200'}`}
+                        style={{ borderRadius: size.radius }}
+                    >
+                        {/* Notch (mobile only) */}
+                        {size.notch && (
+                            <div className="absolute top-2 left-1/2 -translate-x-1/2 w-20 h-5 bg-slate-200 rounded-full z-10" />
+                        )}
+                        {/* Screen */}
+                        <div
+                            className={`w-full h-full overflow-hidden flex flex-col ${getScreenBg()}`}
+                            style={{ borderRadius: Math.max(size.radius - 6, 4) }}
+                        >
+                            {/* Status bar / Browser bar */}
+                            <div className={`h-5 flex-shrink-0 flex items-center justify-between px-3 text-[9px] ${getStatusBarStyle()}`}>
+                                {previewDevice === 'desktop' ? (
+                                    <>
+                                        <div className="flex items-center gap-1">
+                                            <div className="w-2 h-2 rounded-full bg-red-400"></div>
+                                            <div className="w-2 h-2 rounded-full bg-yellow-400"></div>
+                                            <div className="w-2 h-2 rounded-full bg-green-400"></div>
+                                        </div>
+                                        <span className="text-[8px] text-slate-400">mystore.com/upsell</span>
+                                        <div></div>
+                                    </>
+                                ) : (
+                                    <>
+                                        <span>9:41</span>
+                                        <span>⚡ 100%</span>
+                                    </>
+                                )}
+                            </div>
+                            {/* Content - Page background with card container */}
+                            <div className="flex-1 overflow-y-auto flex items-center justify-center p-2" style={{ backgroundColor: pageBackgroundColor }}>
+                                {/* Card Container - centered with margins */}
+                                <div
+                                    className={`${previewDevice === 'desktop' ? 'w-36 mx-4' : 'mx-3 w-full'} rounded-xl overflow-hidden shadow-lg`}
+                                    style={{ backgroundColor }}
+                                >
+                                    {/* Headline Banner */}
+                                    <div
+                                        className={`${previewDevice === 'desktop' ? 'py-1 px-1.5' : 'py-2 px-3'} text-center`}
+                                        style={{ backgroundColor: headlineBgColor }}
+                                    >
+                                        <div
+                                            className={`font-bold uppercase tracking-wide flex items-center justify-center gap-0.5 ${getFontSize()} ${headlineAnimation === 'blink' ? 'animate-pulse' : headlineAnimation === 'shake' ? 'animate-bounce' : ''}`}
+                                            style={{ color: headlineColor }}
+                                        >
+                                            {showEmoji && emojiType !== 'none' && <span className={previewDevice === 'desktop' ? 'text-[6px]' : 'text-xs'}>{getEmoji()}</span>}
+                                            <span>{headline || 'ADD THIS TO YOUR CART?'}</span>
+                                            {showEmoji && emojiType !== 'none' && <span className={previewDevice === 'desktop' ? 'text-[6px]' : 'text-xs'}>{getEmoji()}</span>}
+                                        </div>
+                                    </div>
+
+                                    {/* Countdown Timer - Above Position - Dynamic Style */}
+                                    {showCountdown && countdownPosition === 'above' && (
+                                        <div
+                                            className={`${countdownFullWidth ? '-mx-3 px-3' : 'mx-2'} my-1 ${previewDevice === 'desktop' ? 'py-1 px-2' : 'py-2 px-3'}`}
+                                            style={{
+                                                background: getCountdownBackground(),
+                                                borderRadius: countdownFullWidth ? '0px' : `${countdownBorderRadius}px`
+                                            }}
+                                        >
+                                            <div className="text-center">
+                                                <span
+                                                    className="font-bold uppercase tracking-wider"
+                                                    style={{ color: countdownTextColor, fontSize: `${getCountdownFontSize() / 2}px` }}
+                                                >
+                                                    ⚡ Limited Time
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center justify-center gap-1 mt-0.5">
+                                                <span
+                                                    className="font-mono font-bold bg-white/20 rounded px-1"
+                                                    style={{ color: countdownTextColor, fontSize: `${getCountdownFontSize()}px` }}
+                                                >
+                                                    {String(countdownMinutes).padStart(2, '0')}
+                                                </span>
+                                                <span className="font-bold" style={{ color: countdownTextColor, fontSize: `${getCountdownFontSize()}px` }}>:</span>
+                                                <span
+                                                    className="font-mono font-bold bg-white/20 rounded px-1"
+                                                    style={{ color: countdownTextColor, fontSize: `${getCountdownFontSize()}px` }}
+                                                >
+                                                    00
+                                                </span>
+                                                <span className="font-bold" style={{ color: countdownTextColor, fontSize: `${getCountdownFontSize()}px` }}>:</span>
+                                                <span
+                                                    className="font-mono font-bold bg-white/20 rounded px-1"
+                                                    style={{ color: countdownTextColor, fontSize: `${getCountdownFontSize()}px` }}
+                                                >
+                                                    00
+                                                </span>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Card Body */}
+                                    <div className={`${getCardPadding()}`}>
+                                        {/* Image with Price Badge */}
+                                        <div className={`text-center ${previewDevice === 'desktop' ? 'mb-1' : 'mb-2'}`}>
+                                            <div className="inline-block relative" style={{ overflow: 'visible' }}>
+                                                <div
+                                                    className="overflow-hidden aspect-square bg-white"
+                                                    style={{
+                                                        borderRadius: `${imageBorderRadius}px`,
+                                                        border: `${previewDevice === 'desktop' ? 2 : Math.max(imageBorderWidth - 1, 2)}px solid ${imageBorderColor}`,
+                                                        width: `${getImageSize()}px`,
+                                                    }}
+                                                >
+                                                    {imageUrl ? (
+                                                        <img src={imageUrl} alt="Product" className="w-full h-full object-cover" />
+                                                    ) : (
+                                                        <div className="w-full h-full bg-slate-200 flex items-center justify-center">
+                                                            <Image className={previewDevice === 'desktop' ? 'w-4 h-4 text-slate-400' : 'w-6 h-6 text-slate-400'} />
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                {/* Circular Price Badge - Positioned at corner */}
+                                                {price && (
+                                                    <div
+                                                        className="absolute rounded-full font-bold shadow-xl flex items-center justify-center z-20"
+                                                        style={{
+                                                            backgroundColor: priceBadgeColor,
+                                                            color: priceTextColor,
+                                                            width: `${previewDevice === 'desktop' ? priceBadgeSize / 3 : priceBadgeSize / 2}px`,
+                                                            height: `${previewDevice === 'desktop' ? priceBadgeSize / 3 : priceBadgeSize / 2}px`,
+                                                            fontSize: `${previewDevice === 'desktop' ? 6 : 8}px`,
+                                                            top: `${previewDevice === 'desktop' ? -(priceBadgeSize / 6) : -(priceBadgeSize / 4)}px`,
+                                                            right: `${previewDevice === 'desktop' ? -(priceBadgeSize / 6) : -(priceBadgeSize / 4)}px`,
+                                                        }}
+                                                    >
+                                                        {price}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {/* Countdown Timer - Middle Position - Dynamic Style */}
+                                        {showCountdown && countdownPosition === 'middle' && (
+                                            <div
+                                                className={`${countdownFullWidth ? '-mx-3 px-3' : 'mx-2'} my-1 ${previewDevice === 'desktop' ? 'py-1 px-2' : 'py-2 px-3'}`}
+                                                style={{
+                                                    background: getCountdownBackground(),
+                                                    borderRadius: countdownFullWidth ? '0px' : `${countdownBorderRadius}px`
+                                                }}
+                                            >
+                                                <div className="text-center">
+                                                    <span
+                                                        className="font-bold uppercase tracking-wider"
+                                                        style={{ color: countdownTextColor, fontSize: `${getCountdownFontSize() / 2}px` }}
+                                                    >
+                                                        ⚡ Limited Time
+                                                    </span>
+                                                </div>
+                                                <div className="flex items-center justify-center gap-1 mt-0.5">
+                                                    <span
+                                                        className="font-mono font-bold bg-white/20 rounded px-1"
+                                                        style={{ color: countdownTextColor, fontSize: `${getCountdownFontSize()}px` }}
+                                                    >
+                                                        {String(countdownMinutes).padStart(2, '0')}
+                                                    </span>
+                                                    <span className="font-bold" style={{ color: countdownTextColor, fontSize: `${getCountdownFontSize()}px` }}>:</span>
+                                                    <span
+                                                        className="font-mono font-bold bg-white/20 rounded px-1"
+                                                        style={{ color: countdownTextColor, fontSize: `${getCountdownFontSize()}px` }}
+                                                    >
+                                                        00
+                                                    </span>
+                                                    <span className="font-bold" style={{ color: countdownTextColor, fontSize: `${getCountdownFontSize()}px` }}>:</span>
+                                                    <span
+                                                        className="font-mono font-bold bg-white/20 rounded px-1"
+                                                        style={{ color: countdownTextColor, fontSize: `${getCountdownFontSize()}px` }}
+                                                    >
+                                                        00
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Product Name Bar - With Border Radius and Full Width Options */}
+                                        {showProductName && (
+                                            <div
+                                                className={`${previewDevice === 'desktop' ? 'py-1 px-2 mb-1' : 'py-1.5 px-2 mb-2'} text-center ${productNameFullWidth ? '-mx-3 px-3' : 'mx-2 rounded-lg'}`}
+                                                style={{
+                                                    backgroundColor: productNameBgColor,
+                                                    borderRadius: productNameFullWidth ? '0px' : `${productNameBorderRadius}px`
+                                                }}
+                                            >
+                                                <div
+                                                    className="font-bold uppercase tracking-wide"
+                                                    style={{
+                                                        color: productNameTextColor,
+                                                        fontSize: `${previewDevice === 'desktop' ? productNameFontSize / 2 : productNameFontSize * 0.7}px`
+                                                    }}
+                                                >
+                                                    {productName || 'PRODUCT NAME'}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Countdown Timer - Below Position - Dynamic Style */}
+                                        {showCountdown && countdownPosition === 'below' && (
+                                            <div
+                                                className={`${countdownFullWidth ? '-mx-3 px-3' : 'mx-2'} mb-2 ${previewDevice === 'desktop' ? 'py-1 px-2' : 'py-2 px-3'}`}
+                                                style={{
+                                                    background: getCountdownBackground(),
+                                                    borderRadius: countdownFullWidth ? '0px' : `${countdownBorderRadius}px`
+                                                }}
+                                            >
+                                                <div className="text-center">
+                                                    <span
+                                                        className="font-bold uppercase tracking-wider"
+                                                        style={{ color: countdownTextColor, fontSize: `${getCountdownFontSize() / 2}px` }}
+                                                    >
+                                                        ⚡ Limited Time
+                                                    </span>
+                                                </div>
+                                                <div className="flex items-center justify-center gap-1 mt-0.5">
+                                                    <span
+                                                        className="font-mono font-bold bg-white/20 rounded px-1"
+                                                        style={{ color: countdownTextColor, fontSize: `${getCountdownFontSize()}px` }}
+                                                    >
+                                                        {String(countdownMinutes).padStart(2, '0')}
+                                                    </span>
+                                                    <span className="font-bold" style={{ color: countdownTextColor, fontSize: `${getCountdownFontSize()}px` }}>:</span>
+                                                    <span
+                                                        className="font-mono font-bold bg-white/20 rounded px-1"
+                                                        style={{ color: countdownTextColor, fontSize: `${getCountdownFontSize()}px` }}
+                                                    >
+                                                        00
+                                                    </span>
+                                                    <span className="font-bold" style={{ color: countdownTextColor, fontSize: `${getCountdownFontSize()}px` }}>:</span>
+                                                    <span
+                                                        className="font-mono font-bold bg-white/20 rounded px-1"
+                                                        style={{ color: countdownTextColor, fontSize: `${getCountdownFontSize()}px` }}
+                                                    >
+                                                        00
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Description */}
+                                        {description && (
+                                            <p className={`text-center ${previewDevice === 'desktop' ? 'mb-1' : 'mb-2'} ${getDescFontSize()} ${previewDevice === 'desktop' ? 'line-clamp-1' : ''}`} style={{ color: descriptionColor }}>
+                                                {description}
+                                            </p>
+                                        )}
+
+                                        {/* Stacked Buttons */}
+                                        <div className={`${previewDevice === 'desktop' ? 'space-y-1' : 'space-y-1.5'}`}>
+                                            <button
+                                                className={`w-full font-bold flex items-center justify-center gap-1 shadow-md ${getButtonPadding()}`}
+                                                style={{ backgroundColor: buttonBgColor, color: buttonTextColor, borderRadius: `${buttonBorderRadius}px` }}
+                                            >
+                                                {showButtonIcon && <Check className={previewDevice === 'desktop' ? 'w-2.5 h-2.5' : 'w-3 h-3'} />}
+                                                {buttonText || 'Add to Cart'}
+                                            </button>
+                                            <button
+                                                className={`w-full font-bold flex items-center justify-center gap-1 shadow-md ${getButtonPadding()}`}
+                                                style={{ backgroundColor: '#dc2626', color: '#ffffff', borderRadius: `${buttonBorderRadius}px` }}
+                                            >
+                                                <X className={previewDevice === 'desktop' ? 'w-2.5 h-2.5' : 'w-3 h-3'} />
+                                                No Thanks
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {/* Home indicator (mobile only) */}
+                            {size.notch && (
+                                <div className="h-4 flex-shrink-0 flex items-center justify-center">
+                                    <div className="w-20 h-1 bg-slate-900/20 rounded-full" />
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    // ================== HELPER STYLES ==================
+    const inputClass = `w-full ${isDark ? 'bg-black/30 border-white/10 text-white' : 'bg-white border-slate-200 text-slate-900'} rounded-lg px-3 py-2 text-sm border focus:outline-none focus:ring-2 focus:ring-teal-500/50`;
+    const labelClass = `block text-xs ${isDark ? 'text-slate-400' : 'text-slate-600'} mb-1`;
+    const sectionBorderClass = isDark ? 'border-white/10' : 'border-slate-200';
+    const buttonBaseClass = `flex-1 py-2 text-xs rounded-lg border transition-all`;
+    const activeInfoClass = `bg-teal-500/20 text-teal-500 border-teal-500/50`;
+    const inactiveClass = isDark ? 'bg-black/20 text-slate-400 border-white/10 hover:text-white' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50';
+
+    // ================== FORM SECTIONS ==================
+    const basicSection = (
+        <CollapsibleSection title="Basic Info" icon={Type} defaultOpen={true}>
+            <div>
+                <label className={labelClass}>Headline</label>
+                <input type="text" value={headline}
+                    onChange={(e) => { setHeadline(e.target.value); notifyChange({ headline: e.target.value }); }}
+                    className={inputClass} />
+            </div>
+            <div>
+                <label className={labelClass}>Description</label>
+                <textarea value={description}
+                    onChange={(e) => { setDescription(e.target.value); notifyChange({ description: e.target.value }); }}
+                    rows={3}
+                    className={inputClass} />
+            </div>
+            {/* Price Input */}
+            <div>
+                <label className={labelClass}>Product Price</label>
+                <div className="relative">
+                    <span className={`absolute left-3 top-1/2 -translate-y-1/2 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>$</span>
+                    <input type="number" value={price}
+                        onChange={(e) => { setPrice(e.target.value); notifyChange({ price: e.target.value }); }}
+                        className={`pl-6 ${inputClass}`} />
+                </div>
+            </div>
+            <ColorPicker value={headlineColor} onChange={(c) => { setHeadlineColor(c); notifyChange({ headlineColor: c }); }} label="Headline Color" defaultValue="#1f2937" allowNone={true} />
+            <ColorPicker value={descriptionColor} onChange={(c) => { setDescriptionColor(c); notifyChange({ descriptionColor: c }); }} label="Description Color" defaultValue="#ffffff" allowNone={true} />
+
+            <div className={`pt-3 border-t ${sectionBorderClass}`}>
+                <Toggle value={showEmoji} onChange={(v) => { setShowEmoji(v); notifyChange({ showEmoji: v }); }} label="Show Floating Emoji" />
+                {showEmoji && (
+                    <div className="mt-2 grid grid-cols-5 gap-2">
+                        {EMOJI_OPTIONS.map(e => (
+                            <button key={e.value} type="button"
+                                onClick={() => { setEmojiType(e.value as any); notifyChange({ emojiType: e.value }); }}
+                                className={`text-xl p-2 rounded-lg border transition-all ${emojiType === e.value ? activeInfoClass : inactiveClass}`}
+                                title={e.name}>
+                                {e.label}
+                            </button>
+                        ))}
+                    </div>
+                )}
+            </div>
+        </CollapsibleSection>
+    );
+
+    const imageSection = (
+        <CollapsibleSection title="Product Image" icon={Image} defaultOpen={true}>
+            {/* Source Selector - URL, Upload, Gallery */}
+            <div className="flex bg-slate-900/20 p-1 rounded-lg gap-1">
+                <button type="button" onClick={() => { setImageSource('upload'); notifyChange({ imageSource: 'upload' }); }}
+                    className={`${buttonBaseClass} ${imageSource === 'upload' ? activeInfoClass : inactiveClass}`}>
+                    <Upload className="w-3 h-3" /> Upload
+                </button>
+                <button type="button" onClick={() => { setImageSource('url'); notifyChange({ imageSource: 'url' }); }}
+                    className={`${buttonBaseClass} ${imageSource === 'url' ? activeInfoClass : inactiveClass}`}>
+                    <Link className="w-3 h-3" /> URL
+                </button>
+                <button type="button" onClick={() => {
+                    setImageSource('gallery');
+                    notifyChange({ imageSource: 'gallery' });
+                    // Fetch gallery images
+                    setLoadingGallery(true);
+                    try {
+                        supabase.storage.from('attachments').list(workspaceId, { limit: 100 }).then(({ data, error }) => {
+                            if (error) {
+                                console.error('Gallery fetch error:', error);
+                            } else if (data) {
+                                const imageFiles = data.filter(f =>
+                                    f.name && (f.name.endsWith('.jpg') || f.name.endsWith('.jpeg') ||
+                                        f.name.endsWith('.png') || f.name.endsWith('.gif') || f.name.endsWith('.webp'))
+                                );
+                                const urls = imageFiles.map(f =>
+                                    supabase.storage.from('attachments').getPublicUrl(`${workspaceId}/${f.name}`).data.publicUrl
+                                );
+                                setGalleryImages(urls);
+                            }
+                        });
+                    } catch (e) { console.error('Failed to load gallery:', e); }
+                    setLoadingGallery(false);
+                }}
+                    className={`${buttonBaseClass} ${imageSource === 'gallery' ? activeInfoClass : inactiveClass}`}>
+                    <Sparkles className="w-3 h-3" /> Gallery
+                </button>
+            </div>
+
+            {/* URL Input */}
+            {imageSource === 'url' && (
+                <input type="url" value={imageUrl} placeholder="https://..."
+                    onChange={(e) => { setImageUrl(e.target.value); notifyChange({ imageUrl: e.target.value }); }}
+                    className={inputClass} />
+            )}
+
+            {/* Upload Input */}
+            {imageSource === 'upload' && (
+                <div>
+                    <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileSelect} className="hidden" />
+                    <button type="button" onClick={() => fileInputRef.current?.click()} disabled={isUploading}
+                        className={`w-full py-3 border-2 border-dashed ${isDark ? 'border-white/20 text-slate-400' : 'border-slate-300 text-slate-500'} rounded-lg hover:border-teal-500/50 flex items-center justify-center gap-2`}>
+                        {isUploading ? 'Uploading...' : <><Upload className="w-4 h-4" /> Click to upload</>}
+                    </button>
+                    {uploadError && <p className="text-xs text-red-400 mt-1">{uploadError}</p>}
+                </div>
+            )}
+
+            {/* Gallery Grid */}
+            {imageSource === 'gallery' && (
+                <div className="space-y-2">
+                    {loadingGallery ? (
+                        <div className="text-center py-4 text-slate-400 text-sm">Loading gallery...</div>
+                    ) : galleryImages.length === 0 ? (
+                        <div className="text-center py-4 text-slate-400 text-sm">No images in gallery yet. Upload some images first!</div>
+                    ) : (
+                        <>
+                            <p className="text-[10px] text-slate-500">Click to select, hover to delete</p>
+                            <div className="grid grid-cols-4 gap-2 max-h-48 overflow-y-auto p-1">
+                                {galleryImages.map((url, i) => (
+                                    <div key={i} className="relative group aspect-square">
+                                        <button
+                                            type="button"
+                                            onClick={() => { setImageUrl(url); notifyChange({ imageUrl: url }); }}
+                                            className={`w-full h-full rounded-lg overflow-hidden border-2 ${imageUrl === url ? 'border-teal-500' : 'border-transparent'} hover:border-teal-500/50 transition-colors`}
+                                        >
+                                            <img src={url} alt="" className="w-full h-full object-cover" />
+                                        </button>
+                                        {/* Delete button - shows on hover, positioned in upper-right corner */}
+                                        <button
+                                            type="button"
+                                            onClick={(e) => { e.stopPropagation(); handleDeleteGalleryImage(url); }}
+                                            className="absolute top-0.5 right-0.5 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg hover:bg-red-600 z-10"
+                                            title="Delete image"
+                                        >
+                                            <Trash2 className="w-3 h-3 text-white" />
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        </>
+                    )}
+                </div>
+            )}
+
+            {/* Image Size */}
+            <div>
+                <div className="flex items-center justify-between mb-1">
+                    <label className={labelClass}>Image Size: {imagePreviewSize}%</label>
+                    <ResetButton onClick={() => { setImagePreviewSize(100); notifyChange({ imagePreviewSize: 100 }); }} />
+                </div>
+                <input type="range" min="50" max="150" value={imagePreviewSize}
+                    onChange={(e) => { setImagePreviewSize(Number(e.target.value)); notifyChange({ imagePreviewSize: Number(e.target.value) }); }}
+                    className="w-full" />
+            </div>
+
+            {/* Border Radius */}
+            <div>
+                <div className="flex items-center justify-between mb-1">
+                    <label className={labelClass}>Border Radius: {imageBorderRadius}px</label>
+                    <ResetButton onClick={() => { setImageBorderRadius(16); notifyChange({ imageBorderRadius: 16 }); }} />
+                </div>
+                <input type="range" min="0" max="50" value={imageBorderRadius}
+                    onChange={(e) => { setImageBorderRadius(Number(e.target.value)); notifyChange({ imageBorderRadius: Number(e.target.value) }); }}
+                    className="w-full" />
+            </div>
+            <ColorPicker value={imageBorderColor} onChange={(c) => { setImageBorderColor(c); notifyChange({ imageBorderColor: c }); }} label="Border Color" defaultValue="#ffffff" allowNone={true} />
+        </CollapsibleSection>
+    );
+
+    const styleSection = (
+        <CollapsibleSection title="Styling & Design" icon={Palette} defaultOpen={true}>
+            <ColorPicker value={pageBackgroundColor} onChange={(c) => { setPageBackgroundColor(c); notifyChange({ pageBackgroundColor: c }); }} label="Page Background Color" defaultValue="#ffffff" allowNone={true} />
+            <ColorPicker value={backgroundColor} onChange={(c) => { setBackgroundColor(c); notifyChange({ backgroundColor: c }); }} label="Container Background Color" defaultValue="#ea580c" allowNone={true} />
+
+            {/* Headline Animation */}
+            <div>
+                <div className="flex items-center justify-between mb-1">
+                    <label className={labelClass}>Headline Animation</label>
+                    <ResetButton onClick={() => { setHeadlineAnimation('none'); notifyChange({ headlineAnimation: 'none' }); }} />
+                </div>
+                <div className="flex gap-2">
+                    {(['none', 'blink', 'shake'] as const).map(anim => (
+                        <button key={anim} type="button"
+                            onClick={() => { setHeadlineAnimation(anim); notifyChange({ headlineAnimation: anim }); }}
+                            className={`${buttonBaseClass} ${headlineAnimation === anim ? activeInfoClass : inactiveClass}`}>
+                            {anim === 'none' ? '— None' : anim === 'blink' ? '✨ Blink' : '🔔 Shake'}
+                        </button>
+                    ))}
+                </div>
+            </div>
+
+            {/* Animation Speed - Slider */}
+            {
+                headlineAnimation !== 'none' && (
+                    <div>
+                        <div className="flex items-center justify-between mb-1">
+                            <label className={labelClass}>Speed: {headlineAnimationSpeed} blinks/sec</label>
+                            <ResetButton onClick={() => { setHeadlineAnimationSpeed(2); notifyChange({ headlineAnimationSpeed: 2 }); }} />
+                        </div>
+                        <input type="range" min="1" max="4" step="0.5" value={headlineAnimationSpeed}
+                            onChange={(e) => { setHeadlineAnimationSpeed(Number(e.target.value)); notifyChange({ headlineAnimationSpeed: Number(e.target.value) }); }}
+                            className="w-full accent-teal-500" />
+                        <div className={`flex justify-between text-[10px] ${isDark ? 'text-slate-500' : 'text-slate-400'} mt-1`}>
+                            <span>1/sec (slow)</span>
+                            <span>4/sec (fast)</span>
+                        </div>
+                    </div>
+                )
+            }
+
+            {/* Price Badge Size */}
+            <div>
+                <div className="flex items-center justify-between mb-1">
+                    <label className={labelClass}>Price Badge Size: {priceBadgeSize}px</label>
+                    <ResetButton onClick={() => { setPriceBadgeSize(80); notifyChange({ priceBadgeSize: 80 }); }} />
+                </div>
+                <input type="range" min="80" max="150" value={priceBadgeSize}
+                    onChange={(e) => { setPriceBadgeSize(Number(e.target.value)); notifyChange({ priceBadgeSize: Number(e.target.value) }); }}
+                    className="w-full accent-teal-500" />
+            </div>
+            <ColorPicker value={priceBadgeColor} onChange={(c) => { setPriceBadgeColor(c); notifyChange({ priceBadgeColor: c }); }} label="Price Badge Color" defaultValue="#22c55e" allowNone={true} />
+
+            {/* Product Name Bar Options */}
+            <div className={`pt-3 border-t ${sectionBorderClass}`}>
+                <Toggle value={showProductName} onChange={(v) => { setShowProductName(v); notifyChange({ showProductName: v }); }} label="Show Product Name Bar" />
+                {showProductName && (
+                    <div className="mt-3 space-y-3">
+                        <ColorPicker value={productNameBgColor} onChange={(c) => { setProductNameBgColor(c); notifyChange({ productNameBgColor: c }); }} label="Background Color" defaultValue="#16a34a" allowNone={true} />
+                        <ColorPicker value={productNameTextColor} onChange={(c) => { setProductNameTextColor(c); notifyChange({ productNameTextColor: c }); }} label="Text Color" defaultValue="#ffffff" allowNone={true} />
+                        <div>
+                            <div className="flex items-center justify-between mb-1">
+                                <label className={labelClass}>Font Size: {productNameFontSize}px</label>
+                                <ResetButton onClick={() => { setProductNameFontSize(16); notifyChange({ productNameFontSize: 16 }); }} />
+                            </div>
+                            <input type="range" min="12" max="28" value={productNameFontSize}
+                                onChange={(e) => { setProductNameFontSize(Number(e.target.value)); notifyChange({ productNameFontSize: Number(e.target.value) }); }}
+                                className="w-full accent-teal-500" />
+                        </div>
+                        <Toggle value={productNameFullWidth} onChange={(v) => { setProductNameFullWidth(v); notifyChange({ productNameFullWidth: v }); }} label="Full Width (Edge-to-Edge)" />
+                        {!productNameFullWidth && (
+                            <div>
+                                <div className="flex items-center justify-between mb-1">
+                                    <label className={labelClass}>Corner Radius: {productNameBorderRadius}px</label>
+                                    <ResetButton onClick={() => { setProductNameBorderRadius(0); notifyChange({ productNameBorderRadius: 0 }); }} />
+                                </div>
+                                <input type="range" min="0" max="24" value={productNameBorderRadius}
+                                    onChange={(e) => { setProductNameBorderRadius(Number(e.target.value)); notifyChange({ productNameBorderRadius: Number(e.target.value) }); }}
+                                    className="w-full accent-teal-500" />
+                            </div>
+                        )}
+                    </div>
+                )}
+            </div>
+
+            {/* Countdown Timer - Elegant Design */}
+            <div className={`pt-3 border-t ${sectionBorderClass}`}>
+                <Toggle value={showCountdown} onChange={(v) => { setShowCountdown(v); notifyChange({ showCountdown: v }); }} label="⏱️ Countdown Timer" />
+                {showCountdown && (
+                    <div className="mt-3 space-y-3">
+                        {/* Timer Duration */}
+                        <div>
+                            <div className="flex items-center justify-between mb-1">
+                                <label className={labelClass}>Duration: {countdownMinutes} minutes</label>
+                                <ResetButton onClick={() => { setCountdownMinutes(10); notifyChange({ countdownMinutes: 10 }); }} />
+                            </div>
+                            <input type="range" min="1" max="60" value={countdownMinutes}
+                                onChange={(e) => { setCountdownMinutes(Number(e.target.value)); notifyChange({ countdownMinutes: Number(e.target.value) }); }}
+                                className="w-full accent-teal-500" />
+                        </div>
+
+                        {/* Timer Position */}
+                        <div>
+                            <label className={labelClass}>Position</label>
+                            <div className="flex gap-2">
+                                {(['above', 'middle', 'below'] as const).map(pos => (
+                                    <button key={pos} type="button"
+                                        onClick={() => { setCountdownPosition(pos); notifyChange({ countdownPosition: pos }); }}
+                                        className={`${buttonBaseClass} ${countdownPosition === pos ? activeInfoClass : inactiveClass}`}>
+                                        {pos === 'above' ? '⬆️' : pos === 'middle' ? '↔️' : '⬇️'} {pos.charAt(0).toUpperCase() + pos.slice(1)}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Timer Styling */}
+                        <ColorPicker value={countdownTextColor} onChange={(c) => { setCountdownTextColor(c); notifyChange({ countdownTextColor: c }); }} label="Text Color" defaultValue="#ffffff" allowNone={true} />
+                        <div>
+                            <div className="flex items-center justify-between mb-1">
+                                <label className={labelClass}>Font Size: {countdownFontSize}px</label>
+                                <ResetButton onClick={() => { setCountdownFontSize(18); notifyChange({ countdownFontSize: 18 }); }} />
+                            </div>
+                            <input type="range" min="12" max="32" value={countdownFontSize}
+                                onChange={(e) => { setCountdownFontSize(Number(e.target.value)); notifyChange({ countdownFontSize: Number(e.target.value) }); }}
+                                className="w-full accent-teal-500" />
+                        </div>
+
+                        <Toggle value={countdownShowBg} onChange={(v) => { setCountdownShowBg(v); notifyChange({ countdownShowBg: v }); }} label="Show Background" />
+                        {countdownShowBg && (
+                            <>
+                                <ColorPicker value={countdownBgColor} onChange={(c) => { setCountdownBgColor(c); notifyChange({ countdownBgColor: c }); }} label="Background Color" defaultValue="#ec4899" allowNone={true} />
+                                <div>
+                                    <div className="flex items-center justify-between mb-1">
+                                        <label className={labelClass}>Corner Radius: {countdownBorderRadius}px</label>
+                                        <ResetButton onClick={() => { setCountdownBorderRadius(12); notifyChange({ countdownBorderRadius: 12 }); }} />
+                                    </div>
+                                    <input type="range" min="0" max="20" value={countdownBorderRadius}
+                                        onChange={(e) => { setCountdownBorderRadius(Number(e.target.value)); notifyChange({ countdownBorderRadius: Number(e.target.value) }); }}
+                                        className="w-full accent-teal-500" />
+                                </div>
+                                <Toggle value={countdownFullWidth} onChange={(v) => { setCountdownFullWidth(v); notifyChange({ countdownFullWidth: v }); }} label="Full Width" />
+                            </>
+                        )}
+                    </div>
+                )}
+            </div>
+
+            <div className={`pt-3 border-t ${sectionBorderClass}`}>
+                <label className={labelClass}>Button Text</label>
+                <input type="text" value={buttonText}
+                    onChange={(e) => { setButtonText(e.target.value); notifyChange({ buttonText: e.target.value }); }}
+                    className={inputClass} />
+            </div>
+            <ColorPicker value={buttonBgColor} onChange={(c) => { setButtonBgColor(c); notifyChange({ buttonBgColor: c }); }} label="Button Color" defaultValue="#16a34a" allowNone={true} />
+            <Toggle value={showButtonIcon} onChange={(v) => { setShowButtonIcon(v); notifyChange({ showButtonIcon: v }); }} label="Show Button Icon" />
+            <div>
+                <div className="flex items-center justify-between mb-1">
+                    <label className={labelClass}>Button Radius: {buttonBorderRadius}px</label>
+                    <ResetButton onClick={() => { setButtonBorderRadius(12); notifyChange({ buttonBorderRadius: 12 }); }} />
+                </div>
+                <input type="range" min="0" max="24" value={buttonBorderRadius}
+                    onChange={(e) => { setButtonBorderRadius(Number(e.target.value)); notifyChange({ buttonBorderRadius: Number(e.target.value) }); }}
+                    className="w-full accent-teal-500" />
+            </div>
+        </CollapsibleSection>
+    );
+
+    const actionSection = (
+        <CollapsibleSection title="Cart Action" icon={ShoppingCart} defaultOpen={false}>
+            <div className="grid grid-cols-2 gap-2">
+                <button onClick={() => { setCartAction('add'); notifyChange({ cartAction: 'add' }); }}
+                    className={`p-3 rounded-lg border text-left ${cartAction === 'add' ? 'bg-teal-500/20 border-teal-500/50' : inactiveClass}`}>
+                    <div className={`text-sm font-medium ${isDark ? 'text-white' : 'text-slate-900'}`}>➕ Add</div>
+                    <div className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Add to cart</div>
+                </button>
+                <button onClick={() => { setCartAction('replace'); notifyChange({ cartAction: 'replace' }); }}
+                    className={`p-3 rounded-lg border text-left ${cartAction === 'replace' ? 'bg-orange-500/20 border-orange-500/50' : inactiveClass}`}>
+                    <div className={`text-sm font-medium ${isDark ? 'text-white' : 'text-slate-900'}`}>🔄 Replace</div>
+                    <div className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Replace main</div>
+                </button>
+            </div>
+            <div className={`pt-3 border-t ${sectionBorderClass}`}>
+                <Toggle value={useWebview} onChange={(v) => { setUseWebview(v); notifyChange({ useWebview: v }); }} label="Use Webview Display" />
+                {useWebview && (
+                    <div className="mt-2 p-2 bg-teal-500/10 border border-teal-500/30 rounded-lg">
+                        <p className="text-xs text-teal-300">✨ Custom webview page instead of Facebook template</p>
+                    </div>
+                )}
+            </div>
+        </CollapsibleSection>
+    );
+
+    // ================== LAYOUTS ==================
+    // Generate preview URL for live preview
+    const getPreviewUrl = () => {
+        const previewConfig = {
+            headline, headlineColor, headlineBgColor, headlineAnimation, headlineAnimationSpeed,
+            showEmoji, emojiType, imageUrl, imageSource,
+            imageBorderRadius, imageBorderColor, imageBorderWidth, price, priceBadgeColor,
+            priceTextColor, priceBadgeSize, description, descriptionColor, buttonText, buttonBgColor,
+            buttonTextColor, buttonBorderRadius, showButtonIcon, backgroundColor, pageBackgroundColor,
+            showProductName, productName, productNameBgColor, productNameTextColor, productNameFontSize,
+            productNameBorderRadius, productNameFullWidth,
+            showCountdown, countdownMinutes, countdownPosition, countdownBgColor, countdownTextColor,
+            countdownFontSize, countdownShowBg, countdownBorderRadius, countdownFullWidth
+        };
+        // Use encodeURIComponent to handle unicode characters properly
+        const encodedConfig = encodeURIComponent(JSON.stringify(previewConfig));
+        return `/downsell-preview?config=${encodedConfig}`;
+    };
+
+    const openLivePreview = () => {
+        const url = getPreviewUrl();
+        console.log('Opening live preview:', url);
+        window.open(url, '_blank');
+    };
+
+    // Modal width based on device selection
+    const modalWidths = {
+        mobile: 'max-w-3xl',
+        tablet: 'max-w-3xl',
+        desktop: 'max-w-7xl'
+    };
+
+    // Desktop: Responsive modal width based on device selector
+    if (isDesktop) {
+        return (
+            <div className={`fixed inset-0 ${isDark ? 'bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900' : 'bg-slate-50/90 backdrop-blur-sm'} z-50 p-[15px] flex items-center justify-center`}>
+                <div className={`w-full ${modalWidths[previewDevice]} h-full max-h-full flex flex-col ${isDark ? 'bg-slate-800/50 border-white/10' : 'bg-white border-slate-200 shadow-xl'} rounded-2xl border overflow-hidden transition-all duration-300`}>
+                    {/* Header with Device Switcher */}
+                    <div className={`flex-shrink-0 h-14 ${isDark ? 'border-white/10' : 'border-slate-200'} border-b flex items-center px-4 gap-4`}>
+                        {/* Left: Title */}
+                        <div className="flex items-center gap-3 min-w-0 flex-shrink-0">
+                            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-red-500 to-rose-600 flex items-center justify-center relative">
+                                <ShoppingCart className="w-4 h-4 text-white" />
+                                <ArrowDown className="w-2.5 h-2.5 text-white absolute -bottom-0.5 -right-0.5 bg-red-600 rounded-full p-0.5" />
+                            </div>
+                            <span className={`text-base font-bold ${isDark ? 'text-white' : 'text-slate-900'} whitespace-nowrap`}>Downsell</span>
+                        </div>
+
+                        {/* Center: Device Switcher */}
+                        <div className="flex-1 flex justify-center">
+                            <div className={`flex items-center gap-1 ${isDark ? 'bg-slate-700/50 border-white/10' : 'bg-slate-100 border-slate-200'} rounded-lg p-1 border`}>
+                                <button
+                                    type="button"
+                                    onClick={() => setPreviewDevice('mobile')}
+                                    className={`p-2 rounded-md transition-all ${previewDevice === 'mobile' ? 'bg-teal-500 text-white' : (isDark ? 'text-slate-400 hover:text-white hover:bg-white/10' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-200')}`}
+                                    title="Mobile"
+                                >
+                                    <Smartphone className="w-4 h-4" />
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setPreviewDevice('tablet')}
+                                    className={`p-2 rounded-md transition-all ${previewDevice === 'tablet' ? 'bg-teal-500 text-white' : (isDark ? 'text-slate-400 hover:text-white hover:bg-white/10' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-200')}`}
+                                    title="Tablet"
+                                >
+                                    <Tablet className="w-4 h-4" />
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setPreviewDevice('desktop')}
+                                    className={`p-2 rounded-md transition-all ${previewDevice === 'desktop' ? 'bg-teal-500 text-white' : (isDark ? 'text-slate-400 hover:text-white hover:bg-white/10' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-200')}`}
+                                    title="Desktop"
+                                >
+                                    <Monitor className="w-4 h-4" />
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Right: Preview + Save + Close */}
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                            <button
+                                type="button"
+                                onClick={openLivePreview}
+                                className="flex items-center gap-1.5 px-3 py-1.5 bg-teal-500/20 hover:bg-teal-500/30 rounded-lg text-teal-400 text-xs transition-colors"
+                                title="Open Live Preview"
+                            >
+                                <Eye className="w-3.5 h-3.5" />
+                                <span>Preview</span>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setSaveNotification(true);
+                                    setTimeout(() => setSaveNotification(false), 3000);
+                                }}
+                                className="flex items-center gap-1.5 px-4 py-1.5 bg-teal-500 hover:bg-teal-600 rounded-lg text-white text-xs font-medium transition-colors"
+                                title="Save Configuration"
+                            >
+                                <Save className="w-3.5 h-3.5" />
+                                <span>Save</span>
+                            </button>
+                            {onClose && (
+                                <button
+                                    type="button"
+                                    onClick={onClose}
+                                    className={`p-1.5 ${isDark ? 'hover:bg-white/10 text-slate-400 hover:text-white' : 'hover:bg-slate-100 text-slate-500 hover:text-slate-900'} rounded-lg transition-colors`}
+                                    title="Close"
+                                >
+                                    <X className="w-4 h-4" />
+                                </button>
+                            )}
+                        </div>
+
+                        {/* Save Notification Toast */}
+                        {saveNotification && (
+                            <div className="absolute top-16 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2 animate-fade-in z-50">
+                                <Check className="w-4 h-4" />
+                                <span className="text-sm font-medium">Settings saved successfully!</span>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Content - Responsive based on device */}
+                    {previewDevice === 'desktop' ? (
+                        // Desktop: 3-Column Layout
+                        <div className="flex-1 grid grid-cols-12 gap-0 overflow-hidden">
+                            <div className={`col-span-4 border-r ${isDark ? 'border-white/10' : 'border-slate-200'} p-6 overflow-y-auto custom-scrollbar`}>
+                                {basicSection}
+                                <div className={`mt-6 pt-6 border-t ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
+                                    {imageSection}
+                                </div>
+                            </div>
+                            <div className={`col-span-4 border-r ${isDark ? 'border-white/10' : 'border-slate-200'} p-6 overflow-y-auto custom-scrollbar`}>
+                                {styleSection}
+                                <div className={`mt-6 pt-6 border-t ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
+                                    {actionSection}
+                                </div>
+                            </div>
+                            <div className={`col-span-4 p-6 flex items-center justify-center ${isDark ? 'bg-slate-950/50' : 'bg-slate-100'} overflow-auto`}>
+                                <DevicePreview />
+                            </div>
+                        </div>
+                    ) : previewDevice === 'tablet' ? (
+                        // Tablet: 2-Column Layout
+                        <div className="flex-1 grid grid-cols-2 gap-0 overflow-hidden">
+                            <div className="border-r border-white/10 p-4 overflow-y-auto custom-scrollbar space-y-4">
+                                {basicSection}
+                                <div className="pt-4 border-t border-white/10">{imageSection}</div>
+                                <div className="pt-4 border-t border-white/10">{styleSection}</div>
+                                <div className="pt-4 border-t border-white/10">{actionSection}</div>
+                            </div>
+                            <div className="p-4 flex items-center justify-center bg-slate-950/50 overflow-auto">
+                                <DevicePreview />
+                            </div>
+                        </div>
+                    ) : (
+                        // Mobile: 2-Column Layout (same as tablet - side by side)
+                        <div className="flex-1 grid grid-cols-2 gap-0 overflow-hidden">
+                            <div className="border-r border-white/10 p-4 overflow-y-auto custom-scrollbar space-y-4">
+                                {basicSection}
+                                <div className="pt-4 border-t border-white/10">{imageSection}</div>
+                                <div className="pt-4 border-t border-white/10">{styleSection}</div>
+                                <div className="pt-4 border-t border-white/10">{actionSection}</div>
+                            </div>
+                            <div className="p-4 flex items-center justify-center bg-slate-950/50 overflow-auto">
+                                <DevicePreview />
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </div >
+        );
+    }
+
+    // ================== MOBILE: Step-by-Step Wizard ==================
+    const currentStepContent = () => {
+        switch (mobileStep) {
+            case 0: return basicSection;
+            case 1: return imageSection;
+            case 2: return styleSection;
+            case 3: return actionSection;
+            default: return null;
+        }
+    };
+
+
+
+    if (showMobilePreview) {
+        return (
+            <div className={`min-h-screen ${isDark ? 'bg-slate-900' : 'bg-slate-50'} p-4`}>
+                <div className="flex items-center justify-between mb-4">
+                    <button onClick={() => setShowMobilePreview(false)}
+                        className={`flex items-center gap-2 ${isDark ? 'text-slate-400' : 'text-slate-600'} text-sm`}>
+                        <ChevronLeft className="w-4 h-4" /> Back to Editor
+                    </button>
+                    <button onClick={openLivePreview}
+                        className="flex items-center gap-2 text-teal-400 text-sm bg-teal-500/20 px-3 py-1.5 rounded-lg hover:bg-teal-500/30 transition-colors">
+                        <ExternalLink className="w-4 h-4" /> Open Live Preview
+                    </button>
+                </div>
+                <div className="flex justify-center">
+                    <DevicePreview />
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className={`min-h-screen ${isDark ? 'bg-slate-900' : 'bg-slate-50'} flex flex-col`}>
+            {/* Progress Bar */}
+            <div className={`p-4 border-b ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
+                <div className="flex items-center justify-between mb-2">
+                    <span className={`text-sm ${isDark ? 'text-white' : 'text-slate-900'} font-medium`}>Step {mobileStep + 1} of {WIZARD_STEPS.length}</span>
+                    <div className="flex items-center gap-2">
+                        <button onClick={() => setShowMobilePreview(true)}
+                            className="flex items-center gap-1 text-xs text-teal-400 bg-teal-500/20 px-2 py-1 rounded-lg">
+                            <Eye className="w-3 h-3" /> Preview
+                        </button>
+                        <button onClick={openLivePreview}
+                            className="flex items-center gap-1 text-xs text-purple-400 bg-purple-500/20 px-2 py-1 rounded-lg"
+                            title="Open Live Page Preview">
+                            <ExternalLink className="w-3 h-3" />
+                        </button>
+                    </div>
+                </div>
+                <div className={`h-1 ${isDark ? 'bg-slate-700' : 'bg-slate-200'} rounded-full overflow-hidden`}>
+                    <div className="h-full bg-teal-500 transition-all" style={{ width: `${((mobileStep + 1) / WIZARD_STEPS.length) * 100}%` }} />
+                </div>
+                <div className="flex mt-2">
+                    {WIZARD_STEPS.map((step, i) => (
+                        <div key={step.id} className={`flex-1 text-center text-[10px] ${i <= mobileStep ? 'text-teal-400' : 'text-slate-500'}`}>
+                            {step.title}
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            {/* Step Content */}
+            <div className="flex-1 p-4 overflow-y-auto">
+                {currentStepContent()}
+            </div>
+
+            {/* Navigation */}
+            <div className={`flex-shrink-0 p-4 border-t ${isDark ? 'border-white/10' : 'border-slate-200'} flex gap-3`}>
+                <button onClick={() => setMobileStep(Math.max(0, mobileStep - 1))} disabled={mobileStep === 0}
+                    className={`flex-1 py-3 rounded-lg flex items-center justify-center gap-2 ${mobileStep === 0 ? (isDark ? 'bg-slate-700 text-slate-500' : 'bg-slate-200 text-slate-400') : (isDark ? 'bg-slate-700 text-white' : 'bg-white border border-slate-200 text-slate-700')}`}>
+                    <ChevronLeft className="w-4 h-4" /> Back
+                </button>
+                {mobileStep < WIZARD_STEPS.length - 1 ? (
+                    <button onClick={() => setMobileStep(mobileStep + 1)}
+                        className="flex-1 py-3 rounded-lg bg-teal-500 text-white flex items-center justify-center gap-2">
+                        Next <ChevronRight className="w-4 h-4" />
+                    </button>
+                ) : (
+                    <button onClick={() => setShowMobilePreview(true)}
+                        className="flex-1 py-3 rounded-lg bg-green-500 text-white flex items-center justify-center gap-2">
+                        <Check className="w-4 h-4" /> Done
+                    </button>
+                )}
+            </div>
+        </div>
+    );
+};
+
+export default DownsellNodeForm;

@@ -9,7 +9,6 @@ interface VideoNodeFormProps {
         videoUrl?: string;
         caption?: string;
         delaySeconds?: number;
-        showTyping?: boolean;
         thumbnailUrl?: string;
     };
     onChange: (config: any) => void;
@@ -24,7 +23,6 @@ const VideoNodeForm: React.FC<VideoNodeFormProps> = ({
     const [videoUrl, setVideoUrl] = useState(initialConfig?.videoUrl || '');
     const [caption, setCaption] = useState(initialConfig?.caption || '');
     const [delaySeconds, setDelaySeconds] = useState(initialConfig?.delaySeconds || 0);
-    const [showTyping, setShowTyping] = useState(initialConfig?.showTyping ?? false);
     const [previewError, setPreviewError] = useState(false);
     const [thumbnailUrl, setThumbnailUrl] = useState(initialConfig?.thumbnailUrl || '');
     const [loadingThumbnail, setLoadingThumbnail] = useState(false);
@@ -71,12 +69,11 @@ const VideoNodeForm: React.FC<VideoNodeFormProps> = ({
         return () => clearTimeout(timeoutId);
     }, [videoUrl]);
 
-    const notifyChange = (newVideoUrl: string, newCaption: string, newDelay: number, newShowTyping?: boolean, newThumbnail?: string) => {
+    const notifyChange = (newVideoUrl: string, newCaption: string, newDelay: number, newThumbnail?: string) => {
         onChange({
             videoUrl: newVideoUrl,
             caption: newCaption,
             delaySeconds: newDelay,
-            showTyping: newShowTyping ?? showTyping,
             thumbnailUrl: newThumbnail || thumbnailUrl
         });
     };
@@ -235,27 +232,8 @@ const VideoNodeForm: React.FC<VideoNodeFormProps> = ({
                     </span>
                 </div>
                 <p className={`mt-2 text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                    Wait time before sending this video
+                    Wait time before sending this video (shows typing indicator)
                 </p>
-            </div>
-
-            {/* Typing on display toggle */}
-            <div className={`flex items-center justify-between py-3 px-4 ${isDark ? 'bg-black/20 border-white/10' : 'bg-white border-slate-200'} border rounded-xl`}>
-                <div>
-                    <label className={`text-sm font-medium ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                        Typing on display
-                    </label>
-                    <p className="text-xs text-slate-500 mt-0.5">
-                        Shows "typing..." indicator before sending
-                    </p>
-                </div>
-                <button
-                    type="button"
-                    onClick={() => { setShowTyping(!showTyping); notifyChange(videoUrl, caption, delaySeconds, !showTyping); }}
-                    className={`relative w-11 h-6 rounded-full transition-colors ${showTyping ? 'bg-cyan-500' : (isDark ? 'bg-slate-600' : 'bg-slate-300')}`}
-                >
-                    <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-md transition-transform ${showTyping ? 'translate-x-5' : 'translate-x-0'}`} />
-                </button>
             </div>
 
             {/* Tips */}

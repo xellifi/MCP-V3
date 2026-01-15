@@ -3371,15 +3371,17 @@ async function executeAction(
         }
 
         try {
-            // Show typing indicator only if enabled in config
+            // Show typing indicator for configured delay (or brief default)
             const delaySeconds = config.delaySeconds || 0;
-            const showTyping = config.showTyping ?? false;
-
-            if (showTyping || delaySeconds > 0) {
-                const typingDuration = delaySeconds > 0 ? delaySeconds * 1000 : 500;
-                console.log(`    ⏱️ Showing typing indicator for ${typingDuration}ms`);
+            if (delaySeconds > 0) {
+                console.log(`    ⏱️ Delay: ${delaySeconds} seconds`);
                 await sendTypingIndicator(context.commenterId, pageAccessToken, 'typing_on');
-                await new Promise(resolve => setTimeout(resolve, typingDuration));
+                await new Promise(resolve => setTimeout(resolve, delaySeconds * 1000));
+                await sendTypingIndicator(context.commenterId, pageAccessToken, 'typing_off');
+            } else {
+                // Brief typing indicator
+                await sendTypingIndicator(context.commenterId, pageAccessToken, 'typing_on');
+                await new Promise(resolve => setTimeout(resolve, 500));
                 await sendTypingIndicator(context.commenterId, pageAccessToken, 'typing_off');
             }
 
@@ -3492,15 +3494,17 @@ async function executeAction(
         }
 
         try {
-            // Show typing indicator only if enabled in config
+            // Show typing indicator for configured delay (or brief default)
             const delaySeconds = config.delaySeconds || 0;
-            const showTyping = config.showTyping ?? false;
-
-            if (showTyping || delaySeconds > 0) {
-                const typingDuration = delaySeconds > 0 ? delaySeconds * 1000 : 500;
-                console.log(`    ⏱️ Showing typing indicator for ${typingDuration}ms`);
+            if (delaySeconds > 0) {
+                console.log(`    ⏱️ Delay: ${delaySeconds} seconds`);
                 await sendTypingIndicator(context.commenterId, pageAccessToken, 'typing_on');
-                await new Promise(resolve => setTimeout(resolve, typingDuration));
+                await new Promise(resolve => setTimeout(resolve, delaySeconds * 1000));
+                await sendTypingIndicator(context.commenterId, pageAccessToken, 'typing_off');
+            } else {
+                // Brief typing indicator
+                await sendTypingIndicator(context.commenterId, pageAccessToken, 'typing_on');
+                await new Promise(resolve => setTimeout(resolve, 500));
                 await sendTypingIndicator(context.commenterId, pageAccessToken, 'typing_off');
             }
             // Check if it's a Facebook video URL
@@ -3934,23 +3938,20 @@ async function executeAction(
         const delaySeconds = config.delaySeconds || 0;
         const textContent = config.textContent || '';
         const buttons = config.buttons || [];
-        const showTyping = config.showTyping ?? false;
 
         if (textContent) {
             console.log(`    📝 Text content: "${textContent}"`);
         }
 
-        // Show typing indicator if enabled OR if there's a delay
-        if (showTyping || delaySeconds > 0) {
-            const typingDuration = delaySeconds > 0 ? delaySeconds * 1000 : 500; // 500ms default when just showTyping is on
-            console.log(`    ⏱️  Showing typing indicator for ${typingDuration}ms...`);
+        if (delaySeconds > 0) {
+            console.log(`    ⏱️  Showing typing indicator for ${delaySeconds} second(s)...`);
 
             // Show typing indicator during the delay
             await sendTypingIndicator(context.commenterId, pageAccessToken, 'typing_on');
-            await new Promise(resolve => setTimeout(resolve, typingDuration));
+            await new Promise(resolve => setTimeout(resolve, delaySeconds * 1000));
             await sendTypingIndicator(context.commenterId, pageAccessToken, 'typing_off');
 
-            console.log(`    ✓ Typing indicator complete`);
+            console.log(`    ✓ Delay complete`);
         }
 
         // Send text content as message if it exists

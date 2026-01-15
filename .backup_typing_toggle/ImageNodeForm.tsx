@@ -15,7 +15,6 @@ interface ImageNodeFormProps {
         imageSource?: 'url' | 'upload' | 'gallery';
         caption?: string;
         delaySeconds?: number;
-        showTyping?: boolean;
         showButton?: boolean;
         buttonText?: string;
         buttonAction?: 'startFlow' | 'url' | 'newFlow';
@@ -83,7 +82,6 @@ const ImageNodeForm: React.FC<ImageNodeFormProps> = ({
     const [imageUrl, setImageUrl] = useState(initialConfig?.imageUrl || '');
     const [caption, setCaption] = useState(initialConfig?.caption || '');
     const [delaySeconds, setDelaySeconds] = useState(initialConfig?.delaySeconds || 0);
-    const [showTyping, setShowTyping] = useState(initialConfig?.showTyping ?? false);
     const [uploading, setUploading] = useState(false);
     const [uploadError, setUploadError] = useState('');
     const [previewError, setPreviewError] = useState(false);
@@ -146,7 +144,7 @@ const ImageNodeForm: React.FC<ImageNodeFormProps> = ({
 
     const notifyChange = (updates: any = {}) => {
         onChange({
-            imageUrl, imageSource, caption, delaySeconds, showTyping,
+            imageUrl, imageSource, caption, delaySeconds,
             showButton, buttonText, buttonAction, buttonUrl, webviewHeight, buttonFlowId, buttonFlowName, flowName,
             ...updates
         });
@@ -528,24 +526,6 @@ const ImageNodeForm: React.FC<ImageNodeFormProps> = ({
                 <label className={`block text-xs font-semibold ${isDark ? 'text-slate-300' : 'text-slate-700'} mb-1`}><Clock className="w-3 h-3 inline mr-1" />Delay: {delaySeconds}s</label>
                 <input type="range" min="0" max="30" value={delaySeconds} onChange={(e) => handleDelayChange(parseInt(e.target.value))}
                     className={`w-full h-1.5 ${isDark ? 'bg-white/10' : 'bg-slate-200'} rounded-lg appearance-none cursor-pointer accent-rose-500`} />
-            </div>
-            {/* Typing on display toggle */}
-            <div className={`flex items-center justify-between py-3 px-4 ${isDark ? 'bg-black/20 border-white/10' : 'bg-white border-slate-200'} border rounded-xl`}>
-                <div>
-                    <label className={`text-sm font-medium ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                        Typing on display
-                    </label>
-                    <p className="text-xs text-slate-500 mt-0.5">
-                        Shows "typing..." indicator before sending
-                    </p>
-                </div>
-                <button
-                    type="button"
-                    onClick={() => { setShowTyping(!showTyping); notifyChange({ showTyping: !showTyping }); }}
-                    className={`relative w-11 h-6 rounded-full transition-colors ${showTyping ? 'bg-rose-500' : (isDark ? 'bg-slate-600' : 'bg-slate-300')}`}
-                >
-                    <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-md transition-transform ${showTyping ? 'translate-x-5' : 'translate-x-0'}`} />
-                </button>
             </div>
         </CollapsibleSection>
     );

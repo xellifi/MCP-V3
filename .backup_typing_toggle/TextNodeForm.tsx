@@ -22,7 +22,6 @@ interface TextNodeFormProps {
         textContent?: string;
         delaySeconds?: number;
         buttons?: Button[];
-        showTyping?: boolean;
     };
     onChange: (config: any) => void;
     onSave?: () => void; // Callback to trigger FlowBuilder's handleSaveConfig
@@ -80,7 +79,6 @@ const TextNodeForm: React.FC<TextNodeFormProps> = ({
 }) => {
     const [textContent, setTextContent] = useState(initialConfig?.textContent || '');
     const [delaySeconds, setDelaySeconds] = useState(initialConfig?.delaySeconds || 0);
-    const [showTyping, setShowTyping] = useState(initialConfig?.showTyping ?? false);
     const [buttons, setButtons] = useState<Button[]>(
         initialConfig?.buttons || []
     );
@@ -226,8 +224,7 @@ const TextNodeForm: React.FC<TextNodeFormProps> = ({
     const notifyChange = (
         newTextContent: string,
         newDelaySeconds: number,
-        newButtons: Button[],
-        newShowTyping?: boolean
+        newButtons: Button[]
     ) => {
         const validButtons = newButtons.filter(b => {
             if (!b.title.trim()) return false;
@@ -236,22 +233,17 @@ const TextNodeForm: React.FC<TextNodeFormProps> = ({
             if (b.type === 'newFlow') return true; // New Flow just needs a title
             return false;
         });
-        onChange({ textContent: newTextContent, delaySeconds: newDelaySeconds, buttons: validButtons, showTyping: newShowTyping ?? showTyping });
+        onChange({ textContent: newTextContent, delaySeconds: newDelaySeconds, buttons: validButtons });
     };
 
     const handleTextChange = (value: string) => {
         setTextContent(value);
-        notifyChange(value, delaySeconds, buttons, showTyping);
+        notifyChange(value, delaySeconds, buttons);
     };
 
     const handleDelayChange = (value: number) => {
         setDelaySeconds(value);
-        notifyChange(textContent, value, buttons, showTyping);
-    };
-
-    const handleShowTypingChange = (value: boolean) => {
-        setShowTyping(value);
-        notifyChange(textContent, delaySeconds, buttons, value);
+        notifyChange(textContent, value, buttons);
     };
 
     const addButton = () => {
@@ -409,24 +401,6 @@ const TextNodeForm: React.FC<TextNodeFormProps> = ({
                     ✓ This text message will be sent to users when this node is executed.
                 </p>
             </div>
-            {/* Typing on display toggle */}
-            <div className={`flex items-center justify-between py-3 px-4 ${isDark ? 'bg-black/20 border-white/10' : 'bg-white border-slate-200'} border rounded-xl`}>
-                <div>
-                    <label className={`text-sm font-medium ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                        Typing on display
-                    </label>
-                    <p className="text-xs text-slate-500 mt-0.5">
-                        Shows "typing..." indicator before sending message
-                    </p>
-                </div>
-                <button
-                    type="button"
-                    onClick={() => handleShowTypingChange(!showTyping)}
-                    className={`relative w-11 h-6 rounded-full transition-colors ${showTyping ? 'bg-amber-500' : (isDark ? 'bg-slate-600' : 'bg-slate-300')}`}
-                >
-                    <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-md transition-transform ${showTyping ? 'translate-x-5' : 'translate-x-0'}`} />
-                </button>
-            </div>
             <div>
                 <label className="block text-xs font-medium text-slate-400 mb-2">
                     <Clock className="w-3 h-3 inline mr-1" />
@@ -448,7 +422,7 @@ const TextNodeForm: React.FC<TextNodeFormProps> = ({
     );
 
     const buttonsSection = (
-        <CollapsibleSection title="Buttons" icon={MessageSquare} defaultOpen={true}>
+        <CollapsibleSection title="Quick Reply Buttons" icon={MessageSquare} defaultOpen={true}>
             <div className="pt-4">
                 <div className="flex items-center justify-between mb-3">
                     <span className="text-xs text-slate-400">Optional, max 3 buttons</span>
