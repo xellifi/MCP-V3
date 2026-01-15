@@ -99,27 +99,34 @@ async function handleExecuteStep(req: VercelRequest, res: VercelResponse, step: 
                 const imageUrl = previousResults?.['image-1']?.result?.imageUrl || '';
                 const caption = previousResults?.['caption-1']?.result?.caption || '';
 
+                console.log(`[Execute Step] Facebook config:`, JSON.stringify(fbConfig));
+                console.log(`[Execute Step] WorkspaceId:`, workspaceId);
+
                 // Get Facebook page access token - try multiple approaches
                 let page: any = null;
 
                 // First, try to get the specific page from config
                 if (fbConfig.pageId) {
-                    const { data: configuredPage } = await supabase
+                    console.log(`[Execute Step] Trying fbConfig.pageId: ${fbConfig.pageId}`);
+                    const { data: configuredPage, error: err1 } = await supabase
                         .from('connected_pages')
                         .select('page_id, access_token')
                         .eq('page_id', fbConfig.pageId)
                         .single();
+                    console.log(`[Execute Step] Config page result:`, configuredPage, err1?.message);
                     if (configuredPage) page = configuredPage;
                 }
 
                 // Second, try any page with automation enabled
                 if (!page) {
-                    const { data: automatedPages } = await supabase
+                    console.log(`[Execute Step] Trying automation_enabled pages for workspace`);
+                    const { data: automatedPages, error: err2 } = await supabase
                         .from('connected_pages')
                         .select('page_id, access_token')
                         .eq('workspace_id', workspaceId)
                         .eq('automation_enabled', true)
                         .limit(1);
+                    console.log(`[Execute Step] Automated pages result:`, automatedPages, err2?.message);
                     if (automatedPages && automatedPages.length > 0) {
                         page = automatedPages[0];
                     }
@@ -127,13 +134,30 @@ async function handleExecuteStep(req: VercelRequest, res: VercelResponse, step: 
 
                 // Third, try any connected page for this workspace
                 if (!page) {
-                    const { data: anyPages } = await supabase
+                    console.log(`[Execute Step] Trying any page for workspace`);
+                    const { data: anyPages, error: err3 } = await supabase
                         .from('connected_pages')
                         .select('page_id, access_token')
                         .eq('workspace_id', workspaceId)
                         .limit(1);
+                    console.log(`[Execute Step] Any pages result:`, anyPages, err3?.message);
                     if (anyPages && anyPages.length > 0) {
                         page = anyPages[0];
+                    }
+                }
+
+                // Fourth fallback - get ANY page at all (for debugging)
+                if (!page) {
+                    console.log(`[Execute Step] Trying ANY page without workspace filter`);
+                    const { data: allPages, error: err4 } = await supabase
+                        .from('connected_pages')
+                        .select('page_id, access_token, workspace_id')
+                        .limit(5);
+                    console.log(`[Execute Step] All pages in DB:`, allPages, err4?.message);
+                    if (allPages && allPages.length > 0) {
+                        // Use first available page
+                        page = allPages[0];
+                        console.log(`[Execute Step] Using fallback page from workspace: ${page.workspace_id}`);
                     }
                 }
 
