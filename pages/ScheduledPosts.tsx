@@ -272,22 +272,51 @@ const SchedulerBuilder: React.FC<SchedulerBuilderProps> = ({
   };
 
   // Handle save flow
-  const handleSaveFlow = useCallback(() => {
+  const handleSaveFlow = useCallback(async () => {
     if (!connectionStatus.hasConnection || !connectionStatus.hasActivePages) {
       setShowConnectionWarning(true);
       return;
     }
 
-    // Validate all nodes are configured
+    // Warn about unconfigured nodes but don't block saving
     const unconfiguredNodes = nodes.filter(n => !nodeConfigurations[n.id]);
     if (unconfiguredNodes.length > 0) {
-      toast.warning(`Please configure all nodes. ${unconfiguredNodes.length} node(s) need configuration.`);
-      return;
+      console.warn(`${unconfiguredNodes.length} node(s) not configured yet`);
     }
 
-    // TODO: Save to database
-    toast.success('Workflow saved successfully!');
-  }, [connectionStatus, nodes, nodeConfigurations, toast]);
+    try {
+      // Extract schedule configuration from trigger node
+      const triggerNode = nodes.find(n => n.type === 'scheduleTrigger');
+      const triggerConfig = triggerNode ? nodeConfigurations[triggerNode.id] : null;
+
+      // Prepare workflow data
+      const workflowData = {
+        name: 'Auto-Post Workflow',
+        description: 'AI-powered content automation for Facebook',
+        status: 'active',
+        nodes: nodes.map(n => ({
+          id: n.id,
+          type: n.type,
+          position: n.position,
+          data: { ...n.data, onConfigure: undefined, onDelete: undefined } // Remove function refs
+        })),
+        edges: edges,
+        configurations: nodeConfigurations,
+        scheduleType: triggerConfig?.frequency || 'daily',
+        scheduleTime: triggerConfig?.time || '09:00',
+        scheduleDays: triggerConfig?.daysOfWeek || triggerConfig?.dayOfMonth ? [triggerConfig.dayOfMonth] : [],
+        scheduleTimezone: triggerConfig?.timezone || 'Asia/Manila',
+        cronExpression: triggerConfig?.customCron
+      };
+
+      // Save to database
+      await api.scheduler.createWorkflow(workspace.id, workflowData);
+      toast.success('Workflow saved successfully!');
+    } catch (error) {
+      console.error('Failed to save workflow:', error);
+      toast.error('Failed to save workflow. Please try again.');
+    }
+  }, [connectionStatus, nodes, edges, nodeConfigurations, workspace.id, toast]);
 
   // Handle test run
   const handleTestRun = useCallback(() => {
