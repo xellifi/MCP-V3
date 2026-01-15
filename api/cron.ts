@@ -871,31 +871,46 @@ function calculateNextRun(workflow: any): Date | null {
 
     switch (scheduleType) {
         case 'daily': {
+            // Use a fresh timestamp with 30-second buffer to ensure times are truly in future
+            const currentTime = new Date();
+            currentTime.setSeconds(currentTime.getSeconds() + 30); // Add 30s buffer
+
             // Find the next upcoming time from the list
             const candidates: Date[] = [];
 
             for (const timeStr of times) {
                 const [hours, minutes] = timeStr.split(':').map(Number);
 
+                if (isNaN(hours) || isNaN(minutes)) {
+                    console.log(`[Scheduler] Skipping invalid time: ${timeStr}`);
+                    continue;
+                }
+
                 // Check today
-                const todayRun = new Date(now);
+                const todayRun = new Date();
                 todayRun.setHours(hours, minutes, 0, 0);
-                if (todayRun > now) {
+                if (todayRun > currentTime) {
                     candidates.push(todayRun);
+                    console.log(`[Scheduler] Candidate today: ${todayRun.toISOString()} for time ${timeStr}`);
                 }
 
                 // Also check tomorrow (in case all today's times have passed)
-                const tomorrowRun = new Date(now);
+                const tomorrowRun = new Date();
                 tomorrowRun.setDate(tomorrowRun.getDate() + 1);
                 tomorrowRun.setHours(hours, minutes, 0, 0);
                 candidates.push(tomorrowRun);
             }
 
             // Return the earliest upcoming time
+            if (candidates.length === 0) {
+                console.log(`[Scheduler] No candidates found!`);
+                return null;
+            }
+
             candidates.sort((a, b) => a.getTime() - b.getTime());
-            const nextRun = candidates[0] || null;
-            console.log(`[Scheduler] Daily candidates:`, candidates.map(d => d.toISOString()));
-            console.log(`[Scheduler] Next run selected:`, nextRun?.toISOString());
+            const nextRun = candidates[0];
+            console.log(`[Scheduler] Daily candidates (sorted):`, candidates.slice(0, 5).map(d => d.toISOString()));
+            console.log(`[Scheduler] Next run selected:`, nextRun.toISOString());
             return nextRun;
         }
 
