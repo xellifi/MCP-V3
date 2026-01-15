@@ -162,6 +162,7 @@ const SchedulerBuilder: React.FC<SchedulerBuilderProps> = ({
       data: {
         label: 'Topic Generator',
         aiProvider: hasOpenAiKey ? 'OpenAI' : hasGeminiKey ? 'Gemini' : 'Not Set',
+        isConfigured: false,
         onConfigure: () => handleConfigureNode('topic-1'),
         onDelete: () => handleDeleteNode('topic-1'),
       },
@@ -173,6 +174,7 @@ const SchedulerBuilder: React.FC<SchedulerBuilderProps> = ({
       data: {
         label: 'Image Generator',
         size: '1080×1080',
+        isConfigured: false,
         onConfigure: () => handleConfigureNode('image-1'),
         onDelete: () => handleDeleteNode('image-1'),
       },
@@ -184,6 +186,7 @@ const SchedulerBuilder: React.FC<SchedulerBuilderProps> = ({
       data: {
         label: 'Caption Writer',
         tone: 'Professional',
+        isConfigured: false,
         onConfigure: () => handleConfigureNode('caption-1'),
         onDelete: () => handleDeleteNode('caption-1'),
       },
@@ -271,9 +274,11 @@ const SchedulerBuilder: React.FC<SchedulerBuilderProps> = ({
   const handleSaveTopicConfig = (config: TopicGeneratorConfig) => {
     if (!selectedNodeId) return;
     setNodeConfigurations(prev => ({ ...prev, [selectedNodeId]: config }));
+    // Mark as configured if niche is set
+    const isConfigured = !!(config.niche && config.niche.trim());
     setNodes(nds => nds.map(n =>
       n.id === selectedNodeId
-        ? { ...n, data: { ...n.data, aiProvider: config.aiProvider === 'openai' ? 'OpenAI' : 'Gemini' } }
+        ? { ...n, data: { ...n.data, aiProvider: config.aiProvider === 'openai' ? 'OpenAI' : 'Gemini', isConfigured } }
         : n
     ));
     toast.success('Topic generator configured!');
@@ -285,9 +290,10 @@ const SchedulerBuilder: React.FC<SchedulerBuilderProps> = ({
     const sizeLabel = config.size === 'custom'
       ? `${config.customWidth}×${config.customHeight}`
       : config.size.replace('x', '×');
+    // Image is configured once user clicks save
     setNodes(nds => nds.map(n =>
       n.id === selectedNodeId
-        ? { ...n, data: { ...n.data, size: sizeLabel } }
+        ? { ...n, data: { ...n.data, size: sizeLabel, isConfigured: true } }
         : n
     ));
     toast.success('Image generator configured!');
@@ -296,9 +302,10 @@ const SchedulerBuilder: React.FC<SchedulerBuilderProps> = ({
   const handleSaveCaptionConfig = (config: CaptionGeneratorConfig) => {
     if (!selectedNodeId) return;
     setNodeConfigurations(prev => ({ ...prev, [selectedNodeId]: config }));
+    // Caption is configured once user clicks save
     setNodes(nds => nds.map(n =>
       n.id === selectedNodeId
-        ? { ...n, data: { ...n.data, tone: config.tone.charAt(0).toUpperCase() + config.tone.slice(1) } }
+        ? { ...n, data: { ...n.data, tone: config.tone.charAt(0).toUpperCase() + config.tone.slice(1), isConfigured: true } }
         : n
     ));
     toast.success('Caption writer configured!');
@@ -437,6 +444,16 @@ const SchedulerBuilder: React.FC<SchedulerBuilderProps> = ({
       return;
     }
 
+    // Check if all nodes are configured
+    const unconfiguredNodes = nodes.filter(n =>
+      n.data.isConfigured === false && n.id !== 'trigger-1'
+    );
+    if (unconfiguredNodes.length > 0) {
+      const nodeNames = unconfiguredNodes.map(n => n.data.label || n.id).join(', ');
+      toast.error(`Please configure all nodes first: ${nodeNames}`);
+      return;
+    }
+
     // Reset execution state
     setIsExecuting(true);
     setCompletedNodeIds(new Set());
@@ -498,7 +515,7 @@ const SchedulerBuilder: React.FC<SchedulerBuilderProps> = ({
       setIsExecuting(false);
       setExecutingNodeId(null);
     }
-  }, [connectionStatus, hasOpenAiKey, hasGeminiKey, toast, workspace.id, nodeConfigurations]);
+  }, [connectionStatus, hasOpenAiKey, hasGeminiKey, toast, workspace.id, nodeConfigurations, nodes]);
 
   // Handle Escape key to exit full screen
   useEffect(() => {

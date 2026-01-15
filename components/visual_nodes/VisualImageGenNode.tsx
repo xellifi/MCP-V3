@@ -1,6 +1,6 @@
 import React, { memo } from 'react';
 import { Handle, Position } from 'reactflow';
-import { ImagePlus, Settings, Trash2, CheckCircle, Loader, XCircle } from 'lucide-react';
+import { ImagePlus, Settings, Trash2, CheckCircle, Loader, XCircle, AlertCircle } from 'lucide-react';
 
 import { useTheme } from '../../context/ThemeContext';
 
@@ -10,6 +10,8 @@ const VisualImageGenNode = ({ data }: { data: any }) => {
     const isExecuting = executionStatus === 'executing';
     const isCompleted = executionStatus === 'completed';
     const isError = executionStatus === 'error';
+    const isConfigured = data.isConfigured !== false;
+    const needsConfiguration = !isConfigured && !isExecuting && !isCompleted && !isError;
 
     const getBorderClasses = () => {
         if (isError) {
@@ -28,11 +30,18 @@ const VisualImageGenNode = ({ data }: { data: any }) => {
             : 'border-slate-300 hover:border-pink-500 hover:shadow-pink-500/20';
     };
 
+    const getNotConfiguredClasses = () => {
+        if (needsConfiguration) {
+            return 'border-red-400/60 shadow-[0_0_15px_rgba(248,113,113,0.3)]';
+        }
+        return '';
+    };
+
     return (
         <div className="relative group">
             <Handle type="target" position={Position.Left} className="!w-2.5 !h-2.5 !bg-slate-500 !border-none !rounded-full !-left-1 hover:!bg-slate-400 transition-colors" />
 
-            <div className={`w-[200px] h-20 border-2 rounded-xl shadow-lg flex items-center justify-center gap-3 relative group/node transition-all overflow-hidden ${isDark ? 'bg-[#1e1e1e]' : 'bg-white'} ${getBorderClasses()}`}>
+            <div className={`w-[200px] h-20 border-2 rounded-xl shadow-lg flex items-center justify-center gap-3 relative group/node transition-all overflow-hidden ${isDark ? 'bg-[#1e1e1e]' : 'bg-white'} ${needsConfiguration ? getNotConfiguredClasses() : getBorderClasses()}`}>
 
                 {/* Animated border orbs when executing */}
                 {isExecuting && (
@@ -55,13 +64,13 @@ const VisualImageGenNode = ({ data }: { data: any }) => {
                     </button>
                 </div>
 
-                <div className={`w-10 h-10 rounded-lg flex items-center justify-center shadow-md ${isError ? 'bg-red-500' : isExecuting ? 'bg-blue-500' : isCompleted ? 'bg-emerald-500' : 'bg-gradient-to-br from-pink-500 to-rose-600'} ${isDark ? 'shadow-pink-900/40' : 'shadow-pink-500/30'}`}>
-                    {isError ? <XCircle className="w-6 h-6 text-white" /> : isExecuting ? <Loader className="w-6 h-6 text-white animate-spin" /> : isCompleted ? <CheckCircle className="w-6 h-6 text-white" /> : <ImagePlus className="w-6 h-6 text-white" />}
+                <div className={`w-10 h-10 rounded-lg flex items-center justify-center shadow-md ${isError ? 'bg-red-500' : needsConfiguration ? 'bg-red-400' : isExecuting ? 'bg-blue-500' : isCompleted ? 'bg-emerald-500' : 'bg-gradient-to-br from-pink-500 to-rose-600'} ${isDark ? 'shadow-pink-900/40' : 'shadow-pink-500/30'}`}>
+                    {isError ? <XCircle className="w-6 h-6 text-white" /> : needsConfiguration ? <AlertCircle className="w-6 h-6 text-white" /> : isExecuting ? <Loader className="w-6 h-6 text-white animate-spin" /> : isCompleted ? <CheckCircle className="w-6 h-6 text-white" /> : <ImagePlus className="w-6 h-6 text-white" />}
                 </div>
                 <div className="flex flex-col">
                     <span className={`font-bold text-sm ${isDark ? 'text-white' : 'text-slate-900'}`}>Image Generator</span>
-                    <span className={`text-xs ${isError ? 'text-red-400' : isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                        {isError ? 'Failed!' : isExecuting ? 'Generating...' : isCompleted ? 'Done!' : data.size || 'AI Image'}
+                    <span className={`text-xs ${needsConfiguration ? 'text-red-400 font-medium' : isError ? 'text-red-400' : isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                        {needsConfiguration ? '⚠ Not Configured' : isError ? 'Failed!' : isExecuting ? 'Generating...' : isCompleted ? 'Done!' : data.size || 'AI Image'}
                     </span>
                 </div>
             </div>
