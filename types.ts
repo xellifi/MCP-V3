@@ -311,3 +311,85 @@ export interface Package {
   isVisible?: boolean; // Show on pricing page (default true)
   allowedRoutes?: string[]; // List of allowed paths e.g. ['/', '/dashboard', '/settings']
 }
+
+// ============================================
+// SCHEDULER WORKFLOW TYPES
+// ============================================
+
+export interface SchedulerWorkflow {
+  id: string;
+  workspaceId: string;
+  name: string;
+  description?: string;
+  status: 'draft' | 'active' | 'paused';
+  nodes: any[];
+  edges: any[];
+  configurations: Record<string, any>;
+  scheduleType: 'daily' | 'weekly' | 'monthly' | 'custom';
+  scheduleTime: string; // "09:00"
+  scheduleDays: number[]; // days of week or day of month
+  scheduleTimezone: string;
+  cronExpression?: string;
+  nextRunAt?: string;
+  lastRunAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SchedulerExecution {
+  id: string;
+  workflowId: string;
+  status: 'running' | 'completed' | 'failed';
+  startedAt: string;
+  completedAt?: string;
+  result?: any;
+  error?: string;
+  generatedTopic?: string;
+  generatedImageUrl?: string;
+  generatedCaption?: string;
+  facebookPostId?: string;
+}
+
+// Node configuration types for scheduler
+export interface ScheduleTriggerConfig {
+  frequency: 'daily' | 'weekly' | 'monthly' | 'custom';
+  time: string; // "09:00"
+  daysOfWeek?: number[]; // [1,2,3,4,5] for Mon-Fri (0=Sunday)
+  dayOfMonth?: number; // 1-31
+  customCron?: string;
+  timezone: string;
+}
+
+export interface TopicGeneratorConfig {
+  aiProvider: 'openai' | 'gemini';
+  seedTopics: string[]; // Base topics to inspire generation
+  tone: 'professional' | 'casual' | 'humorous' | 'inspirational';
+  niche?: string; // e.g., "fitness", "tech", "food"
+  avoidDuplicates: boolean;
+}
+
+export interface ImageGeneratorConfig {
+  aiProvider: 'openai' | 'gemini';
+  mediaType: 'image';
+  size: '1080x1080' | '1200x628' | '1080x1920' | 'custom';
+  customWidth?: number;
+  customHeight?: number;
+  style?: 'photorealistic' | 'illustration' | '3d' | 'cartoon' | 'minimal';
+}
+
+export interface CaptionGeneratorConfig {
+  aiProvider: 'openai' | 'gemini';
+  tone: 'professional' | 'casual' | 'humorous' | 'inspirational';
+  includeHashtags: boolean;
+  hashtagCount?: number;
+  includeEmojis: boolean;
+  includeCTA: boolean;
+  ctaText?: string;
+  maxLength?: number;
+}
+
+export interface FacebookPostConfig {
+  pageId: string;
+  pageName?: string;
+  publishImmediately: boolean;
+}

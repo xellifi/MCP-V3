@@ -2499,5 +2499,252 @@ export const api = {
     }
   },
 
+  // ============================================
+  // SCHEDULER API
+  // ============================================
+  scheduler: {
+    // Get all workflows for a workspace
+    getWorkflows: async (workspaceId: string) => {
+      const { data, error } = await supabase
+        .from('scheduler_workflows')
+        .select('*')
+        .eq('workspace_id', workspaceId)
+        .order('updated_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching scheduler workflows:', error);
+        return [];
+      }
+
+      return data?.map((row: any) => ({
+        id: row.id,
+        workspaceId: row.workspace_id,
+        name: row.name,
+        description: row.description,
+        status: row.status,
+        nodes: row.nodes || [],
+        edges: row.edges || [],
+        configurations: row.configurations || {},
+        scheduleType: row.schedule_type,
+        scheduleTime: row.schedule_time,
+        scheduleDays: row.schedule_days || [],
+        scheduleTimezone: row.schedule_timezone,
+        cronExpression: row.cron_expression,
+        nextRunAt: row.next_run_at,
+        lastRunAt: row.last_run_at,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at
+      })) || [];
+    },
+
+    // Get single workflow
+    getWorkflow: async (id: string) => {
+      const { data, error } = await supabase
+        .from('scheduler_workflows')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (error) {
+        console.error('Error fetching scheduler workflow:', error);
+        throw new Error('Workflow not found');
+      }
+
+      return {
+        id: data.id,
+        workspaceId: data.workspace_id,
+        name: data.name,
+        description: data.description,
+        status: data.status,
+        nodes: data.nodes || [],
+        edges: data.edges || [],
+        configurations: data.configurations || {},
+        scheduleType: data.schedule_type,
+        scheduleTime: data.schedule_time,
+        scheduleDays: data.schedule_days || [],
+        scheduleTimezone: data.schedule_timezone,
+        cronExpression: data.cron_expression,
+        nextRunAt: data.next_run_at,
+        lastRunAt: data.last_run_at,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at
+      };
+    },
+
+    // Create workflow
+    createWorkflow: async (workspaceId: string, workflowData: any) => {
+      const { data, error } = await supabase
+        .from('scheduler_workflows')
+        .insert({
+          workspace_id: workspaceId,
+          name: workflowData.name || 'Untitled Workflow',
+          description: workflowData.description,
+          status: workflowData.status || 'draft',
+          nodes: workflowData.nodes || [],
+          edges: workflowData.edges || [],
+          configurations: workflowData.configurations || {},
+          schedule_type: workflowData.scheduleType || 'daily',
+          schedule_time: workflowData.scheduleTime || '09:00',
+          schedule_days: workflowData.scheduleDays || [],
+          schedule_timezone: workflowData.scheduleTimezone || 'UTC',
+          cron_expression: workflowData.cronExpression
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error creating scheduler workflow:', error);
+        throw new Error('Failed to create workflow');
+      }
+
+      return data;
+    },
+
+    // Update workflow
+    updateWorkflow: async (id: string, workflowData: any) => {
+      const updateData: any = {};
+
+      if (workflowData.name !== undefined) updateData.name = workflowData.name;
+      if (workflowData.description !== undefined) updateData.description = workflowData.description;
+      if (workflowData.status !== undefined) updateData.status = workflowData.status;
+      if (workflowData.nodes !== undefined) updateData.nodes = workflowData.nodes;
+      if (workflowData.edges !== undefined) updateData.edges = workflowData.edges;
+      if (workflowData.configurations !== undefined) updateData.configurations = workflowData.configurations;
+      if (workflowData.scheduleType !== undefined) updateData.schedule_type = workflowData.scheduleType;
+      if (workflowData.scheduleTime !== undefined) updateData.schedule_time = workflowData.scheduleTime;
+      if (workflowData.scheduleDays !== undefined) updateData.schedule_days = workflowData.scheduleDays;
+      if (workflowData.scheduleTimezone !== undefined) updateData.schedule_timezone = workflowData.scheduleTimezone;
+      if (workflowData.cronExpression !== undefined) updateData.cron_expression = workflowData.cronExpression;
+
+      const { data, error } = await supabase
+        .from('scheduler_workflows')
+        .update(updateData)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error updating scheduler workflow:', error);
+        throw new Error('Failed to update workflow');
+      }
+
+      return data;
+    },
+
+    // Delete workflow
+    deleteWorkflow: async (id: string) => {
+      const { error } = await supabase
+        .from('scheduler_workflows')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        console.error('Error deleting scheduler workflow:', error);
+        throw new Error('Failed to delete workflow');
+      }
+    },
+
+    // Get executions for a workflow
+    getExecutions: async (workflowId: string, limit: number = 20) => {
+      const { data, error } = await supabase
+        .from('scheduler_executions')
+        .select('*')
+        .eq('workflow_id', workflowId)
+        .order('started_at', { ascending: false })
+        .limit(limit);
+
+      if (error) {
+        console.error('Error fetching executions:', error);
+        return [];
+      }
+
+      return data?.map((row: any) => ({
+        id: row.id,
+        workflowId: row.workflow_id,
+        status: row.status,
+        startedAt: row.started_at,
+        completedAt: row.completed_at,
+        result: row.result,
+        error: row.error,
+        generatedTopic: row.generated_topic,
+        generatedImageUrl: row.generated_image_url,
+        generatedCaption: row.generated_caption,
+        facebookPostId: row.facebook_post_id
+      })) || [];
+    },
+
+    // Get topic history to avoid duplicates
+    getTopicHistory: async (workflowId: string) => {
+      const { data, error } = await supabase
+        .from('scheduler_topic_history')
+        .select('topic')
+        .eq('workflow_id', workflowId)
+        .order('generated_at', { ascending: false })
+        .limit(100);
+
+      if (error) {
+        console.error('Error fetching topic history:', error);
+        return [];
+      }
+
+      return data?.map((row: any) => row.topic) || [];
+    },
+
+    // Add topic to history
+    addTopicToHistory: async (workflowId: string, topic: string) => {
+      const { error } = await supabase
+        .from('scheduler_topic_history')
+        .insert({
+          workflow_id: workflowId,
+          topic: topic
+        });
+
+      if (error) {
+        console.error('Error adding topic to history:', error);
+      }
+    },
+
+    // Create execution record
+    createExecution: async (workflowId: string) => {
+      const { data, error } = await supabase
+        .from('scheduler_executions')
+        .insert({
+          workflow_id: workflowId,
+          status: 'running'
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error creating execution:', error);
+        throw new Error('Failed to start execution');
+      }
+
+      return data;
+    },
+
+    // Update execution
+    updateExecution: async (executionId: string, updates: any) => {
+      const updateData: any = {};
+
+      if (updates.status) updateData.status = updates.status;
+      if (updates.completedAt) updateData.completed_at = updates.completedAt;
+      if (updates.result) updateData.result = updates.result;
+      if (updates.error) updateData.error = updates.error;
+      if (updates.generatedTopic) updateData.generated_topic = updates.generatedTopic;
+      if (updates.generatedImageUrl) updateData.generated_image_url = updates.generatedImageUrl;
+      if (updates.generatedCaption) updateData.generated_caption = updates.generatedCaption;
+      if (updates.facebookPostId) updateData.facebook_post_id = updates.facebookPostId;
+
+      const { error } = await supabase
+        .from('scheduler_executions')
+        .update(updateData)
+        .eq('id', executionId);
+
+      if (error) {
+        console.error('Error updating execution:', error);
+      }
+    }
+  },
 
 };
