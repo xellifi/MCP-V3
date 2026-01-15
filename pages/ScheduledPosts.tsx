@@ -15,7 +15,7 @@ import ReactFlow, {
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { Workspace, ConnectedPage, ScheduleTriggerConfig, TopicGeneratorConfig, ImageGeneratorConfig, CaptionGeneratorConfig, FacebookPostConfig, IntegrationSettings } from '../types';
-import { Plus, Zap, Lightbulb, ImagePlus, PenTool, Facebook, Save, Play, ArrowLeft, Clock, MoreHorizontal, LayoutGrid, List, Maximize2, Minimize2, AlertTriangle, Link as LinkIcon, CalendarDays } from 'lucide-react';
+import { Plus, Zap, Lightbulb, ImagePlus, PenTool, Facebook, Save, Play, ArrowLeft, Clock, MoreHorizontal, LayoutGrid, List, Maximize2, Minimize2, AlertTriangle, Link as LinkIcon, CalendarDays, Bug, CheckCircle, XCircle } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import VisualTriggerNode from '../components/visual_nodes/VisualTriggerNode';
 import VisualTopicNode from '../components/visual_nodes/VisualTopicNode';
@@ -680,10 +680,11 @@ const ScheduledPosts: React.FC<ScheduledPostsProps> = ({ workspace }) => {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [connections, pages, integrations] = await Promise.all([
+        const [connections, pages, integrations, workflows] = await Promise.all([
           api.workspace.getConnections(workspace.id),
           api.workspace.getConnectedPages(workspace.id),
-          api.workspace.getIntegrations(workspace.id)
+          api.workspace.getIntegrations(workspace.id),
+          api.scheduler.getWorkflows(workspace.id)
         ]);
 
         const hasConnection = connections.length > 0;
@@ -691,6 +692,7 @@ const ScheduledPosts: React.FC<ScheduledPostsProps> = ({ workspace }) => {
 
         setConnectedPages(pages);
         setIntegrationSettings(integrations);
+        setScheduledItems(workflows);
         setConnectionStatus({
           hasConnection,
           hasActivePages,
@@ -769,41 +771,85 @@ const ScheduledPosts: React.FC<ScheduledPostsProps> = ({ workspace }) => {
                 </button>
               </div>
             ) : (
-              /* List View */
               <div className="w-full self-start">
                 <table className="w-full text-left">
                   <thead className={`text-xs uppercase font-bold border-b ${isDark ? 'bg-white/5 text-slate-400 border-white/10' : 'bg-slate-50 text-slate-500 border-slate-200'}`}>
                     <tr>
                       <th className="px-6 py-4">Name</th>
-                      <th className="px-6 py-4">Page</th>
-                      <th className="px-6 py-4">Next Run</th>
+                      <th className="px-6 py-4">Schedule</th>
+                      <th className="px-6 py-4">Last Run</th>
                       <th className="px-6 py-4">Status</th>
                       <th className="px-6 py-4 text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className={`divide-y ${isDark ? 'divide-white/5' : 'divide-slate-100'}`}>
-                    {scheduledItems.map(item => (
-                      <tr key={item.id} className={`transition-colors ${isDark ? 'hover:bg-white/5' : 'hover:bg-slate-50'}`}>
-                        <td className={`px-6 py-4 font-medium ${isDark ? 'text-white' : 'text-slate-900'}`}>{item.name}</td>
-                        <td className="px-6 py-4 text-slate-400">{item.page}</td>
-                        <td className="px-6 py-4 text-slate-400 flex items-center gap-2">
-                          <Clock className="w-4 h-4" /> {item.nextRun}
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className={`inline-flex px-2 py-1 rounded-full text-xs font-bold ${item.status === 'active'
-                            ? 'bg-green-500/20 text-green-400 border border-green-500/30'
-                            : 'bg-slate-500/20 text-slate-400 border border-slate-500/30'
-                            }`}>
-                            {item.status}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 text-right">
-                          <button className={`p-2 transition-colors ${isDark ? 'text-slate-400 hover:text-white' : 'text-slate-400 hover:text-slate-700'}`}>
-                            <MoreHorizontal className="w-5 h-5" />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
+                    {scheduledItems.map(item => {
+                      // Determine last run status
+                      const hasError = item.lastExecution?.status === 'failed';
+                      const wasPosted = item.lastExecution?.status === 'completed';
+                      const isRunning = item.lastExecution?.status === 'running';
+                      const neverRun = !item.lastRunAt;
+
+                      return (
+                        <tr key={item.id} className={`transition-colors ${isDark ? 'hover:bg-white/5' : 'hover:bg-slate-50'}`}>
+                          <td className={`px-6 py-4 font-medium ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                            <div className="flex items-center gap-2">
+                              {item.name}
+                              {hasError && (
+                                <span className="relative group">
+                                  <Bug className="w-4 h-4 text-red-500 cursor-help" />
+                                  <div className={`absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity z-50 whitespace-nowrap max-w-xs ${isDark ? 'bg-red-900/90 text-red-200 border border-red-700' : 'bg-red-50 text-red-700 border border-red-200 shadow-lg'}`}>
+                                    <strong>Error:</strong> {item.lastExecution?.error || 'Unknown error'}
+                                  </div>
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 text-slate-400 capitalize">
+                            {item.scheduleType} at {item.scheduleTime}
+                          </td>
+                          <td className="px-6 py-4">
+                            {neverRun ? (
+                              <span className={`text-sm ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Never run</span>
+                            ) : (
+                              <div className="flex items-center gap-2">
+                                {hasError && (
+                                  <XCircle className="w-4 h-4 text-red-500" />
+                                )}
+                                {wasPosted && (
+                                  <CheckCircle className="w-4 h-4 text-green-500" />
+                                )}
+                                {isRunning && (
+                                  <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                                )}
+                                <span className={`text-sm ${hasError ? 'text-red-400' :
+                                    wasPosted ? 'text-green-400' :
+                                      isRunning ? 'text-blue-400' :
+                                        isDark ? 'text-slate-400' : 'text-slate-500'
+                                  }`}>
+                                  {hasError ? 'Failed' : wasPosted ? 'Posted' : isRunning ? 'Running...' : new Date(item.lastRunAt).toLocaleString()}
+                                </span>
+                              </div>
+                            )}
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className={`inline-flex px-2 py-1 rounded-full text-xs font-bold capitalize ${item.status === 'active'
+                                ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                                : item.status === 'paused'
+                                  ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                                  : 'bg-slate-500/20 text-slate-400 border border-slate-500/30'
+                              }`}>
+                              {item.status}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-right">
+                            <button className={`p-2 transition-colors ${isDark ? 'text-slate-400 hover:text-white' : 'text-slate-400 hover:text-slate-700'}`}>
+                              <MoreHorizontal className="w-5 h-5" />
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>

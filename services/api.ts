@@ -2516,25 +2516,51 @@ export const api = {
         return [];
       }
 
-      return data?.map((row: any) => ({
-        id: row.id,
-        workspaceId: row.workspace_id,
-        name: row.name,
-        description: row.description,
-        status: row.status,
-        nodes: row.nodes || [],
-        edges: row.edges || [],
-        configurations: row.configurations || {},
-        scheduleType: row.schedule_type,
-        scheduleTime: row.schedule_time,
-        scheduleDays: row.schedule_days || [],
-        scheduleTimezone: row.schedule_timezone,
-        cronExpression: row.cron_expression,
-        nextRunAt: row.next_run_at,
-        lastRunAt: row.last_run_at,
-        createdAt: row.created_at,
-        updatedAt: row.updated_at
-      })) || [];
+      // Fetch latest execution for each workflow
+      const workflowsWithExecution = await Promise.all(
+        (data || []).map(async (row: any) => {
+          // Get latest execution for this workflow
+          const { data: executions } = await supabase
+            .from('scheduler_executions')
+            .select('*')
+            .eq('workflow_id', row.id)
+            .order('started_at', { ascending: false })
+            .limit(1);
+
+          const lastExecution = executions?.[0] ? {
+            id: executions[0].id,
+            status: executions[0].status,
+            startedAt: executions[0].started_at,
+            completedAt: executions[0].completed_at,
+            error: executions[0].error,
+            generatedTopic: executions[0].generated_topic,
+            facebookPostId: executions[0].facebook_post_id
+          } : null;
+
+          return {
+            id: row.id,
+            workspaceId: row.workspace_id,
+            name: row.name,
+            description: row.description,
+            status: row.status,
+            nodes: row.nodes || [],
+            edges: row.edges || [],
+            configurations: row.configurations || {},
+            scheduleType: row.schedule_type,
+            scheduleTime: row.schedule_time,
+            scheduleDays: row.schedule_days || [],
+            scheduleTimezone: row.schedule_timezone,
+            cronExpression: row.cron_expression,
+            nextRunAt: row.next_run_at,
+            lastRunAt: row.last_run_at,
+            createdAt: row.created_at,
+            updatedAt: row.updated_at,
+            lastExecution
+          };
+        })
+      );
+
+      return workflowsWithExecution;
     },
 
     // Get single workflow
