@@ -15,7 +15,7 @@ import ReactFlow, {
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { Workspace, ConnectedPage, ScheduleTriggerConfig, TopicGeneratorConfig, ImageGeneratorConfig, CaptionGeneratorConfig, FacebookPostConfig, IntegrationSettings } from '../types';
-import { Plus, Zap, Lightbulb, ImagePlus, PenTool, Facebook, Save, Play, ArrowLeft, Clock, MoreHorizontal, LayoutGrid, List, Maximize2, Minimize2, AlertTriangle, Link as LinkIcon, CalendarDays, Bug, CheckCircle, XCircle } from 'lucide-react';
+import { Plus, Zap, Lightbulb, ImagePlus, PenTool, Facebook, Save, Play, ArrowLeft, Clock, MoreHorizontal, LayoutGrid, List, Maximize2, Minimize2, AlertTriangle, Link as LinkIcon, CalendarDays, Bug, CheckCircle, XCircle, Trash2, Pause, Edit3, PlayCircle } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import VisualTriggerNode from '../components/visual_nodes/VisualTriggerNode';
 import VisualTopicNode from '../components/visual_nodes/VisualTopicNode';
@@ -289,6 +289,37 @@ const SchedulerBuilder: React.FC<SchedulerBuilderProps> = ({
       const triggerNode = nodes.find(n => n.type === 'scheduleTrigger');
       const triggerConfig = triggerNode ? nodeConfigurations[triggerNode.id] : null;
 
+      // Calculate initial next run time
+      const scheduleType = triggerConfig?.frequency || 'daily';
+      const scheduleTime = triggerConfig?.time || '09:00';
+      const scheduleDays = triggerConfig?.daysOfWeek || (triggerConfig?.dayOfMonth ? [triggerConfig.dayOfMonth] : []);
+
+      // Calculate nextRunAt
+      const [hours, minutes] = scheduleTime.split(':').map(Number);
+      const now = new Date();
+      let nextRunAt = new Date();
+      nextRunAt.setHours(hours, minutes, 0, 0);
+
+      if (scheduleType === 'daily') {
+        if (nextRunAt <= now) {
+          nextRunAt.setDate(nextRunAt.getDate() + 1);
+        }
+      } else if (scheduleType === 'weekly' && scheduleDays.length > 0) {
+        const targetDays = scheduleDays.map(Number);
+        for (let i = 0; i < 8; i++) {
+          if (i > 0) nextRunAt.setDate(nextRunAt.getDate() + 1);
+          if (targetDays.includes(nextRunAt.getDay()) && nextRunAt > now) {
+            break;
+          }
+        }
+      } else if (scheduleType === 'monthly' && scheduleDays.length > 0) {
+        const dayOfMonth = scheduleDays[0] || 1;
+        nextRunAt = new Date(now.getFullYear(), now.getMonth(), dayOfMonth, hours, minutes, 0, 0);
+        if (nextRunAt <= now) {
+          nextRunAt.setMonth(nextRunAt.getMonth() + 1);
+        }
+      }
+
       // Prepare workflow data
       const workflowData = {
         name: 'Auto-Post Workflow',
@@ -298,15 +329,16 @@ const SchedulerBuilder: React.FC<SchedulerBuilderProps> = ({
           id: n.id,
           type: n.type,
           position: n.position,
-          data: { ...n.data, onConfigure: undefined, onDelete: undefined } // Remove function refs
+          data: { ...n.data, onConfigure: undefined, onDelete: undefined }
         })),
         edges: edges,
         configurations: nodeConfigurations,
-        scheduleType: triggerConfig?.frequency || 'daily',
-        scheduleTime: triggerConfig?.time || '09:00',
-        scheduleDays: triggerConfig?.daysOfWeek || triggerConfig?.dayOfMonth ? [triggerConfig.dayOfMonth] : [],
+        scheduleType,
+        scheduleTime,
+        scheduleDays,
         scheduleTimezone: triggerConfig?.timezone || 'Asia/Manila',
-        cronExpression: triggerConfig?.customCron
+        cronExpression: triggerConfig?.customCron,
+        nextRunAt: nextRunAt.toISOString()
       };
 
       // Save to database
@@ -676,9 +708,19 @@ const ScheduledPosts: React.FC<ScheduledPostsProps> = ({ workspace }) => {
     loading: boolean;
   }>({ hasConnection: true, hasActivePages: true, loading: true });
 
+  // Loading state for workflows
+  const [isLoadingWorkflows, setIsLoadingWorkflows] = useState(true);
+
+  const toast = useToast();
+
+  // Action menu state
+  const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+
   // Load data on mount
   useEffect(() => {
     const loadData = async () => {
+      setIsLoadingWorkflows(true);
       try {
         const [connections, pages, integrations, workflows] = await Promise.all([
           api.workspace.getConnections(workspace.id),
@@ -701,11 +743,66 @@ const ScheduledPosts: React.FC<ScheduledPostsProps> = ({ workspace }) => {
       } catch (error) {
         console.error('Failed to load data:', error);
         setConnectionStatus({ hasConnection: false, hasActivePages: false, loading: false });
+      } finally {
+        setIsLoadingWorkflows(false);
       }
     };
 
     loadData();
   }, [workspace.id]);
+
+  // Action handlers
+  const handleDeleteWorkflow = async (id: string) => {
+    try {
+      await api.scheduler.deleteWorkflow(id);
+      setScheduledItems(items => items.filter(item => item.id !== id));
+      setDeleteConfirmId(null);
+      setActiveMenuId(null);
+      toast.success('Workflow deleted successfully');
+    } catch (error) {
+      console.error('Failed to delete workflow:', error);
+      toast.error('Failed to delete workflow');
+    }
+  };
+
+  const handleTogglePause = async (id: string, currentStatus: string) => {
+    const newStatus = currentStatus === 'active' ? 'paused' : 'active';
+    try {
+      await api.scheduler.updateWorkflow(id, { status: newStatus });
+      setScheduledItems(items => items.map(item =>
+        item.id === id ? { ...item, status: newStatus } : item
+      ));
+      setActiveMenuId(null);
+      toast.success(`Workflow ${newStatus === 'active' ? 'resumed' : 'paused'}`);
+    } catch (error) {
+      console.error('Failed to update workflow:', error);
+      toast.error('Failed to update workflow');
+    }
+  };
+
+  const handleRunNow = async (id: string) => {
+    try {
+      // Create an execution record
+      await api.scheduler.createExecution(id);
+      setActiveMenuId(null);
+      toast.success('Workflow execution started! (Note: Full execution requires backend setup)');
+      // Refresh the list
+      const workflows = await api.scheduler.getWorkflows(workspace.id);
+      setScheduledItems(workflows);
+    } catch (error) {
+      console.error('Failed to run workflow:', error);
+      toast.error('Failed to start workflow execution');
+    }
+  };
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => setActiveMenuId(null);
+    if (activeMenuId) {
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
+  }, [activeMenuId]);
 
   return (
     <div className="animate-fade-in w-full h-full">
@@ -752,7 +849,13 @@ const ScheduledPosts: React.FC<ScheduledPostsProps> = ({ workspace }) => {
 
           {/* Main Content Area */}
           <div className={`rounded-2xl border min-h-[60vh] flex items-center justify-center p-8 ${isDark ? 'glass-panel border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
-            {scheduledItems.length === 0 ? (
+            {isLoadingWorkflows ? (
+              /* Loading State */
+              <div className="flex flex-col items-center justify-center text-center">
+                <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mb-4" />
+                <p className={`text-lg ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Loading workflows...</p>
+              </div>
+            ) : scheduledItems.length === 0 ? (
               /* Empty State */
               <div className="flex flex-col items-center justify-center text-center">
                 <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-6 border shadow-inner ${isDark ? 'bg-white/5 border-white/10' : 'bg-slate-50 border-slate-200'}`}>
@@ -823,9 +926,9 @@ const ScheduledPosts: React.FC<ScheduledPostsProps> = ({ workspace }) => {
                                   <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
                                 )}
                                 <span className={`text-sm ${hasError ? 'text-red-400' :
-                                    wasPosted ? 'text-green-400' :
-                                      isRunning ? 'text-blue-400' :
-                                        isDark ? 'text-slate-400' : 'text-slate-500'
+                                  wasPosted ? 'text-green-400' :
+                                    isRunning ? 'text-blue-400' :
+                                      isDark ? 'text-slate-400' : 'text-slate-500'
                                   }`}>
                                   {hasError ? 'Failed' : wasPosted ? 'Posted' : isRunning ? 'Running...' : new Date(item.lastRunAt).toLocaleString()}
                                 </span>
@@ -834,18 +937,79 @@ const ScheduledPosts: React.FC<ScheduledPostsProps> = ({ workspace }) => {
                           </td>
                           <td className="px-6 py-4">
                             <span className={`inline-flex px-2 py-1 rounded-full text-xs font-bold capitalize ${item.status === 'active'
-                                ? 'bg-green-500/20 text-green-400 border border-green-500/30'
-                                : item.status === 'paused'
-                                  ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
-                                  : 'bg-slate-500/20 text-slate-400 border border-slate-500/30'
+                              ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                              : item.status === 'paused'
+                                ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                                : 'bg-slate-500/20 text-slate-400 border border-slate-500/30'
                               }`}>
                               {item.status}
                             </span>
                           </td>
                           <td className="px-6 py-4 text-right">
-                            <button className={`p-2 transition-colors ${isDark ? 'text-slate-400 hover:text-white' : 'text-slate-400 hover:text-slate-700'}`}>
-                              <MoreHorizontal className="w-5 h-5" />
-                            </button>
+                            <div className="relative">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setActiveMenuId(activeMenuId === item.id ? null : item.id);
+                                }}
+                                className={`p-2 transition-colors rounded-lg ${isDark ? 'text-slate-400 hover:text-white hover:bg-white/10' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-100'}`}
+                              >
+                                <MoreHorizontal className="w-5 h-5" />
+                              </button>
+
+                              {/* Dropdown Menu */}
+                              {activeMenuId === item.id && (
+                                <div
+                                  className={`absolute right-0 top-full mt-1 w-44 rounded-xl shadow-xl border z-50 overflow-hidden ${isDark ? 'bg-slate-800 border-white/10' : 'bg-white border-slate-200'}`}
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <button
+                                    onClick={() => handleRunNow(item.id)}
+                                    className={`w-full flex items-center gap-3 px-4 py-3 text-left text-sm transition-colors ${isDark ? 'text-slate-300 hover:bg-white/5' : 'text-slate-700 hover:bg-slate-50'}`}
+                                  >
+                                    <PlayCircle className="w-4 h-4 text-blue-500" />
+                                    Run Now
+                                  </button>
+                                  <button
+                                    onClick={() => handleTogglePause(item.id, item.status)}
+                                    className={`w-full flex items-center gap-3 px-4 py-3 text-left text-sm transition-colors ${isDark ? 'text-slate-300 hover:bg-white/5' : 'text-slate-700 hover:bg-slate-50'}`}
+                                  >
+                                    {item.status === 'active' ? (
+                                      <><Pause className="w-4 h-4 text-amber-500" /> Pause</>) : (
+                                      <><Play className="w-4 h-4 text-green-500" /> Resume</>
+                                    )}
+                                  </button>
+                                  <div className={`border-t ${isDark ? 'border-white/10' : 'border-slate-100'}`} />
+                                  {deleteConfirmId === item.id ? (
+                                    <div className="p-3">
+                                      <p className={`text-xs mb-2 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Delete this workflow?</p>
+                                      <div className="flex gap-2">
+                                        <button
+                                          onClick={() => handleDeleteWorkflow(item.id)}
+                                          className="flex-1 px-3 py-1.5 text-xs font-bold bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                                        >
+                                          Delete
+                                        </button>
+                                        <button
+                                          onClick={() => setDeleteConfirmId(null)}
+                                          className={`flex-1 px-3 py-1.5 text-xs font-bold rounded-lg transition-colors ${isDark ? 'bg-slate-700 text-slate-300 hover:bg-slate-600' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+                                        >
+                                          Cancel
+                                        </button>
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <button
+                                      onClick={() => setDeleteConfirmId(item.id)}
+                                      className={`w-full flex items-center gap-3 px-4 py-3 text-left text-sm transition-colors text-red-500 ${isDark ? 'hover:bg-red-500/10' : 'hover:bg-red-50'}`}
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                      Delete
+                                    </button>
+                                  )}
+                                </div>
+                              )}
+                            </div>
                           </td>
                         </tr>
                       );

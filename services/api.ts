@@ -2613,7 +2613,8 @@ export const api = {
           schedule_time: workflowData.scheduleTime || '09:00',
           schedule_days: workflowData.scheduleDays || [],
           schedule_timezone: workflowData.scheduleTimezone || 'UTC',
-          cron_expression: workflowData.cronExpression
+          cron_expression: workflowData.cronExpression,
+          next_run_at: workflowData.nextRunAt
         })
         .select()
         .single();
