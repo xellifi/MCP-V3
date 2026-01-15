@@ -853,26 +853,13 @@ function calculateNextRun(workflow: any): Date | null {
     const scheduleTime = workflow.schedule_time || '09:00';
     const scheduleDays = workflow.schedule_days || [];
 
-    // Get times array from configurations (trigger node)
-    const configurations = workflow.configurations || {};
-    let times: string[] = [scheduleTime]; // Default to single time
+    // Get times array from schedule_times column (new approach)
+    // Falls back to single schedule_time if schedule_times is empty
+    let times: string[] = workflow.schedule_times && workflow.schedule_times.length > 0
+        ? workflow.schedule_times
+        : [scheduleTime];
 
-    // Debug: Log all configuration keys
-    console.log(`[Scheduler] Workflow configurations keys:`, Object.keys(configurations));
-    console.log(`[Scheduler] Full configurations:`, JSON.stringify(configurations, null, 2));
-
-    // Find trigger config and get times array
-    for (const [nodeId, config] of Object.entries(configurations)) {
-        const cfg = config as any;
-        console.log(`[Scheduler] Checking node ${nodeId}, has times:`, cfg?.times);
-        if (cfg?.times && Array.isArray(cfg.times) && cfg.times.length > 0) {
-            times = cfg.times;
-            console.log(`[Scheduler] Found times array in node ${nodeId}:`, times);
-            break;
-        }
-    }
-
-    console.log(`[Scheduler] calculateNextRun for "${workflow.name}" - type: ${scheduleType}, times: [${times.join(', ')}], now: ${now.toISOString()}`);
+    console.log(`[Scheduler] calculateNextRun for "${workflow.name}" - type: ${scheduleType}, times: [${times.join(', ')}], schedule_times from DB: ${JSON.stringify(workflow.schedule_times)}`);
 
     switch (scheduleType) {
         case 'daily': {

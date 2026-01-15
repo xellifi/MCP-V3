@@ -2548,6 +2548,7 @@ export const api = {
             configurations: row.configurations || {},
             scheduleType: row.schedule_type,
             scheduleTime: row.schedule_time,
+            scheduleTimes: row.schedule_times || [row.schedule_time || '09:00'],
             scheduleDays: row.schedule_days || [],
             scheduleTimezone: row.schedule_timezone,
             cronExpression: row.cron_expression,
@@ -2599,6 +2600,10 @@ export const api = {
 
     // Create workflow
     createWorkflow: async (workspaceId: string, workflowData: any) => {
+      // Extract schedule times - ensure it's always an array
+      const scheduleTimes = workflowData.scheduleTimes ||
+        (workflowData.scheduleTime ? [workflowData.scheduleTime] : ['09:00']);
+
       const { data, error } = await supabase
         .from('scheduler_workflows')
         .insert({
@@ -2610,7 +2615,8 @@ export const api = {
           edges: workflowData.edges || [],
           configurations: workflowData.configurations || {},
           schedule_type: workflowData.scheduleType || 'daily',
-          schedule_time: workflowData.scheduleTime || '09:00',
+          schedule_time: workflowData.scheduleTime || scheduleTimes[0] || '09:00',
+          schedule_times: scheduleTimes,
           schedule_days: workflowData.scheduleDays || [],
           schedule_timezone: workflowData.scheduleTimezone || 'UTC',
           cron_expression: workflowData.cronExpression,
@@ -2639,6 +2645,7 @@ export const api = {
       if (workflowData.configurations !== undefined) updateData.configurations = workflowData.configurations;
       if (workflowData.scheduleType !== undefined) updateData.schedule_type = workflowData.scheduleType;
       if (workflowData.scheduleTime !== undefined) updateData.schedule_time = workflowData.scheduleTime;
+      if (workflowData.scheduleTimes !== undefined) updateData.schedule_times = workflowData.scheduleTimes;
       if (workflowData.scheduleDays !== undefined) updateData.schedule_days = workflowData.scheduleDays;
       if (workflowData.scheduleTimezone !== undefined) updateData.schedule_timezone = workflowData.scheduleTimezone;
       if (workflowData.cronExpression !== undefined) updateData.cron_expression = workflowData.cronExpression;

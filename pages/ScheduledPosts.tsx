@@ -373,6 +373,11 @@ const SchedulerBuilder: React.FC<SchedulerBuilderProps> = ({
       }
 
       // Prepare workflow data
+      // Extract times array from trigger config - this is the key for multiple schedules
+      const scheduleTimes = triggerConfig?.times && triggerConfig.times.length > 0
+        ? triggerConfig.times
+        : [scheduleTime];
+
       const workflowData = {
         name: workflowName.trim() || editWorkflow?.name || 'Auto-Post Workflow',
         description: 'AI-powered content automation for Facebook',
@@ -387,6 +392,7 @@ const SchedulerBuilder: React.FC<SchedulerBuilderProps> = ({
         configurations: nodeConfigurations,
         scheduleType,
         scheduleTime,
+        scheduleTimes, // Multiple times array for cron job
         scheduleDays,
         scheduleTimezone: triggerConfig?.timezone || 'Asia/Manila',
         cronExpression: triggerConfig?.customCron,
@@ -1024,8 +1030,13 @@ const ScheduledPosts: React.FC<ScheduledPostsProps> = ({ workspace }) => {
     return null;
   };
 
-  // Helper to get all schedule times from workflow configurations
+  // Helper to get all schedule times from workflow
   const getWorkflowScheduleTimes = (workflow: any): string[] => {
+    // First try the scheduleTimes field (from schedule_times DB column)
+    if (workflow.scheduleTimes && Array.isArray(workflow.scheduleTimes) && workflow.scheduleTimes.length > 0) {
+      return workflow.scheduleTimes;
+    }
+    // Fallback to configurations (for backward compatibility)
     const configs = workflow.configurations || {};
     for (const [nodeId, config] of Object.entries(configs)) {
       const cfg = config as any;
@@ -1033,7 +1044,7 @@ const ScheduledPosts: React.FC<ScheduledPostsProps> = ({ workspace }) => {
         return cfg.times;
       }
     }
-    // Fallback to single time
+    // Final fallback to single time
     return [workflow.scheduleTime || '09:00'];
   };
 
