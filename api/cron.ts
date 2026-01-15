@@ -725,16 +725,40 @@ async function generateCaption(
     const ctaType = config.ctaType || 'engage';
     const maxLength = config.maxLength || 300;
 
-    const prompt = `Write a Facebook post caption about: ${topic}
+    const prompt = `Write a beautifully formatted Facebook post caption about: ${topic}
 
-Requirements:
+FORMATTING RULES (VERY IMPORTANT):
+- Use proper line breaks for readability
+- Structure the caption in clear paragraphs separated by blank lines
+- Follow this exact layout format:
+
+[Opening hook with emoji] First sentence that grabs attention.
+Second sentence expanding on the hook.
+
+[Body paragraph] Main message or story.
+Keep this engaging and relatable.
+
+[Call to action or closing thought] ${includeCta ? `Type: ${ctaType}` : 'End with an inspiring thought'}
+
+${includeHashtags ? '[Hashtags on their own line] #Hashtag1 #Hashtag2 #Hashtag3 #Hashtag4 #Hashtag5' : ''}
+
+STYLE REQUIREMENTS:
 - Tone: ${tone}
 - Maximum length: ${maxLength} characters
-${includeEmojis ? '- Include relevant emojis' : '- No emojis'}
-${includeHashtags ? '- Include 3-5 relevant hashtags at the end' : '- No hashtags'}
-${includeCta ? `- Include a call-to-action (type: ${ctaType})` : ''}
+${includeEmojis ? '- Start key sentences with relevant emojis (🎶✨🌟🎤💡❤️🔥💪🙌 etc.)' : '- No emojis'}
+${includeHashtags ? '- Include 3-5 relevant hashtags as the LAST line, all on one line' : '- No hashtags'}
+${includeCta ? `- Include a compelling call-to-action (${ctaType === 'engage' ? 'ask a question or invite comments' : ctaType === 'share' ? 'encourage sharing' : ctaType === 'visit' ? 'direct to take action' : 'encourage engagement'})` : ''}
 
-Return ONLY the caption text, ready to post.`;
+EXAMPLE FORMAT:
+🎶✨ Music has a unique way of bringing us together!
+Share your favorite live concert memory in the comments below
+and tag the band that made it unforgettable.
+
+Let's relive those magical moments! 🌟🎤
+
+#ConcertMemories #LiveMusic #MusicLovers #UnforgettableMoments #ShareYourStory
+
+Return ONLY the formatted caption text, ready to post. Make sure there are proper line breaks between paragraphs.`;
 
     if (provider === 'openai') {
         const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -838,9 +862,12 @@ function calculateNextRun(workflow: any): Date | null {
         const cfg = config as any;
         if (cfg?.times && Array.isArray(cfg.times) && cfg.times.length > 0) {
             times = cfg.times;
+            console.log(`[Scheduler] Found times array in node ${nodeId}:`, times);
             break;
         }
     }
+
+    console.log(`[Scheduler] calculateNextRun for "${workflow.name}" - type: ${scheduleType}, times: [${times.join(', ')}], now: ${now.toISOString()}`);
 
     switch (scheduleType) {
         case 'daily': {
@@ -866,7 +893,10 @@ function calculateNextRun(workflow: any): Date | null {
 
             // Return the earliest upcoming time
             candidates.sort((a, b) => a.getTime() - b.getTime());
-            return candidates[0] || null;
+            const nextRun = candidates[0] || null;
+            console.log(`[Scheduler] Daily candidates:`, candidates.map(d => d.toISOString()));
+            console.log(`[Scheduler] Next run selected:`, nextRun?.toISOString());
+            return nextRun;
         }
 
         case 'weekly': {

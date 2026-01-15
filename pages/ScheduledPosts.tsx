@@ -15,7 +15,7 @@ import ReactFlow, {
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { Workspace, ConnectedPage, ScheduleTriggerConfig, TopicGeneratorConfig, ImageGeneratorConfig, CaptionGeneratorConfig, FacebookPostConfig, IntegrationSettings } from '../types';
-import { Plus, Zap, Lightbulb, ImagePlus, PenTool, Facebook, Save, Play, ArrowLeft, Clock, MoreHorizontal, LayoutGrid, List, Maximize2, Minimize2, AlertTriangle, Link as LinkIcon, CalendarDays, Bug, CheckCircle, XCircle, Trash2, Pause, Edit3, PlayCircle } from 'lucide-react';
+import { Plus, Zap, Lightbulb, ImagePlus, PenTool, Facebook, Save, Play, ArrowLeft, Clock, MoreHorizontal, LayoutGrid, List, Maximize2, Minimize2, AlertTriangle, Link as LinkIcon, CalendarDays, Bug, CheckCircle, XCircle, Trash2, Pause, Edit3, PlayCircle, History, X, ExternalLink, ChevronDown, ChevronUp } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import VisualTriggerNode from '../components/visual_nodes/VisualTriggerNode';
 import VisualTopicNode from '../components/visual_nodes/VisualTopicNode';
@@ -755,6 +755,12 @@ const ScheduledPosts: React.FC<ScheduledPostsProps> = ({ workspace }) => {
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [editWorkflow, setEditWorkflow] = useState<any>(null);
 
+  // History modal state
+  const [historyWorkflow, setHistoryWorkflow] = useState<any>(null);
+  const [historyExecutions, setHistoryExecutions] = useState<any[]>([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [expandedHistoryIds, setExpandedHistoryIds] = useState<Set<string>>(new Set());
+
   // Load data on mount
   useEffect(() => {
     const loadData = async () => {
@@ -788,6 +794,53 @@ const ScheduledPosts: React.FC<ScheduledPostsProps> = ({ workspace }) => {
 
     loadData();
   }, [workspace.id]);
+
+  // Real-time polling for workflow status (every 5 seconds)
+  useEffect(() => {
+    if (view !== 'list' || scheduledItems.length === 0) return; // Only poll when viewing list (not builder)
+
+    const pollStatus = async () => {
+      try {
+        const workflows = await api.scheduler.getWorkflows(workspace.id);
+        setScheduledItems(workflows);
+      } catch (error) {
+        console.error('Failed to poll workflows:', error);
+      }
+    };
+
+    const interval = setInterval(pollStatus, 5000); // Poll every 5 seconds
+    return () => clearInterval(interval);
+  }, [workspace.id, view, scheduledItems.length]);
+
+  // Helper to format time to 12-hour format
+  const formatTo12Hour = (time24: string) => {
+    if (!time24) return '';
+    const [hours, minutes] = time24.split(':').map(Number);
+    const period = hours >= 12 ? 'PM' : 'AM';
+    const hours12 = hours % 12 || 12;
+    return `${hours12}:${minutes.toString().padStart(2, '0')} ${period}`;
+  };
+
+  // Helper to get execution status display
+  const getExecutionStatus = (item: any) => {
+    const exec = item.lastExecution;
+    if (!exec) return { status: 'never', label: 'Never run', color: 'slate' };
+
+    switch (exec.status) {
+      case 'running':
+        return { status: 'running', label: 'Processing...', color: 'blue' };
+      case 'completed':
+        return { status: 'completed', label: 'Posted', color: 'green' };
+      case 'failed':
+        return { status: 'failed', label: 'Failed', color: 'red' };
+      default:
+        // Check if next_run_at is in the past (queued)
+        if (item.nextRunAt && new Date(item.nextRunAt) <= new Date()) {
+          return { status: 'queued', label: 'In Queue...', color: 'amber' };
+        }
+        return { status: 'idle', label: item.lastRunAt ? new Date(item.lastRunAt).toLocaleString() : 'Never run', color: 'slate' };
+    }
+  };
 
   // Action handlers
   const handleDeleteWorkflow = async (id: string) => {
@@ -847,6 +900,22 @@ const ScheduledPosts: React.FC<ScheduledPostsProps> = ({ workspace }) => {
     setView('list');
   };
 
+  const handleViewHistory = async (workflow: any) => {
+    setHistoryWorkflow(workflow);
+    setActiveMenuId(null);
+    setIsLoadingHistory(true);
+    try {
+      const executions = await api.scheduler.getExecutions(workflow.id);
+      setHistoryExecutions(executions || []);
+    } catch (error) {
+      console.error('Failed to load history:', error);
+      toast.error('Failed to load execution history');
+      setHistoryExecutions([]);
+    } finally {
+      setIsLoadingHistory(false);
+    }
+  };
+
   // Helper to get page info from workflow configurations
   const getWorkflowPageInfo = (workflow: any) => {
     const configs = workflow.configurations || {};
@@ -865,6 +934,22 @@ const ScheduledPosts: React.FC<ScheduledPostsProps> = ({ workspace }) => {
     }
     return null;
   };
+
+  // Helper to get all schedule times from workflow configurations
+  const getWorkflowScheduleTimes = (workflow: any): string[] => {
+    const configs = workflow.configurations || {};
+    for (const [nodeId, config] of Object.entries(configs)) {
+      const cfg = config as any;
+      if (cfg?.times && Array.isArray(cfg.times) && cfg.times.length > 0) {
+        return cfg.times;
+      }
+    }
+    // Fallback to single time
+    return [workflow.scheduleTime || '09:00'];
+  };
+
+  // State for expanded schedule times
+  const [expandedScheduleId, setExpandedScheduleId] = useState<string | null>(null);
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -1005,6 +1090,13 @@ const ScheduledPosts: React.FC<ScheduledPostsProps> = ({ workspace }) => {
                                 Edit
                               </button>
                               <button
+                                onClick={() => handleViewHistory(item)}
+                                className={`w-full flex items-center gap-3 px-4 py-3 text-left text-sm transition-colors ${isDark ? 'text-slate-300 hover:bg-white/5' : 'text-slate-700 hover:bg-slate-50'}`}
+                              >
+                                <History className="w-4 h-4 text-cyan-500" />
+                                History
+                              </button>
+                              <button
                                 onClick={() => handleTogglePause(item.id, item.status)}
                                 className={`w-full flex items-center gap-3 px-4 py-3 text-left text-sm transition-colors ${isDark ? 'text-slate-300 hover:bg-white/5' : 'text-slate-700 hover:bg-slate-50'}`}
                               >
@@ -1060,24 +1152,67 @@ const ScheduledPosts: React.FC<ScheduledPostsProps> = ({ workspace }) => {
 
                         {/* Schedule & Status Info */}
                         <div className="space-y-2">
+                          {(() => {
+                            const scheduleTimes = getWorkflowScheduleTimes(item);
+                            const hasMultipleTimes = scheduleTimes.length > 1;
+                            const isExpanded = expandedScheduleId === item.id;
+
+                            return (
+                              <div>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (hasMultipleTimes) {
+                                      setExpandedScheduleId(isExpanded ? null : item.id);
+                                    }
+                                  }}
+                                  className={`flex items-center gap-2 ${hasMultipleTimes ? 'cursor-pointer hover:opacity-80' : 'cursor-default'}`}
+                                >
+                                  <Clock className={`w-4 h-4 ${isDark ? 'text-slate-500' : 'text-slate-400'}`} />
+                                  <span className={`text-sm capitalize ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+                                    {item.scheduleType}
+                                    {hasMultipleTimes ? (
+                                      <span className="ml-1">
+                                        ({scheduleTimes.length} times/day)
+                                      </span>
+                                    ) : (
+                                      <span className="ml-1">at {formatTo12Hour(scheduleTimes[0])}</span>
+                                    )}
+                                  </span>
+                                  {hasMultipleTimes && (
+                                    isExpanded ?
+                                      <ChevronUp className={`w-3 h-3 ${isDark ? 'text-slate-400' : 'text-slate-500'}`} /> :
+                                      <ChevronDown className={`w-3 h-3 ${isDark ? 'text-slate-400' : 'text-slate-500'}`} />
+                                  )}
+                                </button>
+                                {isExpanded && hasMultipleTimes && (
+                                  <div className={`mt-2 ml-6 p-2 rounded-lg space-y-1 ${isDark ? 'bg-white/5' : 'bg-slate-100'}`}>
+                                    {scheduleTimes.map((time, idx) => (
+                                      <div key={idx} className={`flex items-center gap-2 text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                                        <div className={`w-1.5 h-1.5 rounded-full ${isDark ? 'bg-indigo-400' : 'bg-indigo-500'}`} />
+                                        {formatTo12Hour(time)}
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })()}
                           <div className="flex items-center gap-2">
-                            <Clock className={`w-4 h-4 ${isDark ? 'text-slate-500' : 'text-slate-400'}`} />
-                            <span className={`text-sm capitalize ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
-                              {item.scheduleType} at {item.scheduleTime}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            {hasError ? (
-                              <><XCircle className="w-4 h-4 text-red-500" /><span className="text-sm text-red-400">Failed</span></>
-                            ) : wasPosted ? (
-                              <><CheckCircle className="w-4 h-4 text-green-500" /><span className="text-sm text-green-400">Posted</span></>
-                            ) : isRunning ? (
-                              <><div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" /><span className="text-sm text-blue-400">Running...</span></>
-                            ) : (
-                              <span className={`text-sm ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
-                                {item.lastRunAt ? new Date(item.lastRunAt).toLocaleDateString() : 'Never run'}
-                              </span>
-                            )}
+                            {(() => {
+                              const execStatus = getExecutionStatus(item);
+                              if (execStatus.status === 'running') {
+                                return <><div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" /><span className="text-sm text-blue-400">{execStatus.label}</span></>;
+                              } else if (execStatus.status === 'queued') {
+                                return <><div className="w-4 h-4 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" /><span className="text-sm text-amber-400">{execStatus.label}</span></>;
+                              } else if (execStatus.status === 'completed') {
+                                return <><CheckCircle className="w-4 h-4 text-green-500" /><span className="text-sm text-green-400">{execStatus.label}</span></>;
+                              } else if (execStatus.status === 'failed') {
+                                return <><XCircle className="w-4 h-4 text-red-500" /><span className="text-sm text-red-400">{execStatus.label}</span></>;
+                              } else {
+                                return <span className={`text-sm ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>{execStatus.label}</span>;
+                              }
+                            })()}
                           </div>
                         </div>
 
@@ -1162,32 +1297,76 @@ const ScheduledPosts: React.FC<ScheduledPostsProps> = ({ workspace }) => {
                               <span className={`text-sm ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Not set</span>
                             )}
                           </td>
-                          <td className="px-6 py-4 text-slate-400 capitalize">
-                            {item.scheduleType} at {item.scheduleTime}
+                          <td className="px-6 py-4">
+                            {(() => {
+                              const scheduleTimes = getWorkflowScheduleTimes(item);
+                              const hasMultipleTimes = scheduleTimes.length > 1;
+                              return (
+                                <div className="relative group">
+                                  <span className={`text-sm capitalize ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+                                    {item.scheduleType}
+                                    {hasMultipleTimes ? (
+                                      <span className="ml-1 px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-400 text-xs font-medium">
+                                        {scheduleTimes.length} times
+                                      </span>
+                                    ) : (
+                                      <span className="ml-1">at {formatTo12Hour(scheduleTimes[0])}</span>
+                                    )}
+                                  </span>
+                                  {hasMultipleTimes && (
+                                    <div className={`absolute left-0 top-full mt-1 p-2 rounded-lg shadow-xl border z-50 opacity-0 group-hover:opacity-100 transition-opacity min-w-32 ${isDark ? 'bg-slate-800 border-white/10' : 'bg-white border-slate-200'}`}>
+                                      <p className={`text-xs font-semibold mb-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Scheduled Times:</p>
+                                      {scheduleTimes.map((time, idx) => (
+                                        <div key={idx} className={`flex items-center gap-2 text-xs py-0.5 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+                                          <div className={`w-1.5 h-1.5 rounded-full ${isDark ? 'bg-indigo-400' : 'bg-indigo-500'}`} />
+                                          {formatTo12Hour(time)}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })()}
                           </td>
                           <td className="px-6 py-4">
-                            {neverRun ? (
-                              <span className={`text-sm ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Never run</span>
-                            ) : (
-                              <div className="flex items-center gap-2">
-                                {hasError && (
-                                  <XCircle className="w-4 h-4 text-red-500" />
-                                )}
-                                {wasPosted && (
-                                  <CheckCircle className="w-4 h-4 text-green-500" />
-                                )}
-                                {isRunning && (
-                                  <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-                                )}
-                                <span className={`text-sm ${hasError ? 'text-red-400' :
-                                  wasPosted ? 'text-green-400' :
-                                    isRunning ? 'text-blue-400' :
-                                      isDark ? 'text-slate-400' : 'text-slate-500'
-                                  }`}>
-                                  {hasError ? 'Failed' : wasPosted ? 'Posted' : isRunning ? 'Running...' : new Date(item.lastRunAt).toLocaleString()}
-                                </span>
-                              </div>
-                            )}
+                            {(() => {
+                              const execStatus = getExecutionStatus(item);
+                              if (execStatus.status === 'running') {
+                                return (
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                                    <span className="text-sm text-blue-400">Processing...</span>
+                                  </div>
+                                );
+                              } else if (execStatus.status === 'queued') {
+                                return (
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-4 h-4 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+                                    <span className="text-sm text-amber-400">In Queue...</span>
+                                  </div>
+                                );
+                              } else if (execStatus.status === 'completed') {
+                                return (
+                                  <div className="flex items-center gap-2">
+                                    <CheckCircle className="w-4 h-4 text-green-500" />
+                                    <span className="text-sm text-green-400">Posted</span>
+                                  </div>
+                                );
+                              } else if (execStatus.status === 'failed') {
+                                return (
+                                  <div className="flex items-center gap-2">
+                                    <XCircle className="w-4 h-4 text-red-500" />
+                                    <span className="text-sm text-red-400">Failed</span>
+                                  </div>
+                                );
+                              } else {
+                                return (
+                                  <span className={`text-sm ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                                    {execStatus.label}
+                                  </span>
+                                );
+                              }
+                            })()}
                           </td>
                           <td className="px-6 py-4">
                             <span className={`inline-flex px-2 py-1 rounded-full text-xs font-bold capitalize ${item.status === 'active'
@@ -1230,6 +1409,13 @@ const ScheduledPosts: React.FC<ScheduledPostsProps> = ({ workspace }) => {
                                   >
                                     <Edit3 className="w-4 h-4 text-indigo-500" />
                                     Edit
+                                  </button>
+                                  <button
+                                    onClick={() => handleViewHistory(item)}
+                                    className={`w-full flex items-center gap-3 px-4 py-3 text-left text-sm transition-colors ${isDark ? 'text-slate-300 hover:bg-white/5' : 'text-slate-700 hover:bg-slate-50'}`}
+                                  >
+                                    <History className="w-4 h-4 text-cyan-500" />
+                                    History
                                   </button>
                                   <button
                                     onClick={() => handleTogglePause(item.id, item.status)}
@@ -1298,6 +1484,173 @@ const ScheduledPosts: React.FC<ScheduledPostsProps> = ({ workspace }) => {
             editWorkflow={editWorkflow}
           />
         </ReactFlowProvider>
+      )}
+
+      {/* History Modal */}
+      {historyWorkflow && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className={`w-full max-w-3xl max-h-[85vh] rounded-2xl shadow-2xl border overflow-hidden ${isDark ? 'bg-slate-900 border-white/10' : 'bg-white border-slate-200'}`}>
+            {/* Modal Header */}
+            <div className={`flex items-center justify-between p-6 border-b ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600">
+                  <History className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h2 className={`text-xl font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>Execution History</h2>
+                  <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{historyWorkflow.name}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  setHistoryWorkflow(null);
+                  setHistoryExecutions([]);
+                }}
+                className={`p-2 rounded-lg transition-colors ${isDark ? 'hover:bg-white/10 text-slate-400' : 'hover:bg-slate-100 text-slate-500'}`}
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className={`p-6 overflow-y-auto max-h-[calc(85vh-120px)] ${isDark ? 'bg-slate-900/50' : 'bg-slate-50/50'}`}>
+              {isLoadingHistory ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+                </div>
+              ) : historyExecutions.length === 0 ? (
+                <div className={`text-center py-12 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                  <History className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                  <p>No execution history yet</p>
+                  <p className="text-sm mt-1">Run the workflow to see activity logs</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {historyExecutions.map((exec, index) => {
+                    const startTime = exec.startedAt ? new Date(exec.startedAt) : null;
+                    const endTime = exec.completedAt ? new Date(exec.completedAt) : null;
+                    const duration = startTime && endTime ? Math.round((endTime.getTime() - startTime.getTime()) / 1000) : null;
+                    const execId = exec.id || `exec-${index}`;
+                    const isExpanded = expandedHistoryIds.has(execId);
+                    const hasDetails = exec.generatedTopic || exec.generatedCaption || exec.generatedImageUrl || exec.error;
+
+                    return (
+                      <div
+                        key={execId}
+                        className={`rounded-xl border overflow-hidden ${isDark ? 'bg-white/5 border-white/10' : 'bg-white border-slate-200'}`}
+                      >
+                        {/* Execution Header - Always visible */}
+                        <button
+                          onClick={() => {
+                            if (hasDetails) {
+                              setExpandedHistoryIds(prev => {
+                                const newSet = new Set(prev);
+                                if (newSet.has(execId)) {
+                                  newSet.delete(execId);
+                                } else {
+                                  newSet.add(execId);
+                                }
+                                return newSet;
+                              });
+                            }
+                          }}
+                          className={`w-full flex items-center justify-between p-4 text-left ${hasDetails ? 'cursor-pointer hover:bg-white/5' : 'cursor-default'} transition-colors`}
+                        >
+                          <div className="flex items-center gap-3">
+                            {exec.status === 'completed' ? (
+                              <div className="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center">
+                                <CheckCircle className="w-4 h-4 text-green-500" />
+                              </div>
+                            ) : exec.status === 'failed' ? (
+                              <div className="w-8 h-8 rounded-full bg-red-500/20 flex items-center justify-center">
+                                <XCircle className="w-4 h-4 text-red-500" />
+                              </div>
+                            ) : (
+                              <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center">
+                                <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                              </div>
+                            )}
+                            <div>
+                              <span className={`font-semibold capitalize ${exec.status === 'completed' ? 'text-green-400' : exec.status === 'failed' ? 'text-red-400' : 'text-blue-400'}`}>
+                                {exec.status === 'completed' ? 'Posted Successfully' : exec.status === 'failed' ? 'Failed' : 'Processing'}
+                              </span>
+                              <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                                {startTime ? startTime.toLocaleString() : 'Unknown time'}
+                                {duration && ` • ${duration}s`}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {exec.facebookPostId && (
+                              <a
+                                href={`https://facebook.com/${exec.facebookPostId}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                                className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 transition-colors"
+                              >
+                                <ExternalLink className="w-3 h-3" />
+                                View Post
+                              </a>
+                            )}
+                            {hasDetails && (
+                              isExpanded ?
+                                <ChevronUp className={`w-4 h-4 ${isDark ? 'text-slate-400' : 'text-slate-500'}`} /> :
+                                <ChevronDown className={`w-4 h-4 ${isDark ? 'text-slate-400' : 'text-slate-500'}`} />
+                            )}
+                          </div>
+                        </button>
+
+                        {/* Execution Details - Collapsible */}
+                        {isExpanded && hasDetails && (
+                          <div className={`px-4 pb-4 space-y-3 border-t ${isDark ? 'border-white/10' : 'border-slate-100'}`}>
+                            <div className="pt-3">
+                              {exec.generatedTopic && (
+                                <div className="mb-3">
+                                  <p className={`text-xs font-semibold uppercase tracking-wide mb-1 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Topic</p>
+                                  <p className={`text-sm ${isDark ? 'text-white' : 'text-slate-700'}`}>{exec.generatedTopic}</p>
+                                </div>
+                              )}
+
+                              {exec.generatedCaption && (
+                                <div className="mb-3">
+                                  <p className={`text-xs font-semibold uppercase tracking-wide mb-1 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Caption</p>
+                                  <div className={`text-sm whitespace-pre-wrap p-3 rounded-lg ${isDark ? 'bg-black/30 text-slate-300' : 'bg-slate-100 text-slate-700'}`}>
+                                    {exec.generatedCaption}
+                                  </div>
+                                </div>
+                              )}
+
+                              {exec.generatedImageUrl && (
+                                <div className="mb-3">
+                                  <p className={`text-xs font-semibold uppercase tracking-wide mb-1 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Generated Image</p>
+                                  <img
+                                    src={exec.generatedImageUrl}
+                                    alt="Generated"
+                                    className="w-full max-w-xs rounded-lg border border-white/10"
+                                  />
+                                </div>
+                              )}
+
+                              {exec.error && (
+                                <div>
+                                  <p className={`text-xs font-semibold uppercase tracking-wide mb-1 text-red-400`}>Error</p>
+                                  <div className="text-sm p-3 rounded-lg bg-red-500/10 text-red-400 border border-red-500/20">
+                                    {exec.error}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
