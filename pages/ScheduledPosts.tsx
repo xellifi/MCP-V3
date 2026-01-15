@@ -91,6 +91,11 @@ const SchedulerBuilder: React.FC<SchedulerBuilderProps> = ({
   // Form visibility state
   const [activeForm, setActiveForm] = useState<string | null>(null);
 
+  // Workflow name modal state
+  const [showNameModal, setShowNameModal] = useState(false);
+  const [workflowName, setWorkflowName] = useState(editWorkflow?.name || '');
+  const [isSaving, setIsSaving] = useState(false);
+
   // Check for API keys
   const hasOpenAiKey = Boolean(integrationSettings?.openaiApiKey);
   const hasGeminiKey = Boolean(integrationSettings?.geminiApiKey);
@@ -302,8 +307,24 @@ const SchedulerBuilder: React.FC<SchedulerBuilderProps> = ({
     toast.success('Facebook post configured!');
   };
 
-  // Handle save flow
+  // Handle save flow - show name modal for new workflows
+  const handleSaveClick = useCallback(() => {
+    if (!connectionStatus.hasConnection || !connectionStatus.hasActivePages) {
+      setShowConnectionWarning(true);
+      return;
+    }
+
+    // For new workflows, show name modal; for edits, save directly
+    if (editWorkflow) {
+      handleSaveFlow();
+    } else {
+      setShowNameModal(true);
+    }
+  }, [connectionStatus, editWorkflow]);
+
+  // Actual save function
   const handleSaveFlow = useCallback(async () => {
+    setIsSaving(true);
     if (!connectionStatus.hasConnection || !connectionStatus.hasActivePages) {
       setShowConnectionWarning(true);
       return;
@@ -353,7 +374,7 @@ const SchedulerBuilder: React.FC<SchedulerBuilderProps> = ({
 
       // Prepare workflow data
       const workflowData = {
-        name: editWorkflow?.name || 'Auto-Post Workflow',
+        name: workflowName.trim() || editWorkflow?.name || 'Auto-Post Workflow',
         description: 'AI-powered content automation for Facebook',
         status: 'active',
         nodes: nodes.map(n => ({
@@ -380,12 +401,15 @@ const SchedulerBuilder: React.FC<SchedulerBuilderProps> = ({
         await api.scheduler.createWorkflow(workspace.id, workflowData);
         toast.success('Workflow saved successfully!');
       }
+      setShowNameModal(false);
+      setIsSaving(false);
       onSave(); // Callback to refresh list and go back
     } catch (error) {
       console.error('Failed to save workflow:', error);
       toast.error('Failed to save workflow. Please try again.');
+      setIsSaving(false);
     }
-  }, [connectionStatus, nodes, edges, nodeConfigurations, workspace.id, toast, editWorkflow, onSave]);
+  }, [connectionStatus, nodes, edges, nodeConfigurations, workspace.id, toast, editWorkflow, onSave, workflowName]);
 
   // Handle test run
   const handleTestRun = useCallback(() => {
@@ -577,7 +601,7 @@ const SchedulerBuilder: React.FC<SchedulerBuilderProps> = ({
           {isFullScreen ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
         </button>
         <button
-          onClick={handleSaveFlow}
+          onClick={handleSaveClick}
           className={`group relative p-2.5 backdrop-blur-md rounded-xl border shadow-lg transition-all ${isDark
             ? 'bg-white/5 hover:bg-white/10 text-white border-white/10'
             : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200 shadow-slate-200/50'
@@ -723,6 +747,71 @@ const SchedulerBuilder: React.FC<SchedulerBuilderProps> = ({
         initialConfig={selectedNodeId ? nodeConfigurations[selectedNodeId] : undefined}
         connectedPages={connectedPages}
       />
+
+      {/* Workflow Name Modal */}
+      {showNameModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className={`w-full max-w-md rounded-2xl shadow-2xl border overflow-hidden ${isDark ? 'bg-slate-900 border-white/10' : 'bg-white border-slate-200'}`}>
+            <div className={`p-6 border-b ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
+              <h2 className={`text-xl font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>Name Your Workflow</h2>
+              <p className={`text-sm mt-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Give your workflow a memorable name</p>
+            </div>
+            <div className="p-6">
+              <input
+                type="text"
+                value={workflowName}
+                onChange={(e) => setWorkflowName(e.target.value)}
+                placeholder="e.g., Daily Music Posts, Weekly Tips..."
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && workflowName.trim()) {
+                    handleSaveFlow();
+                  }
+                }}
+                className={`w-full px-4 py-3 rounded-xl border text-base transition-colors ${isDark
+                  ? 'bg-white/5 border-white/10 text-white placeholder-slate-500 focus:border-indigo-500'
+                  : 'bg-slate-50 border-slate-200 text-slate-900 placeholder-slate-400 focus:border-indigo-500'
+                  } focus:outline-none focus:ring-2 focus:ring-indigo-500/20`}
+              />
+            </div>
+            <div className={`p-4 flex gap-3 justify-end border-t ${isDark ? 'border-white/10 bg-black/20' : 'border-slate-200 bg-slate-50'}`}>
+              <button
+                onClick={() => {
+                  setShowNameModal(false);
+                  setWorkflowName('');
+                }}
+                disabled={isSaving}
+                className={`px-4 py-2 rounded-lg font-medium transition-colors ${isDark
+                  ? 'text-slate-400 hover:text-white hover:bg-white/10'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                  }`}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveFlow}
+                disabled={!workflowName.trim() || isSaving}
+                className={`px-6 py-2 rounded-lg font-medium transition-all flex items-center gap-2 ${workflowName.trim() && !isSaving
+                  ? 'bg-indigo-600 hover:bg-indigo-500 text-white'
+                  : 'bg-indigo-600/50 text-white/50 cursor-not-allowed'
+                  }`}
+              >
+                {isSaving ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4" />
+                    Save & Activate
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
