@@ -110,7 +110,7 @@ async function handleExecuteStep(req: VercelRequest, res: VercelResponse, step: 
                     console.log(`[Execute Step] Trying fbConfig.pageId: ${fbConfig.pageId}`);
                     const { data: configuredPage, error: err1 } = await supabase
                         .from('connected_pages')
-                        .select('page_id, access_token')
+                        .select('page_id, page_access_token')
                         .eq('page_id', fbConfig.pageId)
                         .single();
                     console.log(`[Execute Step] Config page result:`, configuredPage, err1?.message);
@@ -122,7 +122,7 @@ async function handleExecuteStep(req: VercelRequest, res: VercelResponse, step: 
                     console.log(`[Execute Step] Trying automation_enabled pages for workspace`);
                     const { data: automatedPages, error: err2 } = await supabase
                         .from('connected_pages')
-                        .select('page_id, access_token')
+                        .select('page_id, page_access_token')
                         .eq('workspace_id', workspaceId)
                         .eq('automation_enabled', true)
                         .limit(1);
@@ -137,7 +137,7 @@ async function handleExecuteStep(req: VercelRequest, res: VercelResponse, step: 
                     console.log(`[Execute Step] Trying any page for workspace`);
                     const { data: anyPages, error: err3 } = await supabase
                         .from('connected_pages')
-                        .select('page_id, access_token')
+                        .select('page_id, page_access_token')
                         .eq('workspace_id', workspaceId)
                         .limit(1);
                     console.log(`[Execute Step] Any pages result:`, anyPages, err3?.message);
@@ -151,7 +151,7 @@ async function handleExecuteStep(req: VercelRequest, res: VercelResponse, step: 
                     console.log(`[Execute Step] Trying ANY page without workspace filter`);
                     const { data: allPages, error: err4 } = await supabase
                         .from('connected_pages')
-                        .select('page_id, access_token, workspace_id')
+                        .select('page_id, page_access_token, workspace_id')
                         .limit(5);
                     console.log(`[Execute Step] All pages in DB:`, allPages, err4?.message);
                     if (allPages && allPages.length > 0) {
@@ -166,7 +166,7 @@ async function handleExecuteStep(req: VercelRequest, res: VercelResponse, step: 
                 }
 
                 console.log(`[Execute Step] Posting to page: ${page.page_id}`);
-                const postId = await postToFacebook(page.access_token, page.page_id, caption, imageUrl);
+                const postId = await postToFacebook(page.page_access_token, page.page_id, caption, imageUrl);
                 console.log(`[Execute Step] Posted to Facebook: ${postId}`);
                 return res.json({ success: true, step, result: { postId, topic, imageUrl, caption } });
             }
