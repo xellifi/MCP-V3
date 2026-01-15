@@ -1371,17 +1371,23 @@ const ScheduledPosts: React.FC<ScheduledPostsProps> = ({ workspace }) => {
                         </div>
 
                         {/* Quick Actions */}
-                        <div className="flex gap-2 mt-4 pt-4 border-t border-white/10">
+                        <div className={`flex gap-2 mt-4 pt-4 border-t ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
                           <button
                             onClick={() => handleRunNow(item.id)}
-                            className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors bg-blue-500/20 text-blue-400 hover:bg-blue-500/30"
+                            className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors border ${isDark
+                              ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/30'
+                              : 'bg-emerald-50 text-emerald-600 border-emerald-300 hover:bg-emerald-100'
+                              }`}
                           >
                             <PlayCircle className="w-4 h-4" />
                             Run
                           </button>
                           <button
                             onClick={() => handleEditWorkflow(item)}
-                            className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors bg-indigo-500/20 text-indigo-400 hover:bg-indigo-500/30"
+                            className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors border ${isDark
+                              ? 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30 hover:bg-indigo-500/30'
+                              : 'bg-indigo-50 text-indigo-600 border-indigo-300 hover:bg-indigo-100'
+                              }`}
                           >
                             <Edit3 className="w-4 h-4" />
                             Edit
