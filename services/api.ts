@@ -2771,6 +2771,36 @@ export const api = {
       if (error) {
         console.error('Error updating execution:', error);
       }
+    },
+
+    // Run workflow immediately by setting next_run_at to now
+    runNow: async (workflowId: string) => {
+      // First, clean up any stuck "running" executions for this workflow
+      await supabase
+        .from('scheduler_executions')
+        .update({
+          status: 'failed',
+          completed_at: new Date().toISOString(),
+          error: 'Cancelled - new run triggered'
+        })
+        .eq('workflow_id', workflowId)
+        .eq('status', 'running');
+
+      // Set next_run_at to now and ensure status is active
+      const { error } = await supabase
+        .from('scheduler_workflows')
+        .update({
+          next_run_at: new Date().toISOString(),
+          status: 'active'
+        })
+        .eq('id', workflowId);
+
+      if (error) {
+        console.error('Error setting run now:', error);
+        throw new Error('Failed to trigger workflow');
+      }
+
+      return { success: true, message: 'Workflow scheduled for immediate execution' };
     }
   },
 

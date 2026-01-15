@@ -782,16 +782,16 @@ const ScheduledPosts: React.FC<ScheduledPostsProps> = ({ workspace }) => {
 
   const handleRunNow = async (id: string) => {
     try {
-      // Create an execution record
-      await api.scheduler.createExecution(id);
+      // Set next_run_at to now so cron picks it up immediately
+      await api.scheduler.runNow(id);
       setActiveMenuId(null);
-      toast.success('Workflow execution started! (Note: Full execution requires backend setup)');
+      toast.success('Workflow will run within 1 minute!');
       // Refresh the list
       const workflows = await api.scheduler.getWorkflows(workspace.id);
       setScheduledItems(workflows);
     } catch (error) {
       console.error('Failed to run workflow:', error);
-      toast.error('Failed to start workflow execution');
+      toast.error('Failed to trigger workflow');
     }
   };
 
