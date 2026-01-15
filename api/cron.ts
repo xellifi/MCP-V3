@@ -99,19 +99,49 @@ async function handleExecuteStep(req: VercelRequest, res: VercelResponse, step: 
                 const imageUrl = previousResults?.['image-1']?.result?.imageUrl || '';
                 const caption = previousResults?.['caption-1']?.result?.caption || '';
 
-                // Get Facebook page access token
-                const { data: pages } = await supabase
-                    .from('connected_pages')
-                    .select('page_id, access_token')
-                    .eq('workspace_id', workspaceId)
-                    .eq('automation_enabled', true)
-                    .limit(1);
+                // Get Facebook page access token - try multiple approaches
+                let page: any = null;
 
-                if (!pages || pages.length === 0) {
-                    return res.status(400).json({ error: 'No connected Facebook pages' });
+                // First, try to get the specific page from config
+                if (fbConfig.pageId) {
+                    const { data: configuredPage } = await supabase
+                        .from('connected_pages')
+                        .select('page_id, access_token')
+                        .eq('page_id', fbConfig.pageId)
+                        .single();
+                    if (configuredPage) page = configuredPage;
                 }
 
-                const page = pages[0];
+                // Second, try any page with automation enabled
+                if (!page) {
+                    const { data: automatedPages } = await supabase
+                        .from('connected_pages')
+                        .select('page_id, access_token')
+                        .eq('workspace_id', workspaceId)
+                        .eq('automation_enabled', true)
+                        .limit(1);
+                    if (automatedPages && automatedPages.length > 0) {
+                        page = automatedPages[0];
+                    }
+                }
+
+                // Third, try any connected page for this workspace
+                if (!page) {
+                    const { data: anyPages } = await supabase
+                        .from('connected_pages')
+                        .select('page_id, access_token')
+                        .eq('workspace_id', workspaceId)
+                        .limit(1);
+                    if (anyPages && anyPages.length > 0) {
+                        page = anyPages[0];
+                    }
+                }
+
+                if (!page) {
+                    return res.status(400).json({ error: 'No connected Facebook pages. Please connect a page first.' });
+                }
+
+                console.log(`[Execute Step] Posting to page: ${page.page_id}`);
                 const postId = await postToFacebook(page.page_id, page.access_token, imageUrl, caption);
                 console.log(`[Execute Step] Posted to Facebook: ${postId}`);
                 return res.json({ success: true, step, result: { postId, topic, imageUrl, caption } });

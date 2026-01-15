@@ -534,6 +534,38 @@ const SchedulerBuilder: React.FC<SchedulerBuilderProps> = ({
     );
   }, [executingNodeId, completedNodeIds, setNodes]);
 
+  // Update edges with execution state
+  useEffect(() => {
+    setEdges((eds) =>
+      eds.map((edge) => {
+        // Edge is executing when source is completed and target is current
+        const sourceCompleted = completedNodeIds.has(edge.source);
+        const targetExecuting = executingNodeId === edge.target;
+        const targetCompleted = completedNodeIds.has(edge.target);
+
+        let executionState: 'idle' | 'executing' | 'completed' = 'idle';
+
+        if (sourceCompleted && targetCompleted) {
+          executionState = 'completed';
+        } else if (sourceCompleted && targetExecuting) {
+          executionState = 'executing';
+        }
+
+        // Only update if state changed
+        if (edge.data?.executionState !== executionState) {
+          return {
+            ...edge,
+            data: {
+              ...edge.data,
+              executionState,
+            },
+          };
+        }
+        return edge;
+      })
+    );
+  }, [executingNodeId, completedNodeIds, setEdges]);
+
   const onConnect = useCallback(
     (params: Connection) => setEdges((eds) => addEdge({
       ...params,

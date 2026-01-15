@@ -8,7 +8,11 @@ import {
 } from 'reactflow';
 import { X } from 'lucide-react';
 
-const CustomEdge: React.FC<EdgeProps> = ({
+interface CustomEdgeData {
+    executionState?: 'idle' | 'executing' | 'completed';
+}
+
+const CustomEdge: React.FC<EdgeProps<CustomEdgeData>> = ({
     id,
     sourceX,
     sourceY,
@@ -19,9 +23,11 @@ const CustomEdge: React.FC<EdgeProps> = ({
     style = {},
     markerEnd,
     selected,
+    data,
 }) => {
     const { setEdges } = useReactFlow();
     const [isHovered, setIsHovered] = useState(false);
+    const executionState = data?.executionState || 'idle';
 
     const [edgePath, labelX, labelY] = getBezierPath({
         sourceX,
@@ -38,19 +44,27 @@ const CustomEdge: React.FC<EdgeProps> = ({
         setEdges((edges) => edges.filter((edge) => edge.id !== id));
     };
 
-    // Show delete button on hover or when selected (for mobile touch)
     const showDeleteButton = isHovered || selected;
-
-    // Determine edge style based on direction
-    // Vertical flow (Bottom-to-Top connection for AI inputs): Source Top -> Target Bottom
     const isVertical = sourcePosition === 'top' && targetPosition === 'bottom';
+    const isExecuting = executionState === 'executing';
+    const isCompleted = executionState === 'completed';
+
+    // Determine stroke color based on state
+    const getStrokeColor = () => {
+        if (showDeleteButton) return '#f59e0b';
+        if (isCompleted) return '#10b981'; // green
+        if (isExecuting) return '#f59e0b'; // amber
+        return style.stroke?.toString() || '#94a3b8';
+    };
 
     const edgeStyle = {
-        stroke: showDeleteButton ? '#f59e0b' : style.stroke?.toString() || '#94a3b8',
-        strokeWidth: showDeleteButton ? 32 : (style.strokeWidth ? Number(style.strokeWidth) : 28),
+        stroke: getStrokeColor(),
+        strokeWidth: showDeleteButton ? 3 : 2,
         strokeDasharray: isVertical ? '10, 10' : 'none',
-        animation: 'none', // We'll handle animation via class
     };
+
+    // Unique ID for gradient
+    const gradientId = `lightning-gradient-${id}`;
 
     return (
         <g
@@ -58,6 +72,32 @@ const CustomEdge: React.FC<EdgeProps> = ({
             onMouseLeave={() => setIsHovered(false)}
             onTouchStart={() => setIsHovered(true)}
         >
+            {/* Define animated gradient for lightning effect */}
+            <defs>
+                <linearGradient id={gradientId} gradientUnits="userSpaceOnUse" x1={sourceX} y1={sourceY} x2={targetX} y2={targetY}>
+                    <stop offset="0%" stopColor={isCompleted ? '#10b981' : '#94a3b8'} />
+                    <stop offset="40%" stopColor={isCompleted ? '#10b981' : '#94a3b8'}>
+                        {isExecuting && <animate attributeName="offset" values="0;0.8;0" dur="1.5s" repeatCount="indefinite" />}
+                    </stop>
+                    <stop offset="50%" stopColor={isExecuting ? '#fbbf24' : (isCompleted ? '#10b981' : '#94a3b8')}>
+                        {isExecuting && <animate attributeName="offset" values="0.1;0.9;0.1" dur="1.5s" repeatCount="indefinite" />}
+                    </stop>
+                    <stop offset="60%" stopColor={isCompleted ? '#10b981' : '#94a3b8'}>
+                        {isExecuting && <animate attributeName="offset" values="0.2;1;0.2" dur="1.5s" repeatCount="indefinite" />}
+                    </stop>
+                    <stop offset="100%" stopColor={isCompleted ? '#10b981' : '#94a3b8'} />
+                </linearGradient>
+
+                {/* Glow filter for executing state */}
+                <filter id={`glow-${id}`} x="-50%" y="-50%" width="200%" height="200%">
+                    <feGaussianBlur stdDeviation="3" result="coloredBlur" />
+                    <feMerge>
+                        <feMergeNode in="coloredBlur" />
+                        <feMergeNode in="SourceGraphic" />
+                    </feMerge>
+                </filter>
+            </defs>
+
             {/* Invisible wider path for easier hover/touch detection */}
             <path
                 d={edgePath}
@@ -66,20 +106,53 @@ const CustomEdge: React.FC<EdgeProps> = ({
                 strokeWidth={50}
                 style={{ cursor: 'pointer' }}
             />
-            {/* Visible edge path */}
+
+            {/* Glow effect when executing */}
+            {isExecuting && (
+                <path
+                    d={edgePath}
+                    fill="none"
+                    stroke="#fbbf24"
+                    strokeWidth={6}
+                    strokeOpacity={0.4}
+                    filter={`url(#glow-${id})`}
+                    style={{ pointerEvents: 'none' }}
+                    className="animate-pulse"
+                />
+            )}
+
+            {/* Main visible edge path */}
             <path
                 d={edgePath}
                 fill="none"
-                stroke={edgeStyle.stroke}
-                strokeWidth={15}
+                stroke={isExecuting ? `url(#${gradientId})` : edgeStyle.stroke}
+                strokeWidth={isExecuting ? 3 : 2}
                 strokeDasharray={edgeStyle.strokeDasharray}
                 markerEnd={markerEnd}
                 style={{
                     pointerEvents: 'none',
-                    transition: 'stroke 0.15s ease-in-out',
+                    transition: 'stroke 0.3s ease-in-out',
                 }}
                 className={`react-flow__edge-path ${isVertical ? 'animated-edge' : ''}`}
             />
+
+            {/* Animated orb traveling along path when executing */}
+            {isExecuting && (
+                <>
+                    <circle r="6" fill="#fbbf24" filter={`url(#glow-${id})`}>
+                        <animateMotion dur="1.5s" repeatCount="indefinite" path={edgePath} />
+                    </circle>
+                    <circle r="3" fill="white">
+                        <animateMotion dur="1.5s" repeatCount="indefinite" path={edgePath} />
+                    </circle>
+                </>
+            )}
+
+            {/* Green check orb when completed */}
+            {isCompleted && (
+                <circle cx={labelX} cy={labelY} r="4" fill="#10b981" />
+            )}
+
             {isVertical && (
                 <style>
                     {`
@@ -126,3 +199,4 @@ const CustomEdge: React.FC<EdgeProps> = ({
 };
 
 export default CustomEdge;
+
