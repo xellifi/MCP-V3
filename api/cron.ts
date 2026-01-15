@@ -857,9 +857,14 @@ function calculateNextRun(workflow: any): Date | null {
     const configurations = workflow.configurations || {};
     let times: string[] = [scheduleTime]; // Default to single time
 
+    // Debug: Log all configuration keys
+    console.log(`[Scheduler] Workflow configurations keys:`, Object.keys(configurations));
+    console.log(`[Scheduler] Full configurations:`, JSON.stringify(configurations, null, 2));
+
     // Find trigger config and get times array
     for (const [nodeId, config] of Object.entries(configurations)) {
         const cfg = config as any;
+        console.log(`[Scheduler] Checking node ${nodeId}, has times:`, cfg?.times);
         if (cfg?.times && Array.isArray(cfg.times) && cfg.times.length > 0) {
             times = cfg.times;
             console.log(`[Scheduler] Found times array in node ${nodeId}:`, times);
