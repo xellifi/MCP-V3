@@ -43,16 +43,114 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 }
 
 // ============================================
-// FULL WORKFLOW EXECUTION FROM FRONTEND (mirrors working cron execution)
+// STEP-BY-STEP EXECUTION FROM FRONTEND
 // ============================================
 async function handleExecuteStep(req: VercelRequest, res: VercelResponse, step: string) {
+    console.log(`[Execute Step] Starting step: ${step}`);
+
     // If step is 'full', run the complete workflow
     if (step === 'full') {
         return handleExecuteFullWorkflow(req, res);
     }
 
-    // Otherwise return error - we now only support full execution
-    return res.status(400).json({ error: 'Use step=full for complete workflow execution' });
+    try {
+        const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+        const { workspaceId, configurations, previousResults } = body;
+
+        const { data: settings } = await supabase
+            .from('workspace_settings')
+            .select('openai_api_key, gemini_api_key')
+            .eq('workspace_id', workspaceId)
+            .single();
+
+        const openaiKey = settings?.openai_api_key;
+        const geminiKey = settings?.gemini_api_key;
+
+        if (!openaiKey && !geminiKey) {
+            return res.status(400).json({ error: 'No API keys configured' });
+        }
+
+        const provider = openaiKey ? 'openai' : 'gemini';
+        const apiKey = openaiKey || geminiKey;
+
+        switch (step) {
+            case 'topic-1': {
+                const topicConfig = configurations?.['topic-1'] || {};
+                const topic = await generateTopic(topicConfig, apiKey, provider as any, []);
+                console.log(`[Execute Step] Generated topic: ${topic}`);
+                return res.json({ success: true, step, result: { topic } });
+            }
+
+            case 'image-1': {
+                const imageConfig = configurations?.['image-1'] || {};
+                const topic = previousResults?.['topic-1']?.result?.topic || 'Social media post';
+                const imageUrl = await generateImage(topic, imageConfig, openaiKey || '');
+                console.log(`[Execute Step] Generated image`);
+                return res.json({ success: true, step, result: { imageUrl } });
+            }
+
+            case 'caption-1': {
+                const captionConfig = configurations?.['caption-1'] || {};
+                const topic = previousResults?.['topic-1']?.result?.topic || 'Social media post';
+                const caption = await generateCaption(topic, captionConfig, apiKey, provider as any);
+                console.log(`[Execute Step] Generated caption`);
+                return res.json({ success: true, step, result: { caption } });
+            }
+
+            case 'facebook-1': {
+                const fbConfig = configurations?.['facebook-1'] || {};
+                const caption = previousResults?.['caption-1']?.result?.caption || '';
+                const imageUrl = previousResults?.['image-1']?.result?.imageUrl || '';
+                const topic = previousResults?.['topic-1']?.result?.topic || '';
+
+                let page: any = null;
+
+                if (fbConfig.pageId) {
+                    const { data: configuredPage } = await supabase
+                        .from('connected_pages')
+                        .select('page_id, page_access_token')
+                        .eq('page_id', fbConfig.pageId)
+                        .single();
+                    if (configuredPage) page = configuredPage;
+                }
+
+                if (!page) {
+                    const { data: automatedPages } = await supabase
+                        .from('connected_pages')
+                        .select('page_id, page_access_token')
+                        .eq('workspace_id', workspaceId)
+                        .eq('automation_enabled', true)
+                        .limit(1);
+                    if (automatedPages?.length) page = automatedPages[0];
+                }
+
+                if (!page) {
+                    const { data: anyPages } = await supabase
+                        .from('connected_pages')
+                        .select('page_id, page_access_token')
+                        .eq('workspace_id', workspaceId)
+                        .limit(1);
+                    if (anyPages?.length) page = anyPages[0];
+                }
+
+                if (!page) {
+                    return res.status(400).json({ error: 'No connected Facebook pages. Please connect a page first.' });
+                }
+
+                console.log(`[Execute Step] Posting to page: ${page.page_id}`);
+                const postId = await postToFacebook(page.page_access_token, page.page_id, caption, imageUrl);
+                console.log(`[Execute Step] Posted to Facebook: ${postId}`);
+                return res.json({ success: true, step, result: { postId, topic, imageUrl, caption } });
+            }
+
+            default:
+                return res.status(400).json({ error: `Unknown step: ${step}` });
+        }
+
+    } catch (error: any) {
+        console.error(`[Execute Step] Error:`, error.message);
+        return res.status(500).json({ error: error.message });
+    }
 }
 
 async function handleExecuteFullWorkflow(req: VercelRequest, res: VercelResponse) {
@@ -82,23 +180,11 @@ async function handleExecuteFullWorkflow(req: VercelRequest, res: VercelResponse
             });
         }
 
-        // Extract configs by node type (same pattern as working executeWorkflow)
-        let topicConfig: any = null;
-        let imageConfig: any = null;
-        let captionConfig: any = null;
-        let facebookConfig: any = null;
-
-        for (const [nodeId, config] of Object.entries(configurations || {})) {
-            if (nodeId.startsWith('topic') || nodeId === 'topic-1') {
-                topicConfig = config;
-            } else if (nodeId.startsWith('image') || nodeId === 'image-1') {
-                imageConfig = config;
-            } else if (nodeId.startsWith('caption') || nodeId === 'caption-1') {
-                captionConfig = config;
-            } else if (nodeId.startsWith('facebook') || nodeId === 'facebook-1') {
-                facebookConfig = config;
-            }
-        }
+        // Extract configs - use direct node IDs or find by prefix
+        const topicConfig = configurations?.['topic-1'] || configurations?.['topicGenerator-1'] || {};
+        const imageConfig = configurations?.['image-1'] || configurations?.['imageGenerator-1'] || {};
+        const captionConfig = configurations?.['caption-1'] || configurations?.['captionWriter-1'] || {};
+        const facebookConfig = configurations?.['facebook-1'] || configurations?.['facebookPost-1'] || {};
 
         console.log(`[Execute Full] topicConfig:`, JSON.stringify(topicConfig));
         console.log(`[Execute Full] imageConfig:`, JSON.stringify(imageConfig));

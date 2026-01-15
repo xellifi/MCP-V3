@@ -444,75 +444,57 @@ const SchedulerBuilder: React.FC<SchedulerBuilderProps> = ({
     setExecutionResults({});
 
     const nodeOrder = ['trigger-1', 'topic-1', 'image-1', 'caption-1', 'facebook-1'];
+    let currentResults: Record<string, any> = {};
 
     try {
-      // Start with trigger animation
-      setExecutingNodeId('trigger-1');
-      await new Promise(resolve => setTimeout(resolve, 800));
-      setCompletedNodeIds(prev => new Set([...prev, 'trigger-1']));
+      // Execute each node with visual feedback
+      for (const nodeId of nodeOrder) {
+        setExecutingNodeId(nodeId);
 
-      // Show topic as executing while API runs
-      setExecutingNodeId('topic-1');
-
-      // Call the full workflow API (same code as working cron jobs)
-      const response = await fetch('/api/cron?execute=true&step=full', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          workspaceId: workspace.id,
-          configurations: nodeConfigurations
-        })
-      });
-
-      const result = await response.json();
-
-      if (result.error) {
-        // Handle failure - set error on the failed step
-        const failedStep = result.failedStep || 'topic-1';
-
-        // Animate up to failed step
-        const completedSteps = result.results ? Object.keys(result.results) : [];
-        for (const completedStep of completedSteps) {
-          if (completedStep !== failedStep) {
-            setCompletedNodeIds(prev => new Set([...prev, completedStep]));
-          }
+        // Handle trigger node (instant)
+        if (nodeId === 'trigger-1') {
+          await new Promise(resolve => setTimeout(resolve, 500));
+          setCompletedNodeIds(prev => new Set([...prev, nodeId]));
+          continue;
         }
 
-        setExecutingNodeId(null);
-        setErrorNodeId(failedStep);
-        toast.error(`Failed at ${failedStep}: ${result.error}`);
-        setIsExecuting(false);
-        return;
+        // For other nodes, call the execute API step-by-step
+        try {
+          const response = await fetch('/api/cron?execute=true&step=' + nodeId, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              workspaceId: workspace.id,
+              configurations: nodeConfigurations,
+              previousResults: currentResults
+            })
+          });
+
+          const result = await response.json();
+
+          if (result.error) {
+            throw new Error(result.error);
+          }
+
+          // Store result for next step
+          currentResults[nodeId] = result;
+          setExecutionResults(prev => ({ ...prev, [nodeId]: result }));
+          setCompletedNodeIds(prev => new Set([...prev, nodeId]));
+
+        } catch (stepError: any) {
+          toast.error(`Failed at ${nodeId}: ${stepError.message}`);
+          setErrorNodeId(nodeId);
+          setExecutingNodeId(null);
+          setIsExecuting(false);
+          return;
+        }
       }
-
-      // Success! Animate through the completed nodes
-      setExecutionResults(result.results || {});
-
-      // Mark topic as complete, start image animation
-      setCompletedNodeIds(prev => new Set([...prev, 'topic-1']));
-      setExecutingNodeId('image-1');
-      await new Promise(resolve => setTimeout(resolve, 600));
-
-      // Mark image complete, start caption animation  
-      setCompletedNodeIds(prev => new Set([...prev, 'image-1']));
-      setExecutingNodeId('caption-1');
-      await new Promise(resolve => setTimeout(resolve, 600));
-
-      // Mark caption complete, start facebook animation
-      setCompletedNodeIds(prev => new Set([...prev, 'caption-1']));
-      setExecutingNodeId('facebook-1');
-      await new Promise(resolve => setTimeout(resolve, 600));
-
-      // All done!
-      setCompletedNodeIds(prev => new Set([...prev, 'facebook-1']));
-      setExecutingNodeId(null);
-      setIsExecuting(false);
 
       toast.success('Workflow executed successfully! Post created on Facebook.');
 
     } catch (error: any) {
       toast.error('Execution failed: ' + error.message);
-      setErrorNodeId('topic-1');
+    } finally {
       setIsExecuting(false);
       setExecutingNodeId(null);
     }
