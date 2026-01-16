@@ -480,7 +480,7 @@ const Orders: React.FC<OrdersProps> = ({ workspace }) => {
                                     </div>
                                 )}
                                 {selectedOrder.customer_address && (
-                                    <div className="flex items-start gap-2 text-slate-300 col-span-2">
+                                    <div className={`flex items-start gap-2 col-span-2 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
                                         <MapPin className="w-4 h-4 text-slate-500 mt-0.5" />
                                         {selectedOrder.customer_address}
                                     </div>
@@ -501,8 +501,8 @@ const Orders: React.FC<OrdersProps> = ({ workspace }) => {
                                             {item.productImage ? (
                                                 <img src={item.productImage} alt="" className="w-10 h-10 rounded-lg object-cover" />
                                             ) : (
-                                                <div className="w-10 h-10 bg-slate-600 rounded-lg flex items-center justify-center">
-                                                    <Package className="w-5 h-5 text-slate-400" />
+                                                <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${isDark ? 'bg-slate-600' : 'bg-slate-200'}`}>
+                                                    <Package className={`w-5 h-5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`} />
                                                 </div>
                                             )}
                                             <div>
@@ -547,7 +547,7 @@ const Orders: React.FC<OrdersProps> = ({ workspace }) => {
                                     <span>Total</span>
                                     <span className="text-emerald-400">₱{selectedOrder.total.toLocaleString()}</span>
                                 </div>
-                                <div className="flex items-center gap-2 pt-2 text-slate-400">
+                                <div className={`flex items-center gap-2 pt-2 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
                                     <span className="text-lg">{PAYMENT_ICONS[selectedOrder.payment_method] || '💳'}</span>
                                     <span>{selectedOrder.payment_method_name || selectedOrder.payment_method}</span>
                                 </div>
@@ -556,13 +556,13 @@ const Orders: React.FC<OrdersProps> = ({ workspace }) => {
 
                         {/* Payment Proof */}
                         {selectedOrder.metadata?.payment?.proofUrl && (
-                            <div className="bg-black/20 rounded-xl p-4">
-                                <h3 className="text-white font-semibold mb-3">Payment Proof</h3>
+                            <div className={`rounded-xl p-4 ${isDark ? 'bg-black/20' : 'bg-indigo-50 border border-indigo-100'}`}>
+                                <h3 className={`font-semibold mb-3 ${isDark ? 'text-white' : 'text-slate-900'}`}>Payment Proof</h3>
                                 <a
                                     href={selectedOrder.metadata.payment.proofUrl}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="flex items-center gap-2 text-indigo-400 hover:text-indigo-300 text-sm"
+                                    className={`flex items-center gap-2 text-sm ${isDark ? 'text-indigo-400 hover:text-indigo-300' : 'text-indigo-600 hover:text-indigo-500'}`}
                                 >
                                     <ExternalLink className="w-4 h-4" />
                                     View Payment Proof

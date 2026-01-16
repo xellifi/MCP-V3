@@ -941,6 +941,7 @@ const Store: React.FC<StoreProps> = ({ workspace }) => {
                         order={selectedOrder}
                         onClose={() => setSelectedOrder(null)}
                         onRefresh={loadOrders}
+                        store={store}
                     />
                 )}
 
@@ -1323,7 +1324,7 @@ const ProductModal: React.FC<{
 };
 
 // Order Detail Modal
-const OrderModal: React.FC<{ order: Order; onClose: () => void; onRefresh?: () => void }> = ({ order, onClose, onRefresh }) => {
+const OrderModal: React.FC<{ order: Order; onClose: () => void; onRefresh?: () => void; store?: StoreSettings | null }> = ({ order, onClose, onRefresh, store }) => {
     const { isDark } = useTheme();
     const statusInfo = ORDER_STATUSES.find(s => s.id === order.status);
     const [isEditing, setIsEditing] = useState(false);
@@ -1535,6 +1536,28 @@ const OrderModal: React.FC<{ order: Order; onClose: () => void; onRefresh?: () =
                                                 .from('store_orders')
                                                 .update({ payment_status: 'paid' })
                                                 .eq('id', order.id);
+
+                                            // Sync to Google Sheets if webhook configured
+                                            if (store?.google_webhook_url && order.order_number) {
+                                                try {
+                                                    await fetch('/api/sheets/sync', {
+                                                        method: 'POST',
+                                                        headers: { 'Content-Type': 'application/json' },
+                                                        body: JSON.stringify({
+                                                            action: 'updatePaymentStatus',
+                                                            webhookUrl: store.google_webhook_url,
+                                                            sheetName: store.google_sheet_name || 'Sheet1',
+                                                            orderId: order.order_number,
+                                                            newStatus: 'Paid',
+                                                            updatedAt: new Date().toISOString()
+                                                        })
+                                                    });
+                                                    console.log('Payment status synced to Google Sheets');
+                                                } catch (sheetErr) {
+                                                    console.error('Failed to sync payment status to sheets:', sheetErr);
+                                                }
+                                            }
+
                                             onClose();
                                             if (onRefresh) onRefresh();
                                         }
