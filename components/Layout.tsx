@@ -67,6 +67,7 @@ const Layout: React.FC<LayoutProps> = ({
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [currentSubscription, setCurrentSubscription] = useState<any>(null);
+  const [subscriptionLoading, setSubscriptionLoading] = useState(true);
 
   // Impersonation state
   const [isImpersonating, setIsImpersonating] = useState(false);
@@ -137,10 +138,13 @@ const Layout: React.FC<LayoutProps> = ({
     // Fetch Subscription Status
     const loadSubscription = async () => {
       try {
+        setSubscriptionLoading(true);
         const sub = await api.subscriptions.getCurrentSubscription();
         setCurrentSubscription(sub);
       } catch (error) {
         console.error("Failed to load subscription", error);
+      } finally {
+        setSubscriptionLoading(false);
       }
     };
     loadSubscription();
@@ -547,7 +551,9 @@ const Layout: React.FC<LayoutProps> = ({
               <h1 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white transition-opacity duration-200 flex items-center gap-3">
                 {getCurrentPageTitle()}
                 <div className="hidden sm:block">
-                  {(!currentSubscription) ? (
+                  {subscriptionLoading ? (
+                    <span className="px-2 py-0.5 rounded text-xs font-bold bg-slate-100 text-slate-400 border border-slate-200 animate-pulse">...</span>
+                  ) : (!currentSubscription) ? (
                     <span className="px-2 py-0.5 rounded text-xs font-bold bg-slate-200 text-slate-600 border border-slate-300">Free</span>
                   ) : (
                     currentSubscription.status === 'Pending' ? (
@@ -605,7 +611,9 @@ const Layout: React.FC<LayoutProps> = ({
                       <p className="text-sm font-bold text-slate-900 dark:text-white">{user.name}</p>
                       <div className="flex items-center justify-between mt-1">
                         <p className="text-xs text-slate-500 dark:text-slate-400 truncate max-w-[100px]">{user.email}</p>
-                        {(!currentSubscription) ? (
+                        {subscriptionLoading ? (
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-400 border border-slate-200 animate-pulse">...</span>
+                        ) : (!currentSubscription) ? (
                           <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-200 text-slate-600 border border-slate-300">Free</span>
                         ) : (
                           currentSubscription.status === 'Pending' ? (
