@@ -302,6 +302,8 @@ const StoreView: React.FC = () => {
                         'Items': itemsList,
                         'Total': `${currencySymbol}${cartTotal.toLocaleString()}`,
                         'Payment Method': paymentMethod.toUpperCase(),
+                        'Payment Status': requiresProof ? 'Pending Verification' : 'Pending',
+                        'Proof of Payment': proofUrl || '-',
                         'Notes': notes || '-',
                     };
 
