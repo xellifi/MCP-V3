@@ -503,7 +503,11 @@ const Store: React.FC<StoreProps> = ({ workspace }) => {
                         <div className="flex flex-wrap gap-2">
                             <button
                                 onClick={() => setOrderFilter('all')}
-                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${orderFilter === 'all' ? 'bg-purple-500 text-white' : 'bg-black/30 text-slate-400 hover:text-white'
+                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${orderFilter === 'all'
+                                        ? 'bg-purple-500 text-white'
+                                        : isDark
+                                            ? 'bg-black/30 text-slate-400 hover:text-white'
+                                            : 'bg-white text-slate-600 hover:text-slate-900 border border-slate-200 hover:border-slate-300'
                                     }`}
                             >
                                 All Orders
@@ -545,17 +549,21 @@ const Store: React.FC<StoreProps> = ({ workspace }) => {
                                                 </td>
                                                 <td className="px-4 py-3">
                                                     <div className={`text-sm ${isDark ? 'text-white' : 'text-slate-900'}`}>{order.customer_name}</div>
-                                                    <div className="text-xs text-slate-500">{order.customer_email}</div>
+                                                    <div className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{order.customer_email}</div>
                                                 </td>
                                                 <td className="px-4 py-3">
                                                     <select
                                                         value={order.status}
                                                         onChange={(e) => updateOrderStatus(order.id, e.target.value)}
-                                                        className={`text-xs font-medium px-2 py-1 rounded-lg border-0 cursor-pointer ${order.status === 'pending' ? 'bg-yellow-500/20 text-yellow-400' :
-                                                            order.status === 'processing' ? 'bg-blue-500/20 text-blue-400' :
-                                                                order.status === 'shipped' ? 'bg-purple-500/20 text-purple-400' :
-                                                                    order.status === 'delivered' ? 'bg-green-500/20 text-green-400' :
-                                                                        'bg-red-500/20 text-red-400'
+                                                        className={`text-xs font-medium px-2.5 py-1.5 rounded-lg border cursor-pointer ${order.status === 'pending'
+                                                            ? isDark ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' : 'bg-yellow-100 text-yellow-700 border-yellow-300'
+                                                            : order.status === 'processing'
+                                                                ? isDark ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' : 'bg-blue-100 text-blue-700 border-blue-300'
+                                                                : order.status === 'shipped'
+                                                                    ? isDark ? 'bg-purple-500/20 text-purple-400 border-purple-500/30' : 'bg-purple-100 text-purple-700 border-purple-300'
+                                                                    : order.status === 'delivered'
+                                                                        ? isDark ? 'bg-green-500/20 text-green-400 border-green-500/30' : 'bg-green-100 text-green-700 border-green-300'
+                                                                        : isDark ? 'bg-red-500/20 text-red-400 border-red-500/30' : 'bg-red-100 text-red-700 border-red-300'
                                                             }`}
                                                     >
                                                         {ORDER_STATUSES.map(s => (
@@ -565,14 +573,14 @@ const Store: React.FC<StoreProps> = ({ workspace }) => {
                                                 </td>
                                                 <td className="px-4 py-3">
                                                     <div className="flex items-center gap-1.5">
-                                                        <span className="text-xs text-slate-400">{order.payment_method?.toUpperCase() || 'N/A'}</span>
+                                                        <span className={`text-xs font-medium ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>{order.payment_method?.toUpperCase() || 'N/A'}</span>
                                                         {order.payment_status === 'pending_verification' && (
-                                                            <span className="px-1.5 py-0.5 bg-amber-500/20 text-amber-400 text-xs font-medium rounded-md animate-pulse">
+                                                            <span className={`px-1.5 py-0.5 text-xs font-medium rounded-md animate-pulse ${isDark ? 'bg-amber-500/20 text-amber-400' : 'bg-amber-100 text-amber-700 border border-amber-300'}`}>
                                                                 ⚠️ Verify
                                                             </span>
                                                         )}
                                                         {order.payment_status === 'paid' && (
-                                                            <span className="px-1.5 py-0.5 bg-green-500/20 text-green-400 text-xs font-medium rounded-md">
+                                                            <span className={`px-1.5 py-0.5 text-xs font-medium rounded-md ${isDark ? 'bg-green-500/20 text-green-400' : 'bg-green-100 text-green-700 border border-green-300'}`}>
                                                                 ✓ Paid
                                                             </span>
                                                         )}
@@ -589,18 +597,18 @@ const Store: React.FC<StoreProps> = ({ workspace }) => {
                                                         <button
                                                             onClick={() => setSelectedOrder(order)}
                                                             className={`p-1.5 rounded-lg transition-colors ${order.payment_status === 'pending_verification'
-                                                                ? 'bg-amber-500/20 hover:bg-amber-500/30'
-                                                                : 'hover:bg-white/10'}`}
+                                                                ? isDark ? 'bg-amber-500/20 hover:bg-amber-500/30' : 'bg-amber-100 hover:bg-amber-200'
+                                                                : isDark ? 'hover:bg-white/10' : 'hover:bg-slate-100'}`}
                                                             title="View Order"
                                                         >
-                                                            <Eye className={`w-4 h-4 ${order.payment_status === 'pending_verification' ? 'text-amber-400' : 'text-slate-400'}`} />
+                                                            <Eye className={`w-4 h-4 ${order.payment_status === 'pending_verification' ? isDark ? 'text-amber-400' : 'text-amber-600' : isDark ? 'text-slate-400' : 'text-slate-500'}`} />
                                                         </button>
                                                         <button
                                                             onClick={() => deleteOrder(order.id)}
-                                                            className="p-1.5 hover:bg-red-500/20 rounded-lg transition-colors"
+                                                            className={`p-1.5 rounded-lg transition-colors ${isDark ? 'hover:bg-red-500/20' : 'hover:bg-red-100'}`}
                                                             title="Delete Order"
                                                         >
-                                                            <Trash2 className="w-4 h-4 text-slate-400 hover:text-red-400" />
+                                                            <Trash2 className={`w-4 h-4 ${isDark ? 'text-slate-400 hover:text-red-400' : 'text-slate-500 hover:text-red-600'}`} />
                                                         </button>
                                                     </div>
                                                 </td>
