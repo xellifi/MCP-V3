@@ -695,6 +695,17 @@ async function handleSchedulerExecute(req: VercelRequest, res: VercelResponse) {
             processedCount++;
             console.log(`[Scheduler Cron] Processing workflow: ${workflow.name} (${workflow.id})`);
 
+            // DEDUPLICATION: Skip if this workflow was executed within the last 5 minutes
+            if (workflow.last_run_at) {
+                const lastRunTime = new Date(workflow.last_run_at);
+                const timeSinceLastRun = (now.getTime() - lastRunTime.getTime()) / (60 * 1000); // minutes
+                if (timeSinceLastRun < 5) {
+                    console.log(`[Scheduler Cron] Skipping ${workflow.name} - already ran ${timeSinceLastRun.toFixed(1)} minutes ago`);
+                    continue;
+                }
+            }
+
+
             const { data: execution, error: execError } = await supabase
                 .from('scheduler_executions')
                 .insert({
@@ -1193,44 +1204,82 @@ function calculateNextRun(workflow: any): Date | null {
             const currentTime = new Date();
             currentTime.setSeconds(currentTime.getSeconds() + 60); // Add 60s buffer
 
+            // Calculate current LOCAL time in the target timezone
+            // UTC time + timezone offset = local time
+            const currentUtcHours = currentTime.getUTCHours();
+            const currentUtcMinutes = currentTime.getUTCMinutes();
+            const currentLocalHours = currentUtcHours + tzOffset;
+
+            // Determine the current LOCAL date
+            // If local hours >= 24, we're in "tomorrow" locally
+            // If local hours < 0, we're in "yesterday" locally (shouldn't happen for positive offsets)
+            let localDateOffset = 0;
+            let adjustedLocalHours = currentLocalHours;
+            if (currentLocalHours >= 24) {
+                localDateOffset = 1;
+                adjustedLocalHours = currentLocalHours - 24;
+            } else if (currentLocalHours < 0) {
+                localDateOffset = -1;
+                adjustedLocalHours = currentLocalHours + 24;
+            }
+
+            // Current local date (as a Date object set to midnight local time conceptually)
+            const localDate = new Date(currentTime);
+            localDate.setUTCDate(localDate.getUTCDate() + localDateOffset);
+
+            const localDateStr = localDate.toISOString().split('T')[0];
+            console.log(`[Scheduler] Current UTC: ${currentTime.toISOString()}`);
+            console.log(`[Scheduler] Current LOCAL (${scheduleTimezone}): ${localDateStr} ${String(adjustedLocalHours).padStart(2, '0')}:${String(currentUtcMinutes).padStart(2, '0')}`);
+
             // Find the next upcoming time from the list
             const candidates: Date[] = [];
 
             for (const timeStr of times) {
-                const [hours, minutes] = timeStr.split(':').map(Number);
+                const [schedHours, schedMinutes] = timeStr.split(':').map(Number);
 
-                if (isNaN(hours) || isNaN(minutes)) {
+                if (isNaN(schedHours) || isNaN(schedMinutes)) {
                     console.log(`[Scheduler] Skipping invalid time: ${timeStr}`);
                     continue;
                 }
 
-                // Convert local time to UTC by subtracting timezone offset
-                // e.g., 16:05 PHT -> 08:05 UTC (16 - 8 = 8)
-                let utcHours = hours - tzOffset;
-                let dayOffset = 0;
+                // Check if this scheduled time is in the future today (in local time)
+                const schedTimeInMinutes = schedHours * 60 + schedMinutes;
+                const currentTimeInMinutes = adjustedLocalHours * 60 + currentUtcMinutes;
+                const isInFuture = schedTimeInMinutes > currentTimeInMinutes;
 
-                if (utcHours < 0) {
-                    utcHours += 24;
-                    dayOffset = -1; // Previous day in UTC
-                } else if (utcHours >= 24) {
-                    utcHours -= 24;
-                    dayOffset = 1; // Next day in UTC
+                // Calculate the UTC time for this schedule
+                // Formula: UTC hours = local hours - timezone offset
+                let targetUtcHours = schedHours - tzOffset;
+                let targetDayOffset = localDateOffset; // Start from the current local date
+
+                if (targetUtcHours < 0) {
+                    targetUtcHours += 24;
+                    targetDayOffset -= 1; // One day earlier in UTC
+                } else if (targetUtcHours >= 24) {
+                    targetUtcHours -= 24;
+                    targetDayOffset += 1; // One day later in UTC
                 }
 
-                // Check today (in UTC)
-                const todayRun = new Date();
-                todayRun.setUTCDate(todayRun.getUTCDate() + dayOffset);
-                todayRun.setUTCHours(utcHours, minutes, 0, 0);
+                // Create the run time
+                const runTime = new Date(currentTime);
+                // Reset to the base date (today in UTC)
+                runTime.setUTCDate(currentTime.getUTCDate());
+                // Apply the day offset to get to the correct UTC date
+                runTime.setUTCDate(runTime.getUTCDate() + targetDayOffset);
+                runTime.setUTCHours(targetUtcHours, schedMinutes, 0, 0);
 
-                if (todayRun > currentTime) {
-                    candidates.push(todayRun);
-                    console.log(`[Scheduler] Candidate: ${todayRun.toISOString()} for local time ${timeStr} ${scheduleTimezone}`);
+                console.log(`[Scheduler] Time ${timeStr} -> UTC: ${runTime.toISOString()}, localFuture: ${isInFuture}, actualFuture: ${runTime > currentTime}`);
+
+                if (runTime > currentTime) {
+                    candidates.push(runTime);
+                    console.log(`[Scheduler] Added today candidate: ${runTime.toISOString()} for local time ${timeStr} ${scheduleTimezone}`);
+                } else {
+                    // Today's time has passed, add tomorrow's time
+                    const tomorrowRun = new Date(runTime);
+                    tomorrowRun.setUTCDate(tomorrowRun.getUTCDate() + 1);
+                    candidates.push(tomorrowRun);
+                    console.log(`[Scheduler] Added tomorrow candidate: ${tomorrowRun.toISOString()} for local time ${timeStr} ${scheduleTimezone} (today's time passed)`);
                 }
-
-                // Also check tomorrow (in case all today's times have passed)
-                const tomorrowRun = new Date(todayRun);
-                tomorrowRun.setUTCDate(tomorrowRun.getUTCDate() + 1);
-                candidates.push(tomorrowRun);
             }
 
             // Return the earliest upcoming time
@@ -1239,9 +1288,16 @@ function calculateNextRun(workflow: any): Date | null {
                 return null;
             }
 
-            candidates.sort((a, b) => a.getTime() - b.getTime());
-            const nextRun = candidates[0];
-            console.log(`[Scheduler] Daily candidates (sorted):`, candidates.slice(0, 5).map(d => d.toISOString()));
+            // Filter out any candidates that are not in the future (safety check)
+            const futureCandidates = candidates.filter(c => c > currentTime);
+            if (futureCandidates.length === 0) {
+                console.log(`[Scheduler] No future candidates after filtering!`);
+                return null;
+            }
+
+            futureCandidates.sort((a, b) => a.getTime() - b.getTime());
+            const nextRun = futureCandidates[0];
+            console.log(`[Scheduler] Daily candidates (sorted):`, futureCandidates.slice(0, 5).map(d => d.toISOString()));
             console.log(`[Scheduler] Next run selected:`, nextRun.toISOString());
             return nextRun;
         }
