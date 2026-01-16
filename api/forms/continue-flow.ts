@@ -1193,23 +1193,33 @@ async function sendUpsellOffer(
                 const webviewUrl = `${baseUrl}/wv/upsell/${session.id}`;
                 console.log('[Continue Flow] Webview URL:', webviewUrl);
 
-                // Send message with webview button
+                // Send full-screen image first (if available)
+                if (imageUrl) {
+                    const imagePayload = {
+                        attachment: {
+                            type: 'image',
+                            payload: {
+                                url: imageUrl,
+                                is_reusable: true
+                            }
+                        }
+                    };
+                    await sendFacebookMessage(userId, imagePayload, pageAccessToken);
+                    console.log('[Continue Flow] ✓ Full-screen upsell image sent');
+                }
+
+                // Then send button template with offer details
                 const messagePayload = {
                     attachment: {
                         type: 'template',
                         payload: {
-                            template_type: 'generic',
-                            elements: [{
-                                title: headline,
-                                subtitle: `${productName} - ${price}\n${description}`,
-                                image_url: imageUrl || undefined,
-                                buttons: [{
-                                    type: 'web_url',
-                                    title: '🛒 View Offer',
-                                    url: webviewUrl,
-                                    webview_height_ratio: 'tall'
-                                    // Note: messenger_extensions removed for SaaS compatibility
-                                }]
+                            template_type: 'button',
+                            text: `${headline}\n\n${productName} - ${price}\n${description}`,
+                            buttons: [{
+                                type: 'web_url',
+                                title: '🛒 View Offer',
+                                url: webviewUrl,
+                                webview_height_ratio: 'tall'
                             }]
                         }
                     }
@@ -1362,22 +1372,33 @@ async function sendDownsellOffer(
                 const webviewUrl = `${baseUrl}/wv/downsell/${session.id}`;
                 console.log('[Continue Flow] Webview URL:', webviewUrl);
 
+                // Send full-screen image first (if available)
+                if (imageUrl) {
+                    const imagePayload = {
+                        attachment: {
+                            type: 'image',
+                            payload: {
+                                url: imageUrl,
+                                is_reusable: true
+                            }
+                        }
+                    };
+                    await sendFacebookMessage(userId, imagePayload, pageAccessToken);
+                    console.log('[Continue Flow] ✓ Full-screen downsell image sent');
+                }
+
+                // Then send button template with offer details
                 const messagePayload = {
                     attachment: {
                         type: 'template',
                         payload: {
-                            template_type: 'generic',
-                            elements: [{
-                                title: headline,
-                                subtitle: `${productName} - ${price}\n${description}`,
-                                image_url: imageUrl || undefined,
-                                buttons: [{
-                                    type: 'web_url',
-                                    title: '🛒 View Offer',
-                                    url: webviewUrl,
-                                    webview_height_ratio: 'tall'
-                                    // Note: messenger_extensions removed for SaaS compatibility
-                                }]
+                            template_type: 'button',
+                            text: `${headline}\n\n${productName} - ${price}\n${description}`,
+                            buttons: [{
+                                type: 'web_url',
+                                title: '🛒 View Offer',
+                                url: webviewUrl,
+                                webview_height_ratio: 'tall'
                             }]
                         }
                     }
