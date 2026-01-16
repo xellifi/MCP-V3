@@ -33,7 +33,8 @@ interface Order {
     shipping_address?: string;
     status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
     payment_method?: string;
-    payment_status: 'pending' | 'paid' | 'failed';
+    payment_status: 'pending' | 'pending_verification' | 'paid' | 'failed';
+    proof_url?: string;
     subtotal: number;
     shipping_fee: number;
     discount: number;
@@ -289,6 +290,43 @@ const Store: React.FC<StoreProps> = ({ workspace }) => {
         }
     };
 
+    // Delete order
+    const deleteOrder = async (orderId: string) => {
+        if (!confirm('Are you sure you want to delete this order? This cannot be undone.')) return;
+        try {
+            // First delete order items
+            await supabase
+                .from('order_items')
+                .delete()
+                .eq('order_id', orderId);
+
+            // Then delete the order
+            await supabase
+                .from('store_orders')
+                .delete()
+                .eq('id', orderId);
+
+            loadOrders();
+            setSelectedOrder(null);
+        } catch (err) {
+            console.error('Error deleting order:', err);
+            alert('Failed to delete order');
+        }
+    };
+
+    // Update payment status
+    const updatePaymentStatus = async (orderId: string, paymentStatus: string) => {
+        try {
+            await supabase
+                .from('store_orders')
+                .update({ payment_status: paymentStatus })
+                .eq('id', orderId);
+            loadOrders();
+        } catch (err) {
+            console.error('Error updating payment status:', err);
+        }
+    };
+
     // Delete product
     const deleteProduct = async (productId: string) => {
         if (!confirm('Delete this product?')) return;
@@ -493,6 +531,7 @@ const Store: React.FC<StoreProps> = ({ workspace }) => {
                                             <th className={`text-left px-4 py-3 text-xs font-semibold uppercase ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Order</th>
                                             <th className={`text-left px-4 py-3 text-xs font-semibold uppercase ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Customer</th>
                                             <th className={`text-left px-4 py-3 text-xs font-semibold uppercase ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Status</th>
+                                            <th className={`text-left px-4 py-3 text-xs font-semibold uppercase ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Payment</th>
                                             <th className={`text-left px-4 py-3 text-xs font-semibold uppercase ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Total</th>
                                             <th className={`text-left px-4 py-3 text-xs font-semibold uppercase ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Date</th>
                                             <th className={`text-left px-4 py-3 text-xs font-semibold uppercase ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Actions</th>
@@ -525,18 +564,45 @@ const Store: React.FC<StoreProps> = ({ workspace }) => {
                                                     </select>
                                                 </td>
                                                 <td className="px-4 py-3">
+                                                    <div className="flex items-center gap-1.5">
+                                                        <span className="text-xs text-slate-400">{order.payment_method?.toUpperCase() || 'N/A'}</span>
+                                                        {order.payment_status === 'pending_verification' && (
+                                                            <span className="px-1.5 py-0.5 bg-amber-500/20 text-amber-400 text-xs font-medium rounded-md animate-pulse">
+                                                                ⚠️ Verify
+                                                            </span>
+                                                        )}
+                                                        {order.payment_status === 'paid' && (
+                                                            <span className="px-1.5 py-0.5 bg-green-500/20 text-green-400 text-xs font-medium rounded-md">
+                                                                ✓ Paid
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                                <td className="px-4 py-3">
                                                     <span className={`font-semibold ${isDark ? 'text-white' : 'text-slate-900'}`}>₱{order.total.toLocaleString()}</span>
                                                 </td>
                                                 <td className={`px-4 py-3 text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                                                     {new Date(order.created_at).toLocaleDateString()}
                                                 </td>
                                                 <td className="px-4 py-3">
-                                                    <button
-                                                        onClick={() => setSelectedOrder(order)}
-                                                        className="p-1.5 hover:bg-white/10 rounded-lg transition-colors"
-                                                    >
-                                                        <Eye className="w-4 h-4 text-slate-400" />
-                                                    </button>
+                                                    <div className="flex items-center gap-1">
+                                                        <button
+                                                            onClick={() => setSelectedOrder(order)}
+                                                            className={`p-1.5 rounded-lg transition-colors ${order.payment_status === 'pending_verification'
+                                                                ? 'bg-amber-500/20 hover:bg-amber-500/30'
+                                                                : 'hover:bg-white/10'}`}
+                                                            title="View Order"
+                                                        >
+                                                            <Eye className={`w-4 h-4 ${order.payment_status === 'pending_verification' ? 'text-amber-400' : 'text-slate-400'}`} />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => deleteOrder(order.id)}
+                                                            className="p-1.5 hover:bg-red-500/20 rounded-lg transition-colors"
+                                                            title="Delete Order"
+                                                        >
+                                                            <Trash2 className="w-4 h-4 text-slate-400 hover:text-red-400" />
+                                                        </button>
+                                                    </div>
                                                 </td>
                                             </tr>
                                         ))}
@@ -808,6 +874,7 @@ const Store: React.FC<StoreProps> = ({ workspace }) => {
                     <OrderModal
                         order={selectedOrder}
                         onClose={() => setSelectedOrder(null)}
+                        onRefresh={loadOrders}
                     />
                 )}
 
@@ -1190,9 +1257,41 @@ const ProductModal: React.FC<{
 };
 
 // Order Detail Modal
-const OrderModal: React.FC<{ order: Order; onClose: () => void }> = ({ order, onClose }) => {
+const OrderModal: React.FC<{ order: Order; onClose: () => void; onRefresh?: () => void }> = ({ order, onClose, onRefresh }) => {
     const { isDark } = useTheme();
     const statusInfo = ORDER_STATUSES.find(s => s.id === order.status);
+    const [isEditing, setIsEditing] = useState(false);
+    const [saving, setSaving] = useState(false);
+    const [editForm, setEditForm] = useState({
+        customer_name: order.customer_name || '',
+        customer_email: order.customer_email || '',
+        customer_phone: order.customer_phone || '',
+        shipping_address: order.shipping_address || '',
+        notes: order.notes || '',
+    });
+
+    const handleSaveEdit = async () => {
+        setSaving(true);
+        try {
+            await supabase
+                .from('store_orders')
+                .update({
+                    customer_name: editForm.customer_name,
+                    customer_email: editForm.customer_email,
+                    customer_phone: editForm.customer_phone,
+                    shipping_address: editForm.shipping_address,
+                    notes: editForm.notes,
+                })
+                .eq('id', order.id);
+            setIsEditing(false);
+            if (onRefresh) onRefresh();
+        } catch (err) {
+            console.error('Error saving order:', err);
+            alert('Failed to save changes');
+        } finally {
+            setSaving(false);
+        }
+    };
 
     return (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -1202,9 +1301,20 @@ const OrderModal: React.FC<{ order: Order; onClose: () => void }> = ({ order, on
                         <h2 className={`text-xl font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>{order.order_number}</h2>
                         <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{new Date(order.created_at).toLocaleString()}</p>
                     </div>
-                    <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-lg">
-                        <X className="w-5 h-5 text-slate-400" />
-                    </button>
+                    <div className="flex items-center gap-2">
+                        {!isEditing && (
+                            <button
+                                onClick={() => setIsEditing(true)}
+                                className="p-2 hover:bg-blue-500/20 rounded-lg transition-colors"
+                                title="Edit Order"
+                            >
+                                <Edit2 className="w-4 h-4 text-blue-400" />
+                            </button>
+                        )}
+                        <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-lg">
+                            <X className="w-5 h-5 text-slate-400" />
+                        </button>
+                    </div>
                 </div>
 
                 <div className="p-6 space-y-4">
@@ -1214,14 +1324,57 @@ const OrderModal: React.FC<{ order: Order; onClose: () => void }> = ({ order, on
                         <span className={`font-medium text-${statusInfo?.color}-400`}>{statusInfo?.label}</span>
                     </div>
 
-                    {/* Customer */}
+                    {/* Customer - Editable */}
                     <div>
                         <div className={`text-xs uppercase mb-2 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Customer</div>
-                        <div className={`font-medium ${isDark ? 'text-white' : 'text-slate-900'}`}>{order.customer_name}</div>
-                        {order.customer_email && <div className="text-sm text-slate-400">{order.customer_email}</div>}
-                        {order.customer_phone && <div className="text-sm text-slate-400">{order.customer_phone}</div>}
-                        {order.shipping_address && (
-                            <div className="mt-2 text-sm text-slate-400">{order.shipping_address}</div>
+                        {isEditing ? (
+                            <div className="space-y-3">
+                                <input
+                                    type="text"
+                                    value={editForm.customer_name}
+                                    onChange={(e) => setEditForm({ ...editForm, customer_name: e.target.value })}
+                                    placeholder="Customer Name"
+                                    className={`w-full px-3 py-2 rounded-lg border text-sm ${isDark
+                                        ? 'bg-black/30 border-white/10 text-white'
+                                        : 'bg-white border-slate-200 text-slate-900'}`}
+                                />
+                                <input
+                                    type="email"
+                                    value={editForm.customer_email}
+                                    onChange={(e) => setEditForm({ ...editForm, customer_email: e.target.value })}
+                                    placeholder="Email"
+                                    className={`w-full px-3 py-2 rounded-lg border text-sm ${isDark
+                                        ? 'bg-black/30 border-white/10 text-white'
+                                        : 'bg-white border-slate-200 text-slate-900'}`}
+                                />
+                                <input
+                                    type="tel"
+                                    value={editForm.customer_phone}
+                                    onChange={(e) => setEditForm({ ...editForm, customer_phone: e.target.value })}
+                                    placeholder="Phone"
+                                    className={`w-full px-3 py-2 rounded-lg border text-sm ${isDark
+                                        ? 'bg-black/30 border-white/10 text-white'
+                                        : 'bg-white border-slate-200 text-slate-900'}`}
+                                />
+                                <textarea
+                                    value={editForm.shipping_address}
+                                    onChange={(e) => setEditForm({ ...editForm, shipping_address: e.target.value })}
+                                    placeholder="Shipping Address"
+                                    rows={2}
+                                    className={`w-full px-3 py-2 rounded-lg border text-sm resize-none ${isDark
+                                        ? 'bg-black/30 border-white/10 text-white'
+                                        : 'bg-white border-slate-200 text-slate-900'}`}
+                                />
+                            </div>
+                        ) : (
+                            <>
+                                <div className={`font-medium ${isDark ? 'text-white' : 'text-slate-900'}`}>{order.customer_name}</div>
+                                {order.customer_email && <div className="text-sm text-slate-400">{order.customer_email}</div>}
+                                {order.customer_phone && <div className="text-sm text-slate-400">{order.customer_phone}</div>}
+                                {order.shipping_address && (
+                                    <div className="mt-2 text-sm text-slate-400">{order.shipping_address}</div>
+                                )}
+                            </>
                         )}
                     </div>
 
@@ -1274,14 +1427,143 @@ const OrderModal: React.FC<{ order: Order; onClose: () => void }> = ({ order, on
                             <DollarSign className={`w-4 h-4 ${isDark ? 'text-slate-400' : 'text-slate-500'}`} />
                             <span className={`${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Payment:</span>
                             <span className={`${isDark ? 'text-white' : 'text-slate-900'}`}>{order.payment_method}</span>
+                            {order.payment_status && (
+                                <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${order.payment_status === 'paid' ? 'bg-green-500/20 text-green-400' :
+                                    order.payment_status === 'pending_verification' ? 'bg-amber-500/20 text-amber-400' :
+                                        order.payment_status === 'failed' ? 'bg-red-500/20 text-red-400' :
+                                            'bg-slate-500/20 text-slate-400'
+                                    }`}>
+                                    {order.payment_status === 'pending_verification' ? 'Needs Verification' : order.payment_status}
+                                </span>
+                            )}
                         </div>
                     )}
 
-                    {/* Notes */}
-                    {order.notes && (
-                        <div>
-                            <div className={`text-xs uppercase mb-2 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Notes</div>
-                            <p className={`text-sm ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>{order.notes}</p>
+                    {/* Proof of Payment */}
+                    {order.proof_url && (
+                        <div className={`rounded-xl p-4 ${isDark ? 'bg-amber-500/10 border border-amber-500/30' : 'bg-amber-50 border border-amber-200'}`}>
+                            <div className={`text-xs uppercase mb-3 flex items-center gap-2 ${isDark ? 'text-amber-400' : 'text-amber-600'}`}>
+                                <AlertCircle className="w-4 h-4" />
+                                Proof of Payment
+                            </div>
+                            <a
+                                href={order.proof_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="block rounded-lg overflow-hidden border border-white/10 hover:opacity-80 transition-opacity"
+                            >
+                                <img
+                                    src={order.proof_url}
+                                    alt="Proof of Payment"
+                                    className="w-full h-48 object-cover"
+                                />
+                            </a>
+                            <p className={`text-xs mt-2 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                                Click image to view full size
+                            </p>
+                            {order.payment_status === 'pending_verification' && (
+                                <button
+                                    onClick={async () => {
+                                        if (confirm('Mark this payment as verified?')) {
+                                            await supabase
+                                                .from('store_orders')
+                                                .update({ payment_status: 'paid' })
+                                                .eq('id', order.id);
+                                            onClose();
+                                            if (onRefresh) onRefresh();
+                                        }
+                                    }}
+                                    className="w-full mt-3 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg font-medium text-sm transition-colors flex items-center justify-center gap-2"
+                                >
+                                    <Check className="w-4 h-4" />
+                                    Verify Payment
+                                </button>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Notes - Editable */}
+                    <div>
+                        <div className={`text-xs uppercase mb-2 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Notes</div>
+                        {isEditing ? (
+                            <textarea
+                                value={editForm.notes}
+                                onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
+                                placeholder="Order notes..."
+                                rows={2}
+                                className={`w-full px-3 py-2 rounded-lg border text-sm resize-none ${isDark
+                                    ? 'bg-black/30 border-white/10 text-white'
+                                    : 'bg-white border-slate-200 text-slate-900'}`}
+                            />
+                        ) : (
+                            order.notes ? (
+                                <p className={`text-sm ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>{order.notes}</p>
+                            ) : (
+                                <p className="text-sm text-slate-500 italic">No notes</p>
+                            )
+                        )}
+                    </div>
+                </div>
+
+                {/* Footer Actions */}
+                <div className={`sticky bottom-0 border-t px-6 py-4 ${isDark ? 'bg-slate-900 border-white/10' : 'bg-white border-slate-200'}`}>
+                    {isEditing ? (
+                        <div className="flex items-center gap-3">
+                            <button
+                                onClick={() => setIsEditing(false)}
+                                className={`flex-1 py-2 rounded-lg font-medium text-sm transition-colors ${isDark
+                                    ? 'bg-slate-700 hover:bg-slate-600 text-white'
+                                    : 'bg-slate-200 hover:bg-slate-300 text-slate-700'}`}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleSaveEdit}
+                                disabled={saving}
+                                className="flex-1 py-2 bg-blue-500 hover:bg-blue-600 disabled:opacity-50 text-white rounded-lg font-medium text-sm transition-colors flex items-center justify-center gap-2"
+                            >
+                                <Save className="w-4 h-4" />
+                                {saving ? 'Saving...' : 'Save Changes'}
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-2">
+                                <span className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Status:</span>
+                                <select
+                                    value={order.status}
+                                    onChange={async (e) => {
+                                        await supabase
+                                            .from('store_orders')
+                                            .update({ status: e.target.value })
+                                            .eq('id', order.id);
+                                        if (onRefresh) onRefresh();
+                                    }}
+                                    className={`text-xs font-medium px-2 py-1.5 rounded-lg border cursor-pointer ${isDark
+                                        ? 'bg-black/30 border-white/10 text-white'
+                                        : 'bg-white border-slate-200 text-slate-700'}`}
+                                >
+                                    {ORDER_STATUSES.map(s => (
+                                        <option key={s.id} value={s.id}>{s.label}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <button
+                                onClick={async () => {
+                                    if (confirm('Are you sure you want to delete this order? This cannot be undone.')) {
+                                        // Delete order items first
+                                        await supabase.from('order_items').delete().eq('order_id', order.id);
+                                        // Then delete order
+                                        await supabase.from('store_orders').delete().eq('id', order.id);
+                                        onClose();
+                                        if (onRefresh) onRefresh();
+                                    }
+                                }}
+                                className="flex items-center gap-2 px-3 py-1.5 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg text-sm font-medium transition-colors"
+                            >
+                                <Trash2 className="w-4 h-4" />
+                                Delete Order
+                            </button>
                         </div>
                     )}
                 </div>

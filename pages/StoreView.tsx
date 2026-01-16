@@ -3,7 +3,7 @@ import { useParams, useSearchParams } from 'react-router-dom';
 import {
     ShoppingCart, Package, Plus, Minus, X, Trash2, CheckCircle,
     MapPin, Phone, Mail, Store as StoreIcon, ArrowLeft, Heart,
-    ShoppingBag, Sparkles, ChevronLeft, Check, Truck
+    ShoppingBag, Sparkles, ChevronLeft, Check, Truck, Upload, Image as ImageIcon, AlertCircle
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
@@ -62,6 +62,10 @@ const StoreView: React.FC = () => {
     const [cart, setCart] = useState<CartItem[]>([]);
     const [showCart, setShowCart] = useState(false);
 
+    // Product Added Modal state
+    const [showProductAddedModal, setShowProductAddedModal] = useState(false);
+    const [addedProduct, setAddedProduct] = useState<Product | null>(null);
+
     // Checkout state
     const [showCheckout, setShowCheckout] = useState(false);
     const [checkoutStep, setCheckoutStep] = useState(1);
@@ -74,6 +78,11 @@ const StoreView: React.FC = () => {
     const [shippingAddress, setShippingAddress] = useState('');
     const [paymentMethod, setPaymentMethod] = useState('cod');
     const [notes, setNotes] = useState('');
+
+    // Proof of payment
+    const [proofOfPayment, setProofOfPayment] = useState<File | null>(null);
+    const [proofPreview, setProofPreview] = useState<string>('');
+    const [uploadingProof, setUploadingProof] = useState(false);
 
     // Selected product for detail view
     const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -133,7 +142,7 @@ const StoreView: React.FC = () => {
     const currencySymbol = CURRENCY_SYMBOLS[store?.currency || 'PHP'] || '₱';
 
     // Cart functions
-    const addToCart = (product: Product) => {
+    const addToCart = (product: Product, showModal: boolean = true) => {
         const existing = cart.find(item => item.product.id === product.id);
         if (existing) {
             setCart(cart.map(item =>
@@ -143,6 +152,12 @@ const StoreView: React.FC = () => {
             ));
         } else {
             setCart([...cart, { product, quantity: 1 }]);
+        }
+
+        // Show the product added modal
+        if (showModal) {
+            setAddedProduct(product);
+            setShowProductAddedModal(true);
         }
     };
 
@@ -163,6 +178,54 @@ const StoreView: React.FC = () => {
     const cartTotal = cart.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
     const cartItemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
+    // Check if proof is required
+    const requiresProof = ['gcash', 'maya', 'bank'].includes(paymentMethod);
+
+    // Handle proof of payment file selection
+    const handleProofUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            // Validate file type
+            if (!file.type.startsWith('image/')) {
+                alert('Please upload an image file (JPG, PNG, etc.)');
+                return;
+            }
+            // Validate file size (max 5MB)
+            if (file.size > 5 * 1024 * 1024) {
+                alert('File size must be less than 5MB');
+                return;
+            }
+            setProofOfPayment(file);
+            setProofPreview(URL.createObjectURL(file));
+        }
+    };
+
+    // Upload proof to Supabase storage
+    const uploadProofToStorage = async (file: File): Promise<string | null> => {
+        try {
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${store?.id}/${Date.now()}.${fileExt}`;
+
+            const { data, error } = await supabase.storage
+                .from('payment-proofs')
+                .upload(fileName, file);
+
+            if (error) {
+                console.error('Upload error:', error);
+                return null;
+            }
+
+            const { data: urlData } = supabase.storage
+                .from('payment-proofs')
+                .getPublicUrl(fileName);
+
+            return urlData.publicUrl;
+        } catch (err) {
+            console.error('Upload failed:', err);
+            return null;
+        }
+    };
+
     // Place order
     const placeOrder = async () => {
         if (!customerName || !customerPhone) {
@@ -170,7 +233,26 @@ const StoreView: React.FC = () => {
             return;
         }
 
+        // Validate proof of payment for non-COD methods
+        if (requiresProof && !proofOfPayment) {
+            alert('Please upload your proof of payment');
+            return;
+        }
+
         try {
+            setUploadingProof(true);
+
+            // Upload proof of payment if provided
+            let proofUrl = null;
+            if (proofOfPayment && requiresProof) {
+                proofUrl = await uploadProofToStorage(proofOfPayment);
+                if (!proofUrl) {
+                    alert('Failed to upload proof of payment. Please try again.');
+                    setUploadingProof(false);
+                    return;
+                }
+            }
+
             const { data: order, error: orderError } = await supabase
                 .from('store_orders')
                 .insert({
@@ -183,6 +265,8 @@ const StoreView: React.FC = () => {
                     subtotal: cartTotal,
                     total: cartTotal,
                     notes,
+                    proof_url: proofUrl,
+                    payment_status: requiresProof ? 'pending_verification' : 'pending',
                 })
                 .select()
                 .single();
@@ -238,9 +322,13 @@ const StoreView: React.FC = () => {
             }
 
             setCart([]);
+            setProofOfPayment(null);
+            setProofPreview('');
+            setUploadingProof(false);
             setOrderPlaced(true);
         } catch (err) {
             console.error('Error placing order:', err);
+            setUploadingProof(false);
             alert('Failed to place order. Please try again.');
         }
     };
@@ -658,7 +746,7 @@ const StoreView: React.FC = () => {
                                             value={customerName}
                                             onChange={(e) => setCustomerName(e.target.value)}
                                             placeholder="Juan Dela Cruz"
-                                            className="w-full px-4 py-3.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-gray-900 focus:border-transparent outline-none transition-all"
+                                            className="w-full px-4 py-3.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-gray-900 focus:border-transparent outline-none transition-all bg-white text-gray-900 placeholder-gray-400"
                                         />
                                     </div>
                                     <div>
@@ -668,7 +756,7 @@ const StoreView: React.FC = () => {
                                             value={customerPhone}
                                             onChange={(e) => setCustomerPhone(e.target.value)}
                                             placeholder="+63 912 345 6789"
-                                            className="w-full px-4 py-3.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-gray-900 focus:border-transparent outline-none transition-all"
+                                            className="w-full px-4 py-3.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-gray-900 focus:border-transparent outline-none transition-all bg-white text-gray-900 placeholder-gray-400"
                                         />
                                     </div>
                                     <div>
@@ -678,7 +766,7 @@ const StoreView: React.FC = () => {
                                             value={customerEmail}
                                             onChange={(e) => setCustomerEmail(e.target.value)}
                                             placeholder="juan@email.com"
-                                            className="w-full px-4 py-3.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-gray-900 focus:border-transparent outline-none transition-all"
+                                            className="w-full px-4 py-3.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-gray-900 focus:border-transparent outline-none transition-all bg-white text-gray-900 placeholder-gray-400"
                                         />
                                     </div>
                                     <div>
@@ -688,20 +776,28 @@ const StoreView: React.FC = () => {
                                             onChange={(e) => setShippingAddress(e.target.value)}
                                             placeholder="Street, Barangay, City, Province"
                                             rows={3}
-                                            className="w-full px-4 py-3.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-gray-900 focus:border-transparent outline-none transition-all resize-none"
+                                            className="w-full px-4 py-3.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-gray-900 focus:border-transparent outline-none transition-all resize-none bg-white text-gray-900 placeholder-gray-400"
                                         />
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-2">Payment Method</label>
-                                        <div className="grid grid-cols-3 gap-2">
+                                        <div className="grid grid-cols-2 gap-2">
                                             {[
-                                                { id: 'cod', label: 'Cash', icon: '💵' },
+                                                { id: 'cod', label: 'Cash on Delivery', icon: '💵' },
                                                 { id: 'gcash', label: 'GCash', icon: '📱' },
-                                                { id: 'bank', label: 'Bank', icon: '🏦' }
+                                                { id: 'maya', label: 'Maya', icon: '💳' },
+                                                { id: 'bank', label: 'Bank Transfer', icon: '🏦' }
                                             ].map(method => (
                                                 <button
                                                     key={method.id}
-                                                    onClick={() => setPaymentMethod(method.id)}
+                                                    onClick={() => {
+                                                        setPaymentMethod(method.id);
+                                                        // Clear proof when switching to COD
+                                                        if (method.id === 'cod') {
+                                                            setProofOfPayment(null);
+                                                            setProofPreview('');
+                                                        }
+                                                    }}
                                                     className={`p-3 rounded-xl border-2 text-center transition-all ${paymentMethod === method.id
                                                         ? 'border-gray-900 bg-gray-50'
                                                         : 'border-gray-200 hover:border-gray-300'
@@ -713,9 +809,62 @@ const StoreView: React.FC = () => {
                                             ))}
                                         </div>
                                     </div>
+
+                                    {/* Proof of Payment Upload - Only for e-wallet/bank */}
+                                    {requiresProof && (
+                                        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+                                            <div className="flex items-start gap-2 mb-3">
+                                                <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                                                <div>
+                                                    <p className="text-sm font-medium text-amber-800">Proof of Payment Required</p>
+                                                    <p className="text-xs text-amber-600 mt-0.5">
+                                                        Please upload a screenshot of your payment receipt
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            {proofPreview ? (
+                                                <div className="relative">
+                                                    <img
+                                                        src={proofPreview}
+                                                        alt="Proof of payment"
+                                                        className="w-full h-40 object-cover rounded-lg border border-gray-200"
+                                                    />
+                                                    <button
+                                                        onClick={() => {
+                                                            setProofOfPayment(null);
+                                                            setProofPreview('');
+                                                        }}
+                                                        className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                                                    >
+                                                        <X className="w-4 h-4" />
+                                                    </button>
+                                                    <div className="mt-2 flex items-center gap-2 text-sm text-emerald-600">
+                                                        <Check className="w-4 h-4" />
+                                                        <span>Image uploaded</span>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-amber-300 rounded-lg cursor-pointer hover:bg-amber-100/50 transition-colors">
+                                                    <div className="flex flex-col items-center justify-center py-4">
+                                                        <Upload className="w-8 h-8 text-amber-500 mb-2" />
+                                                        <p className="text-sm text-amber-700 font-medium">Click to upload</p>
+                                                        <p className="text-xs text-amber-500">PNG, JPG up to 5MB</p>
+                                                    </div>
+                                                    <input
+                                                        type="file"
+                                                        className="hidden"
+                                                        accept="image/*"
+                                                        onChange={handleProofUpload}
+                                                    />
+                                                </label>
+                                            )}
+                                        </div>
+                                    )}
+
                                     <button
                                         onClick={() => setCheckoutStep(2)}
-                                        disabled={!customerName || !customerPhone}
+                                        disabled={!customerName || !customerPhone || (requiresProof && !proofOfPayment)}
                                         className="w-full py-4 rounded-full font-semibold text-white transition-all disabled:opacity-50 mt-4"
                                         style={{ backgroundColor: store.primary_color }}
                                     >
@@ -759,16 +908,24 @@ const StoreView: React.FC = () => {
                                             onChange={(e) => setNotes(e.target.value)}
                                             placeholder="Any special instructions..."
                                             rows={2}
-                                            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-gray-900 focus:border-transparent outline-none transition-all resize-none"
+                                            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-gray-900 focus:border-transparent outline-none transition-all resize-none bg-white text-gray-900 placeholder-gray-400"
                                         />
                                     </div>
 
                                     <button
                                         onClick={placeOrder}
-                                        className="w-full py-4 rounded-full font-semibold text-white shadow-lg hover:shadow-xl transition-all"
+                                        disabled={uploadingProof}
+                                        className="w-full py-4 rounded-full font-semibold text-white shadow-lg hover:shadow-xl transition-all disabled:opacity-70"
                                         style={{ backgroundColor: store.primary_color }}
                                     >
-                                        Place Order
+                                        {uploadingProof ? (
+                                            <span className="flex items-center justify-center gap-2">
+                                                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                                Processing...
+                                            </span>
+                                        ) : (
+                                            'Place Order'
+                                        )}
                                     </button>
                                 </div>
                             )}
@@ -953,9 +1110,12 @@ const StoreView: React.FC = () => {
                                     <button
                                         onClick={() => {
                                             const qty = parseInt((document.getElementById('qty-input') as HTMLInputElement)?.value || '1');
-                                            for (let i = 0; i < qty; i++) {
-                                                addToCart(selectedProduct);
+                                            // Add all items without showing modal
+                                            for (let i = 0; i < qty - 1; i++) {
+                                                addToCart(selectedProduct, false);
                                             }
+                                            // Add the last item and show modal
+                                            addToCart(selectedProduct, true);
                                             setSelectedProduct(null);
                                         }}
                                         disabled={!selectedProduct.stock_quantity || selectedProduct.stock_quantity <= 0}
@@ -975,11 +1135,12 @@ const StoreView: React.FC = () => {
                                     <button
                                         onClick={() => {
                                             const qty = parseInt((document.getElementById('qty-input') as HTMLInputElement)?.value || '1');
+                                            // Add all items without showing modal since we go to cart
                                             for (let i = 0; i < qty; i++) {
-                                                addToCart(selectedProduct);
+                                                addToCart(selectedProduct, false);
                                             }
                                             setSelectedProduct(null);
-                                            setShowCart(true);
+                                            setShowCheckout(true);
                                         }}
                                         disabled={!selectedProduct.stock_quantity || selectedProduct.stock_quantity <= 0}
                                         className="w-full py-4 rounded-full font-bold text-lg border-2 transition-all hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
@@ -1001,6 +1162,95 @@ const StoreView: React.FC = () => {
                                     </div>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Product Added Modal */}
+            {showProductAddedModal && addedProduct && (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+                    {/* Backdrop */}
+                    <div
+                        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+                        onClick={() => setShowProductAddedModal(false)}
+                    />
+
+                    {/* Modal Content */}
+                    <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-sm p-6 animate-modal-in">
+                        {/* Success Icon */}
+                        <div className="flex justify-center mb-4">
+                            <div
+                                className="w-16 h-16 rounded-full flex items-center justify-center"
+                                style={{ backgroundColor: `${store.primary_color}15` }}
+                            >
+                                <CheckCircle className="w-8 h-8" style={{ color: store.primary_color }} />
+                            </div>
+                        </div>
+
+                        {/* Title */}
+                        <h3 className="text-xl font-bold text-gray-900 text-center mb-2">
+                            Added to Cart!
+                        </h3>
+
+                        {/* Product Info */}
+                        <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl mb-6">
+                            {addedProduct.images?.[0] ? (
+                                <img
+                                    src={addedProduct.images[0]}
+                                    alt={addedProduct.name}
+                                    className="w-16 h-16 rounded-lg object-cover flex-shrink-0"
+                                />
+                            ) : (
+                                <div className="w-16 h-16 rounded-lg bg-gray-200 flex items-center justify-center flex-shrink-0">
+                                    <Package className="w-6 h-6 text-gray-400" />
+                                </div>
+                            )}
+                            <div className="flex-1 min-w-0">
+                                <p className="font-medium text-gray-900 line-clamp-2 text-sm">
+                                    {addedProduct.name}
+                                </p>
+                                <p className="text-sm font-bold mt-1" style={{ color: store.primary_color }}>
+                                    {currencySymbol}{addedProduct.price.toLocaleString()}
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Cart Summary */}
+                        <div className="text-center text-sm text-gray-500 mb-6">
+                            <span className="font-medium text-gray-900">{cartItemCount} item{cartItemCount !== 1 ? 's' : ''}</span> in your cart
+                            <span className="mx-1">•</span>
+                            <span className="font-bold" style={{ color: store.primary_color }}>{currencySymbol}{cartTotal.toLocaleString()}</span>
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="space-y-3">
+                            {/* Checkout Button */}
+                            <button
+                                onClick={() => {
+                                    setShowProductAddedModal(false);
+                                    setShowCheckout(true);
+                                }}
+                                className="w-full py-3.5 rounded-full font-semibold text-white shadow-lg hover:shadow-xl transition-all hover:scale-[1.02]"
+                                style={{ backgroundColor: store.primary_color }}
+                            >
+                                <span className="flex items-center justify-center gap-2">
+                                    <ShoppingCart className="w-5 h-5" />
+                                    Proceed to Checkout
+                                </span>
+                            </button>
+
+                            {/* Continue Shopping Button */}
+                            <button
+                                onClick={() => setShowProductAddedModal(false)}
+                                className="w-full py-3.5 rounded-full font-semibold transition-all border-2 hover:bg-gray-50"
+                                style={{
+                                    borderColor: store.primary_color,
+                                    color: store.primary_color
+                                }}
+                            >
+                                Continue Shopping
+                            </button>
                         </div>
                     </div>
                 </div>
