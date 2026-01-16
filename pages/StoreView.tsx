@@ -717,28 +717,55 @@ const StoreView: React.FC = () => {
                 </div>
             )}
 
-            {/* Checkout Modal */}
+            {/* Checkout Modal - Multi-Step Wizard */}
             {showCheckout && (
-                <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-                    <div className="bg-white rounded-3xl w-full max-w-lg my-8 shadow-2xl">
-                        {/* Header */}
-                        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-                            <div className="flex items-center gap-3">
-                                {checkoutStep > 1 && (
-                                    <button onClick={() => setCheckoutStep(checkoutStep - 1)} className="p-2 hover:bg-gray-100 rounded-full">
-                                        <ArrowLeft className="w-5 h-5" />
-                                    </button>
-                                )}
-                                <h2 className="text-lg font-bold text-gray-900">
-                                    {checkoutStep === 1 ? 'Your Details' : 'Review Order'}
-                                </h2>
+                <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
+                    <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden">
+                        {/* Header with Step Indicator */}
+                        <div className="px-6 py-4 border-b border-gray-100">
+                            <div className="flex items-center justify-between mb-3">
+                                <div className="flex items-center gap-2">
+                                    {checkoutStep > 1 && (
+                                        <button
+                                            onClick={() => setCheckoutStep(checkoutStep - 1)}
+                                            className="p-1.5 hover:bg-gray-100 rounded-full transition-colors"
+                                        >
+                                            <ArrowLeft className="w-5 h-5 text-gray-600" />
+                                        </button>
+                                    )}
+                                    <h2 className="text-lg font-bold text-gray-900">
+                                        {checkoutStep === 1 && 'Contact Info'}
+                                        {checkoutStep === 2 && 'Shipping'}
+                                        {checkoutStep === 3 && 'Payment'}
+                                        {checkoutStep === 4 && 'Review Order'}
+                                    </h2>
+                                </div>
+                                <button
+                                    onClick={() => setShowCheckout(false)}
+                                    className="p-1.5 hover:bg-gray-100 rounded-full transition-colors"
+                                >
+                                    <X className="w-5 h-5 text-gray-500" />
+                                </button>
                             </div>
-                            <button onClick={() => setShowCheckout(false)} className="p-2 hover:bg-gray-100 rounded-full">
-                                <X className="w-5 h-5 text-gray-500" />
-                            </button>
+                            {/* Progress Dots */}
+                            <div className="flex items-center justify-center gap-2">
+                                {[1, 2, 3, 4].map(step => (
+                                    <div
+                                        key={step}
+                                        className={`h-2 rounded-full transition-all ${step === checkoutStep
+                                                ? 'w-8 bg-gray-900'
+                                                : step < checkoutStep
+                                                    ? 'w-2 bg-green-500'
+                                                    : 'w-2 bg-gray-200'
+                                            }`}
+                                    />
+                                ))}
+                            </div>
                         </div>
 
+                        {/* Step Content */}
                         <div className="p-6">
+                            {/* Step 1: Contact Info */}
                             {checkoutStep === 1 && (
                                 <div className="space-y-4">
                                     <div>
@@ -748,7 +775,7 @@ const StoreView: React.FC = () => {
                                             value={customerName}
                                             onChange={(e) => setCustomerName(e.target.value)}
                                             placeholder="Juan Dela Cruz"
-                                            className="w-full px-4 py-3.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-gray-900 focus:border-transparent outline-none transition-all bg-white text-gray-900 placeholder-gray-400"
+                                            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-gray-900 focus:border-transparent outline-none transition-all bg-white text-gray-900 placeholder-gray-400"
                                         />
                                     </div>
                                     <div>
@@ -758,7 +785,7 @@ const StoreView: React.FC = () => {
                                             value={customerPhone}
                                             onChange={(e) => setCustomerPhone(e.target.value)}
                                             placeholder="+63 912 345 6789"
-                                            className="w-full px-4 py-3.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-gray-900 focus:border-transparent outline-none transition-all bg-white text-gray-900 placeholder-gray-400"
+                                            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-gray-900 focus:border-transparent outline-none transition-all bg-white text-gray-900 placeholder-gray-400"
                                         />
                                     </div>
                                     <div>
@@ -768,106 +795,13 @@ const StoreView: React.FC = () => {
                                             value={customerEmail}
                                             onChange={(e) => setCustomerEmail(e.target.value)}
                                             placeholder="juan@email.com"
-                                            className="w-full px-4 py-3.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-gray-900 focus:border-transparent outline-none transition-all bg-white text-gray-900 placeholder-gray-400"
+                                            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-gray-900 focus:border-transparent outline-none transition-all bg-white text-gray-900 placeholder-gray-400"
                                         />
                                     </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1.5">Shipping Address</label>
-                                        <textarea
-                                            value={shippingAddress}
-                                            onChange={(e) => setShippingAddress(e.target.value)}
-                                            placeholder="Street, Barangay, City, Province"
-                                            rows={3}
-                                            className="w-full px-4 py-3.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-gray-900 focus:border-transparent outline-none transition-all resize-none bg-white text-gray-900 placeholder-gray-400"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">Payment Method</label>
-                                        <div className="grid grid-cols-2 gap-2">
-                                            {[
-                                                { id: 'cod', label: 'Cash on Delivery', icon: '💵' },
-                                                { id: 'gcash', label: 'GCash', icon: '📱' },
-                                                { id: 'maya', label: 'Maya', icon: '💳' },
-                                                { id: 'bank', label: 'Bank Transfer', icon: '🏦' }
-                                            ].map(method => (
-                                                <button
-                                                    key={method.id}
-                                                    onClick={() => {
-                                                        setPaymentMethod(method.id);
-                                                        // Clear proof when switching to COD
-                                                        if (method.id === 'cod') {
-                                                            setProofOfPayment(null);
-                                                            setProofPreview('');
-                                                        }
-                                                    }}
-                                                    className={`p-3 rounded-xl border-2 text-center transition-all ${paymentMethod === method.id
-                                                        ? 'border-gray-900 bg-gray-50'
-                                                        : 'border-gray-200 hover:border-gray-300'
-                                                        }`}
-                                                >
-                                                    <div className="text-2xl mb-1">{method.icon}</div>
-                                                    <div className="text-xs font-medium text-gray-700">{method.label}</div>
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-
-                                    {/* Proof of Payment Upload - Only for e-wallet/bank */}
-                                    {requiresProof && (
-                                        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
-                                            <div className="flex items-start gap-2 mb-3">
-                                                <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                                                <div>
-                                                    <p className="text-sm font-medium text-amber-800">Proof of Payment Required</p>
-                                                    <p className="text-xs text-amber-600 mt-0.5">
-                                                        Please upload a screenshot of your payment receipt
-                                                    </p>
-                                                </div>
-                                            </div>
-
-                                            {proofPreview ? (
-                                                <div className="relative">
-                                                    <img
-                                                        src={proofPreview}
-                                                        alt="Proof of payment"
-                                                        className="w-full h-40 object-cover rounded-lg border border-gray-200"
-                                                    />
-                                                    <button
-                                                        onClick={() => {
-                                                            setProofOfPayment(null);
-                                                            setProofPreview('');
-                                                        }}
-                                                        className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
-                                                    >
-                                                        <X className="w-4 h-4" />
-                                                    </button>
-                                                    <div className="mt-2 flex items-center gap-2 text-sm text-emerald-600">
-                                                        <Check className="w-4 h-4" />
-                                                        <span>Image uploaded</span>
-                                                    </div>
-                                                </div>
-                                            ) : (
-                                                <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-amber-300 rounded-lg cursor-pointer hover:bg-amber-100/50 transition-colors">
-                                                    <div className="flex flex-col items-center justify-center py-4">
-                                                        <Upload className="w-8 h-8 text-amber-500 mb-2" />
-                                                        <p className="text-sm text-amber-700 font-medium">Click to upload</p>
-                                                        <p className="text-xs text-amber-500">PNG, JPG up to 5MB</p>
-                                                    </div>
-                                                    <input
-                                                        type="file"
-                                                        className="hidden"
-                                                        accept="image/*"
-                                                        onChange={handleProofUpload}
-                                                    />
-                                                </label>
-                                            )}
-                                        </div>
-                                    )}
-
                                     <button
                                         onClick={() => setCheckoutStep(2)}
-                                        disabled={!customerName || !customerPhone || (requiresProof && !proofOfPayment)}
-                                        className="w-full py-4 rounded-full font-semibold text-white transition-all disabled:opacity-50 mt-4"
+                                        disabled={!customerName || !customerPhone}
+                                        className="w-full py-3.5 rounded-full font-semibold text-white transition-all disabled:opacity-50 mt-2"
                                         style={{ backgroundColor: store.primary_color }}
                                     >
                                         Continue
@@ -875,12 +809,124 @@ const StoreView: React.FC = () => {
                                 </div>
                             )}
 
+                            {/* Step 2: Shipping Address */}
                             {checkoutStep === 2 && (
                                 <div className="space-y-4">
-                                    {/* Order Summary */}
-                                    <div className="bg-gray-50 rounded-2xl p-4">
-                                        <h3 className="font-semibold text-gray-900 mb-3">Order Summary</h3>
-                                        <div className="space-y-2">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1.5">Shipping Address</label>
+                                        <textarea
+                                            value={shippingAddress}
+                                            onChange={(e) => setShippingAddress(e.target.value)}
+                                            placeholder="House/Unit No., Street, Barangay, City, Province"
+                                            rows={4}
+                                            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-gray-900 focus:border-transparent outline-none transition-all resize-none bg-white text-gray-900 placeholder-gray-400"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1.5">Order Notes (Optional)</label>
+                                        <textarea
+                                            value={notes}
+                                            onChange={(e) => setNotes(e.target.value)}
+                                            placeholder="Any special instructions for delivery..."
+                                            rows={2}
+                                            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-gray-900 focus:border-transparent outline-none transition-all resize-none bg-white text-gray-900 placeholder-gray-400"
+                                        />
+                                    </div>
+                                    <button
+                                        onClick={() => setCheckoutStep(3)}
+                                        className="w-full py-3.5 rounded-full font-semibold text-white transition-all mt-2"
+                                        style={{ backgroundColor: store.primary_color }}
+                                    >
+                                        Continue
+                                    </button>
+                                </div>
+                            )}
+
+                            {/* Step 3: Payment Method */}
+                            {checkoutStep === 3 && (
+                                <div className="space-y-4">
+                                    <div className="grid grid-cols-2 gap-3">
+                                        {[
+                                            { id: 'cod', label: 'Cash on Delivery', icon: '💵' },
+                                            { id: 'gcash', label: 'GCash', icon: '📱' },
+                                            { id: 'maya', label: 'Maya', icon: '💳' },
+                                            { id: 'bank', label: 'Bank Transfer', icon: '🏦' }
+                                        ].map(method => (
+                                            <button
+                                                key={method.id}
+                                                onClick={() => {
+                                                    setPaymentMethod(method.id);
+                                                    if (method.id === 'cod') {
+                                                        setProofOfPayment(null);
+                                                        setProofPreview('');
+                                                    }
+                                                }}
+                                                className={`p-4 rounded-xl border-2 text-center transition-all ${paymentMethod === method.id
+                                                        ? 'border-gray-900 bg-gray-50'
+                                                        : 'border-gray-200 hover:border-gray-300'
+                                                    }`}
+                                            >
+                                                <div className="text-3xl mb-1">{method.icon}</div>
+                                                <div className="text-sm font-medium text-gray-700">{method.label}</div>
+                                            </button>
+                                        ))}
+                                    </div>
+
+                                    {/* Proof of Payment Upload */}
+                                    {requiresProof && (
+                                        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mt-4">
+                                            <div className="flex items-start gap-2 mb-3">
+                                                <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0" />
+                                                <div>
+                                                    <p className="text-sm font-medium text-amber-800">Upload Proof of Payment</p>
+                                                    <p className="text-xs text-amber-600">Screenshot of your payment receipt</p>
+                                                </div>
+                                            </div>
+                                            {proofPreview ? (
+                                                <div className="relative">
+                                                    <img
+                                                        src={proofPreview}
+                                                        alt="Proof"
+                                                        className="w-full h-32 object-cover rounded-lg border border-gray-200"
+                                                    />
+                                                    <button
+                                                        onClick={() => { setProofOfPayment(null); setProofPreview(''); }}
+                                                        className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600"
+                                                    >
+                                                        <X className="w-3 h-3" />
+                                                    </button>
+                                                    <div className="mt-2 flex items-center gap-1 text-sm text-emerald-600">
+                                                        <Check className="w-4 h-4" /> Uploaded
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-amber-300 rounded-lg cursor-pointer hover:bg-amber-100/50 transition-colors">
+                                                    <Upload className="w-6 h-6 text-amber-500 mb-1" />
+                                                    <span className="text-sm text-amber-700 font-medium">Click to upload</span>
+                                                    <input type="file" className="hidden" accept="image/*" onChange={handleProofUpload} />
+                                                </label>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    <button
+                                        onClick={() => setCheckoutStep(4)}
+                                        disabled={requiresProof && !proofOfPayment}
+                                        className="w-full py-3.5 rounded-full font-semibold text-white transition-all disabled:opacity-50 mt-2"
+                                        style={{ backgroundColor: store.primary_color }}
+                                    >
+                                        Continue
+                                    </button>
+                                </div>
+                            )}
+
+                            {/* Step 4: Review & Place Order */}
+                            {checkoutStep === 4 && (
+                                <div className="space-y-4">
+                                    {/* Order Items */}
+                                    <div className="bg-gray-50 rounded-xl p-4">
+                                        <h3 className="font-semibold text-gray-900 mb-2 text-sm">Order Summary</h3>
+                                        <div className="space-y-1.5 max-h-32 overflow-y-auto">
                                             {cart.map(item => (
                                                 <div key={item.product.id} className="flex justify-between text-sm">
                                                     <span className="text-gray-600">{item.product.name} × {item.quantity}</span>
@@ -888,36 +934,37 @@ const StoreView: React.FC = () => {
                                                 </div>
                                             ))}
                                         </div>
-                                        <div className="border-t border-gray-200 mt-3 pt-3 flex justify-between">
+                                        <div className="border-t border-gray-200 mt-2 pt-2 flex justify-between">
                                             <span className="font-bold text-gray-900">Total</span>
                                             <span className="font-bold text-lg" style={{ color: store.primary_color }}>{currencySymbol}{cartTotal.toLocaleString()}</span>
                                         </div>
                                     </div>
 
-                                    {/* Customer Info */}
-                                    <div className="bg-gray-50 rounded-2xl p-4">
-                                        <h3 className="font-semibold text-gray-900 mb-2">Shipping To</h3>
-                                        <p className="font-medium text-gray-900">{customerName}</p>
-                                        <p className="text-sm text-gray-500">{customerPhone}</p>
-                                        {shippingAddress && <p className="text-sm text-gray-500 mt-1">{shippingAddress}</p>}
+                                    {/* Shipping Details */}
+                                    <div className="bg-gray-50 rounded-xl p-4">
+                                        <h3 className="font-semibold text-gray-900 mb-1 text-sm">Shipping To</h3>
+                                        <p className="font-medium text-gray-900 text-sm">{customerName}</p>
+                                        <p className="text-xs text-gray-500">{customerPhone}</p>
+                                        {shippingAddress && <p className="text-xs text-gray-500 mt-1">{shippingAddress}</p>}
                                     </div>
 
-                                    {/* Notes */}
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1.5">Order Notes (Optional)</label>
-                                        <textarea
-                                            value={notes}
-                                            onChange={(e) => setNotes(e.target.value)}
-                                            placeholder="Any special instructions..."
-                                            rows={2}
-                                            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-gray-900 focus:border-transparent outline-none transition-all resize-none bg-white text-gray-900 placeholder-gray-400"
-                                        />
+                                    {/* Payment */}
+                                    <div className="bg-gray-50 rounded-xl p-4 flex items-center justify-between">
+                                        <div>
+                                            <h3 className="font-semibold text-gray-900 text-sm">Payment</h3>
+                                            <p className="text-xs text-gray-500 capitalize">{paymentMethod === 'cod' ? 'Cash on Delivery' : paymentMethod}</p>
+                                        </div>
+                                        {requiresProof && proofPreview && (
+                                            <div className="flex items-center gap-1 text-xs text-emerald-600">
+                                                <Check className="w-3 h-3" /> Proof uploaded
+                                            </div>
+                                        )}
                                     </div>
 
                                     <button
                                         onClick={placeOrder}
                                         disabled={uploadingProof}
-                                        className="w-full py-4 rounded-full font-semibold text-white shadow-lg hover:shadow-xl transition-all disabled:opacity-70"
+                                        className="w-full py-3.5 rounded-full font-semibold text-white shadow-lg hover:shadow-xl transition-all disabled:opacity-70 mt-2"
                                         style={{ backgroundColor: store.primary_color }}
                                     >
                                         {uploadingProof ? (
@@ -926,7 +973,7 @@ const StoreView: React.FC = () => {
                                                 Processing...
                                             </span>
                                         ) : (
-                                            'Place Order'
+                                            `Place Order • ${currencySymbol}${cartTotal.toLocaleString()}`
                                         )}
                                     </button>
                                 </div>
