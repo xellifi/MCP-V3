@@ -126,9 +126,30 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             return res.status(400).json({ error: 'No page access token', pageId, workspaceId });
         }
 
+        // Get subscriber metadata to fetch stored upsell/downsell responses
+        let subscriberMetadata: any = {};
+        if (workspaceId && subscriberId) {
+            try {
+                const { data: subscriber } = await supabase
+                    .from('subscribers')
+                    .select('metadata')
+                    .eq('workspace_id', workspaceId)
+                    .eq('external_id', subscriberId)
+                    .single();
+                if (subscriber?.metadata) {
+                    subscriberMetadata = subscriber.metadata;
+                }
+            } catch (err) {
+                console.log('[Continue Flow] Could not fetch subscriber metadata:', err);
+            }
+        }
+
+        // Get userResponse from webview (passed when upsell/downsell completes)
+        const userResponse = req.body.userResponse || '';
+        console.log('[Continue Flow] User response from webview:', userResponse);
 
         // Create context for flow execution
-        const context = {
+        const context: any = {
             commenterId: subscriberId,
             commenterName: subscriberName || 'Customer',
             form_submitted: formSubmitted === true,
@@ -142,7 +163,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             cart: passedCart.length > 0 ? passedCart : [],
             cartTotal: passedCartTotal > 0 ? passedCartTotal : 0,
             // Checkout data from webview (shipping, payment info)
-            checkoutData: passedCheckoutData
+            checkoutData: passedCheckoutData,
+            // CRITICAL: Include upsell/downsell responses for Condition Node evaluation
+            // First check the passed userResponse, then fall back to subscriber metadata
+            upsell_response: subscriberMetadata.upsell_response || '',
+            downsell_response: subscriberMetadata.downsell_response || '',
+            // Store the current webview response too
+            userResponse: userResponse
         };
 
         console.log('[Continue Flow] Execution context:', {
@@ -150,7 +177,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             form_submitted: context.form_submitted,
             passedCartItems: passedCart.length,
             passedCartTotal: passedCartTotal,
-            hasCheckoutData: Object.keys(passedCheckoutData).length > 0
+            hasCheckoutData: Object.keys(passedCheckoutData).length > 0,
+            upsell_response: context.upsell_response,
+            downsell_response: context.downsell_response,
+            userResponse: userResponse
         });
 
         // Log if cart was passed from webview
@@ -847,9 +877,16 @@ function evaluateConditions(config: any, context: any): boolean {
             actualValue = context.form_submitted === true || context.formSubmitted === true;
         }
 
-        // Handle upsell_response - check context first
+        // Handle upsell_response - check context first, then metadata
         if (variable === 'upsell_response') {
-            actualValue = context.upsell_response || '';
+            actualValue = context.upsell_response || context.metadata?.upsell_response || '';
+            console.log(`[Condition] upsell_response resolved to: '${actualValue}'`);
+        }
+
+        // Handle downsell_response - check context first, then metadata
+        if (variable === 'downsell_response') {
+            actualValue = context.downsell_response || context.metadata?.downsell_response || '';
+            console.log(`[Condition] downsell_response resolved to: '${actualValue}'`);
         }
 
         console.log(`[Condition] Checking: ${variable} ${operator} ${expectedValue}, actual: ${actualValue}`);
