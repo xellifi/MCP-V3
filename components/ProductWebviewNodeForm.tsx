@@ -60,12 +60,10 @@ interface ProductWebviewNodeFormProps {
         imagePreviewSize?: number;
         // Product Webview specific - action buttons
         enableQuantitySelector?: boolean;
-        enablePromoCode?: boolean;
         enableColorSelector?: boolean;
         enableSizeSelector?: boolean;
         colorOptions?: string[];
         sizeOptions?: string[];
-        promoCodes?: string[];
         // Add to Cart action trigger
         onAddToCartAction?: 'upsell' | 'downsell' | 'nextStep' | 'savedFlow';
         onAddToCartFlowId?: string;
@@ -300,7 +298,6 @@ const ProductWebviewNodeForm: React.FC<ProductWebviewNodeFormProps> = ({
 
     // Product Webview specific state
     const [enableQuantitySelector, setEnableQuantitySelector] = useState(initialConfig?.enableQuantitySelector ?? true);
-    const [enablePromoCode, setEnablePromoCode] = useState(initialConfig?.enablePromoCode ?? false);
     const [enableColorSelector, setEnableColorSelector] = useState(initialConfig?.enableColorSelector ?? false);
     const [enableSizeSelector, setEnableSizeSelector] = useState(initialConfig?.enableSizeSelector ?? false);
     const [colorOptions, setColorOptions] = useState<string[]>(initialConfig?.colorOptions || ['Red', 'Blue', 'Black']);
@@ -344,7 +341,7 @@ const ProductWebviewNodeForm: React.FC<ProductWebviewNodeFormProps> = ({
             countdownShowBg, countdownBorderRadius, countdownFullWidth, cartAction,
             productName: productName || headline,
             productPrice: parseFloat(price.replace(/[^0-9.]/g, '')) || 0,
-            useWebview, imagePreviewSize, enableQuantitySelector, enablePromoCode,
+            useWebview, imagePreviewSize, enableQuantitySelector,
             enableColorSelector, enableSizeSelector, colorOptions, sizeOptions,
             onAddToCartAction, onAddToCartFlowId, enableFollowup, followupTimeout, followupNodeType
         });
@@ -380,8 +377,8 @@ const ProductWebviewNodeForm: React.FC<ProductWebviewNodeFormProps> = ({
             productPrice: parseFloat(price.replace(/[^0-9.]/g, '')) || 0,
             useWebview,
             // Product options
-            enableQuantitySelector, enablePromoCode, enableColorSelector, enableSizeSelector,
-            colorOptions, sizeOptions, promoCodes,
+            enableQuantitySelector, enableColorSelector, enableSizeSelector,
+            colorOptions, sizeOptions,
             // Action triggers
             onAddToCartAction, onAddToCartFlowId,
             // Follow-up settings
@@ -1173,8 +1170,7 @@ const ProductWebviewNodeForm: React.FC<ProductWebviewNodeFormProps> = ({
     // Product Options Section (NEW for Product Webview)
     const [colorInputValue, setColorInputValue] = useState(initialConfig?.colorOptions?.join(', ') || 'Red, Blue, Black');
     const [sizeInputValue, setSizeInputValue] = useState(initialConfig?.sizeOptions?.join(', ') || 'S, M, L, XL');
-    const [promoCodesInput, setPromoCodesInput] = useState(initialConfig?.promoCodes?.join(', ') || '');
-    const [promoCodes, setPromoCodes] = useState<string[]>(initialConfig?.promoCodes || []);
+
 
     const productOptionsSection = (
         <CollapsibleSection title="Product Options" icon={Settings} defaultOpen={false}>
@@ -1184,32 +1180,6 @@ const ProductWebviewNodeForm: React.FC<ProductWebviewNodeFormProps> = ({
                 label="Quantity Selector"
             />
             <p className={`text-[10px] ${isDark ? 'text-slate-500' : 'text-slate-400'} -mt-2 mb-3`}>Allow buyers to select quantity</p>
-
-            <Toggle
-                value={enablePromoCode}
-                onChange={(v) => { setEnablePromoCode(v); notifyChange({ enablePromoCode: v }); }}
-                label="Promo Code Field"
-            />
-            <p className={`text-[10px] ${isDark ? 'text-slate-500' : 'text-slate-400'} -mt-2 mb-3`}>Allow buyers to enter promo codes</p>
-
-            {enablePromoCode && (
-                <div className={`mb-3 pl-2 border-l-2 ${isDark ? 'border-amber-500/30' : 'border-amber-500/50'}`}>
-                    <label className={labelClass(isDark)}>Valid Promo Codes (comma-separated, leave empty for any)</label>
-                    <input
-                        type="text"
-                        value={promoCodesInput}
-                        onChange={(e) => setPromoCodesInput(e.target.value)}
-                        onBlur={(e) => {
-                            const codes = e.target.value.split(',').map(c => c.trim().toUpperCase()).filter(c => c);
-                            setPromoCodes(codes);
-                            notifyChange({ promoCodes: codes });
-                        }}
-                        placeholder="SAVE10, DISCOUNT20, FREE"
-                        className={inputClass(isDark)}
-                    />
-                    <p className={`text-[9px] ${isDark ? 'text-slate-500' : 'text-slate-400'} mt-1`}>Leave empty to accept any code entered by buyer</p>
-                </div>
-            )}
 
             <Toggle
                 value={enableColorSelector}
