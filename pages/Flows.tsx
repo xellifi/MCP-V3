@@ -353,6 +353,54 @@ const Flows: React.FC<FlowsProps> = ({ workspace }) => {
     toast.success(`Creating flow from "${template.name}" template`);
   };
 
+  // Import template from JSON file
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const handleImportTemplate = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        const content = e.target?.result as string;
+        const template = JSON.parse(content);
+
+        // Basic validation
+        if (!template.nodes || !Array.isArray(template.nodes)) {
+          toast.error('Invalid template file: missing nodes');
+          return;
+        }
+
+        // Save to database
+        try {
+          const newTemplate = await api.templates.createTemplate(workspace.id, {
+            name: template.name || file.name.replace('.json', ''),
+            description: template.description || 'Imported via upload',
+            nodes: template.nodes,
+            edges: template.edges || [],
+            configurations: template.configurations || {}
+          });
+
+          // Add to state if in templates view
+          setTemplates(prev => [newTemplate, ...prev]);
+          toast.success('Template imported successfully');
+        } catch (apiError) {
+          console.error('Error creating template:', apiError);
+          toast.error('Failed to save imported template');
+        }
+
+        // Reset input
+        if (fileInputRef.current) fileInputRef.current.value = '';
+
+      } catch (error) {
+        console.error('Error parsing template:', error);
+        toast.error('Failed to parse template file');
+      }
+    };
+    reader.readAsText(file);
+  };
+
   // Drag event handlers
   const handleDragStart = (event: DragStartEvent) => {
     setActiveId(event.active.id as string);
@@ -421,6 +469,24 @@ const Flows: React.FC<FlowsProps> = ({ workspace }) => {
             >
               <Plus className="w-5 h-5" />
               New Flow
+            </button>
+          </div>
+        )}
+        {activeTab === 'templates' && (
+          <div className="flex items-center gap-3">
+            <input
+              type="file"
+              ref={fileInputRef}
+              className="hidden"
+              accept=".json"
+              onChange={handleImportTemplate}
+            />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="flex items-center gap-2 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white px-5 py-2.5 rounded-xl font-bold shadow-lg shadow-indigo-500/20 transition-all active:scale-95 border border-white/20"
+            >
+              <Upload className="w-5 h-5" />
+              Import Template
             </button>
           </div>
         )}

@@ -17,7 +17,7 @@ import ReactFlow, {
   ReactFlowProvider
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Workspace, ConnectedPage } from '../types';
 import { Save, ArrowLeft, PlayCircle, Menu, X, Grid3x3, MessageCircle, Play, Bot, Send, Clock, MousePointer2, SquareMousePointer, Sparkles, GitBranch, MessageSquare, RectangleEllipsis, Plus, Minus, Maximize, Maximize2, Minimize2, Wrench, RotateCcw, Image, Video, FileText, Table, RefreshCw, ShoppingBag, Tag, Receipt, Package, ShoppingCart, Table2, ClipboardList, ArrowUp, ArrowDown, Globe, MoreHorizontal, ChevronDown, FileDown, Loader2 } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
@@ -110,6 +110,7 @@ const edgeTypes = {
 const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const toast = useToast();
 
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
@@ -265,6 +266,27 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
       // Only load flow data if editing existing flow
       if (id && !id.startsWith('new')) {
         promises.push(loadFlowData());
+      } else if (id && id.startsWith('new')) {
+        const searchParams = new URLSearchParams(location.search);
+        if (searchParams.get('template') === 'true') {
+          const pendingTemplate = localStorage.getItem('pendingTemplate');
+          if (pendingTemplate) {
+            try {
+              const templateData = JSON.parse(pendingTemplate);
+              console.log('[FlowBuilder] Loading template data:', templateData);
+              setNodes(templateData.nodes || []);
+              setEdges(templateData.edges || []);
+              setNodeConfigs(templateData.configurations || {});
+
+              // Clean up
+              localStorage.removeItem('pendingTemplate');
+              toast.success('Template loaded successfully');
+            } catch (e) {
+              console.error('Error parsing template data:', e);
+              toast.error('Failed to load template');
+            }
+          }
+        }
       }
 
       // Run all API calls in parallel
@@ -2318,47 +2340,55 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
       x: flowBounds.left + flowBounds.width / 2,
       y: flowBounds.top + flowBounds.height / 2
     });
-
     // Node spacing configuration
     const horizontalSpacing = 300;
     const verticalSpacing = 250;
 
-    // Build adjacency map from edges (source -> outgoing edges info)
+    // Helper to get node height
+    const getNodeHeight = (id: string) => {
+      const n = nodes.find(x => x.id === id);
+      return (n as any)?.measured?.height || n?.height || 150;
+    };
+
+    // 1. Build Graph Info
+    // adjacencyMap: source -> outgoing edges (for BFS)
     const adjacencyMap: Map<string, Array<{ target: string, handle: string | null }>> = new Map();
+    // incomingMap: target -> sources (for Barycenter Y calc)
+    const incomingMap: Map<string, string[]> = new Map();
     const incomingCount: Map<string, number> = new Map();
 
-    // Initialize all nodes
     nodes.forEach(node => {
       adjacencyMap.set(node.id, []);
+      incomingMap.set(node.id, []);
       incomingCount.set(node.id, 0);
     });
 
-    // Build graph from edges
     edges.forEach(edge => {
+      // Outgoing
       const targets = adjacencyMap.get(edge.source) || [];
       targets.push({ target: edge.target, handle: edge.sourceHandle || null });
       adjacencyMap.set(edge.source, targets);
+
+      // Incoming
+      const sources = incomingMap.get(edge.target) || [];
+      sources.push(edge.source);
+      incomingMap.set(edge.target, sources);
+
       incomingCount.set(edge.target, (incomingCount.get(edge.target) || 0) + 1);
     });
 
-    // Find root nodes (nodes with no incoming edges - typically trigger/start nodes)
+    // 2. BFS for Spanning Tree / Levelling
     const rootNodes = nodes.filter(node => (incomingCount.get(node.id) || 0) === 0);
-
-    // If no clear roots, use trigger/start nodes as roots
     const effectiveRoots = rootNodes.length > 0 ? rootNodes : nodes.filter(node =>
-      node.type === 'triggerNode' ||
-      node.type === 'startNode' ||
-      node.data?.nodeType === 'triggerNode' ||
-      node.data?.nodeType === 'startNode'
+      node.type === 'triggerNode' || node.type === 'startNode' ||
+      node.data?.nodeType === 'triggerNode' || node.data?.nodeType === 'startNode'
     );
 
-    // BFS to determine node levels (column positions)
     const nodeLevel: Map<string, number> = new Map();
     const nodesAtLevel: Map<number, string[]> = new Map();
     const visited = new Set<string>();
     const queue: { nodeId: string; level: number }[] = [];
 
-    // Start BFS from root nodes
     effectiveRoots.forEach(node => {
       queue.push({ nodeId: node.id, level: 0 });
       visited.add(node.id);
@@ -2367,20 +2397,12 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
     while (queue.length > 0) {
       const { nodeId, level } = queue.shift()!;
 
-      // Set level for this node
       nodeLevel.set(nodeId, level);
-
-      // Add to nodesAtLevel
-      if (!nodesAtLevel.has(level)) {
-        nodesAtLevel.set(level, []);
-      }
+      if (!nodesAtLevel.has(level)) nodesAtLevel.set(level, []);
       nodesAtLevel.get(level)!.push(nodeId);
 
-      // Process children
+      // Sort children: True path (top) -> False path (bottom)
       const children = adjacencyMap.get(nodeId) || [];
-
-      // Sort children to enforce order: TRUE path (top/first) -> FALSE path (bottom/last)
-      // This works because standard BFS queuing order determines the default vertical order
       children.sort((a, b) => {
         if (a.handle === 'true' && b.handle !== 'true') return -1;
         if (a.handle !== 'true' && b.handle === 'true') return 1;
@@ -2397,7 +2419,7 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
       });
     }
 
-    // Add any unvisited nodes (disconnected) to level 0
+    // Add unvisited (disconnected) to level 0
     nodes.forEach(node => {
       if (!visited.has(node.id)) {
         nodeLevel.set(node.id, 0);
@@ -2406,43 +2428,107 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
       }
     });
 
-    // Calculate total width and height for centering
-    const maxLevel = Math.max(...Array.from(nodeLevel.values()), 0);
-    const maxNodesInColumn = Math.max(...Array.from(nodesAtLevel.values()).map(arr => arr.length), 1);
+    // 3. Barycenter Layout (Phase 2) - Calculates CENTERS
+    const nodeCenterY: Map<string, number> = new Map();
+    const maxLevel = Math.max(...Array.from(nodesAtLevel.keys()));
 
+    // Wrapper for block management
+    interface Block {
+      nodes: string[];
+      sumIdeal: number;
+      count: number;
+    }
+    const getBlockCenter = (b: Block) => b.sumIdeal / b.count;
+    const getBlockHeight = (b: Block) => (b.count - 1) * verticalSpacing;
+    const getBlockBottom = (b: Block) => getBlockCenter(b) + getBlockHeight(b) / 2;
+    const getBlockTop = (b: Block) => getBlockCenter(b) - getBlockHeight(b) / 2;
+
+    for (let level = 0; level <= maxLevel; level++) {
+      const layerNodes = nodesAtLevel.get(level) || [];
+
+      // Calculate Ideal Y (Center) for each node
+      const nodeIdealY: Map<string, number> = new Map();
+      layerNodes.forEach(nodeId => {
+        const parents = incomingMap.get(nodeId) || [];
+        if (parents.length > 0) {
+          const validParents = parents.filter(p => nodeCenterY.has(p));
+          if (validParents.length > 0) {
+            const sum = validParents.reduce((s, p) => s + (nodeCenterY.get(p) || 0), 0);
+            nodeIdealY.set(nodeId, sum / validParents.length);
+          } else {
+            nodeIdealY.set(nodeId, 0);
+          }
+        } else {
+          nodeIdealY.set(nodeId, 0);
+        }
+      });
+
+      // Sort by Ideal Y
+      layerNodes.sort((a, b) => {
+        const diff = (nodeIdealY.get(a) || 0) - (nodeIdealY.get(b) || 0);
+        if (Math.abs(diff) > 1) return diff;
+        return 0;
+      });
+
+      // Block Merge Algorithm
+      const blocks: Block[] = [];
+      layerNodes.forEach(nodeId => {
+        const ideal = nodeIdealY.get(nodeId) || 0;
+        let currentBlock: Block = { nodes: [nodeId], sumIdeal: ideal, count: 1 };
+
+        while (blocks.length > 0) {
+          const prevBlock = blocks[blocks.length - 1];
+          const prevBottomCenter = getBlockBottom(prevBlock);
+          const currTopCenter = getBlockTop(currentBlock);
+
+          if (currTopCenter < prevBottomCenter + verticalSpacing) {
+            prevBlock.nodes.push(...currentBlock.nodes);
+            prevBlock.sumIdeal += currentBlock.sumIdeal;
+            prevBlock.count += currentBlock.count;
+            currentBlock = prevBlock;
+            blocks.pop();
+          } else {
+            break;
+          }
+        }
+        blocks.push(currentBlock);
+      });
+
+      // Assign Final Centers
+      blocks.forEach(block => {
+        const center = getBlockCenter(block);
+        const startY = center - getBlockHeight(block) / 2;
+        block.nodes.forEach((nId, idx) => {
+          nodeCenterY.set(nId, startY + idx * verticalSpacing);
+        });
+      });
+    }
+
+    // 4. Position Nodes
+    const maxNodesLevel = Math.max(...Array.from(nodesAtLevel.values()).map(arr => arr.length), 1);
     const totalWidth = maxLevel * horizontalSpacing;
-    const totalHeight = (maxNodesInColumn - 1) * verticalSpacing;
-
     const startX = viewportCenter.x - totalWidth / 2;
-    const startY = viewportCenter.y - totalHeight / 2;
+    const startY = viewportCenter.y;
 
-    // Position nodes based on their level (column) and index within level (row)
-    const nodeIdToNode = new Map(nodes.map(n => [n.id, n]));
     const newNodes = nodes.map(node => {
       const level = nodeLevel.get(node.id) || 0;
-      const nodesInThisLevel = nodesAtLevel.get(level) || [node.id];
-      const indexInLevel = nodesInThisLevel.indexOf(node.id);
-      const levelHeight = (nodesInThisLevel.length - 1) * verticalSpacing;
-      const levelStartY = viewportCenter.y - levelHeight / 2;
+      const calculatedCenterY = nodeCenterY.get(node.id) || 0;
+      const height = getNodeHeight(node.id);
 
       return {
         ...node,
         position: {
           x: startX + level * horizontalSpacing,
-          y: levelStartY + indexInLevel * verticalSpacing
+          // Convert Center Y to Top Y
+          y: (startY + calculatedCenterY) - (height / 2)
         }
       };
     });
 
     setNodes(newNodes);
 
-    // Fit view to show all nodes
     setTimeout(() => {
-      reactFlowInstance.fitView({
-        padding: 0.3,
-        duration: 500,
-        maxZoom: 1
-      });
+      reactFlowInstance.fitView({ padding: 0.3, duration: 500, maxZoom: 1 });
     }, 50);
 
     toast.success('Nodes rearranged');
