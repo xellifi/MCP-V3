@@ -14,8 +14,7 @@ import {
     GraduationCap,
     FileText,
     Store,
-    Package,
-    ShoppingBag
+    Package
 } from 'lucide-react';
 
 // Map of all available nav items
@@ -32,7 +31,6 @@ export const ALL_NAV_ITEMS: Record<string, { icon: any, label: string }> = {
     '/academy': { icon: GraduationCap, label: 'Academy' },
     '/forms-manager': { icon: FileText, label: 'Forms' },
     '/store': { icon: Store, label: 'Store' },
-    '/orders': { icon: ShoppingBag, label: 'Orders' },
     '/packages': { icon: Package, label: 'Packages' },
     '/support': { icon: LifeBuoy, label: 'Support' },
     // Backward compatibility maps
@@ -48,7 +46,6 @@ export const DEFAULT_ORDER = [
     '/flows',
     '/forms-manager',
     '/store',
-    '/orders',
     '/packages',
     '/scheduled',
     '/academy',
