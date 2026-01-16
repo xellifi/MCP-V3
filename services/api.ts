@@ -2811,4 +2811,113 @@ export const api = {
     }
   },
 
+  // ============================================
+  // FLOW TEMPLATES API
+  // ============================================
+  templates: {
+    // Get all templates for a workspace
+    getTemplates: async (workspaceId: string) => {
+      const { data, error } = await supabase
+        .from('flow_templates')
+        .select('*')
+        .eq('workspace_id', workspaceId)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching flow templates:', error);
+        return [];
+      }
+
+      return (data || []).map((row: any) => ({
+        id: row.id,
+        workspaceId: row.workspace_id,
+        name: row.name,
+        description: row.description,
+        nodes: row.nodes || [],
+        edges: row.edges || [],
+        configurations: row.configurations || {},
+        createdAt: row.created_at,
+        updatedAt: row.updated_at
+      }));
+    },
+
+    // Get single template
+    getTemplate: async (templateId: string) => {
+      const { data, error } = await supabase
+        .from('flow_templates')
+        .select('*')
+        .eq('id', templateId)
+        .single();
+
+      if (error) {
+        console.error('Error fetching template:', error);
+        throw new Error('Template not found');
+      }
+
+      return {
+        id: data.id,
+        workspaceId: data.workspace_id,
+        name: data.name,
+        description: data.description,
+        nodes: data.nodes || [],
+        edges: data.edges || [],
+        configurations: data.configurations || {},
+        createdAt: data.created_at,
+        updatedAt: data.updated_at
+      };
+    },
+
+    // Create template
+    createTemplate: async (workspaceId: string, templateData: {
+      name: string;
+      description?: string;
+      nodes: any[];
+      edges: any[];
+      configurations?: Record<string, any>;
+    }) => {
+      const { data, error } = await supabase
+        .from('flow_templates')
+        .insert({
+          workspace_id: workspaceId,
+          name: templateData.name,
+          description: templateData.description || '',
+          nodes: templateData.nodes,
+          edges: templateData.edges,
+          configurations: templateData.configurations || {}
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error creating template:', error);
+        throw new Error('Failed to create template');
+      }
+
+      return {
+        id: data.id,
+        workspaceId: data.workspace_id,
+        name: data.name,
+        description: data.description,
+        nodes: data.nodes,
+        edges: data.edges,
+        configurations: data.configurations,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at
+      };
+    },
+
+    // Delete template
+    deleteTemplate: async (templateId: string) => {
+      const { error } = await supabase
+        .from('flow_templates')
+        .delete()
+        .eq('id', templateId);
+
+      if (error) {
+        console.error('Error deleting template:', error);
+        throw new Error('Failed to delete template');
+      }
+    }
+  },
+
 };

@@ -1,12 +1,18 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
-import { MessageSquare, ChevronDown, ChevronUp } from 'lucide-react';
+import { MessageSquare, ChevronDown, ChevronUp, Loader, CheckCircle, XCircle } from 'lucide-react';
 import NodeToolbar from '../NodeToolbar';
 import NodeInsights from '../NodeInsights';
 
 const CustomTextNode: React.FC<NodeProps> = ({ data, selected }) => {
     const [isExpanded, setIsExpanded] = useState(false);
     const textContainerRef = useRef<HTMLDivElement>(null);
+
+    // Execution status for save animation
+    const executionStatus = data.executionStatus as 'idle' | 'executing' | 'completed' | 'error' | undefined;
+    const isExecuting = executionStatus === 'executing';
+    const isCompleted = executionStatus === 'completed';
+    const isError = executionStatus === 'error';
 
     // Use native event listener to capture wheel events before ReactFlow
     useEffect(() => {
@@ -74,6 +80,14 @@ const CustomTextNode: React.FC<NodeProps> = ({ data, selected }) => {
     const hasButtons = data.buttons && data.buttons.length > 0;
     const hasDetails = hasContent || hasDelay || hasButtons;
 
+    // Get border class based on execution status
+    const getBorderClass = () => {
+        if (isError) return 'border-red-500/70 shadow-[0_0_20px_rgba(239,68,68,0.4)]';
+        if (isExecuting) return 'border-blue-500/70 shadow-[0_0_20px_rgba(59,130,246,0.5)]';
+        if (isCompleted) return 'border-emerald-500/70 shadow-[0_0_20px_rgba(16,185,129,0.4)]';
+        return selected ? 'border-amber-500/50 shadow-2xl shadow-amber-500/20' : 'border-amber-500/30 shadow-xl';
+    };
+
     return (
         <div className="relative group">
             {/* Node Container - Fixed width */}
@@ -81,15 +95,37 @@ const CustomTextNode: React.FC<NodeProps> = ({ data, selected }) => {
                 className={`
                     relative px-4 py-3 rounded-2xl
                     bg-amber-500/10 hover:bg-amber-500/20 backdrop-blur-md
-                    border ${selected ? 'border-amber-500/50 shadow-2xl shadow-amber-500/20' : 'border-amber-500/30 shadow-xl'}
+                    border ${getBorderClass()}
                     transition-all duration-300
                     w-[200px]
                 `}
             >
+                {/* Animated orbs when executing */}
+                {isExecuting && (
+                    <>
+                        <div className="absolute w-3 h-3 rounded-full bg-blue-400 shadow-[0_0_15px_#3b82f6,0_0_30px_#3b82f6] z-[100]"
+                            style={{ top: '-6px', animation: 'orbTopText 2s linear infinite' }} />
+                        <div className="absolute w-3 h-3 rounded-full bg-blue-400 shadow-[0_0_15px_#3b82f6,0_0_30px_#3b82f6] z-[100]"
+                            style={{ bottom: '-6px', animation: 'orbBottomText 2s linear infinite' }} />
+                        <style>{`
+                            @keyframes orbTopText { 0% { left: -6px; } 100% { left: calc(100% - 6px); } }
+                            @keyframes orbBottomText { 0% { left: -6px; } 100% { left: calc(100% - 6px); } }
+                        `}</style>
+                    </>
+                )}
+
                 {/* Header - Icon, Label, and Expand Toggle */}
                 <div className="flex items-center gap-3">
-                    <div className="p-2 bg-amber-500/20 rounded-lg backdrop-blur-sm flex-shrink-0">
-                        <MessageSquare className="w-5 h-5 text-amber-400" />
+                    <div className={`p-2 rounded-lg backdrop-blur-sm flex-shrink-0 ${isError ? 'bg-red-500' : isExecuting ? 'bg-blue-500' : isCompleted ? 'bg-emerald-500' : 'bg-amber-500/20'}`}>
+                        {isError ? (
+                            <XCircle className="w-5 h-5 text-white" />
+                        ) : isExecuting ? (
+                            <Loader className="w-5 h-5 text-white animate-spin" />
+                        ) : isCompleted ? (
+                            <CheckCircle className="w-5 h-5 text-white" />
+                        ) : (
+                            <MessageSquare className="w-5 h-5 text-amber-400" />
+                        )}
                     </div>
                     <div className="flex-1 min-w-0">
                         <div className="text-slate-200 font-bold text-sm truncate">
@@ -153,17 +189,17 @@ const CustomTextNode: React.FC<NodeProps> = ({ data, selected }) => {
                                     <div
                                         key={index}
                                         className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg ${btn.type === 'url'
-                                            ? 'bg-blue-500/20 border border-blue-500/30'
-                                            : btn.type === 'newFlow'
-                                                ? 'bg-green-500/20 border border-green-500/30'
-                                                : 'bg-amber-500/20 border border-amber-500/30'
+                                                ? 'bg-blue-500/20 border border-blue-500/30'
+                                                : btn.type === 'newFlow'
+                                                    ? 'bg-green-500/20 border border-green-500/30'
+                                                    : 'bg-amber-500/20 border border-amber-500/30'
                                             }`}
                                     >
                                         <span className={`text-xs font-medium truncate flex-1 ${btn.type === 'url'
-                                            ? 'text-blue-300'
-                                            : btn.type === 'newFlow'
-                                                ? 'text-green-300'
-                                                : 'text-amber-300'
+                                                ? 'text-blue-300'
+                                                : btn.type === 'newFlow'
+                                                    ? 'text-green-300'
+                                                    : 'text-amber-300'
                                             }`}>
                                             {btn.type === 'url' && '🔗 '}
                                             {btn.type === 'startFlow' && '⚡ '}

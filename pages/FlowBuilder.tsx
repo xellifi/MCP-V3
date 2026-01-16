@@ -19,7 +19,7 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Workspace, ConnectedPage } from '../types';
-import { Save, ArrowLeft, PlayCircle, Menu, X, Grid3x3, MessageCircle, Play, Bot, Send, Clock, MousePointer2, SquareMousePointer, Sparkles, GitBranch, MessageSquare, RectangleEllipsis, Plus, Minus, Maximize, Maximize2, Minimize2, Wrench, RotateCcw, Image, Video, FileText, Table, RefreshCw, ShoppingBag, Tag, Receipt, Package, ShoppingCart, Table2, ClipboardList, ArrowUp, ArrowDown, Globe, MoreHorizontal, ChevronDown } from 'lucide-react';
+import { Save, ArrowLeft, PlayCircle, Menu, X, Grid3x3, MessageCircle, Play, Bot, Send, Clock, MousePointer2, SquareMousePointer, Sparkles, GitBranch, MessageSquare, RectangleEllipsis, Plus, Minus, Maximize, Maximize2, Minimize2, Wrench, RotateCcw, Image, Video, FileText, Table, RefreshCw, ShoppingBag, Tag, Receipt, Package, ShoppingCart, Table2, ClipboardList, ArrowUp, ArrowDown, Globe, MoreHorizontal, ChevronDown, FileDown, Loader2 } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import { useTheme } from '../context/ThemeContext';
 import NodeConfigModal from '../components/NodeConfigModal';
@@ -134,6 +134,18 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
 
   // FB Connection required modal state
   const [showFbConnectionModal, setShowFbConnectionModal] = useState(false);
+
+  // Template validation state - for orb animation during save
+  const [isValidating, setIsValidating] = useState(false);
+  const [validatingNodeIds, setValidatingNodeIds] = useState<Set<string>>(new Set());
+  const [validatedNodeIds, setValidatedNodeIds] = useState<Set<string>>(new Set());
+  const [validationErrorNodeId, setValidationErrorNodeId] = useState<string | null>(null);
+
+  // Save as Template modal state
+  const [showTemplateModal, setShowTemplateModal] = useState(false);
+  const [templateName, setTemplateName] = useState('');
+  const [templateDescription, setTemplateDescription] = useState('');
+  const [isSavingTemplate, setIsSavingTemplate] = useState(false);
 
   // Node configuration state
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
@@ -1429,6 +1441,324 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
     }
   };
 
+  // Update nodes with execution status for orb animation
+  useEffect(() => {
+    setNodes((nds) =>
+      nds.map((node) => {
+        let executionStatus: 'idle' | 'executing' | 'completed' | 'error' | undefined = undefined;
+
+        if (validationErrorNodeId === node.id) {
+          executionStatus = 'error';
+        } else if (validatingNodeIds.has(node.id)) {
+          executionStatus = 'executing';
+        } else if (validatedNodeIds.has(node.id)) {
+          executionStatus = 'completed';
+        }
+
+        // Only update if status changed
+        if (node.data.executionStatus !== executionStatus) {
+          return {
+            ...node,
+            data: {
+              ...node.data,
+              executionStatus,
+            },
+          };
+        }
+        return node;
+      })
+    );
+  }, [validatingNodeIds, validatedNodeIds, validationErrorNodeId, setNodes]);
+
+  // Update edges with execution state for traveling orb
+  useEffect(() => {
+    setEdges((eds) =>
+      eds.map((edge) => {
+        const sourceCompleted = validatedNodeIds.has(edge.source);
+        const targetExecuting = validatingNodeIds.has(edge.target);
+        const targetCompleted = validatedNodeIds.has(edge.target);
+
+        let executionState: 'idle' | 'executing' | 'completed' = 'idle';
+
+        if (sourceCompleted && targetCompleted) {
+          executionState = 'completed';
+        } else if (sourceCompleted && targetExecuting) {
+          executionState = 'executing';
+        }
+
+        if (edge.data?.executionState !== executionState) {
+          return {
+            ...edge,
+            data: {
+              ...edge.data,
+              executionState,
+            },
+          };
+        }
+        return edge;
+      })
+    );
+  }, [validatingNodeIds, validatedNodeIds, setEdges]);
+
+  // Helper to check if a node is properly configured
+  const isNodeConfigured = (node: Node, currentEdges: Edge[]) => {
+    if (!node.data) return true; // Should have data, but if not, assume passed or handled elsewhere
+
+    const type = node.type || '';
+    const data = node.data;
+
+    // Start Node / Trigger Node
+    if (type === 'triggerNode' || type === 'startNode' || data.label?.toLowerCase().includes('start') || data.label?.toLowerCase().includes('trigger')) {
+      return data.keywords && data.keywords.length > 0;
+    }
+
+    // Text Node
+    if (type.includes('text')) {
+      return !!data.textContent;
+    }
+
+    // Image Node
+    if (type.includes('image')) {
+      return !!data.imageUrl;
+    }
+
+    // Video Node
+    if (type.includes('video')) {
+      return !!data.videoUrl;
+    }
+
+    // AI Node
+    if (type.includes('ai')) {
+      return !!data.instructions;
+    }
+
+    // Condition Node
+    if (type.includes('condition')) {
+      // Must have a connected node on the true path
+      return currentEdges.some(edge => edge.source === node.id && edge.sourceHandle === 'true');
+    }
+
+    // Checkout Node
+    if (type.includes('checkout')) {
+      // Must have fullname and phone enabled
+      return !!(data.customerFields?.name?.enabled && data.customerFields?.phone?.enabled);
+    }
+
+    // Upsell Node
+    if (type.includes('upsell')) {
+      // Must have product name and price
+      return !!(data.productName && (data.price || data.productPrice));
+    }
+
+    // Downsell Node
+    if (type.includes('downsell')) {
+      // Must have product name and price
+      return !!(data.productName && (data.price || data.productPrice));
+    }
+
+    // Product Webview Node
+    if (type.includes('productWebview')) {
+      // Must have product name and price
+      return !!(data.productName && (data.price || data.productPrice));
+    }
+
+    // Google Sheet Node
+    if (type.includes('googleSheet')) {
+      return !!data.webhookUrl;
+    }
+
+    // Invoice Node
+    if (type.includes('invoice')) {
+      return !!data.companyName;
+    }
+
+    // Follow-up Node
+    if (type.includes('followup')) {
+      return data.scheduledFollowups && data.scheduledFollowups.length > 0;
+    }
+
+    // Form Node
+    if (type.includes('form')) {
+      return !!data.productName;
+    }
+
+    // Product Node (excluding productWebview if loosely typed)
+    if (type.includes('product') && !type.includes('productWebview')) {
+      // Must have product name and price (covers both new creation and selected existing)
+      return !!(data.productName && data.productPrice);
+    }
+
+    // Default to true for unknown nodes
+    return true;
+  };
+
+  // Handle Publish Flow - validates nodes in parallel waves
+  const handlePublishFlow = async () => {
+    setIsValidating(true);
+    setValidatedNodeIds(new Set());
+    setValidationErrorNodeId(null);
+    setValidatingNodeIds(new Set()); // Reset validating
+
+    try {
+      // Get start nodes
+      const startNodes = nodes.filter(n =>
+        n.type === 'triggerNode' || n.type === 'startNode' ||
+        n.data?.label?.toLowerCase().includes('start') ||
+        n.data?.label?.toLowerCase().includes('trigger')
+      );
+
+      if (startNodes.length === 0) {
+        toast.error('No trigger or start node found. Please add one to begin your flow.');
+        setIsValidating(false);
+        return;
+      }
+
+      // BFS with parallel execution support
+      let currentWave = [...startNodes];
+      const visited = new Set<string>();
+
+      // Add start nodes to visited immediately to avoid cycles re-queuing them
+      // But we process them in the loop
+
+      while (currentWave.length > 0) {
+        // Filter out already visited nodes to prevent cycles/redundant checks
+        const uniqueWave = currentWave.filter(n => !visited.has(n.id));
+        if (uniqueWave.length === 0) break;
+
+        uniqueWave.forEach(n => visited.add(n.id));
+        const currentIds = uniqueWave.map(n => n.id);
+
+        for (const node of uniqueWave) {
+          if (!isNodeConfigured(node, edges)) {
+            setValidationErrorNodeId(node.id);
+            setValidatingNodeIds(new Set());
+            toast.error(`Node "${node.data?.label || 'Unknown'}" is not configured properly.`);
+            setIsValidating(false);
+            return;
+          }
+        }
+
+        // 2. Set Status to Executing (simultaneously)
+        // This triggers the Orb animation on the nodes, and if there were previous nodes, 
+        // it triggers the edge animation TO these nodes.
+        setValidatingNodeIds(new Set(currentIds));
+
+        // 3. Determine delay (max delay of the batch)
+        // Trigger/Start nodes = 500ms, others = 2000ms
+        const isStartWave = uniqueWave.some(n =>
+          n.type === 'triggerNode' || n.type === 'startNode' ||
+          (n.data?.label || '').toLowerCase().includes('start')
+        );
+        const delay = isStartWave ? 500 : 2000;
+
+        await new Promise(resolve => setTimeout(resolve, delay));
+
+        // 4. Mark as Completed
+        setValidatedNodeIds(prev => {
+          const next = new Set(prev);
+          currentIds.forEach(id => next.add(id));
+          return next;
+        });
+
+        // 5. Prepare Next Wave (Children of current wave)
+        const nextWaveNodes: any[] = [];
+        for (const node of uniqueWave) {
+          const outgoingEdges = edges.filter(e => e.source === node.id);
+          for (const edge of outgoingEdges) {
+            const targetNode = nodes.find(n => n.id === edge.target);
+            if (targetNode && !visited.has(targetNode.id)) {
+              // Avoid duplicates in the next wave
+              if (!nextWaveNodes.find(n => n.id === targetNode.id)) {
+                nextWaveNodes.push(targetNode);
+              }
+            }
+          }
+        }
+
+        currentWave = nextWaveNodes;
+      }
+
+      // Check for disconnected nodes (optional, but good practice)
+      // Note: This BFS only validates reachable nodes. 
+
+      // All nodes validated successfully!
+      setValidatingNodeIds(new Set());
+      toast.success('✅ All nodes validated successfully!');
+
+      // Wait 3 seconds then show template save modal
+      await new Promise(resolve => setTimeout(resolve, 3000));
+
+      // Reset validation visuals but keep the flow validated
+      setValidatedNodeIds(new Set());
+
+      // Show template save modal
+      setShowTemplateModal(true);
+
+    } catch (error: any) {
+      console.error('Error during flow validation:', error);
+      toast.error(error.message || 'Validation failed');
+      setValidatingNodeIds(new Set());
+      setValidationErrorNodeId(null);
+    } finally {
+      setIsValidating(false);
+    }
+  };
+
+  // Handle save template after modal submission
+  const handleSaveAsTemplate = async () => {
+    if (!templateName.trim()) {
+      toast.error('Please enter a template name');
+      return;
+    }
+
+    setIsSavingTemplate(true);
+    try {
+      // Prepare template data (clean nodes - remove callbacks)
+      const cleanNodes = nodes.map(n => ({
+        id: n.id,
+        type: n.type,
+        position: n.position,
+        data: {
+          ...n.data,
+          onConfigure: undefined,
+          onDelete: undefined,
+          onClone: undefined,
+          executionStatus: undefined
+        }
+      }));
+
+      const cleanEdges = edges.map(e => ({
+        id: e.id,
+        source: e.source,
+        target: e.target,
+        sourceHandle: e.sourceHandle,
+        targetHandle: e.targetHandle,
+        type: e.type,
+        animated: e.animated
+      }));
+
+      // Save template to database
+      await api.templates.createTemplate(workspace.id, {
+        name: templateName.trim(),
+        description: templateDescription.trim(),
+        nodes: cleanNodes,
+        edges: cleanEdges,
+        configurations: nodeConfigs
+      });
+
+      toast.success(`Template "${templateName}" saved successfully!`);
+      setShowTemplateModal(false);
+      setTemplateName('');
+      setTemplateDescription('');
+
+    } catch (error: any) {
+      console.error('Error saving template:', error);
+      toast.error(error.message || 'Failed to save template');
+    } finally {
+      setIsSavingTemplate(false);
+    }
+  };
+
   const addNode = (nodeType: string, label: string, actionType?: string, position?: { x: number; y: number }) => {
     let nodePosition = position;
 
@@ -2218,12 +2548,14 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
         </button>
 
         <button
-          className="group relative w-10 h-10 flex items-center justify-center bg-indigo-600 hover:bg-indigo-700 rounded-xl text-white transition-all shadow-lg active:scale-95"
-          title="Run Test"
+          onClick={handlePublishFlow}
+          disabled={isValidating || nodes.length === 0}
+          className={`group relative w-10 h-10 flex items-center justify-center rounded-xl text-white transition-all shadow-lg active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${isValidating ? 'bg-blue-600 animate-pulse' : 'bg-indigo-600 hover:bg-indigo-700'}`}
+          title="Validate & Publish Flow"
         >
-          <Play className="w-4 h-4" />
+          {isValidating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
           <span className={`absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 ${isDark ? 'bg-slate-800 text-white' : 'bg-white border border-gray-300 text-slate-900 shadow-sm'} text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none`}>
-            Publish Flow
+            {isValidating ? 'Validating...' : 'Publish Flow'}
           </span>
         </button>
       </div>
@@ -2779,6 +3111,101 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
                 ? 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10 hover:text-white'
                 : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100 hover:text-slate-900'
                 }`}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Template Save Modal */}
+      {showTemplateModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className={`w-full max-w-md rounded-2xl shadow-2xl ${isDark ? 'bg-slate-900 border border-white/10' : 'bg-white border border-gray-200'}`}>
+            <div className={`p-6 border-b ${isDark ? 'border-white/10' : 'border-gray-200'}`}>
+              <h3 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>Save as Template</h3>
+              <p className={`text-sm mt-1 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+                Save your flow as a reusable template. Each node will be validated with an animation.
+              </p>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+                  Template Name *
+                </label>
+                <input
+                  type="text"
+                  value={templateName}
+                  onChange={(e) => setTemplateName(e.target.value)}
+                  placeholder="My Awesome Template"
+                  disabled={isSavingTemplate}
+                  className={`w-full px-4 py-2.5 rounded-xl border transition-colors ${isDark
+                    ? 'bg-white/5 border-white/10 text-white placeholder-slate-500 focus:border-indigo-500/50'
+                    : 'bg-slate-50 border-slate-200 text-slate-900 placeholder-slate-400 focus:border-indigo-400'
+                    } focus:outline-none focus:ring-2 focus:ring-indigo-500/20`}
+                />
+              </div>
+
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+                  Description (optional)
+                </label>
+                <textarea
+                  value={templateDescription}
+                  onChange={(e) => setTemplateDescription(e.target.value)}
+                  placeholder="Describe what this template does..."
+                  rows={3}
+                  disabled={isSavingTemplate}
+                  className={`w-full px-4 py-2.5 rounded-xl border transition-colors resize-none ${isDark
+                    ? 'bg-white/5 border-white/10 text-white placeholder-slate-500 focus:border-indigo-500/50'
+                    : 'bg-slate-50 border-slate-200 text-slate-900 placeholder-slate-400 focus:border-indigo-400'
+                    } focus:outline-none focus:ring-2 focus:ring-indigo-500/20`}
+                />
+              </div>
+
+              {isValidating && (
+                <div className={`p-4 rounded-xl ${isDark ? 'bg-blue-500/10 border border-blue-500/20' : 'bg-blue-50 border border-blue-200'}`}>
+                  <div className="flex items-center gap-3">
+                    <Loader2 className={`w-5 h-5 animate-spin ${isDark ? 'text-blue-400' : 'text-blue-600'}`} />
+                    <span className={`text-sm font-medium ${isDark ? 'text-blue-300' : 'text-blue-700'}`}>
+                      Validating nodes... Watch the canvas for the orb animation!
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className={`p-6 border-t flex gap-3 ${isDark ? 'border-white/10' : 'border-gray-200'}`}>
+              <button
+                onClick={() => {
+                  setShowTemplateModal(false);
+                  setTemplateName('');
+                  setTemplateDescription('');
+                }}
+                disabled={isSavingTemplate}
+                className={`flex-1 py-2.5 rounded-xl font-medium transition-colors ${isDark
+                  ? 'bg-white/5 border border-white/10 text-slate-400 hover:bg-white/10 hover:text-white'
+                  : 'bg-slate-100 border border-slate-200 text-slate-600 hover:bg-slate-200 hover:text-slate-900'
+                  } disabled:opacity-50`}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveAsTemplate}
+                disabled={isSavingTemplate || !templateName.trim()}
+                className="flex-1 py-2.5 rounded-xl font-medium bg-indigo-600 text-white hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {isSavingTemplate ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Validating...
+                  </>
+                ) : (
+                  <>
+                    <FileDown className="w-4 h-4" />
+                    Save Template
+                  </>
+                )}
+              </button>
             </div>
           </div>
         </div>

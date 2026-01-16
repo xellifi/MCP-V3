@@ -1,11 +1,17 @@
 import React, { useState } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
-import { ShoppingCart, ChevronDown, ChevronUp, Package } from 'lucide-react';
+import { ShoppingCart, ChevronDown, ChevronUp, Package, Loader, CheckCircle, XCircle } from 'lucide-react';
 import NodeToolbar from '../NodeToolbar';
 import NodeInsights from '../NodeInsights';
 
 const CustomCheckoutNode: React.FC<NodeProps> = ({ data, selected }) => {
     const [isExpanded, setIsExpanded] = useState(false);
+
+    // Execution status for validation animation
+    const executionStatus = data.executionStatus as 'idle' | 'executing' | 'completed' | 'error' | undefined;
+    const isExecuting = executionStatus === 'executing';
+    const isCompleted = executionStatus === 'completed';
+    const isError = executionStatus === 'error';
 
     const handleConfigure = (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -38,6 +44,14 @@ const CustomCheckoutNode: React.FC<NodeProps> = ({ data, selected }) => {
     const buttonText = data.buttonText || '✅ Proceed to Checkout';
     const isConfigured = headerText && buttonText;
 
+    // Get border class based on execution status
+    const getBorderClass = () => {
+        if (isError) return 'border-red-500 shadow-[0_0_25px_rgba(239,68,68,0.6)]';
+        if (isExecuting) return 'border-blue-500 shadow-[0_0_25px_rgba(59,130,246,0.6)]';
+        if (isCompleted) return 'border-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.4)]';
+        return selected ? 'border-emerald-500/50 shadow-2xl shadow-emerald-500/20' : 'border-emerald-500/30 shadow-xl';
+    };
+
     return (
         <div className="relative group">
             {/* Node Container */}
@@ -45,11 +59,25 @@ const CustomCheckoutNode: React.FC<NodeProps> = ({ data, selected }) => {
                 className={`
                     relative px-4 py-3 rounded-2xl
                     bg-emerald-500/10 hover:bg-emerald-500/20 backdrop-blur-md
-                    border ${selected ? 'border-emerald-500/50 shadow-2xl shadow-emerald-500/20' : 'border-emerald-500/30 shadow-xl'}
+                    border ${getBorderClass()}
                     transition-all duration-300
                     w-[200px]
                 `}
             >
+                {/* Animated border orbs when executing */}
+                {isExecuting && (
+                    <>
+                        <div className="absolute w-3 h-3 rounded-full bg-blue-400 shadow-[0_0_15px_#3b82f6,0_0_30px_#3b82f6] z-[100]"
+                            style={{ top: '-6px', animation: 'orbTopCheckout 2s linear infinite' }} />
+                        <div className="absolute w-3 h-3 rounded-full bg-blue-400 shadow-[0_0_15px_#3b82f6,0_0_30px_#3b82f6] z-[100]"
+                            style={{ bottom: '-6px', animation: 'orbBottomCheckout 2s linear infinite' }} />
+                        <style>{`
+                            @keyframes orbTopCheckout { 0% { left: -6px; } 100% { left: calc(100% - 6px); } }
+                            @keyframes orbBottomCheckout { 0% { left: -6px; } 100% { left: calc(100% - 6px); } }
+                        `}</style>
+                    </>
+                )}
+
                 {/* Input Handle */}
                 <Handle
                     type="target"
@@ -60,8 +88,16 @@ const CustomCheckoutNode: React.FC<NodeProps> = ({ data, selected }) => {
 
                 {/* Header - Icon, Label, and Expand Toggle */}
                 <div className="flex items-center gap-2">
-                    <div className="p-2 bg-emerald-500/20 rounded-lg backdrop-blur-sm flex-shrink-0">
-                        <ShoppingCart className="w-5 h-5 text-emerald-400" />
+                    <div className={`p-2 rounded-lg backdrop-blur-sm flex-shrink-0 ${isError ? 'bg-red-500' : isExecuting ? 'bg-blue-500' : isCompleted ? 'bg-emerald-500' : 'bg-emerald-500/20'}`}>
+                        {isError ? (
+                            <XCircle className="w-5 h-5 text-white" />
+                        ) : isExecuting ? (
+                            <Loader className="w-5 h-5 text-white animate-spin" />
+                        ) : isCompleted ? (
+                            <CheckCircle className="w-5 h-5 text-white" />
+                        ) : (
+                            <ShoppingCart className="w-5 h-5 text-emerald-400" />
+                        )}
                     </div>
                     <div className="flex-1 min-w-0">
                         <div className="text-slate-200 font-bold text-sm truncate">

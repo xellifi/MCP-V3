@@ -1,12 +1,18 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
-import { MessageSquare, Send, ChevronDown, ChevronUp, Sparkles } from 'lucide-react';
+import { MessageSquare, Send, ChevronDown, ChevronUp, Sparkles, Loader, CheckCircle, XCircle } from 'lucide-react';
 import NodeToolbar from '../NodeToolbar';
 import NodeInsights from '../NodeInsights';
 
 const CustomActionNode: React.FC<NodeProps> = ({ data, selected }) => {
     const [isExpanded, setIsExpanded] = useState(false);
     const textContainerRef = useRef<HTMLDivElement>(null);
+
+    // Execution status for save animation
+    const executionStatus = data.executionStatus as 'idle' | 'executing' | 'completed' | 'error' | undefined;
+    const isExecuting = executionStatus === 'executing';
+    const isCompleted = executionStatus === 'completed';
+    const isError = executionStatus === 'error';
 
     // Use native event listener to capture wheel events before ReactFlow
     useEffect(() => {
@@ -72,10 +78,21 @@ const CustomActionNode: React.FC<NodeProps> = ({ data, selected }) => {
     const hasAIContent = hasAI && (aiPrompt.length > 0 || data.aiProvider);
     const hasContent = hasManualContent || hasAIContent;
 
+    // Get border class based on execution status
+    const getBorderClass = () => {
+        if (isError) return 'border-red-500/70 shadow-[0_0_20px_rgba(239,68,68,0.4)]';
+        if (isExecuting) return 'border-blue-500/70 shadow-[0_0_20px_rgba(59,130,246,0.5)]';
+        if (isCompleted) return 'border-emerald-500/70 shadow-[0_0_20px_rgba(16,185,129,0.4)]';
+        if (isMessage) {
+            return selected ? 'border-purple-500/50 shadow-2xl shadow-purple-500/20' : 'border-purple-500/30 shadow-xl';
+        }
+        return selected ? 'border-cyan-500/50 shadow-2xl shadow-cyan-500/20' : 'border-cyan-500/30 shadow-xl';
+    };
+
     // Color schemes
     const colors = isMessage ? {
         bg: 'bg-purple-500/10 hover:bg-purple-500/20',
-        border: selected ? 'border-purple-500/50 shadow-2xl shadow-purple-500/20' : 'border-purple-500/30 shadow-xl',
+        border: getBorderClass(),
         iconBg: 'bg-purple-500/20',
         iconColor: 'text-purple-400',
         chevronColor: 'text-purple-400',
@@ -83,7 +100,7 @@ const CustomActionNode: React.FC<NodeProps> = ({ data, selected }) => {
         handleColor: '!bg-purple-400'
     } : {
         bg: 'bg-cyan-500/10 hover:bg-cyan-500/20',
-        border: selected ? 'border-cyan-500/50 shadow-2xl shadow-cyan-500/20' : 'border-cyan-500/30 shadow-xl',
+        border: getBorderClass(),
         iconBg: 'bg-cyan-500/20',
         iconColor: 'text-cyan-400',
         chevronColor: 'text-cyan-400',
@@ -105,10 +122,32 @@ const CustomActionNode: React.FC<NodeProps> = ({ data, selected }) => {
                     w-[200px]
                 `}
             >
+                {/* Animated orbs when executing */}
+                {isExecuting && (
+                    <>
+                        <div className="absolute w-3 h-3 rounded-full bg-blue-400 shadow-[0_0_15px_#3b82f6,0_0_30px_#3b82f6] z-[100]"
+                            style={{ top: '-6px', animation: 'orbTopAction 2s linear infinite' }} />
+                        <div className="absolute w-3 h-3 rounded-full bg-blue-400 shadow-[0_0_15px_#3b82f6,0_0_30px_#3b82f6] z-[100]"
+                            style={{ bottom: '-6px', animation: 'orbBottomAction 2s linear infinite' }} />
+                        <style>{`
+                            @keyframes orbTopAction { 0% { left: -6px; } 100% { left: calc(100% - 6px); } }
+                            @keyframes orbBottomAction { 0% { left: -6px; } 100% { left: calc(100% - 6px); } }
+                        `}</style>
+                    </>
+                )}
+
                 {/* Header - Icon, Label, and Expand Toggle */}
                 <div className="flex items-center gap-3">
-                    <div className={`p-2 ${colors.iconBg} rounded-lg backdrop-blur-sm flex-shrink-0`}>
-                        <Icon className={`w-5 h-5 ${colors.iconColor}`} />
+                    <div className={`p-2 rounded-lg backdrop-blur-sm flex-shrink-0 ${isError ? 'bg-red-500' : isExecuting ? 'bg-blue-500' : isCompleted ? 'bg-emerald-500' : colors.iconBg}`}>
+                        {isError ? (
+                            <XCircle className="w-5 h-5 text-white" />
+                        ) : isExecuting ? (
+                            <Loader className="w-5 h-5 text-white animate-spin" />
+                        ) : isCompleted ? (
+                            <CheckCircle className="w-5 h-5 text-white" />
+                        ) : (
+                            <Icon className={`w-5 h-5 ${colors.iconColor}`} />
+                        )}
                     </div>
                     <div className="flex-1 min-w-0">
                         <div className="text-slate-200 font-bold text-sm truncate">

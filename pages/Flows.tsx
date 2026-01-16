@@ -2,9 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { Workspace, Flow, ConnectedPage } from '../types';
 import { api } from '../services/api';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search, MoreHorizontal, Play, Edit, Trash, Zap, Facebook, AlertTriangle, X, LayoutGrid, List, ChevronLeft, ChevronRight, GripVertical, ShoppingCart, FileText } from 'lucide-react';
+import { Plus, Search, MoreHorizontal, Play, Edit, Trash, Zap, Facebook, AlertTriangle, X, LayoutGrid, List, ChevronLeft, ChevronRight, GripVertical, ShoppingCart, FileText, Download, Upload, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useTheme } from '../context/ThemeContext';
+import { useToast } from '../context/ToastContext';
 import Orders from './Orders';
 import {
   DndContext,
@@ -162,6 +163,12 @@ const Flows: React.FC<FlowsProps> = ({ workspace }) => {
   const [activeId, setActiveId] = useState<string | null>(null);
   const ITEMS_PER_PAGE = 12;
   const navigate = useNavigate();
+  const toast = useToast();
+
+  // Templates state
+  const [templates, setTemplates] = useState<any[]>([]);
+  const [templatesLoading, setTemplatesLoading] = useState(false);
+  const [deletingTemplateId, setDeletingTemplateId] = useState<string | null>(null);
 
   // dnd-kit sensors setup
   const sensors = useSensors(
@@ -277,6 +284,73 @@ const Flows: React.FC<FlowsProps> = ({ workspace }) => {
     // In a real app, create a new flow in DB then redirect
     // For demo, just go to a new ID
     navigate(`/flows/new-${Date.now()}`);
+  };
+
+  // Fetch templates when tab becomes active
+  useEffect(() => {
+    if (activeTab === 'templates') {
+      const fetchTemplates = async () => {
+        setTemplatesLoading(true);
+        try {
+          const data = await api.templates.getTemplates(workspace.id);
+          setTemplates(data);
+        } catch (error) {
+          console.error('Error fetching templates:', error);
+        } finally {
+          setTemplatesLoading(false);
+        }
+      };
+      fetchTemplates();
+    }
+  }, [activeTab, workspace.id]);
+
+  // Download template as JSON
+  const handleDownloadTemplate = (template: any) => {
+    const dataStr = JSON.stringify({
+      name: template.name,
+      description: template.description,
+      nodes: template.nodes,
+      edges: template.edges,
+      configurations: template.configurations,
+      exportedAt: new Date().toISOString()
+    }, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${template.name.replace(/[^a-z0-9]/gi, '_')}_template.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+    toast.success('Template downloaded!');
+  };
+
+  // Delete template
+  const handleDeleteTemplate = async (templateId: string) => {
+    if (!window.confirm('Are you sure you want to delete this template?')) return;
+
+    setDeletingTemplateId(templateId);
+    try {
+      await api.templates.deleteTemplate(templateId);
+      setTemplates(prev => prev.filter(t => t.id !== templateId));
+      toast.success('Template deleted!');
+    } catch (error) {
+      console.error('Error deleting template:', error);
+      toast.error('Failed to delete template');
+    } finally {
+      setDeletingTemplateId(null);
+    }
+  };
+
+  // Use template - create new flow from template
+  const handleUseTemplate = (template: any) => {
+    // Store template in localStorage for FlowBuilder to pick up
+    localStorage.setItem('pendingTemplate', JSON.stringify({
+      nodes: template.nodes,
+      edges: template.edges,
+      configurations: template.configurations
+    }));
+    navigate(`/flows/new-${Date.now()}?template=true`);
+    toast.success(`Creating flow from "${template.name}" template`);
   };
 
   // Drag event handlers
@@ -742,17 +816,87 @@ const Flows: React.FC<FlowsProps> = ({ workspace }) => {
 
       {/* Templates Tab */}
       {activeTab === 'templates' && (
-        <div className={`rounded-2xl border p-8 text-center ${isDark ? 'glass-panel border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
-          <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${isDark ? 'bg-white/5' : 'bg-slate-100'}`}>
-            <FileText className={`w-8 h-8 ${isDark ? 'text-slate-400' : 'text-slate-500'}`} />
-          </div>
-          <h3 className={`text-xl font-bold mb-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>Flow Templates</h3>
-          <p className={`mb-6 max-w-md mx-auto ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-            Save your automation flows as templates to quickly reuse them later. Templates will appear here.
-          </p>
-          <p className={`text-sm ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
-            Coming soon: Save flows as templates from the Flow Builder.
-          </p>
+        <div>
+          {templatesLoading ? (
+            <div className={`rounded-2xl border p-12 text-center ${isDark ? 'glass-panel border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
+              <Loader2 className={`w-8 h-8 mx-auto mb-4 animate-spin ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`} />
+              <p className={isDark ? 'text-slate-400' : 'text-slate-500'}>Loading templates...</p>
+            </div>
+          ) : templates.length === 0 ? (
+            <div className={`rounded-2xl border p-8 text-center ${isDark ? 'glass-panel border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
+              <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${isDark ? 'bg-white/5' : 'bg-slate-100'}`}>
+                <FileText className={`w-8 h-8 ${isDark ? 'text-slate-400' : 'text-slate-500'}`} />
+              </div>
+              <h3 className={`text-xl font-bold mb-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>No Templates Yet</h3>
+              <p className={`mb-6 max-w-md mx-auto ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                Save your automation flows as templates from the Flow Builder. Look for the "Save Template" button in the toolbar.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {templates.map((template) => (
+                <div key={template.id} className={`rounded-2xl border p-5 transition-all hover:shadow-lg ${isDark
+                  ? 'glass-panel border-white/10 hover:border-indigo-500/30'
+                  : 'bg-white border-slate-200 shadow-sm hover:border-indigo-300'}`}>
+                  {/* Template Icon */}
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 ${isDark ? 'bg-indigo-500/20' : 'bg-indigo-100'}`}>
+                    <FileText className={`w-6 h-6 ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`} />
+                  </div>
+
+                  {/* Template Name */}
+                  <h3 className={`font-bold mb-1 truncate ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                    {template.name}
+                  </h3>
+
+                  {/* Template Info */}
+                  <p className={`text-xs mb-3 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                    {template.nodes?.length || 0} nodes • Created {format(new Date(template.createdAt), 'MMM d, yyyy')}
+                  </p>
+
+                  {/* Description */}
+                  {template.description && (
+                    <p className={`text-sm mb-4 line-clamp-2 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                      {template.description}
+                    </p>
+                  )}
+
+                  {/* Actions */}
+                  <div className={`flex items-center gap-2 pt-3 border-t ${isDark ? 'border-white/5' : 'border-slate-100'}`}>
+                    <button
+                      onClick={() => handleUseTemplate(template)}
+                      className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg transition-colors ${isDark
+                        ? 'bg-indigo-500/20 text-indigo-400 hover:bg-indigo-500/30'
+                        : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100'}`}
+                    >
+                      <Play className="w-3.5 h-3.5" />
+                      Use
+                    </button>
+                    <button
+                      onClick={() => handleDownloadTemplate(template)}
+                      className={`flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg transition-colors ${isDark
+                        ? 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white'
+                        : 'bg-slate-50 text-slate-500 hover:bg-slate-100 hover:text-slate-700'}`}
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteTemplate(template.id)}
+                      disabled={deletingTemplateId === template.id}
+                      className={`flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg transition-colors disabled:opacity-50 ${isDark
+                        ? 'bg-white/5 text-slate-400 hover:bg-red-500/20 hover:text-red-400'
+                        : 'bg-slate-50 text-slate-500 hover:bg-red-50 hover:text-red-500'}`}
+                    >
+                      {deletingTemplateId === template.id ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <Trash className="w-3.5 h-3.5" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
