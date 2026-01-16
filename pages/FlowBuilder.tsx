@@ -2320,11 +2320,11 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
     });
 
     // Node spacing configuration
-    const horizontalSpacing = 280;
-    const verticalSpacing = 120;
+    const horizontalSpacing = 300;
+    const verticalSpacing = 250;
 
-    // Build adjacency map from edges (source -> targets)
-    const adjacencyMap: Map<string, string[]> = new Map();
+    // Build adjacency map from edges (source -> outgoing edges info)
+    const adjacencyMap: Map<string, Array<{ target: string, handle: string | null }>> = new Map();
     const incomingCount: Map<string, number> = new Map();
 
     // Initialize all nodes
@@ -2336,7 +2336,7 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
     // Build graph from edges
     edges.forEach(edge => {
       const targets = adjacencyMap.get(edge.source) || [];
-      targets.push(edge.target);
+      targets.push({ target: edge.target, handle: edge.sourceHandle || null });
       adjacencyMap.set(edge.source, targets);
       incomingCount.set(edge.target, (incomingCount.get(edge.target) || 0) + 1);
     });
@@ -2378,10 +2378,21 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
 
       // Process children
       const children = adjacencyMap.get(nodeId) || [];
-      children.forEach(childId => {
-        if (!visited.has(childId)) {
-          visited.add(childId);
-          queue.push({ nodeId: childId, level: level + 1 });
+
+      // Sort children to enforce order: TRUE path (top/first) -> FALSE path (bottom/last)
+      // This works because standard BFS queuing order determines the default vertical order
+      children.sort((a, b) => {
+        if (a.handle === 'true' && b.handle !== 'true') return -1;
+        if (a.handle !== 'true' && b.handle === 'true') return 1;
+        if (a.handle === 'false' && b.handle !== 'false') return 1;
+        if (a.handle !== 'false' && b.handle === 'false') return -1;
+        return 0;
+      });
+
+      children.forEach(child => {
+        if (!visited.has(child.target)) {
+          visited.add(child.target);
+          queue.push({ nodeId: child.target, level: level + 1 });
         }
       });
     }
