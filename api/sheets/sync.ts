@@ -159,7 +159,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 sheetName: effectiveSheetName
             };
 
-            if (action === 'updateStatus') {
+            if (action === 'updateStatus' || action === 'updatePaymentStatus') {
                 requestBody.newStatus = newStatus;
                 requestBody.updatedAt = updatedAt || new Date().toISOString();
             }

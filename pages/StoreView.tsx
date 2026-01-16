@@ -753,10 +753,10 @@ const StoreView: React.FC = () => {
                                     <div
                                         key={step}
                                         className={`h-2 rounded-full transition-all ${step === checkoutStep
-                                                ? 'w-8 bg-gray-900'
-                                                : step < checkoutStep
-                                                    ? 'w-2 bg-green-500'
-                                                    : 'w-2 bg-gray-200'
+                                            ? 'w-8 bg-gray-900'
+                                            : step < checkoutStep
+                                                ? 'w-2 bg-green-500'
+                                                : 'w-2 bg-gray-200'
                                             }`}
                                     />
                                 ))}
@@ -862,8 +862,8 @@ const StoreView: React.FC = () => {
                                                     }
                                                 }}
                                                 className={`p-4 rounded-xl border-2 text-center transition-all ${paymentMethod === method.id
-                                                        ? 'border-gray-900 bg-gray-50'
-                                                        : 'border-gray-200 hover:border-gray-300'
+                                                    ? 'border-gray-900 bg-gray-50'
+                                                    : 'border-gray-200 hover:border-gray-300'
                                                     }`}
                                             >
                                                 <div className="text-3xl mb-1">{method.icon}</div>
@@ -1243,7 +1243,7 @@ const StoreView: React.FC = () => {
                         </h3>
 
                         {/* Product Info */}
-                        <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl mb-6">
+                        <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl mb-4">
                             {addedProduct.images?.[0] ? (
                                 <img
                                     src={addedProduct.images[0]}
@@ -1262,6 +1262,40 @@ const StoreView: React.FC = () => {
                                 <p className="text-sm font-bold mt-1" style={{ color: store.primary_color }}>
                                     {currencySymbol}{addedProduct.price.toLocaleString()}
                                 </p>
+                            </div>
+                        </div>
+
+                        {/* Quantity Selector */}
+                        <div className="flex items-center justify-center gap-4 mb-4 py-3 bg-gray-50 rounded-xl">
+                            <span className="text-sm font-medium text-gray-600">Quantity:</span>
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={() => {
+                                        const item = cart.find(c => c.product.id === addedProduct.id);
+                                        if (item && item.quantity > 1) {
+                                            updateQuantity(addedProduct.id, item.quantity - 1);
+                                        }
+                                    }}
+                                    className="w-8 h-8 rounded-full flex items-center justify-center border-2 hover:bg-gray-100 transition-colors"
+                                    style={{ borderColor: store.primary_color, color: store.primary_color }}
+                                >
+                                    <Minus className="w-4 h-4" />
+                                </button>
+                                <span className="w-10 text-center font-bold text-lg text-gray-900">
+                                    {cart.find(c => c.product.id === addedProduct.id)?.quantity || 1}
+                                </span>
+                                <button
+                                    onClick={() => {
+                                        const item = cart.find(c => c.product.id === addedProduct.id);
+                                        if (item) {
+                                            updateQuantity(addedProduct.id, item.quantity + 1);
+                                        }
+                                    }}
+                                    className="w-8 h-8 rounded-full flex items-center justify-center text-white transition-colors hover:opacity-90"
+                                    style={{ backgroundColor: store.primary_color }}
+                                >
+                                    <Plus className="w-4 h-4" />
+                                </button>
                             </div>
                         </div>
 
