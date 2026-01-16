@@ -576,7 +576,7 @@ const WebviewCheckout: React.FC = () => {
             {/* Container */}
             <div className="w-full max-w-lg mx-auto min-h-screen bg-slate-900 shadow-2xl overflow-hidden relative">
                 {/* Scrollable Content */}
-                <div className="p-4 pb-24">
+                <div className="p-4 pb-4">
                     {/* Company Logo & Name Header */}
                     {(config.companyLogo || config.companyName || config.headerText) && (
                         <div className="text-center mb-4">
