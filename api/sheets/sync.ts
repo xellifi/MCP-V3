@@ -26,7 +26,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const { action, webhookUrl, spreadsheetId, sheetName, rowData, data, orderId, newStatus, updatedAt, workspaceId } = req.body;
 
         // Handle status update or delete action
-        if (action === 'updateStatus' || action === 'deleteOrder') {
+        if (action === 'updateStatus' || action === 'updatePaymentStatus' || action === 'deleteOrder') {
             console.log(`[Sheets Sync] Processing action: ${action} for order: ${orderId}`);
 
             // Get webhook URL - try multiple sources

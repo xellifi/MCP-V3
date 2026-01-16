@@ -280,10 +280,39 @@ const Store: React.FC<StoreProps> = ({ workspace }) => {
     // Update order status
     const updateOrderStatus = async (orderId: string, status: string) => {
         try {
+            // Get order details for sync
+            const { data: orderData } = await supabase
+                .from('store_orders')
+                .select('order_number')
+                .eq('id', orderId)
+                .single();
+
             await supabase
                 .from('store_orders')
                 .update({ status })
                 .eq('id', orderId);
+
+            // Sync to Google Sheets if webhook configured
+            if (store?.google_webhook_url && orderData?.order_number) {
+                try {
+                    await fetch('/api/sheets/sync', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            action: 'updateStatus',
+                            webhookUrl: store.google_webhook_url,
+                            sheetName: store.google_sheet_name || 'Sheet1',
+                            orderId: orderData.order_number,
+                            newStatus: status,
+                            updatedAt: new Date().toISOString()
+                        })
+                    });
+                    console.log('Order status synced to Google Sheets');
+                } catch (sheetErr) {
+                    console.error('Failed to sync status to sheets:', sheetErr);
+                }
+            }
+
             loadOrders();
         } catch (err) {
             console.error('Error updating order:', err);
@@ -317,10 +346,39 @@ const Store: React.FC<StoreProps> = ({ workspace }) => {
     // Update payment status
     const updatePaymentStatus = async (orderId: string, paymentStatus: string) => {
         try {
+            // Get order details for sync
+            const { data: orderData } = await supabase
+                .from('store_orders')
+                .select('order_number')
+                .eq('id', orderId)
+                .single();
+
             await supabase
                 .from('store_orders')
                 .update({ payment_status: paymentStatus })
                 .eq('id', orderId);
+
+            // Sync to Google Sheets if webhook configured
+            if (store?.google_webhook_url && orderData?.order_number) {
+                try {
+                    await fetch('/api/sheets/sync', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            action: 'updatePaymentStatus',
+                            webhookUrl: store.google_webhook_url,
+                            sheetName: store.google_sheet_name || 'Sheet1',
+                            orderId: orderData.order_number,
+                            newStatus: paymentStatus === 'paid' ? 'Paid' : paymentStatus === 'pending_verification' ? 'Pending Verification' : 'Pending',
+                            updatedAt: new Date().toISOString()
+                        })
+                    });
+                    console.log('Payment status synced to Google Sheets');
+                } catch (sheetErr) {
+                    console.error('Failed to sync payment status to sheets:', sheetErr);
+                }
+            }
+
             loadOrders();
         } catch (err) {
             console.error('Error updating payment status:', err);
@@ -504,10 +562,10 @@ const Store: React.FC<StoreProps> = ({ workspace }) => {
                             <button
                                 onClick={() => setOrderFilter('all')}
                                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${orderFilter === 'all'
-                                        ? 'bg-purple-500 text-white'
-                                        : isDark
-                                            ? 'bg-black/30 text-slate-400 hover:text-white'
-                                            : 'bg-white text-slate-600 hover:text-slate-900 border border-slate-200 hover:border-slate-300'
+                                    ? 'bg-purple-500 text-white'
+                                    : isDark
+                                        ? 'bg-black/30 text-slate-400 hover:text-white'
+                                        : 'bg-white text-slate-600 hover:text-slate-900 border border-slate-200 hover:border-slate-300'
                                     }`}
                             >
                                 All Orders
