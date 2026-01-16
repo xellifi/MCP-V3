@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { Check, X, Sparkles } from 'lucide-react';
+import { Check, ShoppingBag, Sparkles } from 'lucide-react';
 
 interface UpsellConfig {
     headline: string;
@@ -25,18 +25,11 @@ interface UpsellConfig {
     productName: string;
     productPrice: number;
     productImage: string;
+    originalPrice?: string;
     cartAction: 'add' | 'replace';
 }
 
-const EMOJI_MAP: Record<string, string> = {
-    fire: '🔥',
-    star: '⭐',
-    sparkle: '✨',
-    heart: '❤️',
-    none: ''
-};
-
-const API_BASE = '';  // Use relative URLs for API calls
+const API_BASE = '';
 
 const WebviewUpsell: React.FC = () => {
     const { sessionId } = useParams<{ sessionId: string }>();
@@ -87,7 +80,6 @@ const WebviewUpsell: React.FC = () => {
                 })
             });
 
-            // Continue flow and close webview
             await continueAndClose();
         } catch (err) {
             console.error('Error accepting upsell:', err);
@@ -138,21 +130,24 @@ const WebviewUpsell: React.FC = () => {
         }
     };
 
+    const formatPrice = (price: number | string) => {
+        const num = typeof price === 'string' ? parseFloat(price.replace(/[^\d.]/g, '')) : price;
+        return `₱${num.toLocaleString()}`;
+    };
+
     if (loading) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 flex items-center justify-center">
-                <div className="w-12 h-12 border-4 border-yellow-500 border-t-transparent rounded-full animate-spin"></div>
+            <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
+                <div className="w-8 h-8 border-2 border-neutral-900 border-t-transparent rounded-full animate-spin"></div>
             </div>
         );
     }
 
     if (error) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 flex items-center justify-center p-4">
+            <div className="min-h-screen bg-neutral-50 flex items-center justify-center p-6">
                 <div className="text-center">
-                    <div className="text-6xl mb-4">😕</div>
-                    <h1 className="text-xl font-bold text-white mb-2">Oops!</h1>
-                    <p className="text-slate-400">{error}</p>
+                    <p className="text-neutral-400 text-sm">{error}</p>
                 </div>
             </div>
         );
@@ -160,127 +155,95 @@ const WebviewUpsell: React.FC = () => {
 
     if (!config) return null;
 
-    const emoji = config.showEmoji && config.emojiType !== 'none' ? EMOJI_MAP[config.emojiType] : '';
-    const bgColor = config.backgroundColor || '#dc2626';
-    const headlineColor = config.headlineColor || '#ffffff';
+    const price = config.productPrice || parseFloat((config.price || '0').replace(/[^\d.]/g, '')) || 0;
+    const originalPrice = config.originalPrice ? parseFloat(String(config.originalPrice).replace(/[^\d.]/g, '')) : null;
 
     return (
-        <div className="min-h-screen flex flex-col" style={{ backgroundColor: bgColor }}>
-            {/* Headline Banner - Yellow/Gold like user's design */}
-            <div
-                className="py-4 px-6 text-center"
-                style={{ backgroundColor: '#f59e0b' }}
-            >
-                <h1
-                    className="text-lg md:text-xl font-bold uppercase tracking-wider"
-                    style={{ color: '#1f2937' }}
-                >
-                    {emoji && <span className="mr-2">{emoji}</span>}
-                    ADD THIS TO YOUR CART?
-                    {emoji && <span className="ml-2">{emoji}</span>}
-                </h1>
-            </div>
+        <div className="min-h-screen bg-neutral-100">
+            {/* Centered Container for Desktop */}
+            <div className="max-w-lg mx-auto min-h-screen bg-white flex flex-col shadow-xl">
+                {/* Header */}
+                <div className="bg-neutral-50 px-5 py-4 border-b border-neutral-100 flex-shrink-0">
+                    <div className="flex items-center justify-center gap-2">
+                        <Sparkles className="w-4 h-4 text-amber-500" />
+                        <span className="text-sm font-medium text-neutral-600 uppercase tracking-wide">
+                            Recommended for You
+                        </span>
+                    </div>
+                </div>
 
-            {/* Main Content */}
-            <div className="flex-1 p-4 flex flex-col items-center justify-center">
-                {/* Product Image with Price Badge */}
-                <div className="relative w-full max-w-[300px] mx-auto">
-                    <div
-                        className="overflow-hidden aspect-square shadow-2xl"
-                        style={{
-                            borderRadius: `${config.imageBorderRadius || 16}px`,
-                            border: `${config.imageBorderWidth || 4}px solid ${config.imageBorderColor || '#ffffff'}`,
-                        }}
-                    >
-                        {config.imageUrl ? (
-                            <img
-                                src={config.imageUrl}
-                                alt={config.productName || 'Product'}
-                                className="w-full h-full object-cover"
-                            />
-                        ) : (
-                            <div className="w-full h-full bg-slate-200 flex items-center justify-center">
-                                <Sparkles className="w-16 h-16 text-slate-400" />
-                            </div>
+                {/* Product Image */}
+                <div className="relative w-full aspect-square bg-neutral-100 flex-shrink-0">
+                    {config.imageUrl ? (
+                        <img
+                            src={config.imageUrl}
+                            alt={config.productName || 'Product'}
+                            className="w-full h-full object-cover"
+                        />
+                    ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                            <ShoppingBag className="w-16 h-16 text-neutral-300" />
+                        </div>
+                    )}
+
+                    {/* Discount Badge */}
+                    {originalPrice && originalPrice > price && (
+                        <div className="absolute top-3 left-3 bg-red-500 text-white text-xs font-semibold px-2 py-1 rounded-md">
+                            {Math.round((1 - price / originalPrice) * 100)}% OFF
+                        </div>
+                    )}
+                </div>
+
+                {/* Product Info */}
+                <div className="flex-1 p-5 overflow-y-auto">
+                    <h2 className="text-lg font-semibold text-neutral-900 leading-tight">
+                        {config.productName || config.headline || 'Special Offer'}
+                    </h2>
+
+                    <div className="flex items-baseline gap-2 mt-2">
+                        <span className="text-xl font-bold text-neutral-900">
+                            {formatPrice(price)}
+                        </span>
+                        {originalPrice && originalPrice > price && (
+                            <span className="text-sm text-neutral-400 line-through">
+                                {formatPrice(originalPrice)}
+                            </span>
                         )}
                     </div>
 
-                    {/* Price Badge */}
-                    <div
-                        className="absolute -top-3 -right-3 px-5 py-2 rounded-full font-bold text-xl shadow-lg transform rotate-12"
-                        style={{
-                            backgroundColor: config.priceBadgeColor || '#f59e0b',
-                            color: config.priceTextColor || '#ffffff',
-                        }}
-                    >
-                        {config.price || '₱0'}
-                    </div>
-                </div>
-
-                {/* Product Name Bar - Green like user's design */}
-                <div
-                    className="w-full max-w-[300px] mt-6 py-3 px-4 text-center"
-                    style={{ backgroundColor: '#16a34a' }}
-                >
-                    <h2 className="text-white font-bold text-xl uppercase tracking-wider">
-                        {config.productName || config.headline || 'PRODUCT'}
-                    </h2>
-                </div>
-
-                {/* Description */}
-                {config.description && (
-                    <p
-                        className="mt-4 text-center max-w-[280px] text-sm"
-                        style={{ color: config.descriptionColor || '#ffffff' }}
-                    >
-                        {config.description}
-                    </p>
-                )}
-            </div>
-
-            {/* Action Buttons */}
-            <div className="p-4 flex gap-3">
-                <button
-                    onClick={handleAccept}
-                    disabled={processing}
-                    className="flex-1 py-4 px-6 rounded-full font-bold text-base flex items-center justify-center gap-2 shadow-lg transition-all active:scale-95 disabled:opacity-50"
-                    style={{
-                        backgroundColor: '#16a34a',
-                        color: '#ffffff',
-                    }}
-                >
-                    {processing ? (
-                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    ) : (
-                        <>
-                            <Check className="w-5 h-5" />
-                            {config.buttonText || 'Yes Add this'}
-                        </>
+                    {config.description && (
+                        <p className="text-sm text-neutral-500 mt-3 leading-relaxed">
+                            {config.description}
+                        </p>
                     )}
-                </button>
+                </div>
 
-                <button
-                    onClick={handleDecline}
-                    disabled={processing}
-                    className="flex-1 py-4 px-6 rounded-full font-bold text-base flex items-center justify-center gap-2 shadow-lg transition-all active:scale-95 disabled:opacity-50"
-                    style={{
-                        backgroundColor: '#dc2626',
-                        color: '#ffffff',
-                    }}
-                >
-                    <X className="w-5 h-5" />
-                    No Thanks
-                </button>
+                {/* Action Buttons - Fixed Bottom */}
+                <div className="sticky bottom-0 p-4 bg-white border-t border-neutral-100 space-y-2 flex-shrink-0">
+                    <button
+                        onClick={handleAccept}
+                        disabled={processing}
+                        className="w-full py-4 bg-neutral-900 text-white font-medium rounded-xl flex items-center justify-center gap-2 hover:bg-neutral-800 active:scale-[0.98] transition-all disabled:opacity-70"
+                    >
+                        {processing ? (
+                            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                            <>
+                                <Check className="w-5 h-5" />
+                                <span>{config.buttonText || 'Add to Order'}</span>
+                            </>
+                        )}
+                    </button>
+
+                    <button
+                        onClick={handleDecline}
+                        disabled={processing}
+                        className="w-full py-3 text-neutral-500 font-medium text-sm hover:text-neutral-700 transition-colors disabled:opacity-50"
+                    >
+                        No thanks, continue
+                    </button>
+                </div>
             </div>
-
-            <style>{`
-                @keyframes bounce-in {
-                    0% { transform: scale(0.8); opacity: 0; }
-                    50% { transform: scale(1.05); }
-                    100% { transform: scale(1); opacity: 1; }
-                }
-                .animate-bounce-in { animation: bounce-in 0.4s ease-out; }
-            `}</style>
         </div>
     );
 };

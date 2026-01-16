@@ -467,14 +467,8 @@ const WebviewCheckout: React.FC = () => {
     // Loading Screen
     if (loading) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-800 flex items-center justify-center">
-                <div className="text-center">
-                    <div className="relative mx-auto w-fit">
-                        <div className="w-20 h-20 border-4 border-white/20 rounded-full"></div>
-                        <div className="absolute inset-0 w-20 h-20 border-4 border-t-emerald-400 border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin"></div>
-                    </div>
-                    <p className="text-white/70 mt-6 text-base font-medium">Loading your order...</p>
-                </div>
+            <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+                <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
             </div>
         );
     }
@@ -482,11 +476,9 @@ const WebviewCheckout: React.FC = () => {
     // Error Screen
     if (error) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-800 flex items-center justify-center p-4">
-                <div className="text-center bg-white/10 backdrop-blur-xl rounded-3xl p-8 border border-white/20">
-                    <div className="text-6xl mb-4">😕</div>
-                    <h1 className="text-xl font-bold text-white mb-2">Oops!</h1>
-                    <p className="text-white/70">{error}</p>
+            <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6">
+                <div className="text-center">
+                    <p className="text-slate-400 text-sm">{error}</p>
                 </div>
             </div>
         );
@@ -580,9 +572,9 @@ const WebviewCheckout: React.FC = () => {
 
     // Main Checkout
     return (
-        <div className="min-h-screen bg-slate-900 p-4">
+        <div className="min-h-screen bg-slate-950">
             {/* Container */}
-            <div className="w-full max-w-md mx-auto bg-slate-900 rounded-2xl shadow-2xl overflow-hidden relative">
+            <div className="w-full max-w-lg mx-auto min-h-screen bg-slate-900 shadow-2xl overflow-hidden relative">
                 {/* Scrollable Content */}
                 <div className="p-4 pb-24">
                     {/* Company Logo & Name Header */}
