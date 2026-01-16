@@ -274,9 +274,25 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
             try {
               const templateData = JSON.parse(pendingTemplate);
               console.log('[FlowBuilder] Loading template data:', templateData);
-              setNodes(templateData.nodes || []);
+
+              const savedConfigs = templateData.configurations || {};
+              setNodeConfigs(savedConfigs);
+
+              const restoredNodes = (templateData.nodes || []).map((node: any) => {
+                const nodeConfig = savedConfigs[node.id] || {};
+                return {
+                  ...node,
+                  data: {
+                    ...node.data,
+                    ...nodeConfig,
+                    onDelete: () => handleDeleteNode(node.id),
+                    onConfigure: () => handleConfigureNode(node),
+                    onClone: () => handleCloneNode(node.id)
+                  }
+                };
+              });
+              setNodes(restoredNodes);
               setEdges(templateData.edges || []);
-              setNodeConfigs(templateData.configurations || {});
 
               // Clean up
               localStorage.removeItem('pendingTemplate');
@@ -2627,7 +2643,7 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
         >
           <Save className="w-4 h-4" />
           <span className={`absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 ${isDark ? 'bg-slate-800 text-white' : 'bg-white border border-gray-300 text-slate-900 shadow-sm'} text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none`}>
-            {isSaving ? 'Saving...' : 'Save Changes'}
+            {isSaving ? 'Saving...' : 'Save and Publish'}
           </span>
         </button>
 
@@ -2652,7 +2668,7 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
         >
           {isValidating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
           <span className={`absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 ${isDark ? 'bg-slate-800 text-white' : 'bg-white border border-gray-300 text-slate-900 shadow-sm'} text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none`}>
-            {isValidating ? 'Validating...' : 'Publish Flow'}
+            {isValidating ? 'Validating...' : 'Save as Template'}
           </span>
         </button>
       </div>

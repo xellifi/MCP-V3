@@ -306,14 +306,46 @@ const Flows: React.FC<FlowsProps> = ({ workspace }) => {
 
   // Download template as JSON
   const handleDownloadTemplate = (template: any) => {
+    // Sanitize data before export (remove private/runtime info)
+    const sanitizedNodes = (template.nodes || []).map((node: any) => {
+      // Destructure to remove specific fields
+      const {
+        analytics,
+        executionStatus,
+        pageId,
+        pageName,
+        pageImageUrl,
+        flowProcessed,
+        onDelete,
+        onConfigure,
+        onClone,
+        ...restData
+      } = node.data || {};
+
+      return {
+        ...node,
+        data: restData
+      };
+    });
+
+    const sanitizedConfigs = { ...template.configurations };
+    // Remove page-specific info from configs
+    Object.keys(sanitizedConfigs).forEach(key => {
+      if (sanitizedConfigs[key]) {
+        const { pageId, ...restConfig } = sanitizedConfigs[key];
+        sanitizedConfigs[key] = restConfig;
+      }
+    });
+
     const dataStr = JSON.stringify({
       name: template.name,
       description: template.description,
-      nodes: template.nodes,
+      nodes: sanitizedNodes,
       edges: template.edges,
-      configurations: template.configurations,
+      configurations: sanitizedConfigs,
       exportedAt: new Date().toISOString()
     }, null, 2);
+
     const dataBlob = new Blob([dataStr], { type: 'application/json' });
     const url = URL.createObjectURL(dataBlob);
     const link = document.createElement('a');
