@@ -1544,10 +1544,49 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
 
     const type = node.type || '';
     const data = node.data;
+    const label = (data.label || '').toLowerCase();
 
-    // Start Node / Trigger Node
-    if (type === 'triggerNode' || type === 'startNode' || data.label?.toLowerCase().includes('start') || data.label?.toLowerCase().includes('trigger')) {
-      return data.keywords && data.keywords.length > 0;
+    // Trigger Node (New Comment)
+    if (type === 'triggerNode') {
+      // Specific check for "New Comment" or comment triggers
+      if (label.includes('comment')) {
+        // User Requirement: Auto reply must be enabled
+        // In CustomTriggerNode, undefined defaults to enabled (true)
+        if (data.enableCommentReply === false) return false;
+
+        // Also ensure at least one keyword or generic reply is active? 
+        // For now, focusing on the explicit "auto reply enabled" rule.
+        return true;
+      }
+      // Other triggers (Start, etc)
+      if (label.includes('start') || label.includes('trigger')) {
+        return (data.keywords && data.keywords.length > 0) || true; // Allow manual start
+      }
+      return true;
+    }
+
+    // Action Node (Comment Reply / Send Message)
+    if (type === 'actionNode') {
+      const isAI = data.useAiReply === true;
+
+      if (isAI) {
+        // If AI turned on - ai instructions must have data
+        return !!data.aiPrompt && data.aiPrompt.length > 0;
+      } else {
+        // If AI disabled - template must have data
+        if (data.actionType === 'reply') {
+          return !!data.replyTemplate && data.replyTemplate.length > 0;
+        }
+        if (data.actionType === 'message') {
+          return !!data.messageTemplate && data.messageTemplate.length > 0;
+        }
+      }
+      return true;
+    }
+
+    // Start Node (Basic check)
+    if (type === 'startNode') {
+      return true;
     }
 
     // Text Node
@@ -1557,7 +1596,9 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
 
     // Image Node
     if (type.includes('image')) {
-      return !!data.imageUrl;
+      // User Requirement: image url must have data
+      // (Upload/Gallery both result in imageUrl being set)
+      return !!data.imageUrl && data.imageUrl.length > 0;
     }
 
     // Video Node
