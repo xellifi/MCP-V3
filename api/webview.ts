@@ -682,17 +682,17 @@ async function createOrder(session: any): Promise<string | null> {
         if (!pageId && session.page_access_token) {
             const { data: page } = await supabase
                 .from('connected_pages')
-                .select('pageId, name')
+                .select('page_id, name') // Use separate snake_case columns
                 .eq('page_access_token', session.page_access_token)
                 .single();
 
             if (page) {
-                pageId = page.pageId;
+                pageId = page.page_id;
                 pageName = page.name;
             }
         }
 
-        // Fallback: If no token, maybe check if subscriber has page_id
+        // Fallback: If no token, check if subscriber has page_id
         if (!pageId && session.external_id) {
             const { data: sub } = await supabase
                 .from('subscribers')
@@ -701,7 +701,18 @@ async function createOrder(session: any): Promise<string | null> {
                 .single();
             if (sub?.page_id) {
                 pageId = sub.page_id;
-                // We'd need another query for name, but pageId is most critical for filtering
+            }
+        }
+
+        // Final attempt: If we have pageId but no pageName (which happens in fallback above), fetch the name
+        if (pageId && !pageName) {
+            const { data: page } = await supabase
+                .from('connected_pages')
+                .select('name')
+                .eq('page_id', pageId)
+                .single();
+            if (page) {
+                pageName = page.name;
             }
         }
 
