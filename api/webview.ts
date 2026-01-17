@@ -497,13 +497,18 @@ async function handleContinue(req: VercelRequest, res: VercelResponse) {
 
     // Get page access token
     let pageAccessToken = session.page_access_token;
+    let pageName = session.page_name;
+    let pageId = session.page_id;
+
     if (!pageAccessToken) {
         const { data: connection } = await supabase
             .from('connected_pages')
-            .select('page_access_token, page_id')
+            .select('page_access_token, page_id, name')
             .eq('workspace_id', session.workspace_id)
             .single();
         pageAccessToken = connection?.page_access_token;
+        if (!pageId && connection?.page_id) pageId = connection.page_id;
+        if (!pageName && connection?.name) pageName = connection.name;
     }
 
     if (!pageAccessToken) {
@@ -533,7 +538,8 @@ async function handleContinue(req: VercelRequest, res: VercelResponse) {
                 body: JSON.stringify({
                     flowId: session.flow_id,
                     nodeId: session.current_node_id,
-                    pageId: session.page_id || null,
+                    pageId: pageId || session.page_id || null, // Ensure pageId is passed
+                    pageName: pageName || null,                // Ensure pageName is passed
                     subscriberId: session.external_id,
                     workspaceId: session.workspace_id,
                     // Pass cart context so downstream nodes can access it
