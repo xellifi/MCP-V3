@@ -1985,6 +1985,10 @@ async function syncToGoogleSheets(
         // Using 'Order Placed' to match Invoice/Tracking display labels
         'Status': 'Order Placed',
 
+        // Attributes
+        'Page ID': context.pageId || '',
+        'Page Name': context.pageName || '',
+
         // Timestamp
         'Timestamp': new Date().toISOString(),
         'Date': new Date().toLocaleDateString('en-PH'),
