@@ -213,28 +213,42 @@ const Orders: React.FC<OrdersProps> = ({ workspace }) => {
 
             // Also update Google Sheets if webhook is configured
             try {
-                // Convert status ID to label (e.g., 'confirmed' -> 'Confirmed')
-                const statusLabel = STATUS_CONFIG[newStatus as keyof typeof STATUS_CONFIG]?.label || newStatus;
+                // Check if we have a webhook URL (we'll need to fetch it if we haven't already)
+                if (!workspace.google_webhook_url) {
+                    // Try to fetch it on demand
+                    const { data: wsData } = await supabase
+                        .from('workspaces')
+                        .select('google_webhook_url')
+                        .eq('id', workspace.id)
+                        .single();
 
-                const sheetsResponse = await fetch('/api/sheets/sync', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        action: 'updateStatus',
-                        orderId: orderId,
-                        newStatus: statusLabel, // Send display label, not ID
-                        updatedAt: new Date().toISOString(),
-                        workspaceId: workspace.id // Help API find webhook URL
-                    })
-                });
-                const sheetsResult = await sheetsResponse.json();
-                if (sheetsResult.success) {
-                    console.log('[Orders] ✓ Status synced to Google Sheets');
+                    if (wsData?.google_webhook_url) {
+                        (workspace as any).google_webhook_url = wsData.google_webhook_url;
+                    }
+                }
+
+                const webhookUrl = (workspace as any).google_webhook_url;
+
+                if (webhookUrl) {
+                    const sheetsResponse = await fetch(webhookUrl, {
+                        method: 'POST',
+                        mode: 'no-cors', // Use no-cors for Apps Script to avoid CORS errors if script isn't perfect
+                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                        body: JSON.stringify({
+                            action: 'updateStatus',
+                            orderId: orderId,
+                            newStatus: statusLabel,
+                            updatedAt: new Date().toISOString(),
+                            sheetName: 'Orders'
+                        })
+                    });
+                    // With no-cors we can't read response, but it works for fire-and-forget
+                    console.log('[Orders] ✓ Status update sent to Google Sheets');
                 } else {
-                    console.log('[Orders] Google Sheets sync result:', sheetsResult);
+                    console.log('[Orders] No Google Sheet webhook configured, skipping sync.');
                 }
             } catch (sheetsError) {
-                console.log('[Orders] Google Sheets sync skipped (not configured or failed):', sheetsError);
+                console.log('[Orders] Google Sheets sync failed:', sheetsError);
             }
         } catch (error) {
             console.error('Error updating order status:', error);

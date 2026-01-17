@@ -745,14 +745,62 @@ async function createOrder(session: any): Promise<string | null> {
         if (error) {
             console.error('[Webview] Error creating order:', error.message);
             return null;
-        } else {
-            console.log('[Webview] ✓ Order created:', data?.id);
-            return orderId; // Return the order ID
         }
-    } catch (error: any) {
-        console.error('[Webview] Error creating order:', error.message);
-        return null;
+
+        // Sync to Google Sheets if configured
+        if (data && session.workspace_id) {
+            try {
+                const { data: ws } = await supabase
+                    .from('workspaces')
+                    .select('google_webhook_url')
+                    .eq('id', session.workspace_id)
+                    .single();
+
+                if (ws?.google_webhook_url) {
+                    // Format items
+                    const itemsList = (session.cart || []).map((item: any) =>
+                        `${item.productName || item.product?.name || 'Item'} x${item.quantity || 1} (${item.productPrice})`
+                    ).join(', ');
+
+                    const sheetData = {
+                        'Order ID': orderId,
+                        'Date': new Date().toISOString(),
+                        'Customer Name': session.customer_name,
+                        'Phone': session.customerPhone || '',
+                        'Email': session.customerEmail || '',
+                        'Address': session.customerAddress || '',
+                        'Items': itemsList,
+                        'Total': session.cart_total,
+                        'Payment Method': session.paymentMethodName || session.paymentMethod,
+                        'Status': 'Pending',
+                        'Page ID': pageId || '',
+                        'Page Name': pageName || ''
+                    };
+
+                    // Fire and forget sync
+                    fetch(ws.google_webhook_url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // Apps Script often handles text/plain better to avoid CORS preflight issues
+                        body: JSON.stringify({
+                            sheetName: 'Orders',
+                            rowData: sheetData,
+                            action: 'createOrder'
+                        })
+                    }).then(res => res.text().then(t => console.log('[Webview] Sheet Sync Response:', t)))
+                        .catch(e => console.error('[Webview] Sheet Sync Error:', e));
+                }
+            } catch (syncErr) {
+                console.error('[Webview] Failed to sync to Google Sheets:', syncErr);
+            }
+        }
+
+        console.log('[Webview] ✓ Order created:', data?.id);
+        return orderId; // Return the order ID
     }
+    } catch (error: any) {
+    console.error('[Webview] Error creating order:', error.message);
+    return null;
+}
 }
 
 async function syncOrderToGoogleSheets(session: any, orderId?: string) {
