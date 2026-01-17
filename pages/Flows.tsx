@@ -169,6 +169,7 @@ const Flows: React.FC<FlowsProps> = ({ workspace }) => {
   const [templates, setTemplates] = useState<any[]>([]);
   const [templatesLoading, setTemplatesLoading] = useState(false);
   const [deletingTemplateId, setDeletingTemplateId] = useState<string | null>(null);
+  const [templateViewMode, setTemplateViewMode] = useState<'list' | 'grid'>('grid');
 
   // dnd-kit sensors setup
   const sensors = useSensors(
@@ -506,6 +507,28 @@ const Flows: React.FC<FlowsProps> = ({ workspace }) => {
         )}
         {activeTab === 'templates' && (
           <div className="flex items-center gap-3">
+            <div className={`flex p-1 rounded-xl border ${isDark ? 'bg-white/5 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
+              <button
+                onClick={() => setTemplateViewMode('list')}
+                className={`p-2 rounded-lg transition-all ${templateViewMode === 'list'
+                  ? 'bg-indigo-500 text-white shadow-md'
+                  : isDark ? 'text-slate-400 hover:text-white hover:bg-white/5' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-50'
+                  }`}
+                title="List View"
+              >
+                <List className="w-5 h-5" />
+              </button>
+              <button
+                onClick={() => setTemplateViewMode('grid')}
+                className={`p-2 rounded-lg transition-all ${templateViewMode === 'grid'
+                  ? 'bg-indigo-500 text-white shadow-md'
+                  : isDark ? 'text-slate-400 hover:text-white hover:bg-white/5' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-50'
+                  }`}
+                title="Grid View"
+              >
+                <LayoutGrid className="w-5 h-5" />
+              </button>
+            </div>
             <input
               type="file"
               ref={fileInputRef}
@@ -930,6 +953,92 @@ const Flows: React.FC<FlowsProps> = ({ workspace }) => {
                 Save your automation flows as templates from the Flow Builder. Look for the "Save Template" button in the toolbar.
               </p>
             </div>
+          ) : templateViewMode === 'list' ? (
+            <div className={`rounded-2xl overflow-hidden border ${isDark ? 'glass-panel border-white/10 text-slate-100' : 'bg-white border-gray-200 shadow-sm text-slate-900'}`}>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left">
+                  <thead className={`text-xs uppercase font-bold border-b ${isDark
+                    ? 'bg-white/5 text-slate-400 border-white/10'
+                    : 'bg-slate-50 text-slate-500 border-slate-200'
+                    }`}>
+                    <tr>
+                      <th className="px-6 py-4">Name</th>
+                      <th className="px-6 py-4">Description</th>
+                      <th className="px-6 py-4">Nodes</th>
+                      <th className="px-6 py-4">Created</th>
+                      <th className="px-6 py-4 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className={`divide-y ${isDark ? 'divide-white/5' : 'divide-slate-100'}`}>
+                    {templates.map((template) => (
+                      <tr key={template.id} className={`transition-colors group ${isDark ? 'hover:bg-white/5' : 'hover:bg-slate-50'}`}>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-4">
+                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-lg border ${isDark
+                              ? 'bg-indigo-500/20 text-indigo-400 shadow-indigo-500/10 border-indigo-500/20'
+                              : 'bg-indigo-50 text-indigo-600 border-indigo-100'
+                              }`}>
+                              <FileText className="w-5 h-5" />
+                            </div>
+                            <span className={`font-semibold ${isDark ? 'text-white' : 'text-slate-900'}`}>{template.name}</span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <p className={`text-sm truncate max-w-[200px] ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                            {template.description || '-'}
+                          </p>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-slate-500">
+                          {template.nodes?.length || 0}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-slate-500">
+                          {format(new Date(template.createdAt), 'MMM d, yyyy')}
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <div className="flex justify-end gap-2">
+                            <button
+                              onClick={() => handleUseTemplate(template)}
+                              className={`p-2 rounded-lg transition-colors border ${isDark
+                                ? 'text-indigo-400 hover:text-white hover:bg-indigo-500/20 border-transparent hover:border-indigo-500/30'
+                                : 'text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 border-transparent hover:border-indigo-100'
+                                }`}
+                              title="Use Template"
+                            >
+                              <Play className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDownloadTemplate(template)}
+                              className={`p-2 rounded-lg transition-colors border ${isDark
+                                ? 'text-slate-400 hover:text-white hover:bg-white/5 border-transparent hover:border-white/10'
+                                : 'text-slate-400 hover:text-slate-700 hover:bg-slate-50 border-transparent hover:border-slate-200'
+                                }`}
+                              title="Download JSON"
+                            >
+                              <Download className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteTemplate(template.id)}
+                              disabled={deletingTemplateId === template.id}
+                              className={`p-2 rounded-lg transition-colors border disabled:opacity-50 ${isDark
+                                ? 'text-slate-400 hover:text-red-400 hover:bg-white/5 border-transparent hover:border-white/10'
+                                : 'text-slate-400 hover:text-red-600 hover:bg-red-50 border-transparent hover:border-red-100'
+                                }`}
+                              title="Delete Template"
+                            >
+                              {deletingTemplateId === template.id ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                              ) : (
+                                <Trash className="w-4 h-4" />
+                              )}
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {templates.map((template) => (
@@ -995,14 +1104,18 @@ const Flows: React.FC<FlowsProps> = ({ workspace }) => {
               ))}
             </div>
           )}
+
         </div>
-      )}
+      )
+      }
 
       {/* Orders Tab */}
-      {activeTab === 'orders' && (
-        <Orders workspace={workspace} />
-      )}
-    </div>
+      {
+        activeTab === 'orders' && (
+          <Orders workspace={workspace} />
+        )
+      }
+    </div >
   );
 };
 

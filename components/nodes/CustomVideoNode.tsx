@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
-import { Video, ChevronDown, ChevronUp, Link, AlertCircle } from 'lucide-react';
+import { Video, ChevronDown, ChevronUp, Link, AlertCircle, Loader, CheckCircle2 } from 'lucide-react';
 import NodeToolbar from '../NodeToolbar';
 import NodeInsights from '../NodeInsights';
 
@@ -87,8 +87,16 @@ const CustomVideoNode: React.FC<NodeProps> = ({ data, selected }) => {
 
                 {/* Header - Icon, Label, and Expand Toggle */}
                 <div className="flex items-center gap-3">
-                    <div className="p-2 bg-cyan-500/20 rounded-lg backdrop-blur-sm flex-shrink-0">
-                        <Video className="w-5 h-5 text-cyan-400" />
+                    <div className={`p-2 rounded-lg backdrop-blur-sm flex-shrink-0 ${isError ? 'bg-red-500' : isExecuting ? 'bg-blue-500' : isCompleted ? 'bg-emerald-500' : 'bg-cyan-500/20'}`}>
+                        {isError ? (
+                            <AlertCircle className="w-5 h-5 text-white" />
+                        ) : isExecuting ? (
+                            <Loader className="w-5 h-5 text-white animate-spin" />
+                        ) : isCompleted ? (
+                            <CheckCircle2 className="w-5 h-5 text-white" />
+                        ) : (
+                            <Video className="w-5 h-5 text-cyan-400" />
+                        )}
                     </div>
                     <div className="flex-1 min-w-0">
                         <div className="text-slate-200 font-bold text-sm truncate">
