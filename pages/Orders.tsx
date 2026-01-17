@@ -227,7 +227,10 @@ const Orders: React.FC<OrdersProps> = ({ workspace }) => {
                     }
                 }
 
-                const webhookUrl = (workspace as any).google_webhook_url;
+                // Convert status ID to label (e.g., 'confirmed' -> 'Confirmed')
+                const statusLabel = STATUS_CONFIG[newStatus as keyof typeof STATUS_CONFIG]?.label || newStatus;
+
+                const webhookUrl = workspace.google_webhook_url;
 
                 if (webhookUrl) {
                     const sheetsResponse = await fetch(webhookUrl, {

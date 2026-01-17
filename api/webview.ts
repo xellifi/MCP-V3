@@ -796,11 +796,10 @@ async function createOrder(session: any): Promise<string | null> {
 
         console.log('[Webview] ✓ Order created:', data?.id);
         return orderId; // Return the order ID
-    }
     } catch (error: any) {
-    console.error('[Webview] Error creating order:', error.message);
-    return null;
-}
+        console.error('[Webview] Error creating order:', error.message);
+        return null;
+    }
 }
 
 async function syncOrderToGoogleSheets(session: any, orderId?: string) {

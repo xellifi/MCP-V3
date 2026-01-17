@@ -18,6 +18,7 @@ export interface Workspace {
   id: string;
   name: string;
   ownerId: string;
+  google_webhook_url?: string;
 }
 
 export interface MetaConnection {
