@@ -747,89 +747,8 @@ async function createOrder(session: any): Promise<string | null> {
             return null;
         }
 
-        // Sync to Google Sheets if configured (using robust lookup)
-        if (data && session.workspace_id) {
-            try {
-                // Find webhook URL (check workspace first, then flows)
-                let webhookUrl = null;
-                let sheetName = 'Orders';
 
-                // 1. Check workspace settings
-                const { data: ws } = await supabase
-                    .from('workspaces')
-                    .select('google_webhook_url')
-                    .eq('id', session.workspace_id)
-                    .single();
 
-                if (ws?.google_webhook_url) {
-                    webhookUrl = ws.google_webhook_url;
-                } else {
-                    // 2. Fallback: Search flows for a Sheets node
-                    const { data: flows } = await supabase
-                        .from('flows')
-                        .select('nodes')
-                        .eq('workspace_id', session.workspace_id)
-                        .limit(5); // Limit search to recent flows
-
-                    if (flows) {
-                        for (const flow of flows) {
-                            const nodes = flow.nodes || [];
-                            for (const node of nodes) {
-                                const nodeData = node.data || {};
-                                // Identifying a sheets node
-                                if (node.type === 'sheetsNode' || nodeData.nodeType === 'sheetsNode' || (nodeData.label || '').toLowerCase().includes('sheet')) {
-                                    const url = nodeData.webhookUrl || nodeData.config?.webhookUrl || node.config?.webhookUrl;
-                                    if (url) {
-                                        webhookUrl = url;
-                                        sheetName = nodeData.sheetName || nodeData.config?.sheetName || node.config?.sheetName || 'Orders';
-                                        break;
-                                    }
-                                }
-                            }
-                            if (webhookUrl) break;
-                        }
-                    }
-                }
-
-                if (webhookUrl) {
-                    // Format items
-                    const itemsList = (session.cart || []).map((item: any) =>
-                        `${item.productName || item.product?.name || 'Item'} x${item.quantity || 1} (${item.productPrice})`
-                    ).join(', ');
-
-                    const sheetData = {
-                        'Order ID': orderId,
-                        'Date': new Date().toISOString(),
-                        'Customer Name': session.customer_name,
-                        'Phone': session.customerPhone || '',
-                        'Email': session.customerEmail || '',
-                        'Address': session.customerAddress || '',
-                        'Items': itemsList,
-                        'Total': session.cart_total,
-                        'Payment Method': session.paymentMethodName || session.paymentMethod,
-                        'Status': 'Pending',
-                        'Page ID': pageId || '',
-                        'Page Name': pageName || ''
-                    };
-
-                    // Fire and forget sync
-                    fetch(webhookUrl, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                        body: JSON.stringify({
-                            sheetName: sheetName,
-                            rowData: sheetData,
-                            action: 'createOrder'
-                        })
-                    }).then(res => res.text().then(t => console.log('[Webview] Sheet Sync Response:', t)))
-                        .catch(e => console.error('[Webview] Sheet Sync Error:', e));
-                } else {
-                    console.log('[Webview] No Google Sheet webhook found for workspace:', session.workspace_id);
-                }
-            } catch (syncErr) {
-                console.error('[Webview] Failed to sync to Google Sheets:', syncErr);
-            }
-        }
 
         console.log('[Webview] ✓ Order created:', data?.id);
         return orderId; // Return the order ID
