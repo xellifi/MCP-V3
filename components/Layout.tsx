@@ -401,13 +401,26 @@ const Layout: React.FC<LayoutProps> = ({
           {/* Brand Header */}
           <div className="h-16 flex items-center px-6 border-b border-slate-200 dark:border-slate-800 flex-shrink-0 relative">
             {/* Full branding - show on mobile always, on desktop when not collapsed */}
-            <div className={`flex items-center ${isSidebarCollapsed ? 'lg:hidden' : 'flex'}`}>
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-500 to-indigo-600 flex items-center justify-center text-white mr-3">
-                <Bot className="w-5 h-5" />
+            <div className={`flex items-center gap-3 ${isSidebarCollapsed ? 'lg:hidden' : 'flex'}`}>
+              <div className="relative flex-shrink-0">
+                {/*  Icon placeholder matching the style - using Bot for now but styled */}
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-lg shadow-indigo-500/20">
+                  <Bot className="w-6 h-6" />
+                </div>
               </div>
-              <span className="text-xl font-bold text-slate-900 dark:text-white">
-                Mychat Pilot
-              </span>
+
+              <div className="flex flex-col -space-y-1">
+                <div className="flex items-center text-xl sm:text-2xl font-black tracking-tight leading-none">
+                  <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">MY</span>
+                  <span className="text-indigo-600 dark:text-indigo-400">chat</span>
+                  <span className="text-pink-500 dark:text-pink-400">Pilot</span>
+                </div>
+                <span className="text-[0.65rem] font-bold tracking-[0.2em] text-indigo-500 dark:text-indigo-400 uppercase w-full flex justify-between">
+                  <span>A</span><span>U</span><span>T</span><span>O</span><span>M</span><span>A</span><span>T</span><span>I</span><span>O</span><span>N</span>
+                  <span className="w-1"></span>
+                  <span>T</span><span>O</span><span>O</span><span>L</span>
+                </span>
+              </div>
             </div>
 
             {/* Collapsed branding - only show on desktop when collapsed */}
