@@ -675,6 +675,36 @@ async function createOrder(session: any): Promise<string | null> {
             total: session.cart_total
         });
 
+        // Fetch Page Info using the page access token or workspace
+        let pageId = session.page_id; // Try getting from session first
+        let pageName = session.page_name;
+
+        if (!pageId && session.page_access_token) {
+            const { data: page } = await supabase
+                .from('connected_pages')
+                .select('pageId, name')
+                .eq('page_access_token', session.page_access_token)
+                .single();
+
+            if (page) {
+                pageId = page.pageId;
+                pageName = page.name;
+            }
+        }
+
+        // Fallback: If no token, maybe check if subscriber has page_id
+        if (!pageId && session.external_id) {
+            const { data: sub } = await supabase
+                .from('subscribers')
+                .select('page_id')
+                .eq('external_id', session.external_id)
+                .single();
+            if (sub?.page_id) {
+                pageId = sub.page_id;
+                // We'd need another query for name, but pageId is most critical for filtering
+            }
+        }
+
         // Generate order ID
         const orderId = `ORD-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
 
@@ -694,7 +724,9 @@ async function createOrder(session: any): Promise<string | null> {
             payment_method_name: session.paymentMethodName || 'Cash on Delivery',
             status: 'pending',
             source: 'webview_checkout',
-            metadata: session.metadata || {}
+            metadata: session.metadata || {},
+            page_id: pageId || null,
+            page_name: pageName || null
         };
 
         const { data, error } = await supabase.from('orders').insert(orderData).select('id').single();

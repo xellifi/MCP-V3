@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
-import { Workspace } from '../types';
+import { Workspace, ConnectedPage } from '../types';
+import { api } from '../services/api';
 import {
     ShoppingBag, Search, Filter, Download, Eye, Check, X, Truck, Clock,
     Package, ChevronDown, ChevronUp, MoreHorizontal, RefreshCw, Calendar,
@@ -34,6 +35,7 @@ interface Order {
     metadata: any;
     created_at: string;
     updated_at: string;
+    page_id?: string;
 }
 
 const STATUS_CONFIG = {
@@ -57,6 +59,9 @@ const Orders: React.FC<OrdersProps> = ({ workspace }) => {
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState<string>('all');
+    const [pageFilter, setPageFilter] = useState<string>('all');
+    const [pages, setPages] = useState<ConnectedPage[]>([]);
+    const [showPageFilter, setShowPageFilter] = useState(false);
     const [dateFilter, setDateFilter] = useState<'all' | 'today' | 'week' | 'month'>('all');
     const [sortField, setSortField] = useState<'created_at' | 'total' | 'customer_name'>('created_at');
     const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
@@ -78,11 +83,12 @@ const Orders: React.FC<OrdersProps> = ({ workspace }) => {
         try {
             const { data, error } = await supabase
                 .from('orders')
-                .select('*')
+                .select('*, subscriber:subscribers(page_id, id)') // Keep subscriber join for old orders
                 .eq('workspace_id', workspace.id)
                 .order(sortField, { ascending: sortDirection === 'asc' });
 
             if (error) throw error;
+            console.log('Fetched orders:', data?.length);
             setOrders(data || []);
         } catch (error) {
             console.error('Error loading orders:', error);
@@ -90,6 +96,19 @@ const Orders: React.FC<OrdersProps> = ({ workspace }) => {
             setLoading(false);
         }
     }, [workspace.id, sortField, sortDirection]);
+
+    // Load pages
+    useEffect(() => {
+        const loadPages = async () => {
+            try {
+                const allPages = await api.workspace.getConnectedPages(workspace.id);
+                setPages(allPages.filter(p => p.isAutomationEnabled));
+            } catch (error) {
+                console.error('Error loading pages:', error);
+            }
+        };
+        loadPages();
+    }, [workspace.id]);
 
     useEffect(() => {
         loadOrders();
@@ -115,6 +134,25 @@ const Orders: React.FC<OrdersProps> = ({ workspace }) => {
             result = result.filter(order => order.status === statusFilter);
         }
 
+        // Page filter
+        if (pageFilter !== 'all') {
+            result = result.filter(order => {
+                // PRIMARY: Check the direct page_id column (new orders)
+                if (order.page_id === pageFilter) return true;
+
+                // FALLBACK: Check subscriber data (old orders)
+                const sub = (order as any).subscriber;
+                const subscriber = Array.isArray(sub) ? sub[0] : sub;
+                const subscriberPageId = subscriber?.page_id || subscriber?.pageId;
+
+                // Check all potential sources
+                const orderPageId = order.page_id || order.metadata?.pageId || order.source || subscriberPageId;
+
+                return orderPageId === pageFilter ||
+                    subscriberPageId === pageFilter;
+            });
+        }
+
         // Date filter
         if (dateFilter !== 'all') {
             const now = new Date();
@@ -135,7 +173,7 @@ const Orders: React.FC<OrdersProps> = ({ workspace }) => {
         }
 
         return result;
-    }, [orders, searchQuery, statusFilter, dateFilter]);
+    }, [orders, searchQuery, statusFilter, dateFilter, pageFilter]);
 
     // Pagination
     const totalPages = Math.ceil(filteredOrders.length / ordersPerPage);
@@ -144,15 +182,15 @@ const Orders: React.FC<OrdersProps> = ({ workspace }) => {
         currentPage * ordersPerPage
     );
 
-    // Statistics
+    // Statistics (Calculate based on FILTERED orders)
     const stats = useMemo(() => {
-        const pending = orders.filter(o => o.status === 'pending').length;
-        const confirmed = orders.filter(o => o.status === 'confirmed').length;
-        const shipped = orders.filter(o => o.status === 'shipped').length;
-        const delivered = orders.filter(o => o.status === 'delivered').length;
-        const totalRevenue = orders.filter(o => o.status !== 'cancelled').reduce((sum, o) => sum + o.total, 0);
-        return { pending, confirmed, shipped, delivered, totalRevenue, total: orders.length };
-    }, [orders]);
+        const pending = filteredOrders.filter(o => o.status === 'pending').length;
+        const confirmed = filteredOrders.filter(o => o.status === 'confirmed').length;
+        const shipped = filteredOrders.filter(o => o.status === 'shipped').length;
+        const delivered = filteredOrders.filter(o => o.status === 'delivered').length;
+        const totalRevenue = filteredOrders.filter(o => o.status !== 'cancelled').reduce((sum, o) => sum + o.total, 0);
+        return { pending, confirmed, shipped, delivered, totalRevenue, total: filteredOrders.length };
+    }, [filteredOrders]);
 
     // Update order status
     const updateOrderStatus = async (orderId: string, newStatus: string) => {
@@ -862,7 +900,7 @@ const Orders: React.FC<OrdersProps> = ({ workspace }) => {
             </div>
 
             {/* Filters & Search */}
-            <div className={`rounded-xl border p-4 ${isDark ? 'glass-panel border-white/10' : 'bg-white border-slate-200 can-shadow'}`}>
+            <div className={`rounded-xl border p-4 relative z-30 ${isDark ? 'glass-panel border-white/10' : 'bg-white border-slate-200 can-shadow'}`}>
                 <div className="flex flex-col lg:flex-row gap-4">
                     {/* Search */}
                     <div className="relative flex-1">
@@ -877,6 +915,80 @@ const Orders: React.FC<OrdersProps> = ({ workspace }) => {
                                 : 'bg-white border-slate-200 text-slate-900 placeholder-slate-400'
                                 }`}
                         />
+                    </div>
+
+                    {/* Page Filter */}
+                    <div className="relative">
+                        <button
+                            onClick={() => setShowPageFilter(!showPageFilter)}
+                            className={`flex items-center gap-2 px-4 py-3 border rounded-xl transition-colors min-w-[200px] justify-between ${isDark
+                                ? 'bg-black/30 border-white/10 text-white hover:bg-white/5'
+                                : 'bg-white border-slate-200 text-slate-900 hover:bg-slate-50'
+                                }`}
+                        >
+                            <div className="flex items-center gap-2 overflow-hidden">
+                                {pageFilter === 'all' ? (
+                                    <>
+                                        <div className={`w-6 h-6 rounded-full flex items-center justify-center ${isDark ? 'bg-white/10' : 'bg-slate-100'}`}>
+                                            <ShoppingBag className="w-3.5 h-3.5" />
+                                        </div>
+                                        <span className="truncate">All Pages</span>
+                                    </>
+                                ) : (
+                                    (() => {
+                                        const page = pages.find(p => p.pageId === pageFilter);
+                                        return page ? (
+                                            <>
+                                                <img src={page.pageImageUrl} alt="" className="w-6 h-6 rounded-full object-cover" />
+                                                <span className="truncate">{page.name}</span>
+                                            </>
+                                        ) : (
+                                            <span>Select Page</span>
+                                        );
+                                    })()
+                                )}
+                            </div>
+                            <ChevronDown className={`w-4 h-4 transition-transform ${showPageFilter ? 'rotate-180' : ''}`} />
+                        </button>
+
+                        {showPageFilter && (
+                            <>
+                                <div className="fixed inset-0 z-40" onClick={() => setShowPageFilter(false)} />
+                                <div className={`absolute top-full left-0 mt-2 w-full min-w-[240px] rounded-xl border shadow-xl z-50 overflow-hidden ${isDark ? 'bg-slate-800 border-white/10 shadow-2xl shadow-black/50' : 'bg-white border-slate-200'}`}>
+                                    <div className="max-h-[300px] overflow-y-auto p-1">
+                                        <button
+                                            onClick={() => { setPageFilter('all'); setShowPageFilter(false); }}
+                                            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${pageFilter === 'all'
+                                                ? isDark ? 'bg-indigo-500/20 text-indigo-400' : 'bg-indigo-50 text-indigo-600'
+                                                : isDark ? 'text-slate-300 hover:bg-white/5' : 'text-slate-700 hover:bg-slate-50'
+                                                }`}
+                                        >
+                                            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${pageFilter === 'all' ? (isDark ? 'bg-indigo-500/20' : 'bg-indigo-100') : (isDark ? 'bg-white/5' : 'bg-slate-100')}`}>
+                                                <ShoppingBag className="w-4 h-4" />
+                                            </div>
+                                            <span className="font-medium">All Pages</span>
+                                        </button>
+
+                                        {pages.map(page => (
+                                            <button
+                                                key={page.id}
+                                                onClick={() => { setPageFilter(page.pageId); setShowPageFilter(false); }}
+                                                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${pageFilter === page.pageId
+                                                    ? isDark ? 'bg-indigo-500/20 text-indigo-400' : 'bg-indigo-50 text-indigo-600'
+                                                    : isDark ? 'text-slate-300 hover:bg-white/5' : 'text-slate-700 hover:bg-slate-50'
+                                                    }`}
+                                            >
+                                                <img src={page.pageImageUrl} alt="" className="w-8 h-8 rounded-full object-cover shadow-sm" />
+                                                <div className="text-left overflow-hidden">
+                                                    <p className="font-medium truncate">{page.name}</p>
+                                                    <p className="text-xs opacity-70 truncate">ID: {page.pageId}</p>
+                                                </div>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            </>
+                        )}
                     </div>
 
                     {/* Status Filter */}
