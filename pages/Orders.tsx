@@ -137,19 +137,18 @@ const Orders: React.FC<OrdersProps> = ({ workspace }) => {
         // Page filter
         if (pageFilter !== 'all') {
             result = result.filter(order => {
-                // PRIMARY: Check the direct page_id column (new orders)
+                // 1. Check direct page_id (accurate for new orders)
                 if (order.page_id === pageFilter) return true;
 
-                // FALLBACK: Check subscriber data (old orders)
+                // 2. Fallback: Check metadata (sometimes present)
+                if (order.metadata?.pageId === pageFilter) return true;
+
+                // 3. Fallback: Check subscriber data (legacy orders)
                 const sub = (order as any).subscriber;
                 const subscriber = Array.isArray(sub) ? sub[0] : sub;
                 const subscriberPageId = subscriber?.page_id || subscriber?.pageId;
 
-                // Check all potential sources
-                const orderPageId = order.page_id || order.metadata?.pageId || order.source || subscriberPageId;
-
-                return orderPageId === pageFilter ||
-                    subscriberPageId === pageFilter;
+                return subscriberPageId === pageFilter;
             });
         }
 
