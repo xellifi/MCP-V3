@@ -64,7 +64,7 @@ const WebviewUpsell: React.FC = () => {
     const [error, setError] = useState('');
     const [config, setConfig] = useState<UpsellConfig | null>(null);
     const [countdown, setCountdown] = useState<number>(0);
-    const [processing, setProcessing] = useState(false);
+    const [processingAction, setProcessingAction] = useState<'accept' | 'decline' | null>(null);
 
     useEffect(() => {
         loadSession();
@@ -105,8 +105,8 @@ const WebviewUpsell: React.FC = () => {
     };
 
     const handleAccept = async () => {
-        if (processing || !config) return;
-        setProcessing(true);
+        if (processingAction || !config) return;
+        setProcessingAction('accept');
 
         try {
             await fetch(`${API_BASE}/api/webview?route=action`, {
@@ -127,13 +127,13 @@ const WebviewUpsell: React.FC = () => {
             await continueAndClose();
         } catch (err) {
             console.error('Error accepting upsell:', err);
-            setProcessing(false);
+            setProcessingAction(null);
         }
     };
 
     const handleDecline = async () => {
-        if (processing) return;
-        setProcessing(true);
+        if (processingAction) return;
+        setProcessingAction('decline');
 
         try {
             await fetch(`${API_BASE}/api/webview?route=action`, {
@@ -149,7 +149,7 @@ const WebviewUpsell: React.FC = () => {
             await continueAndClose();
         } catch (err) {
             console.error('Error declining upsell:', err);
-            setProcessing(false);
+            setProcessingAction(null);
         }
     };
 
@@ -412,7 +412,7 @@ const WebviewUpsell: React.FC = () => {
                         <div className="mt-5 space-y-3">
                             <button
                                 onClick={handleAccept}
-                                disabled={processing}
+                                disabled={processingAction !== null}
                                 className="w-full py-3.5 px-6 font-bold text-base flex items-center justify-center gap-2 shadow-lg transition-all active:scale-95 disabled:opacity-70"
                                 style={{
                                     backgroundColor: config.buttonBgColor || '#22c55e',
@@ -420,7 +420,7 @@ const WebviewUpsell: React.FC = () => {
                                     borderRadius: `${config.buttonBorderRadius || 12}px`,
                                 }}
                             >
-                                {processing ? (
+                                {processingAction === 'accept' ? (
                                     <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                                 ) : (
                                     <>
@@ -432,7 +432,7 @@ const WebviewUpsell: React.FC = () => {
 
                             <button
                                 onClick={handleDecline}
-                                disabled={processing}
+                                disabled={processingAction !== null}
                                 className="w-full py-3.5 px-6 font-bold text-base flex items-center justify-center gap-2 shadow-lg transition-all active:scale-95 disabled:opacity-70"
                                 style={{
                                     backgroundColor: '#dc2626',
@@ -440,8 +440,14 @@ const WebviewUpsell: React.FC = () => {
                                     borderRadius: `${config.buttonBorderRadius || 12}px`,
                                 }}
                             >
-                                <X className="w-5 h-5" />
-                                No Thanks
+                                {processingAction === 'decline' ? (
+                                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                ) : (
+                                    <>
+                                        <X className="w-5 h-5" />
+                                        No Thanks
+                                    </>
+                                )}
                             </button>
                         </div>
                     </div>
