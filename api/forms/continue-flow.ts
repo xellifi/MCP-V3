@@ -1913,35 +1913,47 @@ async function syncToGoogleSheets(
     let pageName = context.pageName || '';
 
     if ((!pageId || !pageName) && context.workspaceId) {
-        console.log('[syncToGoogleSheets] 🔄 Fetching page info from database for workspace:', context.workspaceId);
+        console.log('[syncToGoogleSheets] 🔄 Fetching page info from database...');
+        console.log('[syncToGoogleSheets] Looking up subscriber:', context.commenterId);
+
         try {
-            // Use limit(1) instead of maybeSingle() to handle multiple pages
-            const { data: connectedPages, error: pageError } = await supabase
-                .from('connected_pages')
-                .select('page_id, name')
+            // Step 1: Get the subscriber's page_id from subscribers table
+            const { data: subscriber, error: subError } = await supabase
+                .from('subscribers')
+                .select('page_id')
+                .eq('external_id', context.commenterId)
                 .eq('workspace_id', context.workspaceId)
-                .limit(1);
+                .maybeSingle();
 
-            const connectedPage = connectedPages?.[0] || null;
-
-            console.log('[syncToGoogleSheets] DB query result:', {
-                found: !!connectedPage,
-                page_id: connectedPage?.page_id || 'null',
-                name: connectedPage?.name || 'null',
-                error: pageError?.message || 'none'
+            console.log('[syncToGoogleSheets] Subscriber lookup:', {
+                found: !!subscriber,
+                page_id: subscriber?.page_id || 'null',
+                error: subError?.message || 'none'
             });
 
-            if (connectedPage) {
-                if (!pageId && connectedPage.page_id) {
-                    pageId = connectedPage.page_id;
-                    console.log('[syncToGoogleSheets] ✓ Page ID from DB:', pageId);
+            // If we found subscriber with page_id, use it
+            if (subscriber?.page_id) {
+                if (!pageId) {
+                    pageId = subscriber.page_id;
+                    console.log('[syncToGoogleSheets] ✓ Page ID from subscriber:', pageId);
                 }
-                if (!pageName && connectedPage.name) {
-                    pageName = connectedPage.name;
-                    console.log('[syncToGoogleSheets] ✓ Page Name from DB:', pageName);
+
+                // Step 2: Get page name from connected_pages using the page_id
+                if (!pageName) {
+                    const { data: connectedPage } = await supabase
+                        .from('connected_pages')
+                        .select('name')
+                        .eq('page_id', subscriber.page_id)
+                        .eq('workspace_id', context.workspaceId)
+                        .maybeSingle();
+
+                    if (connectedPage?.name) {
+                        pageName = connectedPage.name;
+                        console.log('[syncToGoogleSheets] ✓ Page Name from DB:', pageName);
+                    }
                 }
             } else {
-                console.log('[syncToGoogleSheets] ⚠️ No connected page found for this workspace');
+                console.log('[syncToGoogleSheets] ⚠️ No subscriber/page_id found, cannot determine page');
             }
         } catch (dbError: any) {
             console.error('[syncToGoogleSheets] ⚠️ DB error:', dbError.message);
