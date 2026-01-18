@@ -56,11 +56,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         console.log('[SendTracking] Starting notification for order:', orderId);
 
-        // Get page access token from connected_pages using internal ID
+        // Get page access token from connected_pages using Facebook page ID
         const { data: page, error: pageError } = await supabase
             .from('connected_pages')
             .select('page_id, page_access_token, name')
-            .eq('id', pageId)
+            .eq('page_id', pageId)
             .maybeSingle();
 
         if (pageError || !page) {
