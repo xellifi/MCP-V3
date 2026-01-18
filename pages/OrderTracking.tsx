@@ -172,247 +172,237 @@ const OrderTracking: React.FC = () => {
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-100 via-white to-indigo-50">
-            {/* Background decoration */}
             <div className="fixed inset-0 overflow-hidden pointer-events-none opacity-20">
                 <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-200 rounded-full blur-3xl"></div>
                 <div className="absolute bottom-0 left-0 w-96 h-96 bg-purple-200 rounded-full blur-3xl"></div>
             </div>
 
-            <div className="relative max-w-7xl mx-auto p-4 py-8">
-                {/* Header */}
-                <div
-                    className="rounded-xl p-6 text-white mb-8 shadow-lg relative overflow-hidden"
-                    style={{ background: `linear-gradient(135deg, ${accentColor} 0%, ${accentColor}dd 100%)` }}
-                >
-                    <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="relative max-w-5xl mx-auto p-4 md:p-8">
+                {/* Main Card */}
+                <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-100">
+
+                    {/* Header Bar */}
+                    <div className="bg-white p-6 md:p-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-100">
                         <div className="flex items-center gap-4">
                             {companyLogo ? (
-                                <img src={companyLogo} alt="" className="w-14 h-14 rounded-lg object-cover bg-white/20 shadow-sm" />
+                                <img src={companyLogo} alt="" className="w-12 h-12 rounded-lg object-contain border border-slate-100 p-1" />
                             ) : (
-                                <div className="w-14 h-14 bg-white/20 rounded-lg flex items-center justify-center backdrop-blur-sm">
-                                    <span className="text-2xl">📦</span>
-                                </div>
+                                <div className="w-12 h-12 bg-slate-100 rounded-lg flex items-center justify-center text-2xl">📦</div>
                             )}
                             <div>
-                                <h1 className="text-2xl font-bold tracking-tight">{companyName}</h1>
-                                <p className="text-white/80 text-sm font-medium">Order Tracking</p>
+                                <h1 className="text-xl font-bold text-slate-800 tracking-tight">{companyName}</h1>
+                                <div className="flex items-center gap-2 text-sm text-slate-500">
+                                    <span>Order <span className="font-mono text-slate-700 font-medium">#{orderNumber}</span></span>
+                                    <span>•</span>
+                                    <span>{formatDate(new Date(order.created_at))}</span>
+                                </div>
                             </div>
                         </div>
-
-                        <div className="flex gap-8 bg-white/10 rounded-lg p-4 backdrop-blur-sm border border-white/10">
-                            <div>
-                                <p className="text-white/60 text-[10px] uppercase tracking-wider font-semibold mb-1">Order No.</p>
-                                <p className="font-mono font-bold text-lg tracking-wide">{orderNumber}</p>
-                            </div>
-                            <div className="text-right">
-                                <p className="text-white/60 text-[10px] uppercase tracking-wider font-semibold mb-1">Est. Delivery</p>
-                                <p className="font-bold text-lg">{formatDate(estimatedDelivery)}</p>
-                            </div>
+                        <div className="flex gap-3">
+                            <a
+                                href={`/invoice/${submissionId}?company=${encodeURIComponent(companyName)}&logo=${encodeURIComponent(companyLogo)}&color=${encodeURIComponent(accentColor)}`}
+                                className="px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors"
+                            >
+                                View Invoice
+                            </a>
                         </div>
                     </div>
-                </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
-                    {/* Column 1: Tracking Timeline */}
-                    <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-6">
-                        <h2 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-6 flex items-center gap-2">
-                            <span>📍</span> Tracking Status
-                        </h2>
+                    {/* Status Hero Section */}
+                    <div className="p-6 md:p-8 bg-slate-50/50">
+                        <div className="mb-8">
+                            <h2 className="text-2xl md:text-3xl font-bold text-slate-800 mb-2">
+                                {currentStep === 4 ? 'Delivered' : currentStep === 0 ? 'Order Cancelled' : `Arriving ${formatDate(estimatedDelivery)}`}
+                            </h2>
+                            <p className="text-slate-500">
+                                {statuses[currentStep > 0 ? currentStep - 1 : 0].description}
+                            </p>
+                        </div>
 
-                        <div className="relative pl-2">
-                            {statuses.map((status, index) => (
-                                <div key={status.id} className="flex gap-4 pb-8 last:pb-0 group">
-                                    {/* Timeline line */}
-                                    <div className="flex flex-col items-center relative">
+                        {/* Horizontal Stepper (Desktop) */}
+                        <div className="hidden md:block">
+                            <div className="relative flex justify-between items-center w-full">
+                                {/* Connecting Line */}
+                                <div className="absolute top-1/2 left-0 w-full h-1 bg-slate-200 -z-10 -translate-y-1/2 rounded-full"></div>
+                                <div
+                                    className="absolute top-1/2 left-0 h-1 bg-green-500 -z-10 -translate-y-1/2 rounded-full transition-all duration-700"
+                                    style={{ width: `${((currentStep - 1) / (statuses.length - 1)) * 100}%` }}
+                                ></div>
+
+                                {statuses.map((status, index) => (
+                                    <div key={status.id} className="flex flex-col items-center gap-3 bg-slate-50/50 px-2">
                                         <div
-                                            className={`w-8 h-8 rounded-full flex items-center justify-center text-xs transition-all duration-500 z-10 ${status.completed
-                                                ? 'bg-emerald-500 text-white shadow-md shadow-emerald-200'
-                                                : index === currentStep
-                                                    ? 'bg-indigo-500 text-white shadow-md shadow-indigo-200 ring-4 ring-indigo-50'
-                                                    : 'bg-slate-100 text-slate-400'
+                                            className={`w-10 h-10 rounded-full flex items-center justify-center text-lg transition-all duration-300 ${status.completed
+                                                    ? 'bg-green-500 text-white shadow-lg shadow-green-200 scale-110'
+                                                    : index === currentStep
+                                                        ? 'bg-white border-4 border-indigo-500 text-indigo-600 shadow-lg'
+                                                        : 'bg-white border-4 border-slate-200 text-slate-300'
                                                 }`}
                                         >
-                                            {status.completed ? '✓' : status.icon}
+                                            {status.completed ? '✓' : index + 1}
                                         </div>
-                                        {index < statuses.length - 1 && (
-                                            <div
-                                                className={`w-0.5 flex-1 absolute top-8 bottom-0 transition-all duration-500 ${status.completed ? 'bg-emerald-500' : 'bg-slate-100'
-                                                    }`}
-                                            ></div>
-                                        )}
+                                        <div className="text-center">
+                                            <p className={`text-sm font-bold ${index <= currentStep ? 'text-slate-800' : 'text-slate-400'}`}>{status.label}</p>
+                                        </div>
                                     </div>
+                                ))}
+                            </div>
+                        </div>
 
-                                    {/* Content */}
-                                    <div className="flex-1 pt-1">
-                                        <div className="flex justify-between items-start gap-4">
-                                            <div>
-                                                <p className={`text-sm font-semibold transition-colors ${status.completed ? 'text-slate-800' : 'text-slate-400'}`}>
-                                                    {status.label}
-                                                </p>
-                                                <p className={`text-xs mt-0.5 ${status.completed ? 'text-slate-500' : 'text-slate-300'}`}>
-                                                    {status.description}
-                                                </p>
-                                            </div>
-                                            <span className={`text-[10px] font-medium whitespace-nowrap px-2 py-0.5 rounded-full ${status.completed ? 'bg-emerald-50 text-emerald-600' : 'text-slate-300'
-                                                }`}>
-                                                {status.completed ? formatDate(status.date) : 'Pending'}
-                                            </span>
-                                        </div>
+                        {/* Vertical Stepper (Mobile) */}
+                        <div className="md:hidden space-y-6 pl-4 border-l-2 border-slate-200 ml-2">
+                            {statuses.map((status, index) => (
+                                <div key={status.id} className="relative pl-6">
+                                    <div
+                                        className={`absolute -left-[21px] top-0 w-10 h-10 rounded-full flex items-center justify-center text-sm border-4 transition-colors ${status.completed
+                                                ? 'bg-green-500 border-white text-white'
+                                                : index === currentStep
+                                                    ? 'bg-white border-indigo-500 text-indigo-600'
+                                                    : 'bg-white border-slate-200 text-slate-300'
+                                            }`}
+                                    >
+                                        {status.completed ? '✓' : index + 1}
+                                    </div>
+                                    <div>
+                                        <p className={`text-sm font-bold ${index <= currentStep ? 'text-slate-800' : 'text-slate-400'}`}>{status.label}</p>
+                                        {index === currentStep && <p className="text-xs text-slate-500 mt-1">{status.description}</p>}
                                     </div>
                                 </div>
                             ))}
                         </div>
                     </div>
 
-                    {/* Column 2: Courier Details */}
-                    <div className="space-y-6">
-                        {data.tracking && (
-                            <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-6">
-                                <h2 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-5 flex items-center gap-2">
-                                    <span>🚚</span> Shipment Details
-                                </h2>
-
-                                <div className="space-y-4">
-                                    <div className="bg-slate-50 rounded-lg p-4 border border-slate-100">
-                                        <div className="grid gap-4">
-                                            <div>
-                                                <span className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold block mb-1">Carrier</span>
-                                                <span className="text-sm font-bold text-slate-700 flex items-center gap-2">
-                                                    {data.tracking.carrier}
-                                                    <span className="text-xs font-normal text-slate-400 bg-white px-2 py-0.5 rounded border border-slate-200">Express</span>
-                                                </span>
+                    {/* Content Grid */}
+                    <div className="grid md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-slate-100">
+                        {/* Left: Shipment Details */}
+                        <div className="md:col-span-2 p-6 md:p-8 space-y-8">
+                            {/* Tracking Button & Carrier */}
+                            {data.tracking && (
+                                <div className="bg-slate-50 rounded-xl p-6 border border-slate-200">
+                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                                        <div>
+                                            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Carrier</p>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-lg font-bold text-slate-800">{data.tracking.carrier}</span>
                                             </div>
-                                            <div className="pt-3 border-t border-slate-200/60">
-                                                <span className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold block mb-1">Tracking Number</span>
-                                                <span className="font-mono text-sm font-bold text-slate-800 tracking-wider">
-                                                    {data.tracking.trackingNumber}
-                                                </span>
-                                            </div>
+                                        </div>
+                                        <div>
+                                            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Tracking Number</p>
+                                            <p className="text-lg font-mono font-bold text-slate-700 select-all">{data.tracking.trackingNumber}</p>
                                         </div>
                                     </div>
-
-                                    {data.tracking.notes && (
-                                        <div className="bg-amber-50 rounded-lg p-3 border border-amber-100/50">
-                                            <p className="text-xs text-amber-800 flex items-start gap-2 leading-relaxed">
-                                                <span className="mt-0.5">📝</span>
-                                                <span>{data.tracking.notes}</span>
-                                            </p>
-                                        </div>
-                                    )}
 
                                     {data.tracking.trackingUrl && (
                                         <a
                                             href={data.tracking.trackingUrl}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="group flex items-center justify-center gap-2 w-full bg-slate-900 hover:bg-slate-800 text-white text-sm font-medium py-3 px-4 rounded-lg transition-all shadow-sm hover:shadow-md"
+                                            className="block w-full text-center py-3 px-4 bg-slate-900 hover:bg-slate-800 text-white font-medium rounded-lg transition-all shadow-sm"
                                         >
-                                            <span>Track on {data.tracking.carrier} Site</span>
-                                            <span className="group-hover:translate-x-0.5 transition-transform">→</span>
+                                            Track on {data.tracking.carrier} website
                                         </a>
                                     )}
 
-                                    {data.tracking.notifiedAt && (
-                                        <p className="text-[10px] text-slate-400 text-center font-medium">
-                                            Last Updated: {new Date(data.tracking.notifiedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                                        </p>
+                                    {data.tracking.notes && (
+                                        <div className="mt-4 pt-4 border-t border-slate-200">
+                                            <p className="text-sm text-slate-600">
+                                                <span className="font-semibold mr-2">Note from sender:</span>
+                                                {data.tracking.notes}
+                                            </p>
+                                        </div>
                                     )}
                                 </div>
-                            </div>
-                        )}
+                            )}
 
-                        {/* Mobile Back Button */}
-                        <a
-                            href={`/invoice/${submissionId}?company=${encodeURIComponent(companyName)}&logo=${encodeURIComponent(companyLogo)}&color=${encodeURIComponent(accentColor)}`}
-                            className="flex md:hidden items-center justify-center gap-2 text-sm text-slate-500 hover:text-indigo-600 font-medium py-2 transition-colors"
-                        >
-                            <span>←</span> Back to Invoice
-                        </a>
-                    </div>
-
-                    {/* Column 3: Order Summary */}
-                    <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-6">
-                        <h2 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-5 flex items-center gap-2">
-                            <span>📄</span> Order Summary
-                        </h2>
-
-                        <div className="space-y-5">
-                            {/* Customer Info */}
-                            <div className="pb-4 border-b border-slate-100 space-y-3">
-                                <div className="flex justify-between items-start">
-                                    <span className="text-xs text-slate-500 font-medium">Customer</span>
-                                    <div className="text-right">
-                                        <span className="text-sm font-semibold text-slate-800 block">{customerName}</span>
-                                        {data.phone && <span className="text-xs text-slate-500 block mt-0.5">{data.phone}</span>}
+                            {/* Detailed Timeline (Mock for now, could be improved with real data) */}
+                            <div>
+                                <h3 className="text-lg font-bold text-slate-800 mb-4">Shipment Activity</h3>
+                                <div className="space-y-6">
+                                    {/* Current Status */}
+                                    <div className="flex gap-4">
+                                        <div className="flex flex-col items-center">
+                                            <div className="w-3 h-3 rounded-full bg-indigo-500 ring-4 ring-indigo-50"></div>
+                                            <div className="w-0.5 h-full bg-slate-100 mt-2"></div>
+                                        </div>
+                                        <div className="pb-6">
+                                            <p className="text-sm font-bold text-slate-800">{statuses[currentStep].label}</p>
+                                            <p className="text-sm text-slate-500 mt-0.5">{statuses[currentStep].description}</p>
+                                            <p className="text-xs text-slate-400 mt-1">{new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric' })}</p>
+                                        </div>
                                     </div>
+
+                                    {/* Previous Statuses */}
+                                    {statuses.slice(0, currentStep).reverse().map((status) => (
+                                        <div key={status.id} className="flex gap-4 opacity-70">
+                                            <div className="flex flex-col items-center">
+                                                <div className="w-2 h-2 rounded-full bg-slate-300"></div>
+                                                <div className="w-0.5 h-full bg-slate-100 mt-2"></div>
+                                            </div>
+                                            <div className="pb-6">
+                                                <p className="text-sm font-medium text-slate-700">{status.label}</p>
+                                                <p className="text-xs text-slate-400 mt-1">{formatDate(status.date || new Date())}</p>
+                                            </div>
+                                        </div>
+                                    ))}
                                 </div>
+                            </div>
+                        </div>
 
-                                {data.address && (
-                                    <div className="flex justify-between items-start pt-1">
-                                        <span className="text-xs text-slate-500 font-medium">Delivering to</span>
-                                        <span className="text-xs text-slate-700 font-medium text-right max-w-[60%] leading-relaxed">
-                                            {data.address}
-                                        </span>
-                                    </div>
-                                )}
+                        {/* Right: Summary */}
+                        <div className="p-6 md:p-8 bg-slate-50/30">
+                            <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-6">Order Summary</h3>
+
+                            {/* Address */}
+                            <div className="mb-8">
+                                <h4 className="text-xs font-semibold text-slate-500 mb-2">Delivery Address</h4>
+                                <p className="text-sm font-medium text-slate-800">{customerName}</p>
+                                <p className="text-sm text-slate-600 mt-1 leading-relaxed">{data.address}</p>
+                                {data.phone && <p className="text-sm text-slate-600 mt-1">{data.phone}</p>}
                             </div>
 
-                            {/* Order Items */}
-                            <div className="pb-4 border-b border-slate-100">
-                                <p className="text-[10px] uppercase tracking-wider text-slate-400 font-bold mb-3">Items Purchased</p>
-                                <div className="space-y-2.5">
+                            {/* Items */}
+                            <div className="mb-8">
+                                <h4 className="text-xs font-semibold text-slate-500 mb-3">Items</h4>
+                                <div className="space-y-3">
                                     {(data.cart && data.cart.length > 0) ? (
                                         data.cart.map((item: any, idx: number) => (
-                                            <div key={idx} className="flex justify-between items-center text-sm">
-                                                <div className="flex items-center gap-2 overflow-hidden">
-                                                    <div className="w-1 h-1 rounded-full bg-slate-300 shrink-0"></div>
-                                                    <span className="text-slate-700 truncate">{item.productName || item.name}</span>
-                                                    <span className="text-xs text-slate-400 font-medium shrink-0">×{item.quantity || 1}</span>
+                                            <div key={idx} className="flex justify-between items-start gap-3">
+                                                <div className="flex-1">
+                                                    <p className="text-sm text-slate-700 font-medium line-clamp-2">{item.productName || item.name}</p>
+                                                    <p className="text-xs text-slate-500">Qty: {item.quantity || 1}</p>
                                                 </div>
-                                                <span className="font-medium text-slate-900 shrink-0">
+                                                <p className="text-sm font-medium text-slate-900">
                                                     {currencySymbol}{((item.productPrice || item.price || 0) * (item.quantity || 1)).toLocaleString()}
-                                                </span>
+                                                </p>
                                             </div>
                                         ))
                                     ) : (
-                                        <div className="flex justify-between text-sm">
-                                            <span className="text-slate-700">{productName}</span>
-                                            <span className="font-medium text-slate-900">{currencySymbol}{total.toLocaleString()}</span>
+                                        <div className="flex justify-between">
+                                            <span className="text-sm text-slate-700">{productName}</span>
+                                            <span className="text-sm font-medium text-slate-900">{currencySymbol}{total.toLocaleString()}</span>
                                         </div>
                                     )}
                                 </div>
                             </div>
 
                             {/* Totals */}
-                            <div className="space-y-2">
-                                {data.shipping_fee !== undefined && data.shipping_fee > 0 && (
-                                    <div className="flex justify-between text-xs">
-                                        <span className="text-slate-500">Shipping Fee</span>
+                            <div className="border-t border-slate-200 pt-4 space-y-2">
+                                <div className="flex justify-between text-sm">
+                                    <span className="text-slate-500">Subtotal</span>
+                                    <span className="text-slate-700 font-medium">{currencySymbol}{(data.subtotal || total).toLocaleString()}</span>
+                                </div>
+                                {data.shipping_fee > 0 && (
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-slate-500">Shipping</span>
                                         <span className="text-slate-700 font-medium">{currencySymbol}{data.shipping_fee.toLocaleString()}</span>
                                     </div>
                                 )}
-                                <div className="flex justify-between items-end pt-2">
-                                    <span className="text-sm font-bold text-slate-800">Total Amount</span>
-                                    <span className="text-xl font-bold tracking-tight" style={{ color: accentColor }}>
-                                        {currencySymbol}{total.toLocaleString()}
-                                    </span>
+                                <div className="flex justify-between text-base pt-2 border-t border-slate-200 mt-2">
+                                    <span className="font-bold text-slate-800">Total</span>
+                                    <span className="font-bold text-indigo-600">{currencySymbol}{total.toLocaleString()}</span>
                                 </div>
-                                {data.payment_method_name && (
-                                    <div className="flex justify-between items-center pt-2 mt-2 border-t border-slate-50">
-                                        <span className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">Paid via</span>
-                                        <span className="text-xs font-medium text-slate-600 bg-slate-100 px-2 py-1 rounded">{data.payment_method_name}</span>
-                                    </div>
-                                )}
                             </div>
                         </div>
-
-                        {/* Back Link (Desktop) */}
-                        <a
-                            href={`/invoice/${submissionId}?company=${encodeURIComponent(companyName)}&logo=${encodeURIComponent(companyLogo)}&color=${encodeURIComponent(accentColor)}`}
-                            className="hidden md:flex items-center justify-center gap-2 mt-6 text-xs text-slate-400 hover:text-indigo-600 font-medium transition-colors border-t border-slate-50 pt-4"
-                        >
-                            <span>←</span> Return to Invoice
-                        </a>
                     </div>
                 </div>
             </div>
