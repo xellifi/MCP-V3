@@ -860,6 +860,30 @@ const Orders: React.FC<OrdersProps> = ({ workspace }) => {
         );
     };
 
+    // Carriers with tracking URLs - {TRACKING} will be replaced with actual tracking number
+    const carrierTrackingUrls: Record<string, string> = {
+        'J&T Express': 'https://www.jtexpress.ph/trajectoryQuery?waybillNo={TRACKING}',
+        'LBC Express': 'https://www.lbcexpress.com/track?tracking_no={TRACKING}',
+        'Grab Express': '', // No public tracking page
+        'Lalamove': '', // No public tracking page
+        'GoGo Xpress': 'https://www.gogoxpress.com/tracking?tracking_code={TRACKING}',
+        'Flash Express': 'https://www.flashexpress.ph/fle/tracking?se={TRACKING}',
+        '2GO Express': 'https://supplychain.2go.com.ph/tracking?waybill={TRACKING}',
+        'Ninja Van': 'https://www.ninjavan.co/en-ph/tracking?id={TRACKING}',
+        'DHL': 'https://www.dhl.com/ph-en/home/tracking.html?tracking-id={TRACKING}',
+        'FedEx': 'https://www.fedex.com/fedextrack/?trknbr={TRACKING}',
+        'Other': ''
+    };
+
+    const shippingCarriers = Object.keys(carrierTrackingUrls);
+
+    // Get tracking URL for a carrier
+    const getCarrierTrackingUrl = (carrier: string, trackingNumber: string): string => {
+        const urlTemplate = carrierTrackingUrls[carrier] || '';
+        if (!urlTemplate) return '';
+        return urlTemplate.replace('{TRACKING}', encodeURIComponent(trackingNumber));
+    };
+
     // Send shipping notification and update status
     const handleSendShippingNotification = async () => {
         if (!shippingOrder || !shippingInfo.trackingNumber.trim()) {
@@ -896,6 +920,7 @@ const Orders: React.FC<OrdersProps> = ({ workspace }) => {
                     total: shippingOrder.total,
                     carrier: shippingInfo.carrier,
                     trackingNumber: shippingInfo.trackingNumber,
+                    trackingUrl: getCarrierTrackingUrl(shippingInfo.carrier, shippingInfo.trackingNumber),
                     notes: shippingInfo.notes,
                     workspaceId: workspace.id
                 })
@@ -946,21 +971,6 @@ const Orders: React.FC<OrdersProps> = ({ workspace }) => {
             setSendingNotification(false);
         }
     };
-
-    // Carriers list for shipping
-    const shippingCarriers = [
-        'J&T Express',
-        'LBC Express',
-        'Grab Express',
-        'Lalamove',
-        'GoGo Xpress',
-        'Flash Express',
-        '2GO Express',
-        'Ninja Van',
-        'DHL',
-        'FedEx',
-        'Other'
-    ];
 
     // Shipping Modal - rendered inline to prevent focus loss
     const renderShippingModal = () => {
