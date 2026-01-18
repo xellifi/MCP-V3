@@ -76,11 +76,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             `• ${item.productName} × ${item.quantity}`
         ).join('\n');
 
-        // Build tracking URL - use provided URL or create internal one
+        // Build tracking URL - always use internal webview for Messenger button
         const baseUrl = process.env.VERCEL_URL
             ? `https://${process.env.VERCEL_URL}`
             : process.env.APP_URL || 'https://your-app.vercel.app';
-        const orderTrackingUrl = trackingUrl || `${baseUrl}/track/${orderId}`;
+        const internalTrackingUrl = `${baseUrl}/track/${orderId}`;
 
         // Build the message
         const message = `📦 Order Shipped!
@@ -111,7 +111,7 @@ Track your package using the tracking number above or tap the button below.`;
                         buttons: [
                             {
                                 type: 'web_url',
-                                url: orderTrackingUrl,
+                                url: internalTrackingUrl,
                                 title: '📍 Track Order',
                                 webview_height_ratio: 'full',
                                 messenger_extensions: false
@@ -162,7 +162,7 @@ Track your package using the tracking number above or tap the button below.`;
             tracking: {
                 carrier,
                 trackingNumber,
-                trackingUrl: orderTrackingUrl,
+                trackingUrl: trackingUrl || null, // Save the actual carrier URL (or null)
                 notes,
                 notifiedAt: new Date().toISOString()
             }
