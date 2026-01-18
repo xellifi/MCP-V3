@@ -539,7 +539,7 @@ async function handleContinue(req: VercelRequest, res: VercelResponse) {
                     flowId: session.flow_id,
                     nodeId: session.current_node_id,
                     pageId: pageId || session.page_id || null, // Ensure pageId is passed
-                    pageName: pageName || null,                // Ensure pageName is passed
+                    pageName: pageName || session.page_name || null, // Ensure pageName is passed
                     subscriberId: session.external_id,
                     workspaceId: session.workspace_id,
                     // Pass cart context so downstream nodes can access it

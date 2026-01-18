@@ -180,8 +180,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             hasCheckoutData: Object.keys(passedCheckoutData).length > 0,
             upsell_response: context.upsell_response,
             downsell_response: context.downsell_response,
-            userResponse: userResponse
+            userResponse: userResponse,
+            pageId: context.pageId || '(empty)',
+            pageName: context.pageName || '(empty)'
         });
+
 
         // Log if cart was passed from webview
         if (passedCart.length > 0) {
@@ -1901,6 +1904,9 @@ async function syncToGoogleSheets(
     console.log('[syncToGoogleSheets] Starting sync...');
     console.log('[syncToGoogleSheets] Cart items:', cart.length);
     console.log('[syncToGoogleSheets] Checkout data:', Object.keys(checkoutData).length > 0 ? 'present' : 'empty');
+    console.log('[syncToGoogleSheets] 🔍 Page ID:', context.pageId || '(empty)');
+    console.log('[syncToGoogleSheets] 🔍 Page Name:', context.pageName || '(empty)');
+
 
     // Build product lists
     const allProducts: string[] = [];
