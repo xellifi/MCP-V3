@@ -178,10 +178,10 @@ const OrderTracking: React.FC = () => {
                 <div className="absolute bottom-0 left-0 w-96 h-96 bg-purple-200 rounded-full blur-3xl"></div>
             </div>
 
-            <div className="relative max-w-md mx-auto p-4 py-6">
+            <div className="relative max-w-5xl mx-auto p-4 py-6">
                 {/* Header */}
                 <div
-                    className="rounded-2xl p-6 text-white mb-6 shadow-xl"
+                    className="rounded-2xl p-6 text-white mb-8 shadow-xl"
                     style={{ background: `linear-gradient(135deg, ${accentColor} 0%, ${accentColor}cc 100%)` }}
                 >
                     <div className="flex items-center gap-3 mb-4">
@@ -211,167 +211,182 @@ const OrderTracking: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Courier / Tracking Details */}
-                {data.tracking && (
-                    <div className="bg-white rounded-2xl shadow-xl p-6 mb-6">
-                        <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-                            <span>🚚</span> Courier Details
-                        </h2>
-                        <div className="space-y-4">
-                            <div className="bg-indigo-50 rounded-xl p-4">
-                                <div className="flex items-center justify-between mb-3">
-                                    <span className="text-sm text-gray-500">Carrier</span>
-                                    <span className="font-bold text-indigo-600">{data.tracking.carrier}</span>
-                                </div>
-                                <div className="flex items-center justify-between">
-                                    <span className="text-sm text-gray-500">Tracking Number</span>
-                                    <span className="font-mono font-bold text-gray-800 bg-white px-3 py-1 rounded-lg">
-                                        {data.tracking.trackingNumber}
-                                    </span>
-                                </div>
-                            </div>
-                            {data.tracking.notes && (
-                                <div className="bg-amber-50 rounded-xl p-4">
-                                    <p className="text-sm text-amber-800 flex items-start gap-2">
-                                        <span>📝</span>
-                                        <span>{data.tracking.notes}</span>
-                                    </p>
-                                </div>
-                            )}
-                            {data.tracking.trackingUrl && (
-                                <a
-                                    href={data.tracking.trackingUrl}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="block w-full text-center bg-indigo-500 hover:bg-indigo-600 text-white font-semibold py-3 px-4 rounded-xl transition-colors"
-                                >
-                                    📍 Track Package
-                                </a>
-                            )}
-                            {data.tracking.notifiedAt && (
-                                <p className="text-xs text-gray-400 text-center">
-                                    Shipped on {new Date(data.tracking.notifiedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                                </p>
-                            )}
-                        </div>
-                    </div>
-                )}
+                <div className="grid md:grid-cols-2 gap-6 lg:gap-8 items-start">
+                    {/* Left Column: Tracking Status */}
+                    <div className="order-2 md:order-1">
+                        <div className="bg-white rounded-2xl shadow-xl p-6">
+                            <h2 className="text-lg font-bold text-gray-800 mb-6">Tracking Status</h2>
 
-                {/* Tracking Timeline */}
-                <div className="bg-white rounded-2xl shadow-xl p-6 mb-6">
-                    <h2 className="text-lg font-bold text-gray-800 mb-6">Tracking Status</h2>
+                            <div className="relative">
+                                {statuses.map((status, index) => (
+                                    <div key={status.id} className="flex gap-4 pb-8 last:pb-0">
+                                        {/* Timeline line */}
+                                        <div className="flex flex-col items-center">
+                                            <div
+                                                className={`w-12 h-12 rounded-full flex items-center justify-center text-xl transition-all duration-500 ${status.completed
+                                                    ? 'bg-green-500 text-white shadow-lg shadow-green-200'
+                                                    : index === currentStep
+                                                        ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-200 animate-pulse'
+                                                        : 'bg-gray-100 text-gray-400'
+                                                    }`}
+                                            >
+                                                {status.completed ? '✓' : status.icon}
+                                            </div>
+                                            {index < statuses.length - 1 && (
+                                                <div
+                                                    className={`w-0.5 flex-1 mt-2 transition-all duration-500 ${status.completed ? 'bg-green-500' : 'bg-gray-200'
+                                                        }`}
+                                                ></div>
+                                            )}
+                                        </div>
 
-                    <div className="relative">
-                        {statuses.map((status, index) => (
-                            <div key={status.id} className="flex gap-4 pb-8 last:pb-0">
-                                {/* Timeline line */}
-                                <div className="flex flex-col items-center">
-                                    <div
-                                        className={`w-12 h-12 rounded-full flex items-center justify-center text-xl transition-all duration-500 ${status.completed
-                                            ? 'bg-green-500 text-white shadow-lg shadow-green-200'
-                                            : index === currentStep
-                                                ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-200 animate-pulse'
-                                                : 'bg-gray-100 text-gray-400'
-                                            }`}
-                                    >
-                                        {status.completed ? '✓' : status.icon}
+                                        {/* Content */}
+                                        <div className="flex-1 pt-2">
+                                            <div className="flex justify-between items-start">
+                                                <div>
+                                                    <p className={`font-semibold ${status.completed ? 'text-gray-800' : 'text-gray-400'}`}>
+                                                        {status.label}
+                                                    </p>
+                                                    <p className={`text-sm ${status.completed ? 'text-gray-500' : 'text-gray-300'}`}>
+                                                        {status.description}
+                                                    </p>
+                                                </div>
+                                                <span className={`text-xs ${status.completed ? 'text-gray-400' : 'text-gray-300'}`}>
+                                                    {status.completed ? formatDate(status.date) : 'Pending'}
+                                                </span>
+                                            </div>
+                                        </div>
                                     </div>
-                                    {index < statuses.length - 1 && (
-                                        <div
-                                            className={`w-0.5 flex-1 mt-2 transition-all duration-500 ${status.completed ? 'bg-green-500' : 'bg-gray-200'
-                                                }`}
-                                        ></div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Back to Invoice (Desktop) */}
+                        <a
+                            href={`/invoice/${submissionId}?company=${encodeURIComponent(companyName)}&logo=${encodeURIComponent(companyLogo)}&color=${encodeURIComponent(accentColor)}`}
+                            className="hidden md:block mt-6 text-center text-indigo-600 hover:text-indigo-800 font-medium"
+                        >
+                            ← Back to Invoice
+                        </a>
+                    </div>
+
+                    {/* Right Column: Courier & Summary */}
+                    <div className="order-1 md:order-2 space-y-6">
+                        {/* Courier / Tracking Details */}
+                        {data.tracking && (
+                            <div className="bg-white rounded-2xl shadow-xl p-6">
+                                <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                                    <span>🚚</span> Courier Details
+                                </h2>
+                                <div className="space-y-4">
+                                    <div className="bg-indigo-50 rounded-xl p-4">
+                                        <div className="flex items-center justify-between mb-3">
+                                            <span className="text-sm text-gray-500">Carrier</span>
+                                            <span className="font-bold text-indigo-600">{data.tracking.carrier}</span>
+                                        </div>
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-sm text-gray-500">Tracking Number</span>
+                                            <span className="font-mono font-bold text-gray-800 bg-white px-3 py-1 rounded-lg">
+                                                {data.tracking.trackingNumber}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    {data.tracking.notes && (
+                                        <div className="bg-amber-50 rounded-xl p-4">
+                                            <p className="text-sm text-amber-800 flex items-start gap-2">
+                                                <span>📝</span>
+                                                <span>{data.tracking.notes}</span>
+                                            </p>
+                                        </div>
+                                    )}
+                                    {data.tracking.trackingUrl && (
+                                        <a
+                                            href={data.tracking.trackingUrl}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="block w-full text-center bg-indigo-500 hover:bg-indigo-600 text-white font-semibold py-3 px-4 rounded-xl transition-colors"
+                                        >
+                                            📍 Track Package
+                                        </a>
+                                    )}
+                                    {data.tracking.notifiedAt && (
+                                        <p className="text-xs text-gray-400 text-center">
+                                            Shipped on {new Date(data.tracking.notifiedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                        </p>
                                     )}
                                 </div>
+                            </div>
+                        )}
 
-                                {/* Content */}
-                                <div className="flex-1 pt-2">
-                                    <div className="flex justify-between items-start">
-                                        <div>
-                                            <p className={`font-semibold ${status.completed ? 'text-gray-800' : 'text-gray-400'}`}>
-                                                {status.label}
-                                            </p>
-                                            <p className={`text-sm ${status.completed ? 'text-gray-500' : 'text-gray-300'}`}>
-                                                {status.description}
-                                            </p>
-                                        </div>
-                                        <span className={`text-xs ${status.completed ? 'text-gray-400' : 'text-gray-300'}`}>
-                                            {status.completed ? formatDate(status.date) : 'Pending'}
-                                        </span>
+                        {/* Order Summary */}
+                        <div className="bg-white rounded-2xl shadow-xl p-6">
+                            <h2 className="text-lg font-bold text-gray-800 mb-4">Order Summary</h2>
+
+                            <div className="space-y-3">
+                                <div className="flex justify-between">
+                                    <span className="text-gray-500">Customer</span>
+                                    <span className="font-medium text-gray-800">{customerName}</span>
+                                </div>
+                                {data.phone && (
+                                    <div className="flex justify-between">
+                                        <span className="text-gray-500">Phone</span>
+                                        <span className="font-medium text-gray-800">{data.phone}</span>
+                                    </div>
+                                )}
+                                {data.address && (
+                                    <div className="pt-2 border-t border-gray-100">
+                                        <span className="text-gray-500 text-sm">Shipping Address</span>
+                                        <p className="font-medium text-gray-800 mt-1">{data.address}</p>
+                                    </div>
+                                )}
+                                <div className="pt-3 border-t border-gray-100">
+                                    <p className="text-gray-500 text-sm mb-2">Order Items</p>
+                                    <div className="space-y-2">
+                                        {(data.cart && data.cart.length > 0) ? (
+                                            data.cart.map((item: any, idx: number) => (
+                                                <div key={idx} className="flex justify-between items-center py-1">
+                                                    <span className="text-gray-800">{item.productName || item.name} × {item.quantity || 1}</span>
+                                                    <span className="font-medium text-gray-600">{currencySymbol}{((item.productPrice || item.price || 0) * (item.quantity || 1)).toLocaleString()}</span>
+                                                </div>
+                                            ))
+                                        ) : (
+                                            <div className="flex justify-between">
+                                                <span className="text-gray-800">{productName}</span>
+                                                <span className="font-medium text-gray-600">{currencySymbol}{total.toLocaleString()}</span>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-
-                {/* Order Summary */}
-                <div className="bg-white rounded-2xl shadow-xl p-6">
-                    <h2 className="text-lg font-bold text-gray-800 mb-4">Order Summary</h2>
-
-                    <div className="space-y-3">
-                        <div className="flex justify-between">
-                            <span className="text-gray-500">Customer</span>
-                            <span className="font-medium text-gray-800">{customerName}</span>
-                        </div>
-                        {data.phone && (
-                            <div className="flex justify-between">
-                                <span className="text-gray-500">Phone</span>
-                                <span className="font-medium text-gray-800">{data.phone}</span>
-                            </div>
-                        )}
-                        {data.address && (
-                            <div className="pt-2 border-t border-gray-100">
-                                <span className="text-gray-500 text-sm">Shipping Address</span>
-                                <p className="font-medium text-gray-800 mt-1">{data.address}</p>
-                            </div>
-                        )}
-                        <div className="pt-3 border-t border-gray-100">
-                            <p className="text-gray-500 text-sm mb-2">Order Items</p>
-                            <div className="space-y-2">
-                                {(data.cart && data.cart.length > 0) ? (
-                                    data.cart.map((item: any, idx: number) => (
-                                        <div key={idx} className="flex justify-between items-center py-1">
-                                            <span className="text-gray-800">{item.productName || item.name} × {item.quantity || 1}</span>
-                                            <span className="font-medium text-gray-600">{currencySymbol}{((item.productPrice || item.price || 0) * (item.quantity || 1)).toLocaleString()}</span>
-                                        </div>
-                                    ))
-                                ) : (
-                                    <div className="flex justify-between">
-                                        <span className="text-gray-800">{productName}</span>
-                                        <span className="font-medium text-gray-600">{currencySymbol}{total.toLocaleString()}</span>
+                                {data.shipping_fee !== undefined && data.shipping_fee > 0 && (
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-gray-500">Shipping Fee</span>
+                                        <span className="text-gray-600">{currencySymbol}{data.shipping_fee.toLocaleString()}</span>
+                                    </div>
+                                )}
+                                <div className="border-t border-gray-100 pt-3 flex justify-between">
+                                    <span className="font-bold text-gray-800">Total</span>
+                                    <span className="font-bold text-lg" style={{ color: accentColor }}>
+                                        {currencySymbol}{total.toLocaleString()}
+                                    </span>
+                                </div>
+                                {data.payment_method_name && (
+                                    <div className="flex justify-between text-sm pt-2">
+                                        <span className="text-gray-500">Payment Method</span>
+                                        <span className="text-gray-600">{data.payment_method_name}</span>
                                     </div>
                                 )}
                             </div>
                         </div>
-                        {data.shipping_fee !== undefined && data.shipping_fee > 0 && (
-                            <div className="flex justify-between text-sm">
-                                <span className="text-gray-500">Shipping Fee</span>
-                                <span className="text-gray-600">{currencySymbol}{data.shipping_fee.toLocaleString()}</span>
-                            </div>
-                        )}
-                        <div className="border-t border-gray-100 pt-3 flex justify-between">
-                            <span className="font-bold text-gray-800">Total</span>
-                            <span className="font-bold text-lg" style={{ color: accentColor }}>
-                                {currencySymbol}{total.toLocaleString()}
-                            </span>
-                        </div>
-                        {data.payment_method_name && (
-                            <div className="flex justify-between text-sm pt-2">
-                                <span className="text-gray-500">Payment Method</span>
-                                <span className="text-gray-600">{data.payment_method_name}</span>
-                            </div>
-                        )}
+
+                        {/* Back to Invoice (Mobile) */}
+                        <a
+                            href={`/invoice/${submissionId}?company=${encodeURIComponent(companyName)}&logo=${encodeURIComponent(companyLogo)}&color=${encodeURIComponent(accentColor)}`}
+                            className="block md:hidden mt-6 text-center text-indigo-600 hover:text-indigo-800 font-medium"
+                        >
+                            ← Back to Invoice
+                        </a>
                     </div>
                 </div>
-
-                {/* Back to Invoice */}
-                <a
-                    href={`/invoice/${submissionId}?company=${encodeURIComponent(companyName)}&logo=${encodeURIComponent(companyLogo)}&color=${encodeURIComponent(accentColor)}`}
-                    className="block mt-6 text-center text-indigo-600 hover:text-indigo-800 font-medium"
-                >
-                    ← Back to Invoice
-                </a>
             </div>
         </div>
     );

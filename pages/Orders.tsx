@@ -79,7 +79,9 @@ const Orders: React.FC<OrdersProps> = ({ workspace }) => {
     const [shippingOrder, setShippingOrder] = useState<Order | null>(null);
     const [shippingInfo, setShippingInfo] = useState({
         carrier: 'J&T Express',
+        customCarrier: '',
         trackingNumber: '',
+        trackingUrl: '',
         notes: ''
     });
     const [sendingNotification, setSendingNotification] = useState(false);
@@ -208,7 +210,7 @@ const Orders: React.FC<OrdersProps> = ({ workspace }) => {
             const order = orders.find(o => o.id === orderId);
             if (order) {
                 setShippingOrder(order);
-                setShippingInfo({ carrier: 'J&T Express', trackingNumber: '', notes: '' });
+                setShippingInfo({ carrier: 'J&T Express', customCarrier: '', trackingNumber: '', trackingUrl: '', notes: '' });
                 return; // Don't update status yet - wait for modal submission
             }
         }
@@ -918,9 +920,9 @@ const Orders: React.FC<OrdersProps> = ({ workspace }) => {
                     customerName: shippingOrder.customer_name,
                     items: shippingOrder.items,
                     total: shippingOrder.total,
-                    carrier: shippingInfo.carrier,
+                    carrier: shippingInfo.carrier === 'Other' ? shippingInfo.customCarrier : shippingInfo.carrier,
                     trackingNumber: shippingInfo.trackingNumber,
-                    trackingUrl: getCarrierTrackingUrl(shippingInfo.carrier, shippingInfo.trackingNumber),
+                    trackingUrl: shippingInfo.trackingUrl,
                     notes: shippingInfo.notes,
                     workspaceId: workspace.id
                 })
@@ -962,7 +964,7 @@ const Orders: React.FC<OrdersProps> = ({ workspace }) => {
 
             // Close modal
             setShippingOrder(null);
-            setShippingInfo({ carrier: 'J&T Express', trackingNumber: '', notes: '' });
+            setShippingInfo({ carrier: 'J&T Express', customCarrier: '', trackingNumber: '', trackingUrl: '', notes: '' });
 
         } catch (error: any) {
             console.error('[Orders] Error sending notification:', error);
@@ -1017,7 +1019,14 @@ const Orders: React.FC<OrdersProps> = ({ workspace }) => {
                             </label>
                             <select
                                 value={shippingInfo.carrier}
-                                onChange={(e) => setShippingInfo({ ...shippingInfo, carrier: e.target.value })}
+                                onChange={(e) => {
+                                    const newCarrier = e.target.value;
+                                    setShippingInfo({
+                                        ...shippingInfo,
+                                        carrier: newCarrier,
+                                        trackingUrl: getCarrierTrackingUrl(newCarrier, shippingInfo.trackingNumber)
+                                    });
+                                }}
                                 className={`w-full px-3 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500/50 border text-sm ${isDark ? 'bg-black/30 border-white/10 text-white' : 'bg-slate-50 border-slate-300 text-slate-900'}`}
                             >
                                 {shippingCarriers.map(c => (
@@ -1025,6 +1034,22 @@ const Orders: React.FC<OrdersProps> = ({ workspace }) => {
                                 ))}
                             </select>
                         </div>
+
+                        {/* Custom Carrier Name (for 'Other') */}
+                        {shippingInfo.carrier === 'Other' && (
+                            <div className="mb-4">
+                                <label className={`block text-sm font-medium mb-1.5 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+                                    Courier Name <span className="text-red-400">*</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    value={shippingInfo.customCarrier}
+                                    onChange={(e) => setShippingInfo({ ...shippingInfo, customCarrier: e.target.value })}
+                                    placeholder="Enter courier name"
+                                    className={`w-full px-3 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500/50 border text-sm ${isDark ? 'bg-black/30 border-white/10 text-white placeholder-slate-500' : 'bg-slate-50 border-slate-300 text-slate-900 placeholder-slate-400'}`}
+                                />
+                            </div>
+                        )}
 
                         {/* Tracking Number */}
                         <div>
@@ -1034,9 +1059,30 @@ const Orders: React.FC<OrdersProps> = ({ workspace }) => {
                             <input
                                 type="text"
                                 value={shippingInfo.trackingNumber}
-                                onChange={(e) => setShippingInfo({ ...shippingInfo, trackingNumber: e.target.value })}
+                                onChange={(e) => {
+                                    const newTracking = e.target.value;
+                                    setShippingInfo({
+                                        ...shippingInfo,
+                                        trackingNumber: newTracking,
+                                        trackingUrl: getCarrierTrackingUrl(shippingInfo.carrier, newTracking)
+                                    });
+                                }}
                                 placeholder="Enter tracking number"
                                 autoFocus
+                                className={`w-full px-3 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500/50 border text-sm ${isDark ? 'bg-black/30 border-white/10 text-white placeholder-slate-500' : 'bg-slate-50 border-slate-300 text-slate-900 placeholder-slate-400'}`}
+                            />
+                        </div>
+
+                        {/* Tracking URL */}
+                        <div>
+                            <label className={`block text-sm font-medium mb-1.5 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+                                Tracking URL
+                            </label>
+                            <input
+                                type="text"
+                                value={shippingInfo.trackingUrl}
+                                onChange={(e) => setShippingInfo({ ...shippingInfo, trackingUrl: e.target.value })}
+                                placeholder="https://..."
                                 className={`w-full px-3 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500/50 border text-sm ${isDark ? 'bg-black/30 border-white/10 text-white placeholder-slate-500' : 'bg-slate-50 border-slate-300 text-slate-900 placeholder-slate-400'}`}
                             />
                         </div>
