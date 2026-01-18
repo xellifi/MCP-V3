@@ -1,10 +1,4 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { createClient } from '@supabase/supabase-js';
-
-const supabase = createClient(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
 
 interface SendTrackingRequest {
     subscriberId: string;      // Customer's Messenger ID
@@ -26,6 +20,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     try {
+        // Initialize supabase inside handler to ensure env vars are available
+        const { createClient } = await import('@supabase/supabase-js');
+        const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '';
+        const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';
+
+        if (!supabaseUrl || !supabaseKey) {
+            console.error('[SendTracking] Missing Supabase credentials');
+            return res.status(500).json({ error: 'Server configuration error' });
+        }
+
+        const supabase = createClient(supabaseUrl, supabaseKey);
+
         const {
             subscriberId,
             pageId,
