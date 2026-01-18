@@ -74,6 +74,16 @@ const Orders: React.FC<OrdersProps> = ({ workspace }) => {
     const [deletingOrder, setDeletingOrder] = useState<Order | null>(null);
     const [editForm, setEditForm] = useState<Partial<Order>>({});
     const [isSaving, setIsSaving] = useState(false);
+
+    // Shipping notification modal state
+    const [shippingOrder, setShippingOrder] = useState<Order | null>(null);
+    const [shippingInfo, setShippingInfo] = useState({
+        carrier: 'J&T Express',
+        trackingNumber: '',
+        notes: ''
+    });
+    const [sendingNotification, setSendingNotification] = useState(false);
+
     const ordersPerPage = 10;
     const { isDark } = useTheme();
 
@@ -193,6 +203,16 @@ const Orders: React.FC<OrdersProps> = ({ workspace }) => {
 
     // Update order status
     const updateOrderStatus = async (orderId: string, newStatus: string) => {
+        // If changing to 'shipped', open shipping modal instead
+        if (newStatus === 'shipped') {
+            const order = orders.find(o => o.id === orderId);
+            if (order) {
+                setShippingOrder(order);
+                setShippingInfo({ carrier: 'J&T Express', trackingNumber: '', notes: '' });
+                return; // Don't update status yet - wait for modal submission
+            }
+        }
+
         setUpdatingStatus(orderId);
         try {
             const { error } = await supabase
@@ -840,6 +860,222 @@ const Orders: React.FC<OrdersProps> = ({ workspace }) => {
         );
     };
 
+    // Send shipping notification and update status
+    const handleSendShippingNotification = async () => {
+        if (!shippingOrder || !shippingInfo.trackingNumber.trim()) {
+            return;
+        }
+
+        setSendingNotification(true);
+        try {
+            // Get the page ID from order (check direct page_id first, then subscriber)
+            let pageId = shippingOrder.page_id;
+            if (!pageId) {
+                const sub = (shippingOrder as any).subscriber;
+                const subscriber = Array.isArray(sub) ? sub[0] : sub;
+                pageId = subscriber?.page_id;
+            }
+
+            if (!pageId) {
+                // Get page from pages array if order doesn't have it
+                if (pages.length > 0) {
+                    pageId = pages[0].id;
+                }
+            }
+
+            // Send notification via API
+            const response = await fetch('/api/messenger/send-tracking', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    subscriberId: shippingOrder.subscriber_id,
+                    pageId: pageId,
+                    orderId: shippingOrder.id,
+                    customerName: shippingOrder.customer_name,
+                    items: shippingOrder.items,
+                    total: shippingOrder.total,
+                    carrier: shippingInfo.carrier,
+                    trackingNumber: shippingInfo.trackingNumber,
+                    notes: shippingInfo.notes,
+                    workspaceId: workspace.id
+                })
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result.error || 'Failed to send notification');
+            }
+
+            console.log('[Orders] ✓ Shipping notification sent:', result);
+
+            // Update local state
+            setOrders(prev => prev.map(order =>
+                order.id === shippingOrder.id ? { ...order, status: 'shipped' as any } : order
+            ));
+
+            if (selectedOrder?.id === shippingOrder.id) {
+                setSelectedOrder(prev => prev ? { ...prev, status: 'shipped' as any } : null);
+            }
+
+            // Also sync to Google Sheets
+            try {
+                await fetch('/api/sheets/sync', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'updateStatus',
+                        orderId: shippingOrder.id,
+                        newStatus: 'Shipped',
+                        updatedAt: new Date().toISOString(),
+                        workspaceId: workspace.id
+                    })
+                });
+            } catch (sheetsError) {
+                console.log('[Orders] Google Sheets sync error:', sheetsError);
+            }
+
+            // Close modal
+            setShippingOrder(null);
+            setShippingInfo({ carrier: 'J&T Express', trackingNumber: '', notes: '' });
+
+        } catch (error: any) {
+            console.error('[Orders] Error sending notification:', error);
+            alert(`Failed to send notification: ${error.message}`);
+        } finally {
+            setSendingNotification(false);
+        }
+    };
+
+    // Shipping Notification Modal
+    const ShippingModal = () => {
+        if (!shippingOrder) return null;
+
+        const carriers = [
+            'J&T Express',
+            'LBC Express',
+            'Grab Express',
+            'Lalamove',
+            'GoGo Xpress',
+            'Flash Express',
+            '2GO Express',
+            'Ninja Van',
+            'DHL',
+            'FedEx',
+            'Other'
+        ];
+
+        return (
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShippingOrder(null)}>
+                <div className={`rounded-2xl w-full max-w-lg overflow-hidden border shadow-2xl ${isDark ? 'bg-slate-800 border-white/10' : 'bg-white border-slate-200'}`} onClick={e => e.stopPropagation()}>
+                    {/* Header */}
+                    <div className={`p-6 border-b flex items-center justify-between ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
+                        <div className="flex items-center gap-3">
+                            <div className="p-2.5 bg-purple-500/20 rounded-xl">
+                                <Truck className="w-6 h-6 text-purple-400" />
+                            </div>
+                            <div>
+                                <h2 className={`text-xl font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>Ship Order</h2>
+                                <p className={`text-sm font-mono ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{shippingOrder.id}</p>
+                            </div>
+                        </div>
+                        <button onClick={() => setShippingOrder(null)} className={`p-2 rounded-lg transition-colors ${isDark ? 'hover:bg-white/10' : 'hover:bg-slate-100'}`}>
+                            <X className={`w-5 h-5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`} />
+                        </button>
+                    </div>
+
+                    {/* Form */}
+                    <div className="p-6 space-y-5">
+                        {/* Customer Info Summary */}
+                        <div className={`rounded-xl p-4 ${isDark ? 'bg-purple-500/10 border border-purple-500/20' : 'bg-purple-50 border border-purple-100'}`}>
+                            <div className="flex items-center gap-3">
+                                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isDark ? 'bg-purple-500/20' : 'bg-purple-100'}`}>
+                                    <User className="w-5 h-5 text-purple-400" />
+                                </div>
+                                <div>
+                                    <p className={`font-medium ${isDark ? 'text-white' : 'text-slate-900'}`}>{shippingOrder.customer_name}</p>
+                                    <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>{shippingOrder.customer_address || 'No address provided'}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Carrier Selection */}
+                        <div>
+                            <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+                                <Truck className="w-4 h-4 inline mr-2" />
+                                Delivery Carrier
+                            </label>
+                            <select
+                                value={shippingInfo.carrier}
+                                onChange={(e) => setShippingInfo(prev => ({ ...prev, carrier: e.target.value }))}
+                                className={`w-full px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/50 border ${isDark ? 'bg-black/30 border-white/10 text-white' : 'bg-slate-50 border-slate-300 text-slate-900'}`}
+                            >
+                                {carriers.map(c => (
+                                    <option key={c} value={c}>{c}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        {/* Tracking Number */}
+                        <div>
+                            <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+                                <Package className="w-4 h-4 inline mr-2" />
+                                Tracking Number <span className="text-red-400">*</span>
+                            </label>
+                            <input
+                                type="text"
+                                value={shippingInfo.trackingNumber}
+                                onChange={(e) => setShippingInfo(prev => ({ ...prev, trackingNumber: e.target.value }))}
+                                placeholder="Enter tracking number"
+                                className={`w-full px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/50 border ${isDark ? 'bg-black/30 border-white/10 text-white placeholder-slate-500' : 'bg-slate-50 border-slate-300 text-slate-900 placeholder-slate-400'}`}
+                            />
+                        </div>
+
+                        {/* Notes */}
+                        <div>
+                            <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+                                Delivery Notes (Optional)
+                            </label>
+                            <textarea
+                                value={shippingInfo.notes}
+                                onChange={(e) => setShippingInfo(prev => ({ ...prev, notes: e.target.value }))}
+                                placeholder="e.g., Estimated delivery in 3-5 days"
+                                rows={2}
+                                className={`w-full px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/50 resize-none border ${isDark ? 'bg-black/30 border-white/10 text-white placeholder-slate-500' : 'bg-slate-50 border-slate-300 text-slate-900 placeholder-slate-400'}`}
+                            />
+                        </div>
+
+                        {/* Notification Info */}
+                        <div className={`rounded-xl p-4 ${isDark ? 'bg-blue-500/10 border border-blue-500/20' : 'bg-blue-50 border border-blue-100'}`}>
+                            <p className={`text-sm flex items-start gap-2 ${isDark ? 'text-blue-300' : 'text-blue-700'}`}>
+                                <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                                The customer will receive a Messenger notification with order details and tracking information.
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* Footer */}
+                    <div className={`p-6 border-t flex items-center justify-end gap-3 ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
+                        <button
+                            onClick={() => setShippingOrder(null)}
+                            className={`px-4 py-2.5 rounded-xl transition-colors ${isDark ? 'bg-slate-700 hover:bg-slate-600 text-white' : 'bg-slate-200 hover:bg-slate-300 text-slate-700'}`}
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            onClick={handleSendShippingNotification}
+                            disabled={sendingNotification || !shippingInfo.trackingNumber.trim()}
+                            className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-400 hover:to-indigo-500 disabled:opacity-50 text-white rounded-xl font-semibold transition-all shadow-lg shadow-purple-500/25"
+                        >
+                            <Truck className="w-4 h-4" />
+                            {sendingNotification ? 'Sending...' : 'Ship & Notify Customer'}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
     return (
         <div className="space-y-6 animate-fade-in pb-12">
             {/* Header */}
@@ -1288,6 +1524,9 @@ const Orders: React.FC<OrdersProps> = ({ workspace }) => {
 
             {/* Delete Confirmation Modal */}
             <DeleteConfirmModal />
+
+            {/* Shipping Notification Modal */}
+            <ShippingModal />
         </div >
     );
 };
