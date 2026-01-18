@@ -1175,6 +1175,8 @@ async function sendUpsellOffer(
                     cart: context.cart || [],
                     cart_total: context.cartTotal || 0,
                     page_access_token: pageAccessToken,
+                    page_id: context.pageId || null,
+                    page_name: context.pageName || null,
                     metadata: {
                         commenterName: context.commenterName,
                         productName,
@@ -1184,6 +1186,7 @@ async function sendUpsellOffer(
                 })
                 .select('id')
                 .single();
+
 
             if (sessionError || !session) {
                 console.error('[Continue Flow] Failed to create webview session:', sessionError?.message);
@@ -1355,6 +1358,8 @@ async function sendDownsellOffer(
                     cart: context.cart || [],
                     cart_total: context.cartTotal || 0,
                     page_access_token: pageAccessToken,
+                    page_id: context.pageId || null,
+                    page_name: context.pageName || null,
                     metadata: {
                         commenterName: context.commenterName,
                         productName,
@@ -1364,6 +1369,7 @@ async function sendDownsellOffer(
                 })
                 .select('id')
                 .single();
+
 
             if (sessionError || !session) {
                 console.error('[Continue Flow] Failed to create webview session:', sessionError?.message);
@@ -1542,6 +1548,8 @@ async function sendProductWebviewOffer(
                     cart: context.cart || [],
                     cart_total: context.cartTotal || 0,
                     page_access_token: pageAccessToken,
+                    page_id: context.pageId || null,
+                    page_name: context.pageName || null,
                     metadata: {
                         commenterName: context.commenterName,
                         productName,
@@ -1551,6 +1559,7 @@ async function sendProductWebviewOffer(
                 })
                 .select('id')
                 .single();
+
 
             if (sessionError || !session) {
                 console.error('[Continue Flow] Failed to create webview session:', sessionError?.message);
@@ -1743,6 +1752,8 @@ async function sendCheckoutOffer(
                     cart_total: cartTotal,
                     page_access_token: pageAccessToken,
                     customer_name: customerName,
+                    page_id: context.pageId || null,
+                    page_name: context.pageName || null,
                     metadata: {
                         commenterName: context.commenterName,
                         customerName: customerName,
@@ -1753,6 +1764,7 @@ async function sendCheckoutOffer(
                 })
                 .select('id')
                 .single();
+
 
             if (sessionError || !session) {
                 console.error('[Continue Flow] Failed to create checkout session:', sessionError?.message);
