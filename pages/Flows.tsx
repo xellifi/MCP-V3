@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Workspace, Flow, ConnectedPage } from '../types';
 import { api } from '../services/api';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Plus, Search, MoreHorizontal, Play, Edit, Trash, Zap, Facebook, AlertTriangle, X, LayoutGrid, List, ChevronLeft, ChevronRight, GripVertical, ShoppingCart, FileText, Download, Upload, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useTheme } from '../context/ThemeContext';
@@ -154,7 +154,28 @@ const TABS = [
 
 const Flows: React.FC<FlowsProps> = ({ workspace }) => {
   const { isDark } = useTheme();
-  const [activeTab, setActiveTab] = useState<'flows' | 'templates' | 'orders'>('flows');
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Get initial tab from URL or default to 'flows'
+  const getInitialTab = (): 'flows' | 'templates' | 'orders' => {
+    const tabParam = searchParams.get('tab');
+    if (tabParam === 'templates' || tabParam === 'orders') return tabParam;
+    return 'flows';
+  };
+
+  const [activeTab, setActiveTabState] = useState<'flows' | 'templates' | 'orders'>(getInitialTab);
+
+  // Wrapper to update both state and URL
+  const setActiveTab = (tab: 'flows' | 'templates' | 'orders') => {
+    setActiveTabState(tab);
+    if (tab === 'flows') {
+      searchParams.delete('tab');
+    } else {
+      searchParams.set('tab', tab);
+    }
+    setSearchParams(searchParams, { replace: true });
+  };
+
   const [flows, setFlows] = useState<Flow[]>([]);
   const [pages, setPages] = useState<ConnectedPage[]>([]);
   const [loading, setLoading] = useState(true);
