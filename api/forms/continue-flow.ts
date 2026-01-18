@@ -181,6 +181,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             upsell_response: context.upsell_response,
             downsell_response: context.downsell_response,
             userResponse: userResponse,
+            workspaceId: context.workspaceId || '(empty)',
             pageId: context.pageId || '(empty)',
             pageName: context.pageName || '(empty)'
         });
@@ -1904,8 +1905,36 @@ async function syncToGoogleSheets(
     console.log('[syncToGoogleSheets] Starting sync...');
     console.log('[syncToGoogleSheets] Cart items:', cart.length);
     console.log('[syncToGoogleSheets] Checkout data:', Object.keys(checkoutData).length > 0 ? 'present' : 'empty');
-    console.log('[syncToGoogleSheets] 🔍 Page ID:', context.pageId || '(empty)');
-    console.log('[syncToGoogleSheets] 🔍 Page Name:', context.pageName || '(empty)');
+    console.log('[syncToGoogleSheets] 🔍 Page ID (from context):', context.pageId || '(empty)');
+    console.log('[syncToGoogleSheets] 🔍 Page Name (from context):', context.pageName || '(empty)');
+
+    // FALLBACK: If pageId/pageName not in context, fetch from database using workspaceId
+    let pageId = context.pageId || '';
+    let pageName = context.pageName || '';
+
+    if ((!pageId || !pageName) && context.workspaceId) {
+        console.log('[syncToGoogleSheets] 🔄 Fetching page info from database...');
+        try {
+            const { data: connectedPage } = await supabase
+                .from('connected_pages')
+                .select('page_id, name')
+                .eq('workspace_id', context.workspaceId)
+                .single();
+
+            if (connectedPage) {
+                if (!pageId && connectedPage.page_id) {
+                    pageId = connectedPage.page_id;
+                    console.log('[syncToGoogleSheets] ✓ Page ID from DB:', pageId);
+                }
+                if (!pageName && connectedPage.name) {
+                    pageName = connectedPage.name;
+                    console.log('[syncToGoogleSheets] ✓ Page Name from DB:', pageName);
+                }
+            }
+        } catch (dbError: any) {
+            console.error('[syncToGoogleSheets] ⚠️ Could not fetch page info:', dbError.message);
+        }
+    }
 
 
     // Build product lists
@@ -2003,9 +2032,9 @@ async function syncToGoogleSheets(
         // Using 'Order Placed' to match Invoice/Tracking display labels
         'Status': 'Order Placed',
 
-        // Attributes
-        'Page ID': context.pageId || '',
-        'Page Name': context.pageName || '',
+        // Attributes - using pageId/pageName fetched from DB if not in context
+        'Page ID': pageId || '',
+        'Page Name': pageName || '',
 
         // Timestamp
         'Timestamp': new Date().toISOString(),
