@@ -145,54 +145,44 @@ Track your package using the tracking number above or tap the button below.`;
 
         console.log('[SendTracking] ✓ Message sent:', fbResult.message_id);
 
-        // Also update the order with tracking info
+        // Update the order with tracking info - first get current metadata
+        console.log('[SendTracking] Updating order with tracking info...');
+        const { data: existingOrder, error: fetchError } = await supabase
+            .from('orders')
+            .select('metadata')
+            .eq('id', orderId)
+            .single();
+
+        if (fetchError) {
+            console.error('[SendTracking] Failed to fetch order:', fetchError.message);
+        }
+
+        const updatedMetadata = {
+            ...(existingOrder?.metadata || {}),
+            tracking: {
+                carrier,
+                trackingNumber,
+                trackingUrl: orderTrackingUrl,
+                notes,
+                notifiedAt: new Date().toISOString()
+            }
+        };
+
+        console.log('[SendTracking] Saving tracking metadata:', JSON.stringify(updatedMetadata.tracking));
+
         const { error: updateError } = await supabase
             .from('orders')
             .update({
-                metadata: supabase.rpc('jsonb_set_path', {
-                    target: 'metadata',
-                    path: ['tracking'],
-                    value: {
-                        carrier,
-                        trackingNumber,
-                        trackingUrl: orderTrackingUrl,
-                        notes,
-                        notifiedAt: new Date().toISOString()
-                    }
-                }),
+                metadata: updatedMetadata,
                 status: 'shipped',
                 updated_at: new Date().toISOString()
             })
             .eq('id', orderId);
 
-        // Fallback: Direct metadata update if rpc not available
         if (updateError) {
-            console.log('[SendTracking] RPC failed, using direct update');
-            const { data: existingOrder } = await supabase
-                .from('orders')
-                .select('metadata')
-                .eq('id', orderId)
-                .single();
-
-            const updatedMetadata = {
-                ...(existingOrder?.metadata || {}),
-                tracking: {
-                    carrier,
-                    trackingNumber,
-                    trackingUrl: orderTrackingUrl,
-                    notes,
-                    notifiedAt: new Date().toISOString()
-                }
-            };
-
-            await supabase
-                .from('orders')
-                .update({
-                    metadata: updatedMetadata,
-                    status: 'shipped',
-                    updated_at: new Date().toISOString()
-                })
-                .eq('id', orderId);
+            console.error('[SendTracking] Failed to update order:', updateError.message);
+        } else {
+            console.log('[SendTracking] ✓ Order metadata updated with tracking info');
         }
 
         console.log('[SendTracking] ✓ Order updated with tracking info');
