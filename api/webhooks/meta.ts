@@ -3644,7 +3644,7 @@ async function executeAction(
             : process.env.APP_URL || 'https://your-app-url.vercel.app';
 
         // Include flow context for continuation after form submission
-        const formUrl = `${baseUrl}/forms/${formId}?sid=${encodeURIComponent(context.commenterId)}&sname=${encodeURIComponent(context.commenterName || '')}&flowId=${flowId}&nodeId=${node.id}&pageId=${context.pageId}`;
+        const formUrl = `${baseUrl}/forms/${formId}?sid=${encodeURIComponent(context.commenterId)}&sname=${encodeURIComponent(context.commenterName || '')}&flowId=${flowId}&nodeId=${node.id}&pageId=${context.pageId}&pageName=${encodeURIComponent(context.pageName || '')}`;
 
         console.log(`    📋 Form Name: "${formName}"`);
         console.log(`    🔗 Form URL: ${formUrl}`);

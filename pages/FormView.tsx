@@ -33,6 +33,7 @@ const FormView: React.FC = () => {
     const flowId = urlParams.get('flowId') || '';
     const nodeId = urlParams.get('nodeId') || '';
     const pageId = urlParams.get('pageId') || '';
+    const pageName = urlParams.get('pageName') || '';
 
     useEffect(() => { loadForm(); }, [formId]);
 
@@ -384,6 +385,7 @@ const FormView: React.FC = () => {
                             flowId,
                             nodeId,
                             pageId,
+                            pageName,
                             subscriberId,
                             subscriberName,
                             formSubmitted: true,
