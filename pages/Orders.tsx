@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useTheme } from '../context/ThemeContext';
+import ShippingModal from '../components/ShippingModal';
 
 interface OrdersProps {
     workspace: Workspace;
@@ -85,6 +86,14 @@ const Orders: React.FC<OrdersProps> = ({ workspace }) => {
         notes: ''
     });
     const [sendingNotification, setSendingNotification] = useState(false);
+    const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+
+    useEffect(() => {
+        if (toast) {
+            const timer = setTimeout(() => setToast(null), 3000);
+            return () => clearTimeout(timer);
+        }
+    }, [toast]);
 
     const ordersPerPage = 10;
     const { isDark } = useTheme();
@@ -862,30 +871,6 @@ const Orders: React.FC<OrdersProps> = ({ workspace }) => {
         );
     };
 
-    // Carriers with tracking URLs - {TRACKING} will be replaced with actual tracking number
-    const carrierTrackingUrls: Record<string, string> = {
-        'J&T Express': 'https://www.jtexpress.ph/trajectoryQuery?waybillNo={TRACKING}',
-        'LBC Express': 'https://www.lbcexpress.com/track?tracking_no={TRACKING}',
-        'Grab Express': '', // No public tracking page
-        'Lalamove': '', // No public tracking page
-        'GoGo Xpress': 'https://www.gogoxpress.com/tracking?tracking_code={TRACKING}',
-        'Flash Express': 'https://www.flashexpress.ph/fle/tracking?se={TRACKING}',
-        '2GO Express': 'https://supplychain.2go.com.ph/tracking?waybill={TRACKING}',
-        'Ninja Van': 'https://www.ninjavan.co/en-ph/tracking?id={TRACKING}',
-        'DHL': 'https://www.dhl.com/ph-en/home/tracking.html?tracking-id={TRACKING}',
-        'FedEx': 'https://www.fedex.com/fedextrack/?trknbr={TRACKING}',
-        'Other': ''
-    };
-
-    const shippingCarriers = Object.keys(carrierTrackingUrls);
-
-    // Get tracking URL for a carrier
-    const getCarrierTrackingUrl = (carrier: string, trackingNumber: string): string => {
-        const urlTemplate = carrierTrackingUrls[carrier] || '';
-        if (!urlTemplate) return '';
-        return urlTemplate.replace('{TRACKING}', encodeURIComponent(trackingNumber));
-    };
-
     // Send shipping notification and update status
     const handleSendShippingNotification = async () => {
         if (!shippingOrder || !shippingInfo.trackingNumber.trim()) {
@@ -964,170 +949,18 @@ const Orders: React.FC<OrdersProps> = ({ workspace }) => {
 
             // Close modal
             setShippingOrder(null);
-            setShippingInfo({ carrier: 'J&T Express', customCarrier: '', trackingNumber: '', trackingUrl: '', notes: '' });
+
+            setToast({ message: 'Shipping notification sent successfully!', type: 'success' });
 
         } catch (error: any) {
             console.error('[Orders] Error sending notification:', error);
-            alert(`Failed to send notification: ${error.message}`);
+            setToast({ message: `Failed to send notification: ${error.message}`, type: 'error' });
         } finally {
             setSendingNotification(false);
         }
     };
 
-    // Shipping Modal - rendered inline to prevent focus loss
-    const renderShippingModal = () => {
-        if (!shippingOrder) return null;
-
-        return (
-            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 pb-8" onClick={() => setShippingOrder(null)}>
-                <div className={`rounded-2xl w-full max-w-md overflow-hidden border shadow-2xl ${isDark ? 'bg-slate-800 border-white/10' : 'bg-white border-slate-200'}`} onClick={e => e.stopPropagation()}>
-                    {/* Header */}
-                    <div className={`p-5 border-b flex items-center justify-between ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
-                        <div className="flex items-center gap-3">
-                            <div className="p-2 bg-purple-500/20 rounded-xl">
-                                <Truck className="w-5 h-5 text-purple-400" />
-                            </div>
-                            <div>
-                                <h2 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>Ship Order</h2>
-                                <p className={`text-xs font-mono ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{shippingOrder.id}</p>
-                            </div>
-                        </div>
-                        <button onClick={() => setShippingOrder(null)} className={`p-2 rounded-lg transition-colors ${isDark ? 'hover:bg-white/10' : 'hover:bg-slate-100'}`}>
-                            <X className={`w-5 h-5 ${isDark ? 'text-slate-400' : 'text-slate-500'}`} />
-                        </button>
-                    </div>
-
-                    {/* Form */}
-                    <div className="p-5 space-y-4">
-                        {/* Customer Info Summary */}
-                        <div className={`rounded-lg p-3 ${isDark ? 'bg-purple-500/10 border border-purple-500/20' : 'bg-purple-50 border border-purple-100'}`}>
-                            <div className="flex items-center gap-3">
-                                <div className={`w-9 h-9 rounded-full flex items-center justify-center ${isDark ? 'bg-purple-500/20' : 'bg-purple-100'}`}>
-                                    <User className="w-4 h-4 text-purple-400" />
-                                </div>
-                                <div>
-                                    <p className={`font-medium text-sm ${isDark ? 'text-white' : 'text-slate-900'}`}>{shippingOrder.customer_name}</p>
-                                    <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>{shippingOrder.customer_address || 'No address'}</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Carrier Selection */}
-                        <div>
-                            <label className={`block text-sm font-medium mb-1.5 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-                                Carrier
-                            </label>
-                            <select
-                                value={shippingInfo.carrier}
-                                onChange={(e) => {
-                                    const newCarrier = e.target.value;
-                                    setShippingInfo({
-                                        ...shippingInfo,
-                                        carrier: newCarrier,
-                                        trackingUrl: getCarrierTrackingUrl(newCarrier, shippingInfo.trackingNumber)
-                                    });
-                                }}
-                                className={`w-full px-3 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500/50 border text-sm ${isDark ? 'bg-black/30 border-white/10 text-white' : 'bg-slate-50 border-slate-300 text-slate-900'}`}
-                            >
-                                {shippingCarriers.map(c => (
-                                    <option key={c} value={c}>{c}</option>
-                                ))}
-                            </select>
-                        </div>
-
-                        {/* Custom Carrier Name (for 'Other') */}
-                        {shippingInfo.carrier === 'Other' && (
-                            <div className="mb-4">
-                                <label className={`block text-sm font-medium mb-1.5 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-                                    Courier Name <span className="text-red-400">*</span>
-                                </label>
-                                <input
-                                    type="text"
-                                    value={shippingInfo.customCarrier}
-                                    onChange={(e) => setShippingInfo({ ...shippingInfo, customCarrier: e.target.value })}
-                                    placeholder="Enter courier name"
-                                    className={`w-full px-3 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500/50 border text-sm ${isDark ? 'bg-black/30 border-white/10 text-white placeholder-slate-500' : 'bg-slate-50 border-slate-300 text-slate-900 placeholder-slate-400'}`}
-                                />
-                            </div>
-                        )}
-
-                        {/* Tracking Number */}
-                        <div>
-                            <label className={`block text-sm font-medium mb-1.5 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-                                Tracking Number <span className="text-red-400">*</span>
-                            </label>
-                            <input
-                                type="text"
-                                value={shippingInfo.trackingNumber}
-                                onChange={(e) => {
-                                    const newTracking = e.target.value;
-                                    setShippingInfo({
-                                        ...shippingInfo,
-                                        trackingNumber: newTracking,
-                                        trackingUrl: getCarrierTrackingUrl(shippingInfo.carrier, newTracking)
-                                    });
-                                }}
-                                placeholder="Enter tracking number"
-                                autoFocus
-                                className={`w-full px-3 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500/50 border text-sm ${isDark ? 'bg-black/30 border-white/10 text-white placeholder-slate-500' : 'bg-slate-50 border-slate-300 text-slate-900 placeholder-slate-400'}`}
-                            />
-                        </div>
-
-                        {/* Tracking URL */}
-                        <div>
-                            <label className={`block text-sm font-medium mb-1.5 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-                                Tracking URL
-                            </label>
-                            <input
-                                type="text"
-                                value={shippingInfo.trackingUrl}
-                                onChange={(e) => setShippingInfo({ ...shippingInfo, trackingUrl: e.target.value })}
-                                placeholder="https://..."
-                                className={`w-full px-3 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500/50 border text-sm ${isDark ? 'bg-black/30 border-white/10 text-white placeholder-slate-500' : 'bg-slate-50 border-slate-300 text-slate-900 placeholder-slate-400'}`}
-                            />
-                        </div>
-
-                        {/* Notes */}
-                        <div>
-                            <label className={`block text-sm font-medium mb-1.5 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-                                Notes (Optional)
-                            </label>
-                            <input
-                                type="text"
-                                value={shippingInfo.notes}
-                                onChange={(e) => setShippingInfo({ ...shippingInfo, notes: e.target.value })}
-                                placeholder="e.g., Delivery in 3-5 days"
-                                className={`w-full px-3 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500/50 border text-sm ${isDark ? 'bg-black/30 border-white/10 text-white placeholder-slate-500' : 'bg-slate-50 border-slate-300 text-slate-900 placeholder-slate-400'}`}
-                            />
-                        </div>
-
-                        {/* Info */}
-                        <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
-                            Customer will receive a Messenger notification with tracking info.
-                        </p>
-                    </div>
-
-                    {/* Footer */}
-                    <div className={`p-5 border-t flex items-center justify-end gap-2 ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
-                        <button
-                            onClick={() => setShippingOrder(null)}
-                            className={`px-4 py-2 rounded-lg text-sm transition-colors ${isDark ? 'bg-slate-700 hover:bg-slate-600 text-white' : 'bg-slate-200 hover:bg-slate-300 text-slate-700'}`}
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            onClick={handleSendShippingNotification}
-                            disabled={sendingNotification || !shippingInfo.trackingNumber.trim()}
-                            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-400 hover:to-indigo-500 disabled:opacity-50 text-white rounded-lg text-sm font-semibold transition-all"
-                        >
-                            <Truck className="w-4 h-4" />
-                            {sendingNotification ? 'Sending...' : 'Ship & Notify'}
-                        </button>
-                    </div>
-                </div>
-            </div>
-        );
-    };
+    // Shipping modal and logic moved to ShippingModal component
 
     return (
         <div className="space-y-6 animate-fade-in pb-12">
@@ -1579,7 +1412,37 @@ const Orders: React.FC<OrdersProps> = ({ workspace }) => {
             <DeleteConfirmModal />
 
             {/* Shipping Notification Modal */}
-            {renderShippingModal()}
+            <ShippingModal
+                shippingOrder={shippingOrder}
+                shippingInfo={shippingInfo}
+                setShippingInfo={setShippingInfo}
+                onClose={() => setShippingOrder(null)}
+                onSend={handleSendShippingNotification}
+                sendingNotification={sendingNotification}
+                isDark={isDark}
+            />
+
+            {/* Toast Notification */}
+            {toast && (
+                <div className={`fixed bottom-4 right-4 px-6 py-4 rounded-xl shadow-2xl z-50 flex items-center gap-3 animate-slide-up bg-white dark:bg-slate-800 border dark:border-white/10 border-slate-200`}>
+                    {toast.type === 'success' ? (
+                        <CheckCircle className="w-6 h-6 text-emerald-500" />
+                    ) : (
+                        <AlertCircle className="w-6 h-6 text-red-500" />
+                    )}
+                    <div>
+                        <h4 className={`font-semibold text-sm ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                            {toast.type === 'success' ? 'Success' : 'Error'}
+                        </h4>
+                        <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                            {toast.message}
+                        </p>
+                    </div>
+                    <button onClick={() => setToast(null)} className={`ml-2 p-1 rounded-lg ${isDark ? 'hover:bg-white/10' : 'hover:bg-slate-100'}`}>
+                        <X className="w-4 h-4 text-slate-400" />
+                    </button>
+                </div>
+            )}
         </div >
     );
 };
