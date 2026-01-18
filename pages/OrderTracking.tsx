@@ -50,10 +50,13 @@ const OrderTracking: React.FC = () => {
                             address: orderRow.customer_address,
                             cart: orderRow.items || [],
                             total: orderRow.total,
+                            subtotal: orderRow.subtotal,
+                            shipping_fee: orderRow.shipping_fee,
                             order_status: orderRow.status,
                             payment_method: orderRow.payment_method,
                             payment_method_name: orderRow.payment_method_name,
-                            currency: orderRow.metadata?.currency || 'PHP'
+                            currency: orderRow.metadata?.currency || 'PHP',
+                            tracking: orderRow.metadata?.tracking || null
                         },
                         forms: {},
                         source: 'order'
@@ -256,29 +259,109 @@ const OrderTracking: React.FC = () => {
                     </div>
                 </div>
 
+                {/* Courier / Tracking Details */}
+                {data.tracking && (
+                    <div className="bg-white rounded-2xl shadow-xl p-6 mb-6">
+                        <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                            <span>🚚</span> Courier Details
+                        </h2>
+                        <div className="space-y-4">
+                            <div className="bg-indigo-50 rounded-xl p-4">
+                                <div className="flex items-center justify-between mb-3">
+                                    <span className="text-sm text-gray-500">Carrier</span>
+                                    <span className="font-bold text-indigo-600">{data.tracking.carrier}</span>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <span className="text-sm text-gray-500">Tracking Number</span>
+                                    <span className="font-mono font-bold text-gray-800 bg-white px-3 py-1 rounded-lg">
+                                        {data.tracking.trackingNumber}
+                                    </span>
+                                </div>
+                            </div>
+                            {data.tracking.notes && (
+                                <div className="bg-amber-50 rounded-xl p-4">
+                                    <p className="text-sm text-amber-800 flex items-start gap-2">
+                                        <span>📝</span>
+                                        <span>{data.tracking.notes}</span>
+                                    </p>
+                                </div>
+                            )}
+                            {data.tracking.trackingUrl && (
+                                <a
+                                    href={data.tracking.trackingUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="block w-full text-center bg-indigo-500 hover:bg-indigo-600 text-white font-semibold py-3 px-4 rounded-xl transition-colors"
+                                >
+                                    📍 Track Package
+                                </a>
+                            )}
+                            {data.tracking.notifiedAt && (
+                                <p className="text-xs text-gray-400 text-center">
+                                    Shipped on {new Date(data.tracking.notifiedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                </p>
+                            )}
+                        </div>
+                    </div>
+                )}
+
                 {/* Order Summary */}
                 <div className="bg-white rounded-2xl shadow-xl p-6">
                     <h2 className="text-lg font-bold text-gray-800 mb-4">Order Summary</h2>
 
                     <div className="space-y-3">
                         <div className="flex justify-between">
-                            <span className="text-gray-500">Product</span>
-                            <span className="font-medium text-gray-800">{productName}</span>
-                        </div>
-                        <div className="flex justify-between">
                             <span className="text-gray-500">Customer</span>
                             <span className="font-medium text-gray-800">{customerName}</span>
                         </div>
-                        <div className="flex justify-between">
-                            <span className="text-gray-500">Quantity</span>
-                            <span className="font-medium text-gray-800">{data.quantity || 1}</span>
+                        {data.phone && (
+                            <div className="flex justify-between">
+                                <span className="text-gray-500">Phone</span>
+                                <span className="font-medium text-gray-800">{data.phone}</span>
+                            </div>
+                        )}
+                        {data.address && (
+                            <div className="pt-2 border-t border-gray-100">
+                                <span className="text-gray-500 text-sm">Shipping Address</span>
+                                <p className="font-medium text-gray-800 mt-1">{data.address}</p>
+                            </div>
+                        )}
+                        <div className="pt-3 border-t border-gray-100">
+                            <p className="text-gray-500 text-sm mb-2">Order Items</p>
+                            <div className="space-y-2">
+                                {(data.cart && data.cart.length > 0) ? (
+                                    data.cart.map((item: any, idx: number) => (
+                                        <div key={idx} className="flex justify-between items-center py-1">
+                                            <span className="text-gray-800">{item.productName || item.name} × {item.quantity || 1}</span>
+                                            <span className="font-medium text-gray-600">{currencySymbol}{((item.productPrice || item.price || 0) * (item.quantity || 1)).toLocaleString()}</span>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <div className="flex justify-between">
+                                        <span className="text-gray-800">{productName}</span>
+                                        <span className="font-medium text-gray-600">{currencySymbol}{total.toLocaleString()}</span>
+                                    </div>
+                                )}
+                            </div>
                         </div>
+                        {data.shipping_fee !== undefined && data.shipping_fee > 0 && (
+                            <div className="flex justify-between text-sm">
+                                <span className="text-gray-500">Shipping Fee</span>
+                                <span className="text-gray-600">{currencySymbol}{data.shipping_fee.toLocaleString()}</span>
+                            </div>
+                        )}
                         <div className="border-t border-gray-100 pt-3 flex justify-between">
                             <span className="font-bold text-gray-800">Total</span>
                             <span className="font-bold text-lg" style={{ color: accentColor }}>
                                 {currencySymbol}{total.toLocaleString()}
                             </span>
                         </div>
+                        {data.payment_method_name && (
+                            <div className="flex justify-between text-sm pt-2">
+                                <span className="text-gray-500">Payment Method</span>
+                                <span className="text-gray-600">{data.payment_method_name}</span>
+                            </div>
+                        )}
                     </div>
                 </div>
 
