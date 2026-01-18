@@ -1931,25 +1931,29 @@ async function syncToGoogleSheets(
                 error: subError?.message || 'none'
             });
 
-            // If we found subscriber with page_id, use it
+            // If we found subscriber with page_id (internal ID), use it to lookup connected_pages
             if (subscriber?.page_id) {
-                if (!pageId) {
-                    pageId = subscriber.page_id;
-                    console.log('[syncToGoogleSheets] ✓ Page ID from subscriber:', pageId);
-                }
+                // Step 2: Get BOTH Facebook page_id AND name from connected_pages using the internal id
+                const { data: connectedPage } = await supabase
+                    .from('connected_pages')
+                    .select('page_id, name')
+                    .eq('id', subscriber.page_id)  // subscriber.page_id is the internal UUID
+                    .maybeSingle();
 
-                // Step 2: Get page name from connected_pages using the page_id
-                if (!pageName) {
-                    const { data: connectedPage } = await supabase
-                        .from('connected_pages')
-                        .select('name')
-                        .eq('page_id', subscriber.page_id)
-                        .eq('workspace_id', context.workspaceId)
-                        .maybeSingle();
+                console.log('[syncToGoogleSheets] Connected page lookup:', {
+                    found: !!connectedPage,
+                    facebook_page_id: connectedPage?.page_id || 'null',
+                    name: connectedPage?.name || 'null'
+                });
 
-                    if (connectedPage?.name) {
+                if (connectedPage) {
+                    if (!pageId && connectedPage.page_id) {
+                        pageId = connectedPage.page_id;  // This is the Facebook page ID
+                        console.log('[syncToGoogleSheets] ✓ Page ID (Facebook):', pageId);
+                    }
+                    if (!pageName && connectedPage.name) {
                         pageName = connectedPage.name;
-                        console.log('[syncToGoogleSheets] ✓ Page Name from DB:', pageName);
+                        console.log('[syncToGoogleSheets] ✓ Page Name:', pageName);
                     }
                 }
             } else {
