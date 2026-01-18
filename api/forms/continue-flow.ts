@@ -70,7 +70,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         // Get page access token for sending messages
         // Can be passed directly (from webview) or looked up via pageId
         let pageAccessToken = req.body.pageAccessToken || '';
-        let pageName = '';
+        let pageName = req.body.pageName || '';
         let workspaceId = req.body.workspaceId || '';
 
         // Also accept cart context from webview sessions
