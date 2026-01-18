@@ -59,7 +59,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         // Get page access token from connected_pages using internal ID
         const { data: page, error: pageError } = await supabase
             .from('connected_pages')
-            .select('page_id, access_token, name')
+            .select('page_id, page_access_token, name')
             .eq('id', pageId)
             .maybeSingle();
 
@@ -68,7 +68,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             return res.status(404).json({ error: 'Page not found' });
         }
 
-        const pageAccessToken = page.access_token;
+        const pageAccessToken = (page as any).page_access_token;
         const facebookPageId = page.page_id;
 
         // Build order items list
