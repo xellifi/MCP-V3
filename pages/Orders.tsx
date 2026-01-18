@@ -947,36 +947,37 @@ const Orders: React.FC<OrdersProps> = ({ workspace }) => {
         }
     };
 
-    // Shipping Notification Modal
-    const ShippingModal = () => {
+    // Carriers list for shipping
+    const shippingCarriers = [
+        'J&T Express',
+        'LBC Express',
+        'Grab Express',
+        'Lalamove',
+        'GoGo Xpress',
+        'Flash Express',
+        '2GO Express',
+        'Ninja Van',
+        'DHL',
+        'FedEx',
+        'Other'
+    ];
+
+    // Shipping Modal - rendered inline to prevent focus loss
+    const renderShippingModal = () => {
         if (!shippingOrder) return null;
 
-        const carriers = [
-            'J&T Express',
-            'LBC Express',
-            'Grab Express',
-            'Lalamove',
-            'GoGo Xpress',
-            'Flash Express',
-            '2GO Express',
-            'Ninja Van',
-            'DHL',
-            'FedEx',
-            'Other'
-        ];
-
         return (
-            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShippingOrder(null)}>
-                <div className={`rounded-2xl w-full max-w-lg overflow-hidden border shadow-2xl ${isDark ? 'bg-slate-800 border-white/10' : 'bg-white border-slate-200'}`} onClick={e => e.stopPropagation()}>
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 pb-8" onClick={() => setShippingOrder(null)}>
+                <div className={`rounded-2xl w-full max-w-md overflow-hidden border shadow-2xl ${isDark ? 'bg-slate-800 border-white/10' : 'bg-white border-slate-200'}`} onClick={e => e.stopPropagation()}>
                     {/* Header */}
-                    <div className={`p-6 border-b flex items-center justify-between ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
+                    <div className={`p-5 border-b flex items-center justify-between ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
                         <div className="flex items-center gap-3">
-                            <div className="p-2.5 bg-purple-500/20 rounded-xl">
-                                <Truck className="w-6 h-6 text-purple-400" />
+                            <div className="p-2 bg-purple-500/20 rounded-xl">
+                                <Truck className="w-5 h-5 text-purple-400" />
                             </div>
                             <div>
-                                <h2 className={`text-xl font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>Ship Order</h2>
-                                <p className={`text-sm font-mono ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{shippingOrder.id}</p>
+                                <h2 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>Ship Order</h2>
+                                <p className={`text-xs font-mono ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{shippingOrder.id}</p>
                             </div>
                         </div>
                         <button onClick={() => setShippingOrder(null)} className={`p-2 rounded-lg transition-colors ${isDark ? 'hover:bg-white/10' : 'hover:bg-slate-100'}`}>
@@ -985,32 +986,31 @@ const Orders: React.FC<OrdersProps> = ({ workspace }) => {
                     </div>
 
                     {/* Form */}
-                    <div className="p-6 space-y-5">
+                    <div className="p-5 space-y-4">
                         {/* Customer Info Summary */}
-                        <div className={`rounded-xl p-4 ${isDark ? 'bg-purple-500/10 border border-purple-500/20' : 'bg-purple-50 border border-purple-100'}`}>
+                        <div className={`rounded-lg p-3 ${isDark ? 'bg-purple-500/10 border border-purple-500/20' : 'bg-purple-50 border border-purple-100'}`}>
                             <div className="flex items-center gap-3">
-                                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isDark ? 'bg-purple-500/20' : 'bg-purple-100'}`}>
-                                    <User className="w-5 h-5 text-purple-400" />
+                                <div className={`w-9 h-9 rounded-full flex items-center justify-center ${isDark ? 'bg-purple-500/20' : 'bg-purple-100'}`}>
+                                    <User className="w-4 h-4 text-purple-400" />
                                 </div>
                                 <div>
-                                    <p className={`font-medium ${isDark ? 'text-white' : 'text-slate-900'}`}>{shippingOrder.customer_name}</p>
-                                    <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>{shippingOrder.customer_address || 'No address provided'}</p>
+                                    <p className={`font-medium text-sm ${isDark ? 'text-white' : 'text-slate-900'}`}>{shippingOrder.customer_name}</p>
+                                    <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>{shippingOrder.customer_address || 'No address'}</p>
                                 </div>
                             </div>
                         </div>
 
                         {/* Carrier Selection */}
                         <div>
-                            <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-                                <Truck className="w-4 h-4 inline mr-2" />
-                                Delivery Carrier
+                            <label className={`block text-sm font-medium mb-1.5 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+                                Carrier
                             </label>
                             <select
                                 value={shippingInfo.carrier}
-                                onChange={(e) => setShippingInfo(prev => ({ ...prev, carrier: e.target.value }))}
-                                className={`w-full px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/50 border ${isDark ? 'bg-black/30 border-white/10 text-white' : 'bg-slate-50 border-slate-300 text-slate-900'}`}
+                                onChange={(e) => setShippingInfo({ ...shippingInfo, carrier: e.target.value })}
+                                className={`w-full px-3 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500/50 border text-sm ${isDark ? 'bg-black/30 border-white/10 text-white' : 'bg-slate-50 border-slate-300 text-slate-900'}`}
                             >
-                                {carriers.map(c => (
+                                {shippingCarriers.map(c => (
                                     <option key={c} value={c}>{c}</option>
                                 ))}
                             </select>
@@ -1018,57 +1018,54 @@ const Orders: React.FC<OrdersProps> = ({ workspace }) => {
 
                         {/* Tracking Number */}
                         <div>
-                            <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-                                <Package className="w-4 h-4 inline mr-2" />
+                            <label className={`block text-sm font-medium mb-1.5 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
                                 Tracking Number <span className="text-red-400">*</span>
                             </label>
                             <input
                                 type="text"
                                 value={shippingInfo.trackingNumber}
-                                onChange={(e) => setShippingInfo(prev => ({ ...prev, trackingNumber: e.target.value }))}
+                                onChange={(e) => setShippingInfo({ ...shippingInfo, trackingNumber: e.target.value })}
                                 placeholder="Enter tracking number"
-                                className={`w-full px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/50 border ${isDark ? 'bg-black/30 border-white/10 text-white placeholder-slate-500' : 'bg-slate-50 border-slate-300 text-slate-900 placeholder-slate-400'}`}
+                                autoFocus
+                                className={`w-full px-3 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500/50 border text-sm ${isDark ? 'bg-black/30 border-white/10 text-white placeholder-slate-500' : 'bg-slate-50 border-slate-300 text-slate-900 placeholder-slate-400'}`}
                             />
                         </div>
 
                         {/* Notes */}
                         <div>
-                            <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-                                Delivery Notes (Optional)
+                            <label className={`block text-sm font-medium mb-1.5 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+                                Notes (Optional)
                             </label>
-                            <textarea
+                            <input
+                                type="text"
                                 value={shippingInfo.notes}
-                                onChange={(e) => setShippingInfo(prev => ({ ...prev, notes: e.target.value }))}
-                                placeholder="e.g., Estimated delivery in 3-5 days"
-                                rows={2}
-                                className={`w-full px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/50 resize-none border ${isDark ? 'bg-black/30 border-white/10 text-white placeholder-slate-500' : 'bg-slate-50 border-slate-300 text-slate-900 placeholder-slate-400'}`}
+                                onChange={(e) => setShippingInfo({ ...shippingInfo, notes: e.target.value })}
+                                placeholder="e.g., Delivery in 3-5 days"
+                                className={`w-full px-3 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500/50 border text-sm ${isDark ? 'bg-black/30 border-white/10 text-white placeholder-slate-500' : 'bg-slate-50 border-slate-300 text-slate-900 placeholder-slate-400'}`}
                             />
                         </div>
 
-                        {/* Notification Info */}
-                        <div className={`rounded-xl p-4 ${isDark ? 'bg-blue-500/10 border border-blue-500/20' : 'bg-blue-50 border border-blue-100'}`}>
-                            <p className={`text-sm flex items-start gap-2 ${isDark ? 'text-blue-300' : 'text-blue-700'}`}>
-                                <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                                The customer will receive a Messenger notification with order details and tracking information.
-                            </p>
-                        </div>
+                        {/* Info */}
+                        <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                            Customer will receive a Messenger notification with tracking info.
+                        </p>
                     </div>
 
                     {/* Footer */}
-                    <div className={`p-6 border-t flex items-center justify-end gap-3 ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
+                    <div className={`p-5 border-t flex items-center justify-end gap-2 ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
                         <button
                             onClick={() => setShippingOrder(null)}
-                            className={`px-4 py-2.5 rounded-xl transition-colors ${isDark ? 'bg-slate-700 hover:bg-slate-600 text-white' : 'bg-slate-200 hover:bg-slate-300 text-slate-700'}`}
+                            className={`px-4 py-2 rounded-lg text-sm transition-colors ${isDark ? 'bg-slate-700 hover:bg-slate-600 text-white' : 'bg-slate-200 hover:bg-slate-300 text-slate-700'}`}
                         >
                             Cancel
                         </button>
                         <button
                             onClick={handleSendShippingNotification}
                             disabled={sendingNotification || !shippingInfo.trackingNumber.trim()}
-                            className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-400 hover:to-indigo-500 disabled:opacity-50 text-white rounded-xl font-semibold transition-all shadow-lg shadow-purple-500/25"
+                            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-400 hover:to-indigo-500 disabled:opacity-50 text-white rounded-lg text-sm font-semibold transition-all"
                         >
                             <Truck className="w-4 h-4" />
-                            {sendingNotification ? 'Sending...' : 'Ship & Notify Customer'}
+                            {sendingNotification ? 'Sending...' : 'Ship & Notify'}
                         </button>
                     </div>
                 </div>
@@ -1526,7 +1523,7 @@ const Orders: React.FC<OrdersProps> = ({ workspace }) => {
             <DeleteConfirmModal />
 
             {/* Shipping Notification Modal */}
-            <ShippingModal />
+            {renderShippingModal()}
         </div >
     );
 };
