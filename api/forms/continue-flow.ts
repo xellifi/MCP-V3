@@ -1913,13 +1913,20 @@ async function syncToGoogleSheets(
     let pageName = context.pageName || '';
 
     if ((!pageId || !pageName) && context.workspaceId) {
-        console.log('[syncToGoogleSheets] 🔄 Fetching page info from database...');
+        console.log('[syncToGoogleSheets] 🔄 Fetching page info from database for workspace:', context.workspaceId);
         try {
-            const { data: connectedPage } = await supabase
+            const { data: connectedPage, error: pageError } = await supabase
                 .from('connected_pages')
                 .select('page_id, name')
                 .eq('workspace_id', context.workspaceId)
-                .single();
+                .maybeSingle();
+
+            console.log('[syncToGoogleSheets] DB query result:', {
+                found: !!connectedPage,
+                page_id: connectedPage?.page_id || 'null',
+                name: connectedPage?.name || 'null',
+                error: pageError?.message || 'none'
+            });
 
             if (connectedPage) {
                 if (!pageId && connectedPage.page_id) {
@@ -1930,9 +1937,11 @@ async function syncToGoogleSheets(
                     pageName = connectedPage.name;
                     console.log('[syncToGoogleSheets] ✓ Page Name from DB:', pageName);
                 }
+            } else {
+                console.log('[syncToGoogleSheets] ⚠️ No connected page found for this workspace');
             }
         } catch (dbError: any) {
-            console.error('[syncToGoogleSheets] ⚠️ Could not fetch page info:', dbError.message);
+            console.error('[syncToGoogleSheets] ⚠️ DB error:', dbError.message);
         }
     }
 
