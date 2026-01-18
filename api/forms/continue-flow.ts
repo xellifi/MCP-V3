@@ -1915,11 +1915,14 @@ async function syncToGoogleSheets(
     if ((!pageId || !pageName) && context.workspaceId) {
         console.log('[syncToGoogleSheets] 🔄 Fetching page info from database for workspace:', context.workspaceId);
         try {
-            const { data: connectedPage, error: pageError } = await supabase
+            // Use limit(1) instead of maybeSingle() to handle multiple pages
+            const { data: connectedPages, error: pageError } = await supabase
                 .from('connected_pages')
                 .select('page_id, name')
                 .eq('workspace_id', context.workspaceId)
-                .maybeSingle();
+                .limit(1);
+
+            const connectedPage = connectedPages?.[0] || null;
 
             console.log('[syncToGoogleSheets] DB query result:', {
                 found: !!connectedPage,
