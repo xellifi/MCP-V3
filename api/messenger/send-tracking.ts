@@ -259,6 +259,7 @@ ${status === 'confirmed' ? 'We will notify you once your order is shipped.' : 'T
         const { error: updateError } = await supabase
             .from('orders')
             .update({
+                status: status, // Update the actual status column
                 metadata: updatedMetadata,
                 updated_at: new Date().toISOString()
             })

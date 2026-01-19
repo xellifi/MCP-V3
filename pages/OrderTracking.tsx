@@ -38,7 +38,6 @@ const OrderTracking: React.FC = () => {
                     .single();
 
                 if (!orderError && orderRow) {
-                    console.log('[OrderTracking] Found order:', orderRow.id, 'Status:', orderRow.status);
                     // Transform order to tracking-compatible format
                     orderData = {
                         id: orderRow.id,
@@ -61,7 +60,6 @@ const OrderTracking: React.FC = () => {
                         forms: {},
                         source: 'order'
                     };
-                    console.log('[OrderTracking] Transformed order_status:', orderData.data.order_status);
                 }
             }
 
@@ -106,7 +104,6 @@ const OrderTracking: React.FC = () => {
 
         // Get actual status from data if available
         const actualStatus = order.data?.order_status || order.status || 'pending';
-        console.log('[OrderTracking] getOrderStatus - order.data?.order_status:', order.data?.order_status, 'order.status:', order.status, 'actualStatus:', actualStatus);
 
         // Map status to step number
         const statusToStep: Record<string, number> = {
@@ -119,7 +116,6 @@ const OrderTracking: React.FC = () => {
         };
 
         const currentStep = statusToStep[actualStatus] || 1;
-        console.log('[OrderTracking] getOrderStatus - currentStep:', currentStep);
 
         const statuses = [
             { id: 1, label: 'Order Placed', icon: '📦', description: 'We received your order', completed: currentStep >= 1, date: created },
