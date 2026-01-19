@@ -103,7 +103,8 @@ const OrderTracking: React.FC = () => {
         const now = new Date();
 
         // Get actual status from data if available
-        const actualStatus = order.data?.order_status || order.status || 'pending';
+        // Get actual status from data if available
+        const actualStatus = (order.data?.order_status || order.status || 'pending').toLowerCase();
 
         // Map status to step number
         const statusToStep: Record<string, number> = {
@@ -115,7 +116,7 @@ const OrderTracking: React.FC = () => {
             'cancelled': 0
         };
 
-        const currentStep = statusToStep[actualStatus] || 1;
+        const currentStep = statusToStep[actualStatus] !== undefined ? statusToStep[actualStatus] : 1;
 
         const statuses = [
             { id: 1, label: 'Order Placed', icon: '📦', description: 'We received your order', completed: currentStep >= 1, date: created },
