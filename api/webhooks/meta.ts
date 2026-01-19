@@ -2437,7 +2437,16 @@ async function processTextMessage(messagingEvent: any, pageId: string) {
 
                 // Generate AI response
                 let aiResponse = null;
-                const systemPrompt = `${instructions}
+                const quickActions = config.quickActions || [];
+                let quickActionHints = '';
+                if (quickActions.length > 0) {
+                    quickActionHints = '\n\n*** BUTTON TRIGGERS ***\nYou can trigger buttons by including these tags at the end of your response:';
+                    for (const action of quickActions) {
+                        quickActionHints += `\n- Include [${action.trigger}] to show button "${action.buttonText}"`;
+                    }
+                }
+
+                const systemPrompt = `${instructions}${quickActionHints}
 
 You are responding to a Facebook Messenger user. Keep your responses conversational, helpful, and concise. 
 Do not use markdown formatting. Be friendly and professional.`;
@@ -2509,7 +2518,6 @@ Do not use markdown formatting. Be friendly and professional.`;
                 console.log(`🤖 Sending AI response: "${responseText.substring(0, 100)}..."`);
 
                 // Check for quick action triggers and build buttons
-                const quickActions = config.quickActions || [];
                 const matchedButtons: Array<{ type: string; title: string; url: string }> = [];
 
                 for (const action of quickActions) {
