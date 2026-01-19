@@ -209,15 +209,82 @@ const OrderTracking: React.FC = () => {
                     </div>
 
                     {/* Status Hero Section */}
-                    <div className="p-6 md:p-8 bg-slate-50/50">
-                        <div className="mb-8">
-                            <h2 className="text-2xl md:text-3xl font-bold text-slate-800 mb-2">
-                                {currentStep === 4 ? 'Delivered' : currentStep === 0 ? 'Order Cancelled' : `Arriving ${formatDate(estimatedDelivery)}`}
-                            </h2>
-                            <p className="text-slate-500">
-                                {statuses[currentStep > 0 ? currentStep - 1 : 0].description}
-                            </p>
-                        </div>
+                    <div className={`p-6 md:p-8 ${currentStep === 4 ? 'bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50' : 'bg-slate-50/50'}`}>
+                        {/* Delivered Celebration */}
+                        {currentStep === 4 ? (
+                            <div className="text-center py-6 relative overflow-hidden">
+                                {/* Confetti Background */}
+                                <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                                    <div className="absolute top-4 left-[10%] w-3 h-3 bg-yellow-400 rounded-full animate-bounce" style={{ animationDelay: '0s' }}></div>
+                                    <div className="absolute top-8 left-[25%] w-2 h-2 bg-pink-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                                    <div className="absolute top-6 left-[40%] w-4 h-4 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                                    <div className="absolute top-10 left-[60%] w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0.3s' }}></div>
+                                    <div className="absolute top-4 left-[75%] w-3 h-3 bg-emerald-400 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
+                                    <div className="absolute top-8 left-[90%] w-2 h-2 bg-orange-400 rounded-full animate-bounce" style={{ animationDelay: '0.5s' }}></div>
+                                </div>
+
+                                {/* Success Icon */}
+                                <div className="relative z-10 w-24 h-24 bg-gradient-to-br from-emerald-400 to-green-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg shadow-emerald-200">
+                                    <span className="text-5xl">🎉</span>
+                                </div>
+
+                                {/* Message */}
+                                <h2 className="relative z-10 text-3xl md:text-4xl font-bold text-emerald-700 mb-3">
+                                    Order Delivered!
+                                </h2>
+                                <p className="relative z-10 text-emerald-600 text-lg mb-6">
+                                    Your package has arrived safely. Enjoy your purchase!
+                                </p>
+
+                                {/* Product Images Showcase */}
+                                {data.cart && data.cart.length > 0 && (
+                                    <div className="relative z-10 flex justify-center gap-3 flex-wrap mt-6">
+                                        {data.cart.slice(0, 4).map((item: any, idx: number) => (
+                                            <div key={idx} className="relative group">
+                                                {item.productImage || item.image ? (
+                                                    <img
+                                                        src={item.productImage || item.image}
+                                                        alt={item.productName || item.name}
+                                                        className="w-20 h-20 md:w-24 md:h-24 rounded-xl object-cover border-4 border-white shadow-xl transition-transform hover:scale-105"
+                                                    />
+                                                ) : (
+                                                    <div className="w-20 h-20 md:w-24 md:h-24 rounded-xl bg-white border-4 border-white shadow-xl flex items-center justify-center">
+                                                        <span className="text-3xl">📦</span>
+                                                    </div>
+                                                )}
+                                                {(item.quantity || 1) > 1 && (
+                                                    <span className="absolute -top-2 -right-2 w-6 h-6 bg-emerald-500 text-white text-xs font-bold rounded-full flex items-center justify-center shadow">
+                                                        ×{item.quantity}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        ))}
+                                        {data.cart.length > 4 && (
+                                            <div className="w-20 h-20 md:w-24 md:h-24 rounded-xl bg-white/80 border-4 border-white shadow-xl flex items-center justify-center">
+                                                <span className="text-lg font-bold text-emerald-600">+{data.cart.length - 4}</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* Thank You Note */}
+                                <div className="relative z-10 mt-8 p-4 bg-white/70 backdrop-blur-sm rounded-xl border border-emerald-100 max-w-md mx-auto">
+                                    <p className="text-emerald-700 text-sm">
+                                        💝 Thank you for shopping with <strong>{companyName}</strong>! We hope you love your order.
+                                    </p>
+                                </div>
+                            </div>
+                        ) : (
+                            /* Normal Status Display */
+                            <div className="mb-8">
+                                <h2 className="text-2xl md:text-3xl font-bold text-slate-800 mb-2">
+                                    {currentStep === 0 ? 'Order Cancelled' : `Arriving ${formatDate(estimatedDelivery)}`}
+                                </h2>
+                                <p className="text-slate-500">
+                                    {statuses[currentStep > 0 ? currentStep - 1 : 0].description}
+                                </p>
+                            </div>
+                        )}
 
                         {/* Horizontal Stepper (Desktop) */}
                         <div className="hidden md:block">
@@ -233,10 +300,10 @@ const OrderTracking: React.FC = () => {
                                     <div key={status.id} className="flex flex-col items-center gap-3 bg-slate-50/50 px-2">
                                         <div
                                             className={`w-10 h-10 rounded-full flex items-center justify-center text-lg transition-all duration-300 ${status.completed
-                                                    ? 'bg-green-500 text-white shadow-lg shadow-green-200 scale-110'
-                                                    : index === currentStep
-                                                        ? 'bg-white border-4 border-indigo-500 text-indigo-600 shadow-lg'
-                                                        : 'bg-white border-4 border-slate-200 text-slate-300'
+                                                ? 'bg-green-500 text-white shadow-lg shadow-green-200 scale-110'
+                                                : index === currentStep
+                                                    ? 'bg-white border-4 border-indigo-500 text-indigo-600 shadow-lg'
+                                                    : 'bg-white border-4 border-slate-200 text-slate-300'
                                                 }`}
                                         >
                                             {status.completed ? '✓' : index + 1}
@@ -255,10 +322,10 @@ const OrderTracking: React.FC = () => {
                                 <div key={status.id} className="relative pl-6">
                                     <div
                                         className={`absolute -left-[21px] top-0 w-10 h-10 rounded-full flex items-center justify-center text-sm border-4 transition-colors ${status.completed
-                                                ? 'bg-green-500 border-white text-white'
-                                                : index === currentStep
-                                                    ? 'bg-white border-indigo-500 text-indigo-600'
-                                                    : 'bg-white border-slate-200 text-slate-300'
+                                            ? 'bg-green-500 border-white text-white'
+                                            : index === currentStep
+                                                ? 'bg-white border-indigo-500 text-indigo-600'
+                                                : 'bg-white border-slate-200 text-slate-300'
                                             }`}
                                     >
                                         {status.completed ? '✓' : index + 1}
@@ -360,18 +427,32 @@ const OrderTracking: React.FC = () => {
                                 {data.phone && <p className="text-sm text-slate-600 mt-1">{data.phone}</p>}
                             </div>
 
-                            {/* Items */}
+                            {/* Items with Product Images */}
                             <div className="mb-8">
                                 <h4 className="text-xs font-semibold text-slate-500 mb-3">Items</h4>
                                 <div className="space-y-3">
                                     {(data.cart && data.cart.length > 0) ? (
                                         data.cart.map((item: any, idx: number) => (
-                                            <div key={idx} className="flex justify-between items-start gap-3">
-                                                <div className="flex-1">
-                                                    <p className="text-sm text-slate-700 font-medium line-clamp-2">{item.productName || item.name}</p>
+                                            <div key={idx} className="flex items-center gap-3 p-2 rounded-lg bg-white border border-slate-100 shadow-sm">
+                                                {/* Product Image */}
+                                                {item.productImage || item.image ? (
+                                                    <img
+                                                        src={item.productImage || item.image}
+                                                        alt={item.productName || item.name}
+                                                        className="w-14 h-14 rounded-lg object-cover border border-slate-100 flex-shrink-0"
+                                                    />
+                                                ) : (
+                                                    <div className="w-14 h-14 rounded-lg bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center flex-shrink-0">
+                                                        <span className="text-2xl">📦</span>
+                                                    </div>
+                                                )}
+                                                {/* Product Info */}
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-sm text-slate-800 font-medium line-clamp-1">{item.productName || item.name}</p>
                                                     <p className="text-xs text-slate-500">Qty: {item.quantity || 1}</p>
                                                 </div>
-                                                <p className="text-sm font-medium text-slate-900">
+                                                {/* Price */}
+                                                <p className="text-sm font-bold text-slate-900 flex-shrink-0">
                                                     {currencySymbol}{((item.productPrice || item.price || 0) * (item.quantity || 1)).toLocaleString()}
                                                 </p>
                                             </div>

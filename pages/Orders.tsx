@@ -1351,20 +1351,7 @@ const Orders: React.FC<OrdersProps> = ({ workspace }) => {
                                                     >
                                                         <Eye className="w-4 h-4" />
                                                     </button>
-                                                    <select
-                                                        value={order.status}
-                                                        onChange={(e) => updateOrderStatus(order.id, e.target.value)}
-                                                        disabled={updatingStatus === order.id}
-                                                        className={`px-2 py-1 border rounded-lg text-xs focus:outline-none ${isDark
-                                                            ? 'bg-black/30 border-white/10 text-white'
-                                                            : 'bg-white border-slate-200 text-slate-900'
-                                                            }`}
-                                                        onClick={e => e.stopPropagation()}
-                                                    >
-                                                        {Object.entries(STATUS_CONFIG).map(([key, config]) => (
-                                                            <option key={key} value={key}>{config.label}</option>
-                                                        ))}
-                                                    </select>
+
                                                     <button
                                                         onClick={() => handleEditOrder(order)}
                                                         className={`p-2 rounded-lg transition-colors ${isDark
