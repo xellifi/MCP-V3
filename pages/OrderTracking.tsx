@@ -199,7 +199,7 @@ const OrderTracking: React.FC = () => {
                         </div>
                         <div className="flex gap-3">
                             <a
-                                href={`/invoice/${submissionId}?company=${encodeURIComponent(companyName)}&logo=${encodeURIComponent(companyLogo)}&color=${encodeURIComponent(accentColor)}`}
+                                href={`/api/views/handler?type=invoice&id=${submissionId}&company=${encodeURIComponent(companyName)}&logo=${encodeURIComponent(companyLogo)}&color=${encodeURIComponent(accentColor)}`}
                                 className="px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors"
                             >
                                 View Invoice
