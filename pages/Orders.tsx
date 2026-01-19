@@ -242,6 +242,53 @@ const Orders: React.FC<OrdersProps> = ({ workspace }) => {
                 setSelectedOrder(prev => prev ? { ...prev, status: newStatus as any } : null);
             }
 
+            // Send Messenger notification for confirmed, delivered, cancelled statuses
+            const notifyStatuses = ['confirmed', 'delivered', 'cancelled'];
+            if (notifyStatuses.includes(newStatus)) {
+                const order = orders.find(o => o.id === orderId);
+                if (order) {
+                    // Get the page ID from order
+                    let pageId = order.page_id;
+                    if (!pageId) {
+                        const sub = (order as any).subscriber;
+                        const subscriber = Array.isArray(sub) ? sub[0] : sub;
+                        pageId = subscriber?.page_id;
+                    }
+                    if (!pageId && pages.length > 0) {
+                        pageId = pages[0].id;
+                    }
+
+                    if (pageId && order.subscriber_id) {
+                        try {
+                            const notifyResponse = await fetch('/api/messenger/send-tracking', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    subscriberId: order.subscriber_id,
+                                    pageId: pageId,
+                                    orderId: order.id,
+                                    customerName: order.customer_name,
+                                    items: order.items,
+                                    total: order.total,
+                                    status: newStatus,
+                                    workspaceId: workspace.id
+                                })
+                            });
+
+                            const notifyResult = await notifyResponse.json();
+                            if (notifyResponse.ok) {
+                                console.log(`[Orders] ✓ ${newStatus} notification sent`);
+                                setToast({ message: `Customer notified: Order ${STATUS_CONFIG[newStatus as keyof typeof STATUS_CONFIG]?.label || newStatus}!`, type: 'success' });
+                            } else {
+                                console.error(`[Orders] Failed to send ${newStatus} notification:`, notifyResult);
+                            }
+                        } catch (notifyError) {
+                            console.error(`[Orders] Error sending ${newStatus} notification:`, notifyError);
+                        }
+                    }
+                }
+            }
+
             // Also update Google Sheets if webhook is configured
             try {
                 // Convert status ID to label (e.g., 'confirmed' -> 'Confirmed')
@@ -273,6 +320,7 @@ const Orders: React.FC<OrdersProps> = ({ workspace }) => {
             setUpdatingStatus(null);
         }
     };
+
 
     // Bulk status update
     const bulkUpdateStatus = async (newStatus: string) => {
@@ -905,6 +953,7 @@ const Orders: React.FC<OrdersProps> = ({ workspace }) => {
                     customerName: shippingOrder.customer_name,
                     items: shippingOrder.items,
                     total: shippingOrder.total,
+                    status: 'shipped',
                     carrier: shippingInfo.carrier === 'Other' ? shippingInfo.customCarrier : shippingInfo.carrier,
                     trackingNumber: shippingInfo.trackingNumber,
                     trackingUrl: shippingInfo.trackingUrl,

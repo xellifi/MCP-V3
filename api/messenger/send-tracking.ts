@@ -1,18 +1,52 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-interface SendTrackingRequest {
+interface SendOrderNotificationRequest {
     subscriberId: string;      // Customer's Messenger ID
     pageId: string;            // Facebook page ID (internal UUID)
     orderId: string;           // Order ID for display and tracking
     customerName: string;
     items: Array<{ productName: string; quantity: number; productPrice: number }>;
     total: number;
-    carrier: string;           // Delivery carrier name
-    trackingNumber: string;    // Carrier tracking number
-    trackingUrl?: string;      // Optional external tracking URL
-    notes?: string;            // Optional delivery notes
+    status: 'confirmed' | 'shipped' | 'delivered' | 'cancelled';
+    // Shipping-specific fields (only for 'shipped' status)
+    carrier?: string;
+    trackingNumber?: string;
+    trackingUrl?: string;
+    notes?: string;
     workspaceId: string;
 }
+
+// Status configurations for beautiful messages
+const STATUS_CONFIG = {
+    confirmed: {
+        emoji: '✅',
+        title: 'Order Confirmed!',
+        message: 'Great news! Your order has been confirmed and is being prepared.',
+        buttonTitle: '📋 View Order',
+        color: 'blue'
+    },
+    shipped: {
+        emoji: '📦',
+        title: 'Order Shipped!',
+        message: 'Your order is on its way!',
+        buttonTitle: '📍 Track Order',
+        color: 'purple'
+    },
+    delivered: {
+        emoji: '🎉',
+        title: 'Order Delivered!',
+        message: 'Your order has been delivered. Enjoy your purchase!',
+        buttonTitle: '📋 View Order',
+        color: 'green'
+    },
+    cancelled: {
+        emoji: '❌',
+        title: 'Order Cancelled',
+        message: 'Your order has been cancelled. If you have questions, please contact us.',
+        buttonTitle: '📋 View Details',
+        color: 'red'
+    }
+};
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (req.method !== 'POST') {
@@ -26,7 +60,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';
 
         if (!supabaseUrl || !supabaseKey) {
-            console.error('[SendTracking] Missing Supabase credentials');
+            console.error('[SendOrderNotification] Missing Supabase credentials');
             return res.status(500).json({ error: 'Server configuration error' });
         }
 
@@ -39,24 +73,33 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             customerName,
             items,
             total,
+            status,
             carrier,
             trackingNumber,
             trackingUrl,
             notes,
             workspaceId
-        } = req.body as SendTrackingRequest;
+        } = req.body as SendOrderNotificationRequest;
 
         // Validate required fields
-        if (!subscriberId || !pageId || !orderId || !carrier || !trackingNumber) {
+        if (!subscriberId || !pageId || !orderId || !status) {
             return res.status(400).json({
                 error: 'Missing required fields',
-                required: ['subscriberId', 'pageId', 'orderId', 'carrier', 'trackingNumber']
+                required: ['subscriberId', 'pageId', 'orderId', 'status']
             });
         }
 
-        console.log('[SendTracking] Starting notification for order:', orderId);
+        // For shipped status, require carrier and tracking number
+        if (status === 'shipped' && (!carrier || !trackingNumber)) {
+            return res.status(400).json({
+                error: 'Missing shipping fields',
+                required: ['carrier', 'trackingNumber']
+            });
+        }
 
-        // Get page access token from connected_pages using Facebook page ID
+        console.log(`[SendOrderNotification] Sending ${status} notification for order:`, orderId);
+
+        // Get page access token from connected_pages
         const { data: page, error: pageError } = await supabase
             .from('connected_pages')
             .select('page_id, page_access_token, name')
@@ -64,40 +107,75 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             .maybeSingle();
 
         if (pageError || !page) {
-            console.error('[SendTracking] Page not found:', pageError?.message);
+            console.error('[SendOrderNotification] Page not found:', pageError?.message);
             return res.status(404).json({ error: 'Page not found' });
         }
 
         const pageAccessToken = (page as any).page_access_token;
-        const facebookPageId = page.page_id;
 
         // Build order items list
-        const itemsList = items.map(item =>
+        const itemsList = (items || []).map(item =>
             `• ${item.productName} × ${item.quantity}`
         ).join('\n');
 
-        // Build tracking URL - always use internal webview for Messenger button
+        // Build base URL for order view
         const baseUrl = process.env.VERCEL_URL
             ? `https://${process.env.VERCEL_URL}`
             : process.env.APP_URL || 'https://your-app.vercel.app';
-        const internalTrackingUrl = `${baseUrl}/track/${orderId}`;
+        const orderUrl = `${baseUrl}/track/${orderId}`;
 
-        // Build the message
-        const message = `📦 Order Shipped!
+        // Get status configuration
+        const config = STATUS_CONFIG[status];
 
-Hi ${customerName}! Your order has been shipped.
+        // Build the message based on status
+        let message = '';
 
-🆔 Order: ${orderId}
+        if (status === 'shipped') {
+            // Shipped status with tracking details
+            message = `${config.emoji} ${config.title}
+
+Hi ${customerName}! ${config.message}
+
+🆔 Order: #${orderId.slice(-8).toUpperCase()}
 🚚 Carrier: ${carrier}
 📋 Tracking #: ${trackingNumber}
 
 🛍️ Items:
 ${itemsList}
 
-💰 Total: ₱${total.toLocaleString()}
+💰 Total: ₱${(total || 0).toLocaleString()}
 ${notes ? `\n📝 Note: ${notes}` : ''}
 
 Track your package using the tracking number above or tap the button below.`;
+        } else if (status === 'cancelled') {
+            // Cancelled status - simpler message
+            message = `${config.emoji} ${config.title}
+
+Hi ${customerName}, ${config.message}
+
+🆔 Order: #${orderId.slice(-8).toUpperCase()}
+
+🛍️ Items:
+${itemsList}
+
+💰 Amount: ₱${(total || 0).toLocaleString()}
+
+If you need assistance, please don't hesitate to reach out.`;
+        } else {
+            // Confirmed or Delivered status
+            message = `${config.emoji} ${config.title}
+
+Hi ${customerName}! ${config.message}
+
+🆔 Order: #${orderId.slice(-8).toUpperCase()}
+
+🛍️ Items:
+${itemsList}
+
+💰 Total: ₱${(total || 0).toLocaleString()}
+
+${status === 'confirmed' ? 'We will notify you once your order is shipped.' : 'Thank you for shopping with us! 💝'}`;
+        }
 
         // Send message with button template
         const messagePayload = {
@@ -111,8 +189,8 @@ Track your package using the tracking number above or tap the button below.`;
                         buttons: [
                             {
                                 type: 'web_url',
-                                url: internalTrackingUrl,
-                                title: '📍 Track Order',
+                                url: orderUrl,
+                                title: config.buttonTitle,
                                 webview_height_ratio: 'full',
                                 messenger_extensions: false
                             }
@@ -122,7 +200,7 @@ Track your package using the tracking number above or tap the button below.`;
             }
         };
 
-        console.log('[SendTracking] Sending to Messenger...');
+        console.log('[SendOrderNotification] Sending to Messenger...');
 
         const fbResponse = await fetch(
             `https://graph.facebook.com/v18.0/me/messages?access_token=${pageAccessToken}`,
@@ -136,17 +214,16 @@ Track your package using the tracking number above or tap the button below.`;
         const fbResult = await fbResponse.json();
 
         if (!fbResponse.ok) {
-            console.error('[SendTracking] Facebook API error:', fbResult);
+            console.error('[SendOrderNotification] Facebook API error:', fbResult);
             return res.status(500).json({
                 error: 'Failed to send message',
                 details: fbResult.error?.message || 'Unknown error'
             });
         }
 
-        console.log('[SendTracking] ✓ Message sent:', fbResult.message_id);
+        console.log('[SendOrderNotification] ✓ Message sent:', fbResult.message_id);
 
-        // Update the order with tracking info - first get current metadata
-        console.log('[SendTracking] Updating order with tracking info...');
+        // Update the order metadata with notification info
         const { data: existingOrder, error: fetchError } = await supabase
             .from('orders')
             .select('metadata')
@@ -154,49 +231,55 @@ Track your package using the tracking number above or tap the button below.`;
             .single();
 
         if (fetchError) {
-            console.error('[SendTracking] Failed to fetch order:', fetchError.message);
+            console.error('[SendOrderNotification] Failed to fetch order:', fetchError.message);
         }
 
         const updatedMetadata = {
             ...(existingOrder?.metadata || {}),
-            tracking: {
-                carrier,
-                trackingNumber,
-                trackingUrl: trackingUrl || null, // Save the actual carrier URL (or null)
-                notes,
-                notifiedAt: new Date().toISOString()
+            notifications: {
+                ...(existingOrder?.metadata?.notifications || {}),
+                [status]: {
+                    sentAt: new Date().toISOString(),
+                    messageId: fbResult.message_id
+                }
             }
         };
 
-        console.log('[SendTracking] Saving tracking metadata:', JSON.stringify(updatedMetadata.tracking));
+        // For shipped status, also save tracking info
+        if (status === 'shipped') {
+            updatedMetadata.tracking = {
+                carrier,
+                trackingNumber,
+                trackingUrl: trackingUrl || null,
+                notes,
+                notifiedAt: new Date().toISOString()
+            };
+        }
 
         const { error: updateError } = await supabase
             .from('orders')
             .update({
                 metadata: updatedMetadata,
-                status: 'shipped',
                 updated_at: new Date().toISOString()
             })
             .eq('id', orderId);
 
         if (updateError) {
-            console.error('[SendTracking] Failed to update order:', updateError.message);
+            console.error('[SendOrderNotification] Failed to update order:', updateError.message);
         } else {
-            console.log('[SendTracking] ✓ Order metadata updated with tracking info');
+            console.log('[SendOrderNotification] ✓ Order metadata updated');
         }
-
-        console.log('[SendTracking] ✓ Order updated with tracking info');
 
         return res.status(200).json({
             success: true,
             messageId: fbResult.message_id,
             orderId,
-            carrier,
-            trackingNumber
+            status,
+            ...(status === 'shipped' ? { carrier, trackingNumber } : {})
         });
 
     } catch (error: any) {
-        console.error('[SendTracking] Error:', error);
+        console.error('[SendOrderNotification] Error:', error);
         return res.status(500).json({
             error: 'Internal server error',
             message: error.message
