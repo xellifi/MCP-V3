@@ -180,6 +180,8 @@ ${status === 'confirmed' ? 'We will notify you once your order is shipped.' : 'T
         // Send message with button template
         const messagePayload = {
             recipient: { id: subscriberId },
+            messaging_type: 'MESSAGE_TAG',
+            tag: 'POST_PURCHASE_UPDATE',
             message: {
                 attachment: {
                     type: 'template',
