@@ -594,7 +594,7 @@ function renderInvoice(data: InvoiceData): string {
 <body>
     <div class="container">
         <div class="download-section">
-            <a href="/api/views/handler?type=track&id=${data.submissionId}&company=${encodeURIComponent(data.company)}&logo=${encodeURIComponent(data.logo)}&color=${encodeURIComponent(data.color)}" class="track-btn">
+            <a href="/track/${data.submissionId}?company=${encodeURIComponent(data.company)}&logo=${encodeURIComponent(data.logo)}&color=${encodeURIComponent(data.color)}" class="track-btn">
                 <span class="icon">📦</span>
                 <span>Track Order</span>
             </a>
