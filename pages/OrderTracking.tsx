@@ -381,25 +381,25 @@ const OrderTracking: React.FC = () => {
                                 </div>
                             )}
 
-                            {/* Detailed Timeline (Mock for now, could be improved with real data) */}
+                            {/* Detailed Timeline - Order Activity */}
                             <div>
-                                <h3 className="text-lg font-bold text-slate-800 mb-4">Shipment Activity</h3>
+                                <h3 className="text-lg font-bold text-slate-800 mb-4">Order Activity</h3>
                                 <div className="space-y-6">
-                                    {/* Current Status */}
+                                    {/* Current Status - use currentStep-1 because array is 0-indexed but steps are 1-indexed */}
                                     <div className="flex gap-4">
                                         <div className="flex flex-col items-center">
                                             <div className="w-3 h-3 rounded-full bg-indigo-500 ring-4 ring-indigo-50"></div>
                                             <div className="w-0.5 h-full bg-slate-100 mt-2"></div>
                                         </div>
                                         <div className="pb-6">
-                                            <p className="text-sm font-bold text-slate-800">{statuses[currentStep].label}</p>
-                                            <p className="text-sm text-slate-500 mt-0.5">{statuses[currentStep].description}</p>
+                                            <p className="text-sm font-bold text-slate-800">{statuses[currentStep - 1]?.label || 'Processing'}</p>
+                                            <p className="text-sm text-slate-500 mt-0.5">{statuses[currentStep - 1]?.description || 'Order is being processed'}</p>
                                             <p className="text-xs text-slate-400 mt-1">{new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric' })}</p>
                                         </div>
                                     </div>
 
-                                    {/* Previous Statuses */}
-                                    {statuses.slice(0, currentStep).reverse().map((status) => (
+                                    {/* Previous Statuses - slice from 0 to currentStep-1 to get completed steps */}
+                                    {currentStep > 1 && statuses.slice(0, currentStep - 1).reverse().map((status) => (
                                         <div key={status.id} className="flex gap-4 opacity-70">
                                             <div className="flex flex-col items-center">
                                                 <div className="w-2 h-2 rounded-full bg-slate-300"></div>
