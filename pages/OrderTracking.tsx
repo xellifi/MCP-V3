@@ -208,7 +208,7 @@ const OrderTracking: React.FC = () => {
                     </div>
 
                     {/* Status Hero Section */}
-                    <div className={`p-6 md:p-8 ${currentStep === 4 ? 'bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50' : 'bg-slate-50/50'}`}>
+                    <div className={`p-6 md:p-8 ${currentStep === 4 ? 'bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50' : currentStep === 0 ? 'bg-gradient-to-br from-rose-50 via-red-50 to-orange-50' : 'bg-slate-50/50'}`}>
                         {/* Delivered Celebration */}
                         {currentStep === 4 ? (
                             <div className="text-center py-6 relative overflow-hidden">
@@ -273,11 +273,27 @@ const OrderTracking: React.FC = () => {
                                     </p>
                                 </div>
                             </div>
+                        ) : currentStep === 0 ? (
+                            /* Cancelled Order View */
+                            <div className="text-center py-8">
+                                <div className="w-24 h-24 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm">
+                                    <span className="text-5xl">🚫</span>
+                                </div>
+                                <h2 className="text-3xl md:text-4xl font-bold text-red-800 mb-3">
+                                    Order Cancelled
+                                </h2>
+                                <p className="text-red-600 text-lg mb-6 max-w-md mx-auto">
+                                    This order has been cancelled. If you have any questions, please contact our support team.
+                                </p>
+                                <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/60 rounded-full border border-red-100 text-red-700 text-sm font-medium">
+                                    <span>Status updated: {formatDate(new Date())}</span>
+                                </div>
+                            </div>
                         ) : (
                             /* Normal Status Display */
                             <div className="mb-8">
                                 <h2 className="text-2xl md:text-3xl font-bold text-slate-800 mb-2">
-                                    {currentStep === 0 ? 'Order Cancelled' : `Arriving ${formatDate(estimatedDelivery)}`}
+                                    {`Arriving ${formatDate(estimatedDelivery)}`}
                                 </h2>
                                 <p className="text-slate-500">
                                     {statuses[currentStep > 0 ? currentStep - 1 : 0].description}
@@ -285,72 +301,78 @@ const OrderTracking: React.FC = () => {
                             </div>
                         )}
 
-                        {/* Horizontal Stepper (Desktop) */}
-                        <div className="hidden md:block">
-                            <div className="relative flex justify-between items-center w-full">
-                                {/* Connecting Line */}
-                                <div className="absolute top-1/2 left-0 w-full h-1 bg-slate-200 -z-10 -translate-y-1/2 rounded-full"></div>
-                                <div
-                                    className="absolute top-1/2 left-0 h-1 bg-green-500 -z-10 -translate-y-1/2 rounded-full transition-all duration-700"
-                                    style={{ width: `${((currentStep - 1) / (statuses.length - 1)) * 100}%` }}
-                                ></div>
-
-                                {statuses.map((status, index) => {
-                                    // Logic: 
-                                    // 0-indexed index vs 1-indexed currentStep
-                                    // If currentStep is 3 (Shipped), index 2 (Shipped) should be ACTIVE (Blue)
-                                    // Index 0, 1 should be COMPLETED (Green)
-
-                                    const isCompleted = currentStep > (index + 1);
-                                    const isActive = currentStep === (index + 1);
-
-                                    return (
-                                        <div key={status.id} className="flex flex-col items-center gap-3 bg-slate-50/50 px-2">
-                                            <div
-                                                className={`w-10 h-10 rounded-full flex items-center justify-center text-lg transition-all duration-300 ${isCompleted
-                                                    ? 'bg-green-500 text-white shadow-lg shadow-green-200 scale-110'
-                                                    : isActive
-                                                        ? 'bg-white border-4 border-indigo-500 text-indigo-600 shadow-lg scale-110'
-                                                        : 'bg-white border-4 border-slate-200 text-slate-300'
-                                                    }`}
-                                            >
-                                                {isCompleted ? '✓' : index + 1}
-                                            </div>
-                                            <div className="text-center">
-                                                <p className={`text-sm font-bold ${isCompleted || isActive ? 'text-slate-800' : 'text-slate-400'}`}>{status.label}</p>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        </div>
-
-                        {/* Vertical Stepper (Mobile) */}
-                        <div className="md:hidden space-y-6 pl-4 border-l-2 border-slate-200 ml-2">
-                            {statuses.map((status, index) => {
-                                const isCompleted = currentStep > (index + 1);
-                                const isActive = currentStep === (index + 1);
-
-                                return (
-                                    <div key={status.id} className="relative pl-6">
+                        {/* Stepper only for active orders */}
+                        {currentStep !== 0 && (
+                            <>
+                                {/* Horizontal Stepper (Desktop) */}
+                                <div className="hidden md:block">
+                                    <div className="relative flex justify-between items-center w-full">
+                                        {/* Connecting Line */}
+                                        <div className="absolute top-1/2 left-0 w-full h-1 bg-slate-200 -z-10 -translate-y-1/2 rounded-full"></div>
                                         <div
-                                            className={`absolute -left-[21px] top-0 w-10 h-10 rounded-full flex items-center justify-center text-sm border-4 transition-colors ${isCompleted
-                                                ? 'bg-green-500 border-white text-white'
-                                                : isActive
-                                                    ? 'bg-white border-indigo-500 text-indigo-600'
-                                                    : 'bg-white border-slate-200 text-slate-300'
-                                                }`}
-                                        >
-                                            {isCompleted ? '✓' : index + 1}
-                                        </div>
-                                        <div>
-                                            <p className={`text-sm font-bold ${isCompleted || isActive ? 'text-slate-800' : 'text-slate-400'}`}>{status.label}</p>
-                                            {isActive && <p className="text-xs text-slate-500 mt-1">{status.description}</p>}
-                                        </div>
+                                            className="absolute top-1/2 left-0 h-1 bg-green-500 -z-10 -translate-y-1/2 rounded-full transition-all duration-700"
+                                            style={{ width: `${((currentStep - 1) / (statuses.length - 1)) * 100}%` }}
+                                        ></div>
+
+                                        {statuses.map((status, index) => {
+                                            // Logic: 
+                                            // 0-indexed index vs 1-indexed currentStep
+                                            // If currentStep is 3 (Shipped), index 2 (Shipped) should be ACTIVE (Blue)
+                                            // Index 0, 1 should be COMPLETED (Green)
+
+                                            const isCompleted = currentStep > (index + 1);
+                                            const isActive = currentStep === (index + 1);
+
+                                            return (
+                                                <div key={status.id} className="flex flex-col items-center gap-3 bg-slate-50/50 px-2">
+                                                    <div
+                                                        className={`w-10 h-10 rounded-full flex items-center justify-center text-lg transition-all duration-300 ${isCompleted
+                                                            ? 'bg-green-500 text-white shadow-lg shadow-green-200 scale-110'
+                                                            : isActive
+                                                                ? 'bg-white border-4 border-indigo-500 text-indigo-600 shadow-lg scale-110'
+                                                                : 'bg-white border-4 border-slate-200 text-slate-300'
+                                                            }`}
+                                                    >
+                                                        {isCompleted ? '✓' : index + 1}
+                                                    </div>
+                                                    <div className="text-center">
+                                                        <p className={`text-sm font-bold ${isCompleted || isActive ? 'text-slate-800' : 'text-slate-400'}`}>{status.label}</p>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
                                     </div>
-                                );
-                            })}
-                        </div>
+                                </div>
+
+                                {/* Vertical Stepper (Mobile) */}
+                                <div className="md:hidden space-y-6 pl-4 border-l-2 border-slate-200 ml-2">
+                                    {statuses.map((status, index) => {
+                                        const isCompleted = currentStep > (index + 1);
+                                        const isActive = currentStep === (index + 1);
+
+                                        return (
+                                            <div key={status.id} className="relative pl-6">
+                                                <div
+                                                    className={`absolute -left-[21px] top-0 w-10 h-10 rounded-full flex items-center justify-center text-sm border-4 transition-colors ${isCompleted
+                                                        ? 'bg-green-500 border-white text-white'
+                                                        : isActive
+                                                            ? 'bg-white border-indigo-500 text-indigo-600'
+                                                            : 'bg-white border-slate-200 text-slate-300'
+                                                        }`}
+                                                >
+                                                    {isCompleted ? '✓' : index + 1}
+                                                </div>
+                                                <div>
+                                                    <p className={`text-sm font-bold ${isCompleted || isActive ? 'text-slate-800' : 'text-slate-400'}`}>{status.label}</p>
+                                                    {isActive && <p className="text-xs text-slate-500 mt-1">{status.description}</p>}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </>
+                        )}
+
                     </div>
 
                     {/* Content Grid */}
@@ -406,8 +428,12 @@ const OrderTracking: React.FC = () => {
                                             <div className="w-0.5 h-full bg-slate-100 mt-2"></div>
                                         </div>
                                         <div className="pb-6">
-                                            <p className="text-sm font-bold text-slate-800">{statuses[currentStep - 1]?.label || 'Processing'}</p>
-                                            <p className="text-sm text-slate-500 mt-0.5">{statuses[currentStep - 1]?.description || 'Order is being processed'}</p>
+                                            <p className="text-sm font-bold text-slate-800">
+                                                {currentStep === 0 ? 'Cancelled' : (statuses[currentStep - 1]?.label || 'Processing')}
+                                            </p>
+                                            <p className="text-sm text-slate-500 mt-0.5">
+                                                {currentStep === 0 ? 'Order has been cancelled' : (statuses[currentStep - 1]?.description || 'Order is being processed')}
+                                            </p>
                                             <p className="text-xs text-slate-400 mt-1">{new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric' })}</p>
                                         </div>
                                     </div>
