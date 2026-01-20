@@ -68,6 +68,8 @@ const CheckoutPreview = lazy(() => import('./pages/CheckoutPreview'));
 
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
+  // Check if we're in the middle of a verification redirect
+  const isVerificationRedirect = sessionStorage.getItem('verificationRedirect') === 'true';
   const [loading, setLoading] = useState(true);
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [currentWorkspace, setCurrentWorkspace] = useState<Workspace | null>(null);
@@ -107,13 +109,13 @@ const App: React.FC = () => {
             console.log('Email verification synced to profiles table');
           }
 
-          // Store flag for toast notification
+          // Store flags for redirect
           sessionStorage.setItem('emailJustVerified', 'true');
-          // Clear the hash from URL first (to prevent re-triggering on reload)
+          sessionStorage.setItem('verificationRedirect', 'true');
+          // Replace URL and redirect
           window.history.replaceState(null, '', '/dashboard');
-          // Redirect to dashboard immediately - keep loading true so no flash
           window.location.replace('/dashboard');
-          return; // Stop further processing, don't set loading to false
+          return; // Stop further processing
         }
 
         const existingUser = await api.auth.getSession();
@@ -135,8 +137,11 @@ const App: React.FC = () => {
             }
           }
         }
+        // Clear verification redirect flag once session is established
+        sessionStorage.removeItem('verificationRedirect');
       } catch (error) {
         console.error('Session check failed:', error);
+        sessionStorage.removeItem('verificationRedirect');
       } finally {
         setLoading(false);
         isInitialLoad = false;
@@ -288,7 +293,8 @@ const App: React.FC = () => {
     }
   };
 
-  if (loading) {
+  // Show loading during initial load OR during verification redirect
+  if (loading || isVerificationRedirect) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-950">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
