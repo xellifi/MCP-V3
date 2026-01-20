@@ -294,19 +294,20 @@ export const api = {
           // Don't fail registration if subscription creation fails
         }
 
-        // Create a default workspace for the new user
+        // Create a default workspace for the new user using RPC (bypasses RLS)
         try {
-          const { error: wsError } = await supabase
-            .from('workspaces')
-            .insert({
-              name: `${name}'s Workspace`,
-              owner_id: data.user.id
+          const { data: wsResult, error: wsError } = await supabase
+            .rpc('ensure_user_workspace', {
+              p_user_id: data.user.id,
+              p_user_name: name
             });
 
           if (wsError) {
-            console.error('Failed to create workspace:', wsError);
+            console.error('Failed to create workspace via RPC:', wsError);
+          } else if (wsResult?.success) {
+            console.log('Created default workspace for user:', data.user.id, wsResult.workspace_id);
           } else {
-            console.log('Created default workspace for user:', data.user.id);
+            console.error('Workspace creation failed:', wsResult?.error);
           }
         } catch (wsError) {
           console.error('Failed to create workspace:', wsError);
