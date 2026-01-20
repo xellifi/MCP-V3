@@ -457,44 +457,36 @@ const ProductWebviewNodeForm: React.FC<ProductWebviewNodeFormProps> = ({
         </div>
     );
 
-    // ================== PREVIEW (DEVICE MOCKUP) ==================
+    // ================== PREVIEW (DEVICE MOCKUP) - NEW E-COMMERCE DESIGN ==================
     const deviceSizes = {
-        mobile: { width: 280, height: 480, radius: 40, notch: true },
-        tablet: { width: 340, height: 440, radius: 24, notch: false },
-        desktop: { width: 480, height: 280, radius: 8, notch: false }
+        mobile: { width: 280, height: 520, radius: 40, notch: true },
+        tablet: { width: 380, height: 420, radius: 24, notch: false },
+        desktop: { width: 480, height: 300, radius: 8, notch: false }
     };
 
     const DevicePreview = () => {
         const size = deviceSizes[previewDevice];
-        // Scale factors for different devices - desktop is much smaller to fit
-        const getImageSize = () => {
-            const base = previewDevice === 'desktop' ? 70 : previewDevice === 'tablet' ? 160 : 140;
-            return base * (imagePreviewSize / 100);
+        const isMobile = previewDevice === 'mobile';
+        const isDesktop = previewDevice === 'desktop';
+        const isTablet = previewDevice === 'tablet';
+
+        // Scale factors for different devices
+        const getPriceFontSize = () => {
+            if (isDesktop) return 'text-base';
+            if (isTablet) return 'text-xl';
+            return 'text-lg';
         };
-        const getFontSize = () => {
-            return previewDevice === 'desktop' ? 'text-[8px]' : previewDevice === 'tablet' ? 'text-base' : 'text-sm';
-        };
-        const getDescFontSize = () => {
-            return previewDevice === 'desktop' ? 'text-[7px]' : 'text-xs';
-        };
+
         const getButtonPadding = () => {
-            return previewDevice === 'desktop' ? 'py-1 text-[7px]' : 'py-2 text-xs';
+            if (isDesktop) return 'py-1.5 text-[9px]';
+            if (isTablet) return 'py-2.5 text-sm';
+            return 'py-2 text-xs';
         };
-        const getPriceBadgeSize = () => {
-            return previewDevice === 'desktop' ? 'w-6 h-6 text-[6px]' : 'w-12 h-12 text-xs';
-        };
-        const getContentPadding = () => {
-            return previewDevice === 'desktop' ? 'p-1' : 'p-2';
-        };
-        const getCardPadding = () => {
-            return previewDevice === 'desktop' ? 'p-1.5' : 'p-3';
-        };
-        // Desktop has white background, others have dark
-        const getScreenBg = () => {
-            return previewDevice === 'desktop' ? 'bg-white' : 'bg-slate-50';
-        };
+
+        const getScreenBg = () => 'bg-slate-50';
+
         const getStatusBarStyle = () => {
-            return previewDevice === 'desktop'
+            return isDesktop
                 ? 'text-slate-500 bg-slate-100 border-b border-slate-200'
                 : 'text-slate-900';
         };
@@ -502,8 +494,7 @@ const ProductWebviewNodeForm: React.FC<ProductWebviewNodeFormProps> = ({
         // Helper for countdown background gradient
         const getCountdownBackground = () => {
             if (!countdownShowBg) return 'transparent';
-            const hex = countdownBgColor || '#ec4899';
-            // Create gradient from selected color to darker shade
+            const hex = countdownBgColor || '#6366f1';
             const num = parseInt(hex.replace('#', ''), 16);
             const amt = Math.round(2.55 * -30);
             const R = Math.max(0, Math.min(255, (num >> 16) + amt));
@@ -513,10 +504,52 @@ const ProductWebviewNodeForm: React.FC<ProductWebviewNodeFormProps> = ({
             return `linear-gradient(135deg, ${hex} 0%, ${darkerColor} 100%)`;
         };
 
-        // Helper for countdown font size in preview
-        const getCountdownFontSize = () => {
-            const size = countdownFontSize || 18;
-            return previewDevice === 'desktop' ? size / 3 : size / 2;
+        // Star Rating Component for preview
+        const StarRating = () => (
+            <div className="flex items-center gap-0.5">
+                {[1, 2, 3, 4, 5].map((i) => (
+                    <svg
+                        key={i}
+                        className={`${isDesktop ? 'w-2.5 h-2.5' : 'w-3 h-3'} ${i <= 4 ? 'text-amber-400 fill-amber-400' : 'text-gray-300'}`}
+                        viewBox="0 0 24 24"
+                        fill="currentColor"
+                    >
+                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                    </svg>
+                ))}
+            </div>
+        );
+
+        // Countdown Timer for new design
+        const CountdownTimer = () => {
+            if (!showCountdown) return null;
+            const fontSize = isDesktop ? 8 : isTablet ? 12 : 10;
+
+            return (
+                <div
+                    className={`${isDesktop ? 'py-1.5 px-2' : 'py-2 px-3'} rounded-lg my-2`}
+                    style={{
+                        background: getCountdownBackground(),
+                    }}
+                >
+                    <div className="flex items-center justify-center gap-1">
+                        <span style={{ color: countdownTextColor || '#fff', fontSize: `${fontSize * 0.7}px` }}>⚡</span>
+                        <span className="font-bold uppercase tracking-wider" style={{ color: countdownTextColor || '#fff', fontSize: `${fontSize * 0.7}px` }}>
+                            Limited Time
+                        </span>
+                    </div>
+                    <div className="flex items-center justify-center gap-1 mt-1">
+                        {[countdownMinutes, '00', '00'].map((val, i) => (
+                            <React.Fragment key={i}>
+                                <span className="font-mono font-bold bg-white/20 rounded px-1" style={{ color: countdownTextColor || '#fff', fontSize: `${fontSize}px` }}>
+                                    {String(val).padStart(2, '0')}
+                                </span>
+                                {i < 2 && <span className="font-bold" style={{ color: countdownTextColor || '#fff', fontSize: `${fontSize}px` }}>:</span>}
+                            </React.Fragment>
+                        ))}
+                    </div>
+                </div>
+            );
         };
 
         return (
@@ -524,7 +557,7 @@ const ProductWebviewNodeForm: React.FC<ProductWebviewNodeFormProps> = ({
                 <div className="relative" style={{ width: size.width, height: size.height }}>
                     {/* Device Frame */}
                     <div
-                        className={`w-full h-full shadow-2xl border-4 flex flex-col ${previewDevice === 'desktop' ? 'bg-slate-200 border-slate-400' : 'bg-white border-slate-200'}`}
+                        className={`w-full h-full shadow-2xl border-4 flex flex-col ${isDesktop ? 'bg-slate-200 border-slate-400' : 'bg-white border-slate-200'}`}
                         style={{ borderRadius: size.radius }}
                     >
                         {/* Notch (mobile only) */}
@@ -538,7 +571,7 @@ const ProductWebviewNodeForm: React.FC<ProductWebviewNodeFormProps> = ({
                         >
                             {/* Status bar / Browser bar */}
                             <div className={`h-5 flex-shrink-0 flex items-center justify-between px-3 text-[9px] ${getStatusBarStyle()}`}>
-                                {previewDevice === 'desktop' ? (
+                                {isDesktop ? (
                                     <>
                                         <div className="flex items-center gap-1">
                                             <div className="w-2 h-2 rounded-full bg-red-400"></div>
@@ -555,236 +588,125 @@ const ProductWebviewNodeForm: React.FC<ProductWebviewNodeFormProps> = ({
                                     </>
                                 )}
                             </div>
-                            {/* Content - Page background with card container */}
-                            <div className="flex-1 overflow-y-auto flex items-center justify-center p-2" style={{ backgroundColor: pageBackgroundColor }}>
-                                {/* Card Container - centered with margins */}
+
+
+
+                            {/* Content Area */}
+                            <div className="flex-1 overflow-y-auto flex items-center justify-center p-2" style={{ backgroundColor: pageBackgroundColor || '#f8fafc' }}>
+                                {/* Main Card - Vertical on mobile, horizontal on tablet/desktop */}
                                 <div
-                                    className={`${previewDevice === 'desktop' ? 'w-36 mx-4' : 'mx-3 w-full'} rounded-xl overflow-hidden shadow-lg`}
-                                    style={{ backgroundColor }}
+                                    className="w-full mx-2 rounded-xl overflow-hidden shadow-lg bg-white"
+                                    style={{
+                                        boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)',
+                                    }}
                                 >
-                                    {/* Headline Banner */}
-                                    <div
-                                        className={`${previewDevice === 'desktop' ? 'py-1 px-1.5' : 'py-2 px-3'} text-center`}
-                                        style={{ backgroundColor: headlineBgColor }}
-                                    >
-                                        <div
-                                            className={`font-bold uppercase tracking-wide flex items-center justify-center gap-0.5 ${getFontSize()} ${headlineAnimation === 'blink' ? 'animate-pulse' : headlineAnimation === 'shake' ? 'animate-bounce' : ''}`}
-                                            style={{ color: headlineColor }}
-                                        >
-                                            {showEmoji && emojiType !== 'none' && <span className={previewDevice === 'desktop' ? 'text-[6px]' : 'text-xs'}>{getEmoji()}</span>}
-                                            <span>{headline || 'ADD THIS TO YOUR CART?'}</span>
-                                            {showEmoji && emojiType !== 'none' && <span className={previewDevice === 'desktop' ? 'text-[6px]' : 'text-xs'}>{getEmoji()}</span>}
-                                        </div>
-                                    </div>
-
-                                    {/* Countdown Timer - Above Position - Dynamic Style */}
-                                    {showCountdown && countdownPosition === 'above' && (
-                                        <div
-                                            className={`${countdownFullWidth ? '-mx-3 px-3' : 'mx-2'} my-1 ${previewDevice === 'desktop' ? 'py-1 px-2' : 'py-2 px-3'}`}
-                                            style={{
-                                                background: getCountdownBackground(),
-                                                borderRadius: countdownFullWidth ? '0px' : `${countdownBorderRadius}px`
-                                            }}
-                                        >
-                                            <div className="text-center">
-                                                <span
-                                                    className="font-bold uppercase tracking-wider"
-                                                    style={{ color: countdownTextColor, fontSize: `${getCountdownFontSize() / 2}px` }}
-                                                >
-                                                    ⚡ Limited Time
-                                                </span>
-                                            </div>
-                                            <div className="flex items-center justify-center gap-1 mt-0.5">
-                                                <span
-                                                    className="font-mono font-bold bg-white/20 rounded px-1"
-                                                    style={{ color: countdownTextColor, fontSize: `${getCountdownFontSize()}px` }}
-                                                >
-                                                    {String(countdownMinutes).padStart(2, '0')}
-                                                </span>
-                                                <span className="font-bold" style={{ color: countdownTextColor, fontSize: `${getCountdownFontSize()}px` }}>:</span>
-                                                <span
-                                                    className="font-mono font-bold bg-white/20 rounded px-1"
-                                                    style={{ color: countdownTextColor, fontSize: `${getCountdownFontSize()}px` }}
-                                                >
-                                                    00
-                                                </span>
-                                                <span className="font-bold" style={{ color: countdownTextColor, fontSize: `${getCountdownFontSize()}px` }}>:</span>
-                                                <span
-                                                    className="font-mono font-bold bg-white/20 rounded px-1"
-                                                    style={{ color: countdownTextColor, fontSize: `${getCountdownFontSize()}px` }}
-                                                >
-                                                    00
-                                                </span>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* Card Body */}
-                                    <div className={`${getCardPadding()}`}>
-                                        {/* Image with Price Badge */}
-                                        <div className={`text-center ${previewDevice === 'desktop' ? 'mb-1' : 'mb-2'}`}>
-                                            <div className="inline-block relative" style={{ overflow: 'visible' }}>
-                                                <div
-                                                    className="overflow-hidden aspect-square bg-white"
-                                                    style={{
-                                                        borderRadius: `${imageBorderRadius}px`,
-                                                        border: `${previewDevice === 'desktop' ? 2 : Math.max(imageBorderWidth - 1, 2)}px solid ${imageBorderColor}`,
-                                                        width: `${getImageSize()}px`,
-                                                    }}
-                                                >
-                                                    {imageUrl ? (
-                                                        <img src={imageUrl} alt="Product" className="w-full h-full object-cover" />
-                                                    ) : (
-                                                        <div className="w-full h-full bg-slate-200 flex items-center justify-center">
-                                                            <Image className={previewDevice === 'desktop' ? 'w-4 h-4 text-slate-400' : 'w-6 h-6 text-slate-400'} />
-                                                        </div>
-                                                    )}
-                                                </div>
-                                                {/* Circular Price Badge - Positioned at corner */}
-                                                {price && (
-                                                    <div
-                                                        className="absolute rounded-full font-bold shadow-xl flex items-center justify-center z-20"
-                                                        style={{
-                                                            backgroundColor: priceBadgeColor,
-                                                            color: priceTextColor,
-                                                            width: `${previewDevice === 'desktop' ? priceBadgeSize / 3 : priceBadgeSize / 2}px`,
-                                                            height: `${previewDevice === 'desktop' ? priceBadgeSize / 3 : priceBadgeSize / 2}px`,
-                                                            fontSize: `${previewDevice === 'desktop' ? 6 : 8}px`,
-                                                            top: `${previewDevice === 'desktop' ? -(priceBadgeSize / 6) : -(priceBadgeSize / 4)}px`,
-                                                            right: `${previewDevice === 'desktop' ? -(priceBadgeSize / 6) : -(priceBadgeSize / 4)}px`,
-                                                        }}
-                                                    >
-                                                        {price}
+                                    <div className={`flex ${isMobile ? 'flex-col' : 'flex-row'}`}>
+                                        {/* Left/Top Column - Image */}
+                                        <div className={`${isMobile ? 'w-full' : 'w-1/2'} ${isDesktop ? 'p-2' : 'p-2'} bg-slate-50/50`}>
+                                            {/* Main Image - smaller on mobile */}
+                                            <div
+                                                className={`${isMobile ? 'max-w-[140px] mx-auto' : 'w-full'} aspect-square rounded-xl overflow-hidden bg-gradient-to-br from-amber-50 to-orange-50`}
+                                                style={{
+                                                    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
+                                                }}
+                                            >
+                                                {imageUrl ? (
+                                                    <img src={imageUrl} alt="Product" className="w-full h-full object-cover" />
+                                                ) : (
+                                                    <div className="w-full h-full flex items-center justify-center">
+                                                        <Image className={`${isDesktop ? 'w-6 h-6' : 'w-8 h-8'} text-slate-300`} />
                                                     </div>
                                                 )}
                                             </div>
+
+                                            {/* Thumbnail Gallery (mock) - smaller on mobile */}
+                                            <div className={`flex gap-1 justify-center mt-1.5`}>
+                                                {[1, 2, 3, 4].map((i) => (
+                                                    <div
+                                                        key={i}
+                                                        className={`${isDesktop ? 'w-5 h-5' : isMobile ? 'w-6 h-6' : 'w-7 h-7'} rounded-md overflow-hidden ${i === 1 ? 'ring-1 ring-indigo-500 ring-offset-1' : 'opacity-60'}`}
+                                                    >
+                                                        {imageUrl ? (
+                                                            <img src={imageUrl} alt="" className="w-full h-full object-cover" />
+                                                        ) : (
+                                                            <div className="w-full h-full bg-slate-200" />
+                                                        )}
+                                                    </div>
+                                                ))}
+                                            </div>
                                         </div>
 
-                                        {/* Countdown Timer - Middle Position - Dynamic Style */}
-                                        {showCountdown && countdownPosition === 'middle' && (
-                                            <div
-                                                className={`${countdownFullWidth ? '-mx-3 px-3' : 'mx-2'} my-1 ${previewDevice === 'desktop' ? 'py-1 px-2' : 'py-2 px-3'}`}
-                                                style={{
-                                                    background: getCountdownBackground(),
-                                                    borderRadius: countdownFullWidth ? '0px' : `${countdownBorderRadius}px`
-                                                }}
-                                            >
-                                                <div className="text-center">
-                                                    <span
-                                                        className="font-bold uppercase tracking-wider"
-                                                        style={{ color: countdownTextColor, fontSize: `${getCountdownFontSize() / 2}px` }}
-                                                    >
-                                                        ⚡ Limited Time
-                                                    </span>
-                                                </div>
-                                                <div className="flex items-center justify-center gap-1 mt-0.5">
-                                                    <span
-                                                        className="font-mono font-bold bg-white/20 rounded px-1"
-                                                        style={{ color: countdownTextColor, fontSize: `${getCountdownFontSize()}px` }}
-                                                    >
-                                                        {String(countdownMinutes).padStart(2, '0')}
-                                                    </span>
-                                                    <span className="font-bold" style={{ color: countdownTextColor, fontSize: `${getCountdownFontSize()}px` }}>:</span>
-                                                    <span
-                                                        className="font-mono font-bold bg-white/20 rounded px-1"
-                                                        style={{ color: countdownTextColor, fontSize: `${getCountdownFontSize()}px` }}
-                                                    >
-                                                        00
-                                                    </span>
-                                                    <span className="font-bold" style={{ color: countdownTextColor, fontSize: `${getCountdownFontSize()}px` }}>:</span>
-                                                    <span
-                                                        className="font-mono font-bold bg-white/20 rounded px-1"
-                                                        style={{ color: countdownTextColor, fontSize: `${getCountdownFontSize()}px` }}
-                                                    >
-                                                        00
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        )}
+                                        {/* Right/Bottom Column - Product Details */}
+                                        <div className={`${isMobile ? 'w-full' : 'w-1/2'} ${isDesktop ? 'p-2' : 'p-2'} flex flex-col`}>
+                                            {/* Product Name */}
+                                            <h2 className={`font-bold text-slate-800 ${isDesktop ? 'text-[10px] mb-1' : 'text-sm mb-1.5'}`}>
+                                                {productName || headline || 'Product Name'}
+                                            </h2>
 
-                                        {/* Product Name Bar - With Border Radius and Full Width Options */}
-                                        {showProductName && (
-                                            <div
-                                                className={`${previewDevice === 'desktop' ? 'py-1 px-2 mb-1' : 'py-1.5 px-2 mb-2'} text-center ${productNameFullWidth ? '-mx-3 px-3' : 'mx-2 rounded-lg'}`}
-                                                style={{
-                                                    backgroundColor: productNameBgColor,
-                                                    borderRadius: productNameFullWidth ? '0px' : `${productNameBorderRadius}px`
-                                                }}
-                                            >
-                                                <div
-                                                    className="font-bold uppercase tracking-wide"
+                                            {/* Star Rating */}
+                                            <div className={`${isDesktop ? 'mb-1' : 'mb-1.5'}`}>
+                                                <StarRating />
+                                            </div>
+
+                                            {/* Price */}
+                                            <div className={`flex items-baseline gap-1.5 ${isDesktop ? 'mb-1.5' : 'mb-2'}`}>
+                                                <span className={`font-bold text-slate-900 ${getPriceFontSize()}`}>
+                                                    {price || '₱0'}
+                                                </span>
+                                                <span className={`text-slate-400 line-through ${isDesktop ? 'text-[8px]' : 'text-xs'}`}>
+                                                    ₱999
+                                                </span>
+                                            </div>
+
+                                            {/* Countdown Timer */}
+                                            {showCountdown && <CountdownTimer />}
+
+                                            {/* Quantity and Add to Cart */}
+                                            <div className={`flex items-center gap-2 ${isDesktop ? 'mb-1' : 'mb-2'}`}>
+                                                {/* Quantity Selector */}
+                                                {enableQuantitySelector && (
+                                                    <div className={`flex items-center border border-slate-200 rounded-lg overflow-hidden ${isDesktop ? 'h-5' : 'h-8'}`}>
+                                                        <div className={`${isDesktop ? 'w-4' : 'w-7'} h-full flex items-center justify-center text-slate-400`}>
+                                                            <Minus className={`${isDesktop ? 'w-2 h-2' : 'w-3 h-3'}`} />
+                                                        </div>
+                                                        <div className={`${isDesktop ? 'w-5' : 'w-8'} h-full flex items-center justify-center border-x border-slate-200`}>
+                                                            <span className={`font-semibold text-slate-700 ${isDesktop ? 'text-[7px]' : 'text-xs'}`}>1</span>
+                                                        </div>
+                                                        <div className={`${isDesktop ? 'w-4' : 'w-7'} h-full flex items-center justify-center text-slate-400`}>
+                                                            <Plus className={`${isDesktop ? 'w-2 h-2' : 'w-3 h-3'}`} />
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {/* Add to Cart Button */}
+                                                <button
+                                                    className={`flex-1 font-bold flex items-center justify-center gap-1 shadow-md rounded-lg text-white ${getButtonPadding()}`}
                                                     style={{
-                                                        color: productNameTextColor,
-                                                        fontSize: `${previewDevice === 'desktop' ? productNameFontSize / 2 : productNameFontSize * 0.7}px`
+                                                        background: buttonBgColor || 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
                                                     }}
                                                 >
-                                                    {productName || 'PRODUCT NAME'}
-                                                </div>
+                                                    <ShoppingBag className={`${isDesktop ? 'w-2.5 h-2.5' : 'w-3.5 h-3.5'}`} />
+                                                    <span>{buttonText || 'Add To Cart'}</span>
+                                                </button>
                                             </div>
-                                        )}
 
-                                        {/* Countdown Timer - Below Position - Dynamic Style */}
-                                        {showCountdown && countdownPosition === 'below' && (
-                                            <div
-                                                className={`${countdownFullWidth ? '-mx-3 px-3' : 'mx-2'} mb-2 ${previewDevice === 'desktop' ? 'py-1 px-2' : 'py-2 px-3'}`}
-                                                style={{
-                                                    background: getCountdownBackground(),
-                                                    borderRadius: countdownFullWidth ? '0px' : `${countdownBorderRadius}px`
-                                                }}
-                                            >
-                                                <div className="text-center">
-                                                    <span
-                                                        className="font-bold uppercase tracking-wider"
-                                                        style={{ color: countdownTextColor, fontSize: `${getCountdownFontSize() / 2}px` }}
-                                                    >
-                                                        ⚡ Limited Time
-                                                    </span>
-                                                </div>
-                                                <div className="flex items-center justify-center gap-1 mt-0.5">
-                                                    <span
-                                                        className="font-mono font-bold bg-white/20 rounded px-1"
-                                                        style={{ color: countdownTextColor, fontSize: `${getCountdownFontSize()}px` }}
-                                                    >
-                                                        {String(countdownMinutes).padStart(2, '0')}
-                                                    </span>
-                                                    <span className="font-bold" style={{ color: countdownTextColor, fontSize: `${getCountdownFontSize()}px` }}>:</span>
-                                                    <span
-                                                        className="font-mono font-bold bg-white/20 rounded px-1"
-                                                        style={{ color: countdownTextColor, fontSize: `${getCountdownFontSize()}px` }}
-                                                    >
-                                                        00
-                                                    </span>
-                                                    <span className="font-bold" style={{ color: countdownTextColor, fontSize: `${getCountdownFontSize()}px` }}>:</span>
-                                                    <span
-                                                        className="font-mono font-bold bg-white/20 rounded px-1"
-                                                        style={{ color: countdownTextColor, fontSize: `${getCountdownFontSize()}px` }}
-                                                    >
-                                                        00
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        )}
-
-                                        {/* Description */}
-                                        {description && (
-                                            <p className={`text-center ${previewDevice === 'desktop' ? 'mb-1' : 'mb-2'} ${getDescFontSize()} ${previewDevice === 'desktop' ? 'line-clamp-1' : ''}`} style={{ color: descriptionColor }}>
-                                                {description}
+                                            {/* Stock Remaining */}
+                                            <p className={`${isDesktop ? 'text-[7px]' : 'text-[10px]'} mb-1`}>
+                                                <span className="text-slate-500">Last </span>
+                                                <span className="text-indigo-600 font-semibold">4 Remaining</span>
                                             </p>
-                                        )}
 
-                                        {/* Action Button - Only Add to Cart */}
-                                        <div className={`${previewDevice === 'desktop' ? 'space-y-1' : 'space-y-1.5'}`}>
-                                            <button
-                                                className={`w-full font-bold flex items-center justify-center gap-1 shadow-md ${getButtonPadding()}`}
-                                                style={{ backgroundColor: buttonBgColor, color: buttonTextColor, borderRadius: `${buttonBorderRadius}px` }}
-                                            >
-                                                {showButtonIcon && <Check className={previewDevice === 'desktop' ? 'w-2.5 h-2.5' : 'w-3 h-3'} />}
-                                                {buttonText || 'Add to Cart'}
-                                            </button>
+                                            {/* Description */}
+                                            {description && (
+                                                <p className={`text-slate-500 ${isDesktop ? 'text-[7px] line-clamp-1' : 'text-[10px] line-clamp-2'}`}>
+                                                    {description}
+                                                </p>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
                             </div>
+
                             {/* Home indicator (mobile only) */}
                             {size.notch && (
                                 <div className="h-4 flex-shrink-0 flex items-center justify-center">

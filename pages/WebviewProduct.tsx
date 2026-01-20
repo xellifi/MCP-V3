@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
-import { ShoppingBag, Minus, Plus, Check, Sparkles } from 'lucide-react';
+import { ShoppingCart, Minus, Plus, Check, Sparkles, Star } from 'lucide-react';
 
 interface CartItem {
     productId?: string;
@@ -36,6 +36,7 @@ const WebviewProduct: React.FC = () => {
     const [countdown, setCountdown] = useState<number>(0);
     const [toast, setToast] = useState<{ message: string; visible: boolean }>({ message: '', visible: false });
     const [adding, setAdding] = useState(false);
+    const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
     const showToast = useCallback((message: string) => {
         setToast({ message, visible: true });
@@ -162,9 +163,8 @@ const WebviewProduct: React.FC = () => {
         const showBg = config.countdownShowBg ?? true;
         const bgColor = config.countdownBgColor || '#6366f1';
         const textColor = config.countdownTextColor || '#ffffff';
-        const fontSize = config.countdownFontSize || 24;
-        const borderRadius = config.countdownBorderRadius ?? 16;
-        const fullWidth = config.countdownFullWidth ?? false;
+        const fontSize = config.countdownFontSize || 20;
+        const borderRadius = config.countdownBorderRadius ?? 12;
 
         const hours = Math.floor(countdown / 3600);
         const minutes = Math.floor((countdown % 3600) / 60);
@@ -173,7 +173,7 @@ const WebviewProduct: React.FC = () => {
         const TimeBlock = ({ value, label }: { value: number; label: string }) => (
             <div className="flex flex-col items-center">
                 <div
-                    className="font-mono font-bold rounded-lg min-w-[55px] py-2 text-center shadow-lg"
+                    className="font-mono font-bold rounded-lg min-w-[45px] py-1.5 text-center shadow-md"
                     style={{
                         fontSize: `${fontSize}px`,
                         color: textColor,
@@ -184,8 +184,8 @@ const WebviewProduct: React.FC = () => {
                     {String(value).padStart(2, '0')}
                 </div>
                 <span
-                    className="uppercase tracking-wider mt-1.5 font-medium opacity-90"
-                    style={{ color: textColor, fontSize: `${Math.max(10, fontSize / 2.4)}px` }}
+                    className="uppercase tracking-wider mt-1 font-medium opacity-90"
+                    style={{ color: textColor, fontSize: `${Math.max(9, fontSize / 2.4)}px` }}
                 >
                     {label}
                 </span>
@@ -194,8 +194,8 @@ const WebviewProduct: React.FC = () => {
 
         const Separator = () => (
             <span
-                className="font-bold mx-1 self-start"
-                style={{ color: textColor, fontSize: `${fontSize}px`, marginTop: `${fontSize / 3}px` }}
+                className="font-bold mx-0.5 self-start"
+                style={{ color: textColor, fontSize: `${fontSize}px`, marginTop: `${fontSize / 4}px` }}
             >
                 :
             </span>
@@ -208,22 +208,22 @@ const WebviewProduct: React.FC = () => {
 
         return (
             <div
-                className={`py-4 px-6 my-3 ${fullWidth ? '-mx-6 px-6' : 'mx-4'}`}
+                className="py-3 px-4 my-3 rounded-xl"
                 style={{
                     background: getBackground(),
-                    borderRadius: fullWidth ? '0px' : `${borderRadius}px`,
+                    borderRadius: `${borderRadius}px`,
                 }}
             >
-                <div className="flex items-center justify-center gap-2 mb-3">
-                    <span style={{ color: textColor, fontSize: `${fontSize * 0.75}px` }}>⚡</span>
+                <div className="flex items-center justify-center gap-1.5 mb-2">
+                    <span style={{ color: textColor, fontSize: `${fontSize * 0.7}px` }}>⚡</span>
                     <span
                         className="font-bold uppercase tracking-widest"
-                        style={{ color: textColor, fontSize: `${Math.max(12, fontSize / 2)}px` }}
+                        style={{ color: textColor, fontSize: `${Math.max(10, fontSize / 2.2)}px` }}
                     >
                         Limited Time Offer
                     </span>
                 </div>
-                <div className="flex items-start justify-center gap-2">
+                <div className="flex items-start justify-center gap-1">
                     <TimeBlock value={hours} label="Hours" />
                     <Separator />
                     <TimeBlock value={minutes} label="Mins" />
@@ -234,9 +234,37 @@ const WebviewProduct: React.FC = () => {
         );
     };
 
+    // Star Rating Component
+    const StarRating = ({ rating = 4, maxRating = 5 }: { rating?: number; maxRating?: number }) => {
+        return (
+            <div className="flex items-center gap-0.5">
+                {Array.from({ length: maxRating }, (_, i) => (
+                    <Star
+                        key={i}
+                        className={`w-5 h-5 ${i < rating ? 'text-amber-400 fill-amber-400' : 'text-gray-300'}`}
+                    />
+                ))}
+            </div>
+        );
+    };
+
+    // Get product images for gallery
+    const getProductImages = () => {
+        const images: string[] = [];
+        if (config.imageUrl) images.push(config.imageUrl);
+        if (config.additionalImages && Array.isArray(config.additionalImages)) {
+            images.push(...config.additionalImages);
+        }
+        // If only one image, duplicate it for gallery effect
+        while (images.length > 0 && images.length < 4) {
+            images.push(images[0]);
+        }
+        return images;
+    };
+
     if (loading) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 flex items-center justify-center">
+            <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
                 <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
             </div>
         );
@@ -244,11 +272,11 @@ const WebviewProduct: React.FC = () => {
 
     if (error) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 flex items-center justify-center p-4">
+            <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center p-4">
                 <div className="text-center">
                     <div className="text-6xl mb-4">😕</div>
-                    <h1 className="text-xl font-bold text-white mb-2">Oops!</h1>
-                    <p className="text-slate-400">{error}</p>
+                    <h1 className="text-xl font-bold text-slate-800 mb-2">Oops!</h1>
+                    <p className="text-slate-500">{error}</p>
                 </div>
             </div>
         );
@@ -256,214 +284,217 @@ const WebviewProduct: React.FC = () => {
 
     if (!config) return null;
 
-    const emoji = config.showEmoji && config.emojiType !== 'none' ? EMOJI_MAP[config.emojiType] : '';
-    const bgColor = config.backgroundColor || '#ffffff';
-    const pageBgColor = config.pageBackgroundColor || bgColor;
-    const headlineBgColor = config.headlineBgColor || '#ea580c';
-    const priceBadgeSize = config.priceBadgeSize || 80;
+    const pageBgColor = config.pageBackgroundColor || '#f8fafc';
+    const productImages = getProductImages();
+    const currentImage = productImages[selectedImageIndex] || config.imageUrl;
 
-    // Headline animation style
-    const getHeadlineAnimationStyle = () => {
-        if (config.headlineAnimation === 'none') return {};
-        const speed = typeof config.headlineAnimationSpeed === 'number' ? config.headlineAnimationSpeed : 2;
-        const duration = `${1 / speed}s`;
-        return {
-            animation: config.headlineAnimation === 'blink'
-                ? `pulse ${duration} ease-in-out infinite`
-                : `bounce ${duration} ease-in-out infinite`
-        };
-    };
+    // Parse price values
+    const currentPrice = config.price || config.productPrice || '₱0';
+    const originalPrice = config.originalPrice || config.compareAtPrice || null;
+    const stockRemaining = config.stockRemaining || config.stockQuantity || null;
+    const productRating = config.rating || 4;
 
     return (
         <div className="min-h-screen flex flex-col" style={{ backgroundColor: pageBgColor }}>
+            {/* Decorative corner accent */}
+            <div
+                className="fixed top-0 right-0 w-4 h-full z-10"
+                style={{
+                    background: 'linear-gradient(180deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%)'
+                }}
+            />
+
             {/* Main Content Area */}
             <div className="flex-1 flex items-center justify-center p-4 md:p-8">
-                {/* Centered Container/Card */}
+                {/* Main Card Container */}
                 <div
-                    className="w-full max-w-md bg-white/10 backdrop-blur-sm rounded-3xl shadow-2xl overflow-hidden border border-white/20"
-                    style={{ backgroundColor: bgColor }}
+                    className="w-full max-w-4xl bg-white rounded-2xl shadow-xl overflow-hidden"
+                    style={{
+                        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0, 0, 0, 0.05)'
+                    }}
                 >
-                    {/* Headline Banner */}
-                    <div className="py-4 px-6 text-center" style={{ backgroundColor: headlineBgColor }}>
-                        <h1
-                            className="text-lg md:text-xl font-bold uppercase tracking-wider"
-                            style={{
-                                color: config.headlineColor || '#ffffff',
-                                ...getHeadlineAnimationStyle()
-                            }}
-                        >
-                            {emoji && <span className="mr-2">{emoji}</span>}
-                            {config.headline || 'CHECK OUT THIS PRODUCT!'}
-                            {emoji && <span className="ml-2">{emoji}</span>}
-                        </h1>
-                    </div>
-
-                    {/* Countdown Timer - Above Position */}
-                    {config.countdownPosition === 'above' && <CountdownTimer />}
-
-                    {/* Card Content */}
-                    <div className="p-6 pt-8">
-                        {/* Product Image with Price Badge */}
-                        <div className="relative w-full max-w-[220px] mx-auto" style={{ overflow: 'visible' }}>
+                    {/* Two Column Layout */}
+                    <div className="flex flex-col md:flex-row">
+                        {/* Left Column - Product Images */}
+                        <div className="md:w-1/2 p-6 md:p-8 bg-slate-50/50">
+                            {/* Main Image */}
                             <div
-                                className="overflow-hidden aspect-square shadow-xl"
+                                className="relative w-full aspect-square rounded-2xl overflow-hidden mb-4 bg-gradient-to-br from-amber-50 to-orange-50"
                                 style={{
-                                    borderRadius: `${config.imageBorderRadius || 16}px`,
-                                    border: `${config.imageBorderWidth || 4}px solid ${config.imageBorderColor || '#ffffff'}`,
+                                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
                                 }}
                             >
-                                {config.imageUrl ? (
+                                {currentImage ? (
                                     <img
-                                        src={config.imageUrl}
+                                        src={currentImage}
                                         alt="Product"
-                                        className="w-full h-full object-cover"
+                                        className="w-full h-full object-cover transition-all duration-300"
                                     />
                                 ) : (
-                                    <div className="w-full h-full bg-slate-200 flex items-center justify-center">
-                                        <Sparkles className="w-12 h-12 text-slate-400" />
+                                    <div className="w-full h-full flex items-center justify-center">
+                                        <Sparkles className="w-16 h-16 text-slate-300" />
                                     </div>
                                 )}
                             </div>
 
-                            {/* Price Badge */}
-                            <div
-                                className="absolute rounded-full font-bold shadow-xl flex items-center justify-center z-20"
-                                style={{
-                                    width: `${priceBadgeSize}px`,
-                                    height: `${priceBadgeSize}px`,
-                                    fontSize: `${Math.max(14, priceBadgeSize / 4)}px`,
-                                    backgroundColor: config.priceBadgeColor || '#22c55e',
-                                    color: config.priceTextColor || '#ffffff',
-                                    top: `-${priceBadgeSize / 2 - 10}px`,
-                                    right: `-${priceBadgeSize / 2}px`,
-                                    boxShadow: '0 4px 15px rgba(0,0,0,0.3)',
-                                }}
-                            >
-                                {config.price || '₱0'}
-                            </div>
+                            {/* Thumbnail Gallery */}
+                            {productImages.length > 1 && (
+                                <div className="flex gap-3 justify-center">
+                                    {productImages.slice(0, 4).map((img, index) => (
+                                        <button
+                                            key={index}
+                                            onClick={() => setSelectedImageIndex(index)}
+                                            className={`w-16 h-16 md:w-20 md:h-20 rounded-xl overflow-hidden transition-all duration-200 ${selectedImageIndex === index
+                                                    ? 'ring-2 ring-indigo-500 ring-offset-2'
+                                                    : 'opacity-60 hover:opacity-100'
+                                                }`}
+                                            style={{
+                                                boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)'
+                                            }}
+                                        >
+                                            <img
+                                                src={img}
+                                                alt={`Product view ${index + 1}`}
+                                                className="w-full h-full object-cover"
+                                            />
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
                         </div>
 
-                        {/* Countdown Timer - Middle Position */}
-                        {config.countdownPosition === 'middle' && <CountdownTimer />}
+                        {/* Right Column - Product Details */}
+                        <div className="md:w-1/2 p-6 md:p-8 flex flex-col">
+                            {/* Product Name */}
+                            <h1 className="text-xl md:text-2xl font-bold text-slate-800 mb-3">
+                                {config.productName || config.headline || 'Product Name'}
+                            </h1>
 
-                        {/* Quantity Selector */}
-                        {(config.enableQuantitySelector ?? true) && (
-                            <div className="flex items-center justify-center gap-4 mt-4">
-                                <button
-                                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                                    className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center hover:bg-slate-300 transition-colors"
-                                >
-                                    <Minus className="w-5 h-5 text-slate-600" />
-                                </button>
-                                <span className="text-2xl font-bold text-slate-700 min-w-[40px] text-center">
-                                    {quantity}
+                            {/* Star Rating */}
+                            <div className="mb-4">
+                                <StarRating rating={productRating} />
+                            </div>
+
+                            {/* Price Section */}
+                            <div className="flex items-baseline gap-3 mb-4">
+                                <span className="text-3xl md:text-4xl font-bold text-slate-900">
+                                    {typeof currentPrice === 'number' ? `$${currentPrice.toFixed(2)}` : currentPrice}
                                 </span>
+                                {originalPrice && (
+                                    <span className="text-lg text-slate-400 line-through">
+                                        {typeof originalPrice === 'number' ? `$${originalPrice.toFixed(2)}` : originalPrice}
+                                    </span>
+                                )}
+                            </div>
+
+                            {/* Countdown Timer */}
+                            {config.showCountdown && <CountdownTimer />}
+
+                            {/* Quantity and Add to Cart Row */}
+                            <div className="flex items-center gap-4 mb-4">
+                                {/* Quantity Selector - Input Style */}
+                                {(config.enableQuantitySelector ?? true) && (
+                                    <div className="flex items-center border-2 border-slate-200 rounded-xl overflow-hidden">
+                                        <button
+                                            onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                                            className="w-10 h-12 flex items-center justify-center hover:bg-slate-100 transition-colors text-slate-500"
+                                        >
+                                            <Minus className="w-4 h-4" />
+                                        </button>
+                                        <div className="w-12 h-12 flex items-center justify-center border-x-2 border-slate-200">
+                                            <span className="text-lg font-semibold text-slate-700">
+                                                {quantity}
+                                            </span>
+                                        </div>
+                                        <button
+                                            onClick={() => setQuantity(quantity + 1)}
+                                            className="w-10 h-12 flex items-center justify-center hover:bg-slate-100 transition-colors text-slate-500"
+                                        >
+                                            <Plus className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                )}
+
+                                {/* Add to Cart Button */}
                                 <button
-                                    onClick={() => setQuantity(quantity + 1)}
-                                    className="w-10 h-10 rounded-full bg-indigo-500 flex items-center justify-center hover:bg-indigo-600 transition-colors"
-                                >
-                                    <Plus className="w-5 h-5 text-white" />
-                                </button>
-                            </div>
-                        )}
-
-                        {/* Color Options */}
-                        {config.enableColorSelector && config.colorOptions?.length > 0 && (
-                            <div className="mt-4">
-                                <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-2 text-center">Color</p>
-                                <div className="flex flex-wrap justify-center gap-2">
-                                    {config.colorOptions.map((color: string) => (
-                                        <button
-                                            key={color}
-                                            onClick={() => setSelectedColor(color)}
-                                            className={`px-4 py-2 text-sm rounded-lg border transition-all ${selectedColor === color
-                                                    ? 'border-indigo-500 bg-indigo-500 text-white'
-                                                    : 'border-slate-200 text-slate-700 hover:border-slate-400'
-                                                }`}
-                                        >
-                                            {color}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Size Options */}
-                        {config.enableSizeSelector && config.sizeOptions?.length > 0 && (
-                            <div className="mt-4">
-                                <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-2 text-center">Size</p>
-                                <div className="flex flex-wrap justify-center gap-2">
-                                    {config.sizeOptions.map((size: string) => (
-                                        <button
-                                            key={size}
-                                            onClick={() => setSelectedSize(size)}
-                                            className={`w-12 h-12 text-sm font-medium rounded-lg border transition-all ${selectedSize === size
-                                                    ? 'border-indigo-500 bg-indigo-500 text-white'
-                                                    : 'border-slate-200 text-slate-700 hover:border-slate-400'
-                                                }`}
-                                        >
-                                            {size}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Product Name Bar */}
-                        {(config.showProductName ?? true) && (
-                            <div
-                                className={`mt-4 py-3 px-4 text-center ${config.productNameFullWidth ? '-mx-6 px-6' : 'mx-4'}`}
-                                style={{
-                                    backgroundColor: config.productNameBgColor || '#22c55e',
-                                    borderRadius: config.productNameFullWidth ? '0px' : `${config.productNameBorderRadius || 0}px`
-                                }}
-                            >
-                                <h2
-                                    className="font-bold uppercase tracking-wider"
+                                    onClick={addToCart}
+                                    disabled={adding}
+                                    className="flex-1 py-3.5 px-6 font-bold text-base flex items-center justify-center gap-2 shadow-lg transition-all duration-200 hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] disabled:opacity-70 rounded-xl text-white"
                                     style={{
-                                        color: config.productNameTextColor || '#ffffff',
-                                        fontSize: `${config.productNameFontSize || 16}px`
+                                        background: config.buttonBgColor
+                                            ? config.buttonBgColor
+                                            : 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
                                     }}
                                 >
-                                    {config.productName || 'PRODUCT NAME'}
-                                </h2>
+                                    {adding ? (
+                                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                    ) : (
+                                        <>
+                                            <ShoppingCart className="w-5 h-5" />
+                                            {config.buttonText || 'Add To Cart'}
+                                        </>
+                                    )}
+                                </button>
                             </div>
-                        )}
 
-                        {/* Countdown Timer - Below Position */}
-                        {config.countdownPosition === 'below' && <CountdownTimer />}
+                            {/* Stock Remaining */}
+                            {stockRemaining && (
+                                <p className="text-sm mb-4">
+                                    <span className="text-slate-600">Last </span>
+                                    <span className="text-indigo-600 font-semibold">{stockRemaining} Remaining</span>
+                                </p>
+                            )}
 
-                        {/* Description */}
-                        {config.description && (
-                            <p
-                                className="mt-3 text-center text-sm"
-                                style={{ color: config.descriptionColor || '#374151' }}
-                            >
-                                {config.description}
-                            </p>
-                        )}
+                            {/* Color Options */}
+                            {config.enableColorSelector && config.colorOptions?.length > 0 && (
+                                <div className="mb-4">
+                                    <p className="text-sm font-medium text-slate-600 mb-2">Color</p>
+                                    <div className="flex flex-wrap gap-2">
+                                        {config.colorOptions.map((color: string) => (
+                                            <button
+                                                key={color}
+                                                onClick={() => setSelectedColor(color)}
+                                                className={`px-4 py-2 text-sm rounded-lg border-2 transition-all ${selectedColor === color
+                                                    ? 'border-indigo-500 bg-indigo-50 text-indigo-700 font-medium'
+                                                    : 'border-slate-200 text-slate-600 hover:border-slate-300'
+                                                    }`}
+                                            >
+                                                {color}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
 
-                        {/* Action Button */}
-                        <div className="mt-5">
-                            <button
-                                onClick={addToCart}
-                                disabled={adding}
-                                className="w-full py-3.5 px-6 font-bold text-base flex items-center justify-center gap-2 shadow-lg transition-all active:scale-95 disabled:opacity-70"
-                                style={{
-                                    backgroundColor: config.buttonBgColor || '#22c55e',
-                                    color: config.buttonTextColor || '#ffffff',
-                                    borderRadius: `${config.buttonBorderRadius || 12}px`,
-                                }}
-                            >
-                                {adding ? (
-                                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                                ) : (
-                                    <>
-                                        {config.showButtonIcon && <Check className="w-5 h-5" />}
-                                        {config.buttonText || 'ADD TO CART'}
-                                    </>
-                                )}
-                            </button>
+                            {/* Size Options */}
+                            {config.enableSizeSelector && config.sizeOptions?.length > 0 && (
+                                <div className="mb-4">
+                                    <p className="text-sm font-medium text-slate-600 mb-2">Size</p>
+                                    <div className="flex flex-wrap gap-2">
+                                        {config.sizeOptions.map((size: string) => (
+                                            <button
+                                                key={size}
+                                                onClick={() => setSelectedSize(size)}
+                                                className={`w-12 h-12 text-sm font-medium rounded-lg border-2 transition-all ${selectedSize === size
+                                                    ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
+                                                    : 'border-slate-200 text-slate-600 hover:border-slate-300'
+                                                    }`}
+                                            >
+                                                {size}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Description */}
+                            {config.description && (
+                                <div className="mt-auto pt-4 border-t border-slate-100">
+                                    <p className="text-sm text-slate-600 leading-relaxed">
+                                        {config.description}
+                                    </p>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -471,8 +502,8 @@ const WebviewProduct: React.FC = () => {
 
             {/* Toast */}
             {toast.visible && (
-                <div className="fixed top-4 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-4 py-2 rounded-full text-sm font-medium flex items-center gap-2 shadow-lg z-50">
-                    <Check className="w-4 h-4" />
+                <div className="fixed top-4 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-5 py-3 rounded-full text-sm font-medium flex items-center gap-2 shadow-xl z-50">
+                    <Check className="w-4 h-4 text-green-400" />
                     {toast.message}
                 </div>
             )}
