@@ -6,6 +6,7 @@ import { api } from '../services/api';
 import { supabase } from '../lib/supabase';
 import { format, subDays, startOfDay } from 'date-fns';
 import { useTheme } from '../context/ThemeContext';
+import { useToast } from '../context/ToastContext';
 
 interface DashboardProps {
   workspace: Workspace;
@@ -54,6 +55,7 @@ const StatCard = ({ title, value, icon: Icon, gradient, loading }: any) => {
 
 const Dashboard: React.FC<DashboardProps> = ({ workspace }) => {
   const { isDark } = useTheme();
+  const toast = useToast();
   const [stats, setStats] = useState<DashboardStats>({
     connectedPages: 0,
     totalConversations: 0,
@@ -63,6 +65,17 @@ const Dashboard: React.FC<DashboardProps> = ({ workspace }) => {
   const [chartData, setChartData] = useState<ChartData[]>([]);
   const [recentActivity, setRecentActivity] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Check if user just verified email and show success toast
+  useEffect(() => {
+    const emailJustVerified = sessionStorage.getItem('emailJustVerified');
+    if (emailJustVerified === 'true') {
+      // Clear the flag immediately to prevent showing again on refresh
+      sessionStorage.removeItem('emailJustVerified');
+      // Show success toast
+      toast.success('🎉 Email verified successfully! Welcome to MyChat Pilot.');
+    }
+  }, []);
 
   useEffect(() => {
     loadDashboardData();

@@ -120,8 +120,11 @@ const App: React.FC = () => {
 
         // Handle email verification callback or user sign-in AFTER initial load
         if (event === 'SIGNED_IN' && session?.user) {
+          // Check if this is an email verification (user has email_confirmed_at)
+          const isEmailVerification = !!session.user.email_confirmed_at;
+
           // Sync email verification status if confirmed
-          if (session.user.email_confirmed_at) {
+          if (isEmailVerification) {
             try {
               await supabase
                 .from('profiles')
@@ -152,6 +155,14 @@ const App: React.FC = () => {
                 } catch (wsError) {
                   console.error('Failed to create workspace:', wsError);
                 }
+              }
+
+              // If email was just verified, redirect to dashboard with success message
+              if (isEmailVerification && refreshedUser.isEmailVerified) {
+                // Store flag in sessionStorage for toast notification
+                sessionStorage.setItem('emailJustVerified', 'true');
+                // Redirect to dashboard
+                window.location.href = '/dashboard';
               }
             }
           } catch (err) {
