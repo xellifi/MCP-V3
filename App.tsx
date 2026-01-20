@@ -2,7 +2,7 @@ import React, { useEffect, useState, lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/Layout';
 import { api } from './services/api';
-import { User, Workspace } from './types';
+import { User, Workspace, UserRole } from './types';
 import { MOCK_WORKSPACES } from './constants';
 import { ThemeProvider } from './context/ThemeContext';
 import LoadingSpinner from './components/LoadingSpinner';
@@ -167,9 +167,10 @@ const App: React.FC = () => {
     if (ws) setCurrentWorkspace(ws);
   };
 
-  // Show verification modal when user is not verified
+  // Show verification modal when user is not verified (exclude ADMIN and OWNER)
   useEffect(() => {
-    if (user && !user.isEmailVerified) {
+    const isAdmin = user?.role === UserRole.ADMIN || user?.role === UserRole.OWNER;
+    if (user && !user.isEmailVerified && !isAdmin) {
       setShowVerificationModal(true);
     } else {
       setShowVerificationModal(false);

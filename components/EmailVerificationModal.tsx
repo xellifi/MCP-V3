@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Mail, RefreshCw, X, CheckCircle, AlertTriangle } from 'lucide-react';
+import { Mail, RefreshCw, CheckCircle, AlertTriangle } from 'lucide-react';
 import { api } from '../services/api';
 import { useToast } from '../context/ToastContext';
 
@@ -43,14 +43,6 @@ const EmailVerificationModal: React.FC<EmailVerificationModalProps> = ({
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/90 backdrop-blur-sm">
             <div className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
-                {/* Close button (optional - can be removed to force verification) */}
-                <button
-                    onClick={onClose}
-                    className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
-                >
-                    <X className="w-5 h-5" />
-                </button>
-
                 {/* Header */}
                 <div className="p-8 pb-4 text-center">
                     <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-lg shadow-amber-500/30">
