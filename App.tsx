@@ -109,22 +109,46 @@ const App: React.FC = () => {
       async (event, session) => {
         console.log('Auth state changed:', event, session?.user?.email_confirmed_at);
 
-        // Handle email verification callback
-        if (event === 'SIGNED_IN' && session?.user?.email_confirmed_at) {
-          // User signed in with confirmed email - sync to profiles table
-          try {
-            await supabase
-              .from('profiles')
-              .update({ email_verified: true })
-              .eq('id', session.user.id);
+        // Handle email verification callback or user sign-in
+        if (event === 'SIGNED_IN' && session?.user) {
+          // Sync email verification status if confirmed
+          if (session.user.email_confirmed_at) {
+            try {
+              await supabase
+                .from('profiles')
+                .update({ email_verified: true })
+                .eq('id', session.user.id);
+            } catch (err) {
+              console.error('Failed to sync email verification:', err);
+            }
+          }
 
-            // Refresh user state to update UI
+          // Re-initialize the full session (user + workspaces)
+          try {
             const refreshedUser = await api.auth.getSession();
             if (refreshedUser) {
               setUser(refreshedUser);
+
+              // Also load workspaces
+              const userWorkspaces = await api.workspace.list();
+              if (userWorkspaces.length > 0) {
+                setWorkspaces(userWorkspaces);
+                setCurrentWorkspace(userWorkspaces[0]);
+              } else {
+                // Create a default workspace if none exist
+                try {
+                  const newWorkspace = await api.workspace.create(`${refreshedUser.name}'s Workspace`, refreshedUser.id);
+                  setWorkspaces([newWorkspace]);
+                  setCurrentWorkspace(newWorkspace);
+                } catch (wsError) {
+                  console.error('Failed to create workspace:', wsError);
+                }
+              }
             }
           } catch (err) {
-            console.error('Failed to sync email verification:', err);
+            console.error('Failed to refresh session after auth state change:', err);
+          } finally {
+            setLoading(false);
           }
         }
       }
