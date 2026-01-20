@@ -277,14 +277,24 @@ export const api = {
           console.error('Failed to create workspace:', wsError);
           // Don't fail registration if workspace creation fails
         }
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', data.user.id)
-          .single();
 
-        if (profile) {
-          return mapProfile(profile);
+        // Try to fetch the profile, but don't block registration if it fails
+        try {
+          const { data: profile, error: profileError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', data.user.id)
+            .maybeSingle(); // Use maybeSingle to avoid 406 errors
+
+          if (profileError) {
+            console.warn('Profile fetch failed after registration:', profileError);
+          }
+
+          if (profile) {
+            return mapProfile(profile);
+          }
+        } catch (profileFetchError) {
+          console.warn('Profile fetch error:', profileFetchError);
         }
 
         // Return optimistic user if profile fetch fails
@@ -293,7 +303,8 @@ export const api = {
           email: email,
           name: name,
           role: UserRole.MEMBER,
-          avatarUrl: `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`
+          avatarUrl: `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`,
+          isEmailVerified: false
         };
       }
 
