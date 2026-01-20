@@ -79,8 +79,12 @@ const App: React.FC = () => {
     // Check if this is an email verification callback (URL contains tokens)
     const isEmailVerificationCallback = () => {
       const hash = window.location.hash;
-      // Supabase confirmation URLs contain access_token in the hash
-      return hash.includes('access_token') && (hash.includes('type=signup') || hash.includes('type=recovery'));
+      const search = window.location.search;
+      // Supabase confirmation URLs contain access_token in the hash or query params
+      // Check for type=signup (email verification) or type=recovery (password reset)
+      const hasHashToken = hash.includes('access_token') && (hash.includes('type=signup') || hash.includes('type=email'));
+      const hasQueryToken = search.includes('token') || search.includes('type=signup') || search.includes('type=email');
+      return hasHashToken || hasQueryToken;
     };
 
     // Check for existing Supabase session on app load

@@ -29,9 +29,11 @@ const Register: React.FC<RegisterProps> = ({ onLogin }) => {
     try {
       const user = await api.auth.register(name, email, password);
       await onLogin(user);  // Wait for workspaces to load
-      toast.success(`Welcome aboard, ${user.name}! Please check your email to verify your account.`);
 
-      // All users start with free plan and go to dashboard
+      // Show clear message about email verification
+      toast.success(`Welcome, ${user.name}! 📧 Please check your email to verify your account before accessing all features.`);
+
+      // Navigate to dashboard where verification modal will block if not verified
       try {
         navigate('/dashboard', { replace: true });
       } catch (navError) {
