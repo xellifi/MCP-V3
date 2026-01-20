@@ -89,6 +89,20 @@ const App: React.FC = () => {
         // Check if this is an email verification callback
         const isVerificationCallback = isEmailVerificationCallback();
 
+        // If this is a verification callback, sync email_verified to profiles FIRST
+        if (isVerificationCallback) {
+          console.log('Email verification callback detected, syncing status...');
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session?.user?.email_confirmed_at) {
+            // Update the profiles table with verified status
+            await supabase
+              .from('profiles')
+              .update({ email_verified: true })
+              .eq('id', session.user.id);
+            console.log('Email verification synced to profiles table');
+          }
+        }
+
         const existingUser = await api.auth.getSession();
         if (existingUser) {
           setUser(existingUser);
@@ -108,8 +122,8 @@ const App: React.FC = () => {
             }
           }
 
-          // If this was an email verification callback and user is verified, redirect to dashboard
-          if (isVerificationCallback && existingUser.isEmailVerified) {
+          // If this was an email verification callback, redirect to dashboard with success notification
+          if (isVerificationCallback) {
             // Store flag for toast notification
             sessionStorage.setItem('emailJustVerified', 'true');
             // Clear the hash and redirect to dashboard
