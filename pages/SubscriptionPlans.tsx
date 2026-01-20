@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Check, X, CreditCard, Zap, Shield, Crown, Rocket, Star, Gift, Loader2 } from 'lucide-react';
 import PaymentModal from '../components/PaymentModal';
 import { api } from '../services/api';
 import { Package } from '../types';
 
 const SubscriptionPlans: React.FC = () => {
+    const [searchParams, setSearchParams] = useSearchParams();
     const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly' | 'lifetime'>('monthly');
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
     const [selectedPlan, setSelectedPlan] = useState<{ name: string, price: number } | null>(null);
@@ -95,6 +97,29 @@ const SubscriptionPlans: React.FC = () => {
 
         fetchPlans();
     }, [billingCycle]); // Re-map when billing cycle changes
+
+    // Auto-open payment modal if redirected from registration with a plan selected
+    useEffect(() => {
+        const planFromUrl = searchParams.get('plan');
+        const billingFromUrl = searchParams.get('billing');
+        const priceFromUrl = searchParams.get('price');
+
+        if (planFromUrl && priceFromUrl && plans.length > 0) {
+            // Find the plan in loaded plans
+            const matchedPlan = plans.find(p => p.id === planFromUrl);
+            if (matchedPlan) {
+                // Set billing cycle from URL
+                if (billingFromUrl === 'monthly' || billingFromUrl === 'yearly' || billingFromUrl === 'lifetime') {
+                    setBillingCycle(billingFromUrl);
+                }
+                // Open payment modal with the selected plan
+                setSelectedPlan({ name: matchedPlan.name, price: parseFloat(priceFromUrl) });
+                setIsPaymentModalOpen(true);
+                // Clear URL params after handling
+                setSearchParams({});
+            }
+        }
+    }, [plans, searchParams, setSearchParams]);
 
     const getDescriptionForPlan = (id: string) => {
         switch (id) {
@@ -232,6 +257,12 @@ const SubscriptionPlans: React.FC = () => {
                                                 <span className="text-lg text-slate-500 dark:text-slate-400 font-medium">/{billingCycle === 'monthly' ? 'mo' : 'yr'}</span>
                                             )}
                                         </div>
+                                        {/* Show monthly equivalent for yearly billing */}
+                                        {billingCycle === 'yearly' && plan.price > 0 && !plan.isLifetimeOnly && (
+                                            <p className="text-sm text-emerald-500 dark:text-emerald-400 mt-1">
+                                                Only ${(plan.price / 12).toFixed(0)}/mo — Save {Math.round((1 - (plan.price / 12) / plan.priceMonthly) * 100)}%
+                                            </p>
+                                        )}
                                     </div>
 
                                     <div className="flex-1 space-y-4 mb-8">

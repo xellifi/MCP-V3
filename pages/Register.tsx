@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { api } from '../services/api';
 import { User } from '../types';
 import { Bot, ArrowRight, UserPlus, Mail, Lock, User as UserIcon } from 'lucide-react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useToast } from '../context/ToastContext';
 
 interface RegisterProps {
@@ -16,6 +16,12 @@ const Register: React.FC<RegisterProps> = ({ onLogin }) => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const toast = useToast();
+  const [searchParams] = useSearchParams();
+
+  // Get plan info from URL (set when user clicks on a paid plan from pricing)
+  const selectedPlan = searchParams.get('plan');
+  const selectedBilling = searchParams.get('billing');
+  const selectedPrice = searchParams.get('price');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,11 +30,20 @@ const Register: React.FC<RegisterProps> = ({ onLogin }) => {
       const user = await api.auth.register(name, email, password);
       await onLogin(user);  // Wait for workspaces to load
       toast.success(`Welcome aboard, ${user.name}!`);
-      // Explicitly navigate to connections after successful registration
+
+      // SaaS Flow: Redirect based on selected plan
+      // If user selected a paid plan from pricing, redirect to packages for checkout
+      // Otherwise (free plan or direct register), redirect to connections
       try {
-        navigate('/connections', { replace: true });
+        if (selectedPlan) {
+          // Paid plan selected - redirect to packages page for checkout
+          navigate(`/packages?plan=${selectedPlan}&billing=${selectedBilling}&price=${selectedPrice}`, { replace: true });
+        } else {
+          // Free plan or direct registration - redirect to connections
+          navigate('/connections', { replace: true });
+        }
       } catch (navError) {
-        // Fallback if connections page fails to load
+        // Fallback if navigation fails
         console.error('Navigation error, redirecting to home:', navError);
         navigate('/', { replace: true });
       }
