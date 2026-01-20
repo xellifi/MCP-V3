@@ -74,6 +74,8 @@ const App: React.FC = () => {
   const [showVerificationModal, setShowVerificationModal] = useState(false);
 
   useEffect(() => {
+    let isInitialLoad = true;
+
     // Check for existing Supabase session on app load
     const checkSession = async () => {
       try {
@@ -100,16 +102,23 @@ const App: React.FC = () => {
         console.error('Session check failed:', error);
       } finally {
         setLoading(false);
+        isInitialLoad = false;
       }
     };
     checkSession();
 
-    // Listen for auth state changes (including email verification callback)
+    // Listen for auth state changes (for email verification callback AFTER initial load)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('Auth state changed:', event, session?.user?.email_confirmed_at);
 
-        // Handle email verification callback or user sign-in
+        // Skip during initial load - checkSession handles that
+        if (isInitialLoad) {
+          console.log('Skipping auth state change during initial load');
+          return;
+        }
+
+        // Handle email verification callback or user sign-in AFTER initial load
         if (event === 'SIGNED_IN' && session?.user) {
           // Sync email verification status if confirmed
           if (session.user.email_confirmed_at) {
@@ -147,8 +156,6 @@ const App: React.FC = () => {
             }
           } catch (err) {
             console.error('Failed to refresh session after auth state change:', err);
-          } finally {
-            setLoading(false);
           }
         }
       }
