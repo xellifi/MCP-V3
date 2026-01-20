@@ -312,8 +312,6 @@ export const api = {
           console.error('Failed to create workspace:', wsError);
           // Don't fail registration if workspace creation fails
         }
-
-        // Fetch the created profile
         const { data: profile } = await supabase
           .from('profiles')
           .select('*')
