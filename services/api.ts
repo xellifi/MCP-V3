@@ -326,6 +326,9 @@ export const api = {
       const { data: { session } } = await supabase.auth.getSession();
 
       if (session?.user) {
+        // Check if email is confirmed in Supabase auth
+        const isEmailConfirmed = !!session.user.email_confirmed_at;
+
         const { data: profile } = await supabase
           .from('profiles')
           .select('*')
@@ -333,6 +336,14 @@ export const api = {
           .single();
 
         if (profile) {
+          // If auth says verified but profile doesn't, sync it
+          if (isEmailConfirmed && !profile.email_verified) {
+            await supabase
+              .from('profiles')
+              .update({ email_verified: true })
+              .eq('id', session.user.id);
+            profile.email_verified = true;
+          }
           return mapProfile(profile);
         }
       }

@@ -2,6 +2,7 @@ import React, { useEffect, useState, lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/Layout';
 import { api } from './services/api';
+import { supabase } from './lib/supabase';
 import { User, Workspace, UserRole } from './types';
 import { MOCK_WORKSPACES } from './constants';
 import { ThemeProvider } from './context/ThemeContext';
@@ -102,6 +103,34 @@ const App: React.FC = () => {
       }
     };
     checkSession();
+
+    // Listen for auth state changes (including email verification callback)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log('Auth state changed:', event, session?.user?.email_confirmed_at);
+
+        // Handle email verification callback
+        if (event === 'SIGNED_IN' && session?.user?.email_confirmed_at) {
+          // User signed in with confirmed email - sync to profiles table
+          try {
+            await supabase
+              .from('profiles')
+              .update({ email_verified: true })
+              .eq('id', session.user.id);
+
+            // Refresh user state to update UI
+            const refreshedUser = await api.auth.getSession();
+            if (refreshedUser) {
+              setUser(refreshedUser);
+            }
+          } catch (err) {
+            console.error('Failed to sync email verification:', err);
+          }
+        }
+      }
+    );
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const handleLogin = async (u: User): Promise<void> => {
