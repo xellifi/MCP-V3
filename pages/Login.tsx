@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { api } from '../services/api';
 import { User } from '../types';
-import { Bot, ArrowRight, AlertCircle, Mail, Lock } from 'lucide-react';
+import { Bot, ArrowRight, AlertCircle, Mail, Lock, RefreshCw } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useToast } from '../context/ToastContext';
+import { supabase } from '../lib/supabase';
 
 interface LoginProps {
   onLogin: (user: User) => Promise<void>;
@@ -13,12 +14,35 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [emailNotConfirmed, setEmailNotConfirmed] = useState(false);
+  const [resendingEmail, setResendingEmail] = useState(false);
   const navigate = useNavigate();
   const toast = useToast();
+
+  const handleResendVerification = async () => {
+    if (!email) {
+      toast.error('Please enter your email address first');
+      return;
+    }
+    setResendingEmail(true);
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: email
+      });
+      if (error) throw error;
+      toast.success('Verification email sent! Please check your inbox.');
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to resend verification email');
+    } finally {
+      setResendingEmail(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setEmailNotConfirmed(false);
     try {
       const user = await api.auth.login(email, password);
       await onLogin(user);  // Wait for workspaces to load
@@ -27,7 +51,17 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       navigate('/dashboard', { replace: true });
     } catch (err: any) {
       console.error(err);
-      toast.error('Invalid email or password. Please try again.');
+      const errorMessage = err?.message?.toLowerCase() || '';
+
+      // Check if the error is about email not being confirmed
+      if (errorMessage.includes('email not confirmed') ||
+        errorMessage.includes('email_not_confirmed') ||
+        errorMessage.includes('invalid login credentials')) {
+        setEmailNotConfirmed(true);
+        toast.error('Please verify your email before logging in.');
+      } else {
+        toast.error('Invalid email or password. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -89,6 +123,43 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             </div>
           </div>
 
+          {/* Email Verification Warning */}
+          {emailNotConfirmed && (
+            <div className="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl">
+              <div className="flex flex-col gap-3">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="w-5 h-5 text-amber-500 mt-0.5 shrink-0" />
+                  <div>
+                    <p className="text-sm font-medium text-amber-700 dark:text-amber-400">
+                      Email Not Verified
+                    </p>
+                    <p className="text-sm text-amber-600 dark:text-amber-500 mt-1">
+                      Please check your inbox and click the verification link before logging in.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleResendVerification}
+                  disabled={resendingEmail}
+                  className="flex items-center justify-center gap-2 py-2 px-4 bg-amber-100 dark:bg-amber-800/30 hover:bg-amber-200 dark:hover:bg-amber-800/50 text-amber-700 dark:text-amber-400 font-medium rounded-lg transition-all text-sm disabled:opacity-50"
+                >
+                  {resendingEmail ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      Sending...
+                    </>
+                  ) : (
+                    <>
+                      <Mail className="w-4 h-4" />
+                      Resend Verification Email
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          )}
+
           <button
             type="submit"
             disabled={loading}
@@ -107,6 +178,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
               <span className="px-4 bg-white dark:bg-transparent text-slate-500">Or continue with</span>
             </div>
           </div>
+
 
           <div className="grid grid-cols-2 gap-3">
             <button
