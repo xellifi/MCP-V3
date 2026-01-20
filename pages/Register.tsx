@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { api } from '../services/api';
 import { User } from '../types';
-import { Bot, ArrowRight, UserPlus, Mail, Lock, User as UserIcon } from 'lucide-react';
+import { Bot, ArrowRight, UserPlus, Mail, Lock, User as UserIcon, Loader2 } from 'lucide-react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useToast } from '../context/ToastContext';
 
@@ -138,7 +138,11 @@ const Register: React.FC<RegisterProps> = ({ onLogin }) => {
             className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold py-4 rounded-xl shadow-lg shadow-indigo-600/25 transition-all flex items-center justify-center gap-2 group active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? 'Creating Account...' : 'Get Started'}
-            {!loading && <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />}
+            {loading ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : (
+              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+            )}
           </button>
 
           {/* Social Login Options */}

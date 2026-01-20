@@ -73,6 +73,8 @@ const App: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [currentWorkspace, setCurrentWorkspace] = useState<Workspace | null>(null);
+  // Flag to prevent onAuthStateChange from running during manual login/register
+  const [isManualAuth, setIsManualAuth] = useState(false);
   const [showVerificationModal, setShowVerificationModal] = useState(false);
 
   useEffect(() => {
@@ -162,6 +164,11 @@ const App: React.FC = () => {
 
         // Handle user sign-in events AFTER initial load (e.g., login from another tab)
         if (event === 'SIGNED_IN' && session?.user) {
+          // Skip if this is a manual login/register (handleLogin is already handling it)
+          if (isManualAuth) {
+            console.log('Skipping onAuthStateChange during manual auth');
+            return;
+          }
           // Sync email verification status if confirmed (in case it was verified elsewhere)
           if (session.user.email_confirmed_at) {
             try {
@@ -209,6 +216,8 @@ const App: React.FC = () => {
   }, []);
 
   const handleLogin = async (u: User): Promise<void> => {
+    // Set flag to prevent onAuthStateChange from interfering
+    setIsManualAuth(true);
     setUser(u);
     // Fetch workspaces from database
     try {
@@ -244,6 +253,8 @@ const App: React.FC = () => {
         setCurrentWorkspace(fallbackWs);
       }
     }
+    // Clear flag after a delay to allow any pending auth state events to be ignored
+    setTimeout(() => setIsManualAuth(false), 1000);
   };
 
   const handleLogout = async () => {
