@@ -1,54 +1,20 @@
 -- ============================================
 -- FIXED REGISTRATION SYSTEM 
+-- CORRECTED: package_id is TEXT not UUID
 -- Run this in Supabase SQL Editor
--- This version fixes permission issues with auth.users triggers
 -- ============================================
 
 -- ============================================
--- 1. ENSURE email_verified COLUMN EXISTS
+-- 1. FIX: Create subscription for existing users who don't have one
 -- ============================================
-ALTER TABLE public.profiles 
-ADD COLUMN IF NOT EXISTS email_verified BOOLEAN DEFAULT false;
-
-UPDATE public.profiles 
-SET email_verified = false 
-WHERE email_verified IS NULL;
+INSERT INTO user_subscriptions (user_id, package_id, status, billing_cycle, amount, payment_method)
+SELECT p.id, 'free', 'Active', 'Monthly', 0, 'free'
+FROM profiles p
+WHERE NOT EXISTS (SELECT 1 FROM user_subscriptions us WHERE us.user_id = p.id);
 
 -- ============================================
--- 2. FIX RLS POLICIES FOR PROFILE INSERTION
--- The trigger needs to be able to insert profiles
--- ============================================
-DROP POLICY IF EXISTS "Service role can manage profiles" ON public.profiles;
-CREATE POLICY "Service role can manage profiles" ON public.profiles
-  FOR ALL 
-  USING (true)
-  WITH CHECK (true);
-
--- Drop and recreate the insert policy to be more permissive for triggers
-DROP POLICY IF EXISTS "Allow profile creation" ON public.profiles;
-CREATE POLICY "Allow profile creation" ON public.profiles
-  FOR INSERT 
-  WITH CHECK (true);
-
--- ============================================
--- 3. FIX RLS POLICIES FOR WORKSPACE INSERTION  
--- ============================================
-DROP POLICY IF EXISTS "Allow workspace creation for new users" ON public.workspaces;
-CREATE POLICY "Allow workspace creation for new users" ON public.workspaces
-  FOR INSERT 
-  WITH CHECK (true);
-
--- ============================================
--- 4. FIX RLS POLICIES FOR SUBSCRIPTION INSERTION
--- ============================================
-DROP POLICY IF EXISTS "Allow subscription creation for new users" ON public.user_subscriptions;
-CREATE POLICY "Allow subscription creation for new users" ON public.user_subscriptions
-  FOR INSERT 
-  WITH CHECK (true);
-
--- ============================================
--- 5. UPDATED REGISTRATION TRIGGER
--- Uses SECURITY DEFINER and proper error handling
+-- 2. UPDATED REGISTRATION TRIGGER
+-- Uses TEXT for package_id (not UUID)
 -- ============================================
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER 
@@ -59,7 +25,7 @@ AS $$
 DECLARE
   user_name TEXT;
   workspace_id UUID;
-  free_package_id UUID;
+  free_pkg_id TEXT;  -- Changed to TEXT
 BEGIN
   -- Get the user's name from metadata or fallback to email prefix
   user_name := COALESCE(
@@ -72,13 +38,7 @@ BEGIN
   -- ========================================
   BEGIN
     INSERT INTO public.profiles (
-      id, 
-      email, 
-      name, 
-      role, 
-      avatar_url, 
-      affiliate_code,
-      email_verified
+      id, email, name, role, avatar_url, affiliate_code, email_verified
     )
     VALUES (
       NEW.id,
@@ -98,11 +58,7 @@ BEGIN
   -- STEP 2: Create Default Workspace
   -- ========================================
   BEGIN
-    -- Check if workspace already exists
-    SELECT id INTO workspace_id 
-    FROM public.workspaces 
-    WHERE owner_id = NEW.id 
-    LIMIT 1;
+    SELECT id INTO workspace_id FROM public.workspaces WHERE owner_id = NEW.id LIMIT 1;
     
     IF workspace_id IS NULL THEN
       INSERT INTO public.workspaces (name, owner_id)
@@ -114,47 +70,36 @@ BEGIN
   
   -- ========================================
   -- STEP 3: Assign FREE Subscription
+  -- package_id is TEXT type, not UUID!
   -- ========================================
   BEGIN
-    -- Only create if user doesn't have one
     IF NOT EXISTS (SELECT 1 FROM public.user_subscriptions WHERE user_id = NEW.id) THEN
-      -- Find the FREE package
-      SELECT id INTO free_package_id
+      -- Find the FREE package ID (TEXT type)
+      SELECT id INTO free_pkg_id
       FROM public.packages
       WHERE is_active = true 
         AND (price_monthly = 0 OR LOWER(name) LIKE '%free%')
       ORDER BY price_monthly ASC
       LIMIT 1;
       
-      -- Fallback: get the cheapest active package
-      IF free_package_id IS NULL THEN
-        SELECT id INTO free_package_id
-        FROM public.packages
-        WHERE is_active = true
-        ORDER BY price_monthly ASC
-        LIMIT 1;
+      -- Default to 'free' if not found
+      IF free_pkg_id IS NULL THEN
+        free_pkg_id := 'free';
       END IF;
       
-      -- Create subscription if we found a package
-      IF free_package_id IS NOT NULL THEN
-        INSERT INTO public.user_subscriptions (
-          user_id,
-          package_id,
-          status,
-          billing_cycle,
-          amount,
-          next_billing_date,
-          payment_method
-        ) VALUES (
-          NEW.id,
-          free_package_id,
-          'Active',
-          'Monthly',
-          0,
-          NULL,
-          'free'
-        );
-      END IF;
+      -- Create subscription with TEXT package_id
+      INSERT INTO public.user_subscriptions (
+        user_id, package_id, status, billing_cycle, amount, payment_method
+      ) VALUES (
+        NEW.id,
+        free_pkg_id,  -- TEXT, not UUID!
+        'Active',
+        'Monthly',
+        0,
+        'free'
+      );
+      
+      RAISE LOG 'Created FREE subscription for user %', NEW.id;
     END IF;
   EXCEPTION WHEN OTHERS THEN
     RAISE LOG 'Failed to create subscription for %: %', NEW.id, SQLERRM;
@@ -164,82 +109,15 @@ BEGIN
 END;
 $$;
 
--- Drop existing trigger
+-- Drop and recreate trigger
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
-
--- Create the trigger
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
 -- ============================================
--- 6. EMAIL VERIFICATION SYNC TRIGGER
+-- 3. FIX RPC FUNCTION for frontend backup
 -- ============================================
-CREATE OR REPLACE FUNCTION public.sync_email_verification()
-RETURNS TRIGGER 
-SECURITY DEFINER
-SET search_path = public
-LANGUAGE plpgsql
-AS $$
-BEGIN
-  IF NEW.email_confirmed_at IS NOT NULL AND (OLD.email_confirmed_at IS NULL OR OLD.email_confirmed_at != NEW.email_confirmed_at) THEN
-    UPDATE public.profiles
-    SET email_verified = true
-    WHERE id = NEW.id;
-  END IF;
-  
-  RETURN NEW;
-END;
-$$;
-
-DROP TRIGGER IF EXISTS on_auth_user_verified ON auth.users;
-
-CREATE TRIGGER on_auth_user_verified
-  AFTER UPDATE ON auth.users
-  FOR EACH ROW
-  EXECUTE FUNCTION public.sync_email_verification();
-
--- ============================================
--- 7. IMPROVED RPC FUNCTIONS (for frontend backup)
--- ============================================
-
--- Ensure user has workspace
-CREATE OR REPLACE FUNCTION public.ensure_user_workspace(p_user_id UUID, p_user_name TEXT)
-RETURNS JSON
-SECURITY DEFINER
-SET search_path = public
-LANGUAGE plpgsql
-AS $$
-DECLARE
-  workspace_name TEXT;
-  v_workspace_id UUID;
-BEGIN
-  -- First ensure profile exists
-  INSERT INTO profiles (id, email, name, role, email_verified)
-  SELECT p_user_id, '', COALESCE(p_user_name, 'User'), 'member', false
-  WHERE NOT EXISTS (SELECT 1 FROM profiles WHERE id = p_user_id);
-
-  workspace_name := COALESCE(NULLIF(TRIM(p_user_name), ''), 'My') || '''s Workspace';
-  
-  SELECT id INTO v_workspace_id FROM workspaces WHERE owner_id = p_user_id LIMIT 1;
-  
-  IF v_workspace_id IS NULL THEN
-    INSERT INTO workspaces (name, owner_id)
-    VALUES (workspace_name, p_user_id)
-    RETURNING id INTO v_workspace_id;
-  END IF;
-  
-  RETURN json_build_object('success', true, 'workspace_id', v_workspace_id);
-EXCEPTION
-  WHEN OTHERS THEN
-    RETURN json_build_object('success', false, 'error', SQLERRM);
-END;
-$$;
-
-GRANT EXECUTE ON FUNCTION public.ensure_user_workspace(UUID, TEXT) TO authenticated;
-GRANT EXECUTE ON FUNCTION public.ensure_user_workspace(UUID, TEXT) TO anon;
-
--- Ensure user has FREE subscription
 CREATE OR REPLACE FUNCTION public.ensure_user_free_subscription(p_user_id UUID)
 RETURNS JSON
 SECURITY DEFINER
@@ -247,49 +125,36 @@ SET search_path = public
 LANGUAGE plpgsql
 AS $$
 DECLARE
-  v_package_id UUID;
-  v_package_name TEXT;
+  v_package_id TEXT;  -- Changed to TEXT
   v_subscription_id UUID;
 BEGIN
   -- Check if user already has a subscription
-  SELECT id INTO v_subscription_id 
-  FROM user_subscriptions 
-  WHERE user_id = p_user_id 
-  LIMIT 1;
+  SELECT id INTO v_subscription_id FROM user_subscriptions WHERE user_id = p_user_id LIMIT 1;
   
   IF v_subscription_id IS NOT NULL THEN
-    RETURN json_build_object('success', true, 'subscription_id', v_subscription_id, 'message', 'Already exists');
+    RETURN json_build_object('success', true, 'message', 'Already has subscription');
   END IF;
   
-  -- Find the free package (must return a valid UUID)
-  SELECT id, name INTO v_package_id, v_package_name
+  -- Find the free package (TEXT id)
+  SELECT id INTO v_package_id
   FROM packages
-  WHERE is_active = true 
-    AND (price_monthly = 0 OR LOWER(name) LIKE '%free%')
+  WHERE is_active = true AND (price_monthly = 0 OR LOWER(name) LIKE '%free%')
   ORDER BY price_monthly ASC
   LIMIT 1;
   
   IF v_package_id IS NULL THEN
-    SELECT id, name INTO v_package_id, v_package_name
-    FROM packages
-    WHERE is_active = true
-    ORDER BY price_monthly ASC
-    LIMIT 1;
-  END IF;
-  
-  IF v_package_id IS NULL THEN
-    RETURN json_build_object('success', false, 'error', 'No packages found. Please create a FREE package first.');
+    v_package_id := 'free';  -- Default fallback
   END IF;
   
   -- Create the subscription
   INSERT INTO user_subscriptions (
-    user_id, package_id, status, billing_cycle, amount, next_billing_date, payment_method
+    user_id, package_id, status, billing_cycle, amount, payment_method
   ) VALUES (
-    p_user_id, v_package_id, 'Active', 'Monthly', 0, NULL, 'free'
+    p_user_id, v_package_id, 'Active', 'Monthly', 0, 'free'
   )
   RETURNING id INTO v_subscription_id;
   
-  RETURN json_build_object('success', true, 'subscription_id', v_subscription_id, 'package_name', v_package_name);
+  RETURN json_build_object('success', true, 'subscription_id', v_subscription_id);
 EXCEPTION
   WHEN OTHERS THEN
     RETURN json_build_object('success', false, 'error', SQLERRM);
@@ -300,22 +165,13 @@ GRANT EXECUTE ON FUNCTION public.ensure_user_free_subscription(UUID) TO authenti
 GRANT EXECUTE ON FUNCTION public.ensure_user_free_subscription(UUID) TO anon;
 
 -- ============================================
--- 8. VERIFY PACKAGES TABLE HAS A FREE PACKAGE
+-- 4. Verify: Show all users and their subscriptions
 -- ============================================
--- Check if FREE package exists, if not create one
-DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM packages 
-    WHERE is_active = true AND (price_monthly = 0 OR LOWER(name) LIKE '%free%')
-  ) THEN
-    -- Check if packages table has any packages at all
-    IF NOT EXISTS (SELECT 1 FROM packages WHERE is_active = true) THEN
-      RAISE WARNING 'No active packages found! Please create a FREE package in your admin panel.';
-    END IF;
-  END IF;
-END $$;
-
--- ============================================
--- DONE! 
--- ============================================
+SELECT 
+  p.name,
+  p.email,
+  us.package_id,
+  us.status
+FROM profiles p
+LEFT JOIN user_subscriptions us ON us.user_id = p.id
+ORDER BY p.created_at DESC;
