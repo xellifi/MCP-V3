@@ -126,8 +126,10 @@ const App: React.FC = () => {
           if (isVerificationCallback) {
             // Store flag for toast notification
             sessionStorage.setItem('emailJustVerified', 'true');
-            // Clear the hash and redirect to dashboard
-            window.location.href = '/dashboard';
+            // Clear the hash from URL first (to prevent re-triggering on reload)
+            window.history.replaceState(null, '', window.location.pathname);
+            // Redirect to dashboard
+            window.location.replace('/dashboard');
             return; // Stop further processing
           }
         }
