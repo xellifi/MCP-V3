@@ -83,3 +83,94 @@ $$;
 -- Grant execute to authenticated users
 GRANT EXECUTE ON FUNCTION ensure_user_workspace(UUID, TEXT) TO authenticated;
 GRANT EXECUTE ON FUNCTION ensure_user_workspace(UUID, TEXT) TO anon;
+
+-- ============================================================
+-- RPC FUNCTION: Ensure user has a free subscription
+-- Called during registration to assign free plan
+-- ============================================================
+
+CREATE OR REPLACE FUNCTION ensure_user_free_subscription(p_user_id UUID)
+RETURNS JSON
+LANGUAGE plpgsql
+SECURITY DEFINER -- Bypasses RLS
+AS $$
+DECLARE
+  v_package_id UUID;
+  v_package_name TEXT;
+  v_subscription_id UUID;
+BEGIN
+  -- Check if user already has a subscription
+  SELECT id INTO v_subscription_id 
+  FROM user_subscriptions 
+  WHERE user_id = p_user_id 
+  LIMIT 1;
+  
+  IF v_subscription_id IS NOT NULL THEN
+    RETURN json_build_object(
+      'success', true,
+      'subscription_id', v_subscription_id,
+      'message', 'User already has subscription'
+    );
+  END IF;
+  
+  -- Find the free package (price_monthly = 0 or name contains 'free')
+  SELECT id, name INTO v_package_id, v_package_name
+  FROM packages
+  WHERE is_active = true 
+    AND (price_monthly = 0 OR LOWER(name) LIKE '%free%')
+  ORDER BY price_monthly ASC
+  LIMIT 1;
+  
+  -- Fallback: get cheapest active package
+  IF v_package_id IS NULL THEN
+    SELECT id, name INTO v_package_id, v_package_name
+    FROM packages
+    WHERE is_active = true
+    ORDER BY price_monthly ASC
+    LIMIT 1;
+  END IF;
+  
+  IF v_package_id IS NULL THEN
+    RETURN json_build_object(
+      'success', false,
+      'error', 'No active packages found'
+    );
+  END IF;
+  
+  -- Create the subscription
+  INSERT INTO user_subscriptions (
+    user_id,
+    package_id,
+    status,
+    billing_cycle,
+    amount,
+    next_billing_date,
+    payment_method
+  ) VALUES (
+    p_user_id,
+    v_package_id,
+    'Active',
+    'Monthly',
+    0,
+    NULL,
+    'free'
+  )
+  RETURNING id INTO v_subscription_id;
+  
+  RETURN json_build_object(
+    'success', true,
+    'subscription_id', v_subscription_id,
+    'package_name', v_package_name
+  );
+EXCEPTION
+  WHEN OTHERS THEN
+    RETURN json_build_object(
+      'success', false,
+      'error', SQLERRM
+    );
+END;
+$$;
+
+-- Grant execute to authenticated users and anon (for registration)
+GRANT EXECUTE ON FUNCTION ensure_user_free_subscription(UUID) TO authenticated;
+GRANT EXECUTE ON FUNCTION ensure_user_free_subscription(UUID) TO anon;
