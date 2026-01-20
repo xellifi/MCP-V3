@@ -76,9 +76,19 @@ const App: React.FC = () => {
   useEffect(() => {
     let isInitialLoad = true;
 
+    // Check if this is an email verification callback (URL contains tokens)
+    const isEmailVerificationCallback = () => {
+      const hash = window.location.hash;
+      // Supabase confirmation URLs contain access_token in the hash
+      return hash.includes('access_token') && (hash.includes('type=signup') || hash.includes('type=recovery'));
+    };
+
     // Check for existing Supabase session on app load
     const checkSession = async () => {
       try {
+        // Check if this is an email verification callback
+        const isVerificationCallback = isEmailVerificationCallback();
+
         const existingUser = await api.auth.getSession();
         if (existingUser) {
           setUser(existingUser);
@@ -96,6 +106,15 @@ const App: React.FC = () => {
             } catch (wsError) {
               console.error('Failed to create workspace:', wsError);
             }
+          }
+
+          // If this was an email verification callback and user is verified, redirect to dashboard
+          if (isVerificationCallback && existingUser.isEmailVerified) {
+            // Store flag for toast notification
+            sessionStorage.setItem('emailJustVerified', 'true');
+            // Clear the hash and redirect to dashboard
+            window.location.href = '/dashboard';
+            return; // Stop further processing
           }
         }
       } catch (error) {
