@@ -402,15 +402,7 @@ const Home: React.FC = () => {
                     cta={ctaText}
                     active={index === 1}
                     popular={index === 1}
-                    onClick={() => {
-                      // Pass plan info via URL params for SaaS checkout flow
-                      const isFree = pkg.priceMonthly === 0 && !isLifetimeOnly;
-                      if (isFree) {
-                        navigate('/register');
-                      } else {
-                        navigate(`/register?plan=${pkg.id}&billing=${billingType}&price=${displayPrice}`);
-                      }
-                    }}
+                    onClick={() => navigate('/register')}
                   />
                 );
               })

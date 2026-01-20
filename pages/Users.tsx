@@ -326,6 +326,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ user }) => {
                 <th className="px-6 py-4">Role</th>
                 <th className="px-6 py-4">Plan</th>
                 <th className="px-6 py-4">Status</th>
+                <th className="px-6 py-4">Verified</th>
                 <th className="px-6 py-4">Access Count</th>
                 <th className="px-6 py-4 text-right">Actions</th>
               </tr>
@@ -386,6 +387,34 @@ const UsersPage: React.FC<UsersPageProps> = ({ user }) => {
                       <span className="inline-flex px-3 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-900/50">
                         Active
                       </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <button
+                        onClick={async () => {
+                          try {
+                            await api.auth.updateEmailVerified(u.id, !u.isEmailVerified);
+                            // Refresh users list
+                            const updatedUsers = users.map(usr =>
+                              usr.id === u.id ? { ...usr, isEmailVerified: !u.isEmailVerified } : usr
+                            );
+                            setUsers(updatedUsers);
+                            toast.success(`User ${u.isEmailVerified ? 'unverified' : 'verified'} successfully`);
+                          } catch (err: any) {
+                            toast.error(err.message || 'Failed to update verification status');
+                          }
+                        }}
+                        className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold transition-colors cursor-pointer ${u.isEmailVerified
+                            ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900/50 hover:bg-emerald-200 dark:hover:bg-emerald-900/50'
+                            : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border border-amber-200 dark:border-amber-900/50 hover:bg-amber-200 dark:hover:bg-amber-900/50'
+                          }`}
+                        title={u.isEmailVerified ? 'Click to unverify' : 'Click to verify'}
+                      >
+                        {u.isEmailVerified ? (
+                          <><Check className="w-3 h-3" /> Verified</>
+                        ) : (
+                          'Unverified'
+                        )}
+                      </button>
                     </td>
                     <td className="px-6 py-4 text-sm text-slate-500 dark:text-slate-400">
                       {u.role === UserRole.ADMIN || u.role === UserRole.OWNER ? 'All Access' : 'Package-based'}

@@ -12,6 +12,7 @@ export interface User {
   avatarUrl?: string;
   affiliateCode?: string; // Unique code for referrals
   features?: string[];
+  isEmailVerified?: boolean; // Email verification status
 }
 
 export interface Workspace {
@@ -156,6 +157,13 @@ export interface AdminSettings {
   affiliateWithdrawalDays?: number[]; // 0=Sun, 1=Mon...
   paymentConfig?: any; // JSONB for payment gateways
   defaultTheme?: 'dark' | 'light';
+  // Email Verification Settings
+  emailVerificationProvider?: 'supabase' | 'smtp'; // Which provider to use
+  // Social Login Settings
+  googleClientId?: string;
+  googleClientSecret?: string;
+  facebookLoginEnabled?: boolean;
+  googleLoginEnabled?: boolean;
 }
 
 export interface UserSubscription {

@@ -7,6 +7,7 @@ import { MOCK_WORKSPACES } from './constants';
 import { ThemeProvider } from './context/ThemeContext';
 import LoadingSpinner from './components/LoadingSpinner';
 import ChunkErrorBoundary from './components/ChunkErrorBoundary';
+import EmailVerificationModal from './components/EmailVerificationModal';
 
 // Public Pages - Load immediately (small, needed for initial render)
 import Home from './pages/Home';
@@ -69,6 +70,7 @@ const App: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [currentWorkspace, setCurrentWorkspace] = useState<Workspace | null>(null);
+  const [showVerificationModal, setShowVerificationModal] = useState(false);
 
   useEffect(() => {
     // Check for existing Supabase session on app load
@@ -163,6 +165,27 @@ const App: React.FC = () => {
   const handleWorkspaceChange = (id: string) => {
     const ws = workspaces.find(w => w.id === id);
     if (ws) setCurrentWorkspace(ws);
+  };
+
+  // Show verification modal when user is not verified
+  useEffect(() => {
+    if (user && !user.isEmailVerified) {
+      setShowVerificationModal(true);
+    } else {
+      setShowVerificationModal(false);
+    }
+  }, [user]);
+
+  // Refresh user data to check verification status
+  const handleRefreshUser = async () => {
+    try {
+      const refreshedUser = await api.auth.getSession();
+      if (refreshedUser) {
+        setUser(refreshedUser);
+      }
+    } catch (error) {
+      console.error('Failed to refresh user:', error);
+    }
   };
 
   if (loading) {
@@ -286,6 +309,13 @@ const App: React.FC = () => {
                 onWorkspaceChange={handleWorkspaceChange}
                 onLogout={handleLogout}
               >
+                {/* Email Verification Modal - Shows when user is not verified */}
+                <EmailVerificationModal
+                  isOpen={showVerificationModal}
+                  userEmail={user.email}
+                  onClose={() => setShowVerificationModal(false)}
+                  onRefresh={handleRefreshUser}
+                />
                 <ChunkErrorBoundary>
                   <Suspense fallback={<LoadingSpinner />}>
                     <Routes>

@@ -12,7 +12,8 @@ const mapProfile = (row: any): User => ({
   name: row.name,
   role: (row.role?.toUpperCase() || 'MEMBER') as UserRole,  // Convert lowercase DB value to uppercase enum
   avatarUrl: row.avatar_url,
-  affiliateCode: row.affiliate_code
+  affiliateCode: row.affiliate_code,
+  isEmailVerified: row.email_verified ?? false
 });
 
 const mapWorkspace = (row: any): Workspace => ({
@@ -163,6 +164,23 @@ let MOCK_WITHDRAWALS_DB: WithdrawalRequest[] = [];
 let MOCK_TICKETS_DB: SupportTicket[] = [];
 let MOCK_REFERRALS_DB: Referral[] = [];
 
+// Disposable/temporary email domains to block
+const DISPOSABLE_EMAIL_DOMAINS = [
+  'tempmail.com', 'throwaway.email', '10minutemail.com', 'guerrillamail.com',
+  'mailinator.com', 'yopmail.com', 'tempail.com', 'fakeinbox.com', 'getnada.com',
+  'temp-mail.org', 'discard.email', 'mailnesia.com', 'trashmail.com', 'mohmal.com',
+  'sharklasers.com', 'spam4.me', 'grr.la', 'guerrillamail.info', 'pokemail.net',
+  'maildrop.cc', 'dispostable.com', 'mytemp.email', 'tempmailo.com', 'emailondeck.com',
+  'mailsac.com', 'burnermail.io', 'tempmailaddress.com', 'dropmail.me', 'instantly.email',
+  'mintemail.com', 'harakirimail.com', 'mailcatch.com', 'spamavert.com', 'tmpmail.org'
+];
+
+// Check if email is from a disposable domain
+const isDisposableEmail = (email: string): boolean => {
+  const domain = email.split('@')[1]?.toLowerCase();
+  return DISPOSABLE_EMAIL_DOMAINS.includes(domain);
+};
+
 export const api = {
   auth: {
     login: async (email: string, password: string): Promise<User> => {
@@ -200,6 +218,11 @@ export const api = {
     },
 
     register: async (name: string, email: string, password: string): Promise<User> => {
+      // Block disposable/temporary emails
+      if (isDisposableEmail(email)) {
+        throw new Error('Temporary or disposable email addresses are not allowed. Please use a permanent email address.');
+      }
+
       // Production: Register with Supabase
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -360,6 +383,53 @@ export const api = {
         .getPublicUrl(fileName);
 
       return data.publicUrl;
+    },
+
+    // Resend verification email
+    resendVerificationEmail: async (): Promise<void> => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user?.email) throw new Error('No user logged in');
+
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: user.email
+      });
+
+      if (error) throw new Error(error.message);
+    },
+
+    // Update email verified status (admin function)
+    updateEmailVerified: async (userId: string, verified: boolean): Promise<void> => {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ email_verified: verified })
+        .eq('id', userId);
+
+      if (error) throw new Error(error.message);
+    },
+
+    // Facebook OAuth login
+    loginWithFacebook: async (): Promise<void> => {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'facebook',
+        options: {
+          redirectTo: `${window.location.origin}/dashboard`
+        }
+      });
+
+      if (error) throw new Error(error.message);
+    },
+
+    // Google OAuth login
+    loginWithGoogle: async (): Promise<void> => {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/dashboard`
+        }
+      });
+
+      if (error) throw new Error(error.message);
     }
   },
 
