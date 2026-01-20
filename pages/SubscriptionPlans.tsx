@@ -172,7 +172,7 @@ const SubscriptionPlans: React.FC = () => {
                 </div>
 
                 {/* Pricing Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative items-stretch">
                     {/* Background Glow */}
                     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full max-w-4xl bg-gradient-to-r from-blue-500/20 to-purple-500/20 blur-3xl rounded-full -z-10" />
 
@@ -243,16 +243,29 @@ const SubscriptionPlans: React.FC = () => {
                                     </div>
 
                                     <div className="flex-1 space-y-4 mb-8">
-                                        {plan.features.map((feature: string) => (
-                                            <div key={feature} className="flex items-start gap-3 group/feature">
-                                                <div className={`flex-shrink-0 p-1 rounded-full bg-${plan.color}-100 dark:bg-${plan.color}-900/50 text-${plan.color}-600 dark:text-${plan.color}-400 mt-0.5 transition-colors group-hover/feature:bg-${plan.color}-200 dark:group-hover/feature:bg-${plan.color}-800`}>
-                                                    <Check className="w-3.5 h-3.5" />
+                                        {plan.features.map((feature: string) => {
+                                            const isUnavailable = feature.startsWith('-');
+                                            const displayText = isUnavailable ? feature.slice(1) : feature;
+
+                                            return (
+                                                <div key={feature} className="flex items-start gap-3 group/feature">
+                                                    {isUnavailable ? (
+                                                        <div className="flex-shrink-0 p-1 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-400 dark:text-slate-500 mt-0.5">
+                                                            <X className="w-3.5 h-3.5" />
+                                                        </div>
+                                                    ) : (
+                                                        <div className={`flex-shrink-0 p-1 rounded-full bg-${plan.color}-100 dark:bg-${plan.color}-900/50 text-${plan.color}-600 dark:text-${plan.color}-400 mt-0.5 transition-colors group-hover/feature:bg-${plan.color}-200 dark:group-hover/feature:bg-${plan.color}-800`}>
+                                                            <Check className="w-3.5 h-3.5" />
+                                                        </div>
+                                                    )}
+                                                    <span className={`text-sm font-medium ${isUnavailable
+                                                        ? 'text-slate-400 dark:text-slate-500 line-through'
+                                                        : 'text-slate-700 dark:text-slate-300'}`}>
+                                                        {displayText}
+                                                    </span>
                                                 </div>
-                                                <span className="text-sm text-slate-700 dark:text-slate-300 font-medium">
-                                                    {feature}
-                                                </span>
-                                            </div>
-                                        ))}
+                                            );
+                                        })}
                                         {(plan.features.length === 0) && (
                                             <div className="text-sm text-slate-400 italic">No features listed</div>
                                         )}

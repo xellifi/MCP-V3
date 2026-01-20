@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { User, UserRole, Package } from '../types';
 import { api } from '../services/api';
-import { Search, Shield, User as UserIcon, Trash2, Edit2, ShieldAlert, Plus, X, Lock, UserPlus, MoreHorizontal, Eye, Calendar, CreditCard, Layers, Clock, LogIn } from 'lucide-react';
+import { Search, Shield, User as UserIcon, Trash2, Edit2, ShieldAlert, Plus, X, Lock, UserPlus, MoreHorizontal, Eye, Calendar, CreditCard, Layers, Clock, LogIn, Check } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 
 interface UsersPageProps {
@@ -543,12 +543,23 @@ const UsersPage: React.FC<UsersPageProps> = ({ user }) => {
                           <div>
                             <span className="text-sm font-medium text-slate-700 dark:text-slate-300 block mb-2">Features:</span>
                             <ul className="space-y-1">
-                              {selectedPackage.features.map((feature, idx) => (
-                                <li key={idx} className="text-xs text-slate-600 dark:text-slate-400 flex items-center gap-2">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-primary-500"></span>
-                                  {feature}
-                                </li>
-                              ))}
+                              {selectedPackage.features.map((feature, idx) => {
+                                const isUnavailable = feature.startsWith('-');
+                                const displayText = isUnavailable ? feature.slice(1) : feature;
+
+                                return (
+                                  <li key={idx} className={`text-xs flex items-center gap-2 ${isUnavailable ? 'text-slate-400 dark:text-slate-500' : 'text-slate-600 dark:text-slate-400'}`}>
+                                    {isUnavailable ? (
+                                      <X className="w-3 h-3 text-slate-400 dark:text-slate-500" />
+                                    ) : (
+                                      <Check className="w-3 h-3 text-primary-500" />
+                                    )}
+                                    <span className={isUnavailable ? 'line-through' : ''}>
+                                      {displayText}
+                                    </span>
+                                  </li>
+                                );
+                              })}
                             </ul>
                           </div>
                         )}
