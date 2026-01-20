@@ -294,6 +294,25 @@ export const api = {
           // Don't fail registration if subscription creation fails
         }
 
+        // Create a default workspace for the new user
+        try {
+          const { error: wsError } = await supabase
+            .from('workspaces')
+            .insert({
+              name: `${name}'s Workspace`,
+              owner_id: data.user.id
+            });
+
+          if (wsError) {
+            console.error('Failed to create workspace:', wsError);
+          } else {
+            console.log('Created default workspace for user:', data.user.id);
+          }
+        } catch (wsError) {
+          console.error('Failed to create workspace:', wsError);
+          // Don't fail registration if workspace creation fails
+        }
+
         // Fetch the created profile
         const { data: profile } = await supabase
           .from('profiles')
