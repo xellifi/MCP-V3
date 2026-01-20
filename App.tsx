@@ -93,7 +93,8 @@ const App: React.FC = () => {
         // Check if this is an email verification callback
         const isVerificationCallback = isEmailVerificationCallback();
 
-        // If this is a verification callback, sync email_verified to profiles FIRST
+        // If this is a verification callback, keep loading state to prevent flash
+        // Don't set loading to false until we redirect
         if (isVerificationCallback) {
           console.log('Email verification callback detected, syncing status...');
           const { data: { session } } = await supabase.auth.getSession();
@@ -105,6 +106,14 @@ const App: React.FC = () => {
               .eq('id', session.user.id);
             console.log('Email verification synced to profiles table');
           }
+
+          // Store flag for toast notification
+          sessionStorage.setItem('emailJustVerified', 'true');
+          // Clear the hash from URL first (to prevent re-triggering on reload)
+          window.history.replaceState(null, '', '/dashboard');
+          // Redirect to dashboard immediately - keep loading true so no flash
+          window.location.replace('/dashboard');
+          return; // Stop further processing, don't set loading to false
         }
 
         const existingUser = await api.auth.getSession();
@@ -124,17 +133,6 @@ const App: React.FC = () => {
             } catch (wsError) {
               console.error('Failed to create workspace:', wsError);
             }
-          }
-
-          // If this was an email verification callback, redirect to dashboard with success notification
-          if (isVerificationCallback) {
-            // Store flag for toast notification
-            sessionStorage.setItem('emailJustVerified', 'true');
-            // Clear the hash from URL first (to prevent re-triggering on reload)
-            window.history.replaceState(null, '', window.location.pathname);
-            // Redirect to dashboard
-            window.location.replace('/dashboard');
-            return; // Stop further processing
           }
         }
       } catch (error) {
