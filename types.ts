@@ -310,6 +310,7 @@ export interface Package {
   color: string;
   isActive: boolean;
   isVisible?: boolean; // Show on pricing page (default true)
+  displayOrder?: number; // Controls sequence on pricing page (lower = first)
   allowedRoutes?: string[]; // List of allowed paths e.g. ['/', '/dashboard', '/settings']
 }
 

@@ -967,8 +967,8 @@ const AdminPackageSettings: React.FC = () => {
                 )}
                 {isModalOpen && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm" onClick={() => setIsModalOpen(false)}>
-                        <div className="relative max-w-lg w-full bg-white dark:bg-slate-900 rounded-xl overflow-hidden shadow-2xl" onClick={e => e.stopPropagation()}>
-                            <div className="flex items-center justify-between p-6 border-b border-slate-200 dark:border-slate-800">
+                        <div className="relative max-w-3xl w-full bg-white dark:bg-slate-900 rounded-xl overflow-hidden shadow-2xl max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+                            <div className="flex items-center justify-between p-6 border-b border-slate-200 dark:border-slate-800 shrink-0">
                                 <h3 className="text-xl font-bold text-slate-900 dark:text-white">
                                     {currentPackage.id ? 'Edit Package' : 'Create New Package'}
                                 </h3>
@@ -976,130 +976,159 @@ const AdminPackageSettings: React.FC = () => {
                                     <XCircle className="w-6 h-6" />
                                 </button>
                             </div>
-                            <div className="p-6 space-y-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Package Name</label>
-                                    <input
-                                        type="text"
-                                        value={currentPackage.name || ''}
-                                        onChange={e => setCurrentPackage({ ...currentPackage, name: e.target.value })}
-                                        className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none"
-                                        placeholder="e.g. Enterprise"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Marketing Features</label>
-                                    <div className="space-y-2 mb-2">
-                                        {(currentPackage.features || []).map((feature: string, idx: number) => (
-                                            <div key={idx} className="flex items-center gap-2">
+                            <div className="p-6 overflow-y-auto flex-1">
+                                <div className="grid grid-cols-2 gap-6">
+                                    {/* Left Column */}
+                                    <div className="space-y-4">
+                                        <div>
+                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Package Name</label>
+                                            <input
+                                                type="text"
+                                                value={currentPackage.name || ''}
+                                                onChange={e => setCurrentPackage({ ...currentPackage, name: e.target.value })}
+                                                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none"
+                                                placeholder="e.g. Enterprise"
+                                            />
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div>
+                                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Display Order</label>
                                                 <input
-                                                    type="text"
-                                                    value={feature}
-                                                    onChange={(e) => {
-                                                        const newFeatures = [...(currentPackage.features || [])];
-                                                        newFeatures[idx] = e.target.value;
-                                                        setCurrentPackage({ ...currentPackage, features: newFeatures });
-                                                    }}
-                                                    className="flex-1 px-3 py-2 text-sm border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none"
+                                                    type="number"
+                                                    value={currentPackage.displayOrder ?? 99}
+                                                    onChange={e => setCurrentPackage({ ...currentPackage, displayOrder: parseInt(e.target.value) || 99 })}
+                                                    min="1"
+                                                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none"
                                                 />
-                                                <button
-                                                    onClick={() => {
-                                                        const newFeatures = (currentPackage.features || []).filter((_, i) => i !== idx);
-                                                        setCurrentPackage({ ...currentPackage, features: newFeatures });
-                                                    }}
-                                                    className="text-slate-400 hover:text-red-500 p-1"
-                                                >
-                                                    <XCircle className="w-5 h-5" />
-                                                </button>
                                             </div>
-                                        ))}
-                                    </div>
-                                    <button
-                                        onClick={() => setCurrentPackage({
-                                            ...currentPackage,
-                                            features: [...(currentPackage.features || []), "New Feature"]
-                                        })}
-                                        className="text-sm text-primary-600 hover:text-primary-700 font-medium flex items-center gap-1"
-                                    >
-                                        <Plus className="w-4 h-4" /> Add Feature Line
-                                    </button>
-                                </div>
-
-                                <div className="grid grid-cols-3 gap-4">
-                                    <div>
-                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Monthly Price ($)</label>
-                                        <input
-                                            type="number"
-                                            value={currentPackage.priceMonthly || 0}
-                                            onChange={e => setCurrentPackage({ ...currentPackage, priceMonthly: parseFloat(e.target.value) })}
-                                            className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Yearly Price ($)</label>
-                                        <input
-                                            type="number"
-                                            value={currentPackage.priceYearly || 0}
-                                            onChange={e => setCurrentPackage({ ...currentPackage, priceYearly: parseFloat(e.target.value) })}
-                                            className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Lifetime Price ($)</label>
-                                        <input
-                                            type="number"
-                                            value={currentPackage.priceLifetime || 0}
-                                            onChange={e => setCurrentPackage({ ...currentPackage, priceLifetime: parseFloat(e.target.value) || undefined })}
-                                            placeholder="One-time payment"
-                                            className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none"
-                                        />
-                                        <p className="text-xs text-slate-500 mt-1">Leave 0 to disable lifetime option</p>
-                                    </div>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Color Theme</label>
-                                    <select
-                                        value={currentPackage.color || 'slate'}
-                                        onChange={e => setCurrentPackage({ ...currentPackage, color: e.target.value })}
-                                        className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none"
-                                    >
-                                        <option value="slate">Slate (Gray)</option>
-                                        <option value="blue">Blue</option>
-                                        <option value="purple">Purple</option>
-                                        <option value="indigo">Indigo</option>
-                                        <option value="emerald">Emerald</option>
-                                        <option value="rose">Rose</option>
-                                        <option value="amber">Amber</option>
-                                    </select>
-                                </div>
-                                <div className="flex flex-col gap-3">
-                                    <label className="flex items-center gap-3 p-3 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer">
-                                        <input
-                                            type="checkbox"
-                                            checked={currentPackage.isActive !== false}
-                                            onChange={e => setCurrentPackage({ ...currentPackage, isActive: e.target.checked })}
-                                            className="w-5 h-5 rounded border-slate-300 text-primary-600 focus:ring-primary-500"
-                                        />
-                                        <div>
-                                            <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Is Active</span>
-                                            <p className="text-xs text-slate-500">Enable or disable this package</p>
+                                            <div>
+                                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Color Theme</label>
+                                                <select
+                                                    value={currentPackage.color || 'slate'}
+                                                    onChange={e => setCurrentPackage({ ...currentPackage, color: e.target.value })}
+                                                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none"
+                                                >
+                                                    <option value="slate">Slate</option>
+                                                    <option value="blue">Blue</option>
+                                                    <option value="purple">Purple</option>
+                                                    <option value="emerald">Emerald</option>
+                                                    <option value="rose">Rose</option>
+                                                    <option value="amber">Amber</option>
+                                                </select>
+                                            </div>
                                         </div>
-                                    </label>
-                                    <label className="flex items-center gap-3 p-3 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer">
-                                        <input
-                                            type="checkbox"
-                                            checked={currentPackage.isVisible !== false}
-                                            onChange={e => setCurrentPackage({ ...currentPackage, isVisible: e.target.checked })}
-                                            className="w-5 h-5 rounded border-slate-300 text-primary-600 focus:ring-primary-500"
-                                        />
-                                        <div>
-                                            <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Show on Pricing Page</span>
-                                            <p className="text-xs text-slate-500">Display this package in the public pricing page</p>
+                                        <div className="grid grid-cols-3 gap-2">
+                                            <div>
+                                                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Monthly ($)</label>
+                                                <input
+                                                    type="number"
+                                                    value={currentPackage.priceMonthly || 0}
+                                                    onChange={e => setCurrentPackage({ ...currentPackage, priceMonthly: parseFloat(e.target.value) })}
+                                                    className="w-full px-2 py-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none text-sm"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Yearly ($)</label>
+                                                <input
+                                                    type="number"
+                                                    value={currentPackage.priceYearly || 0}
+                                                    onChange={e => setCurrentPackage({ ...currentPackage, priceYearly: parseFloat(e.target.value) })}
+                                                    className="w-full px-2 py-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none text-sm"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Lifetime ($)</label>
+                                                <input
+                                                    type="number"
+                                                    value={currentPackage.priceLifetime || 0}
+                                                    onChange={e => setCurrentPackage({ ...currentPackage, priceLifetime: parseFloat(e.target.value) || undefined })}
+                                                    className="w-full px-2 py-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none text-sm"
+                                                />
+                                            </div>
                                         </div>
-                                    </label>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <label className="flex items-center gap-2 p-2 border border-slate-200 dark:border-slate-700 rounded-lg cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={currentPackage.isActive !== false}
+                                                    onChange={e => setCurrentPackage({ ...currentPackage, isActive: e.target.checked })}
+                                                    className="w-4 h-4 rounded border-slate-300 text-primary-600"
+                                                />
+                                                <span className="text-sm text-slate-700 dark:text-slate-300">Is Active</span>
+                                            </label>
+                                            <label className="flex items-center gap-2 p-2 border border-slate-200 dark:border-slate-700 rounded-lg cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={currentPackage.isVisible !== false}
+                                                    onChange={e => setCurrentPackage({ ...currentPackage, isVisible: e.target.checked })}
+                                                    className="w-4 h-4 rounded border-slate-300 text-primary-600"
+                                                />
+                                                <span className="text-sm text-slate-700 dark:text-slate-300">Show on Pricing</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    {/* Right Column - Features */}
+                                    <div className="space-y-4">
+                                        <div>
+                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Marketing Features</label>
+                                            <p className="text-xs text-slate-500 mb-2">Click ✓/✗ to toggle active/inactive</p>
+                                            <div className="space-y-2 max-h-64 overflow-y-auto">
+                                                {(currentPackage.features || []).map((feature: string, idx: number) => {
+                                                    const isInactive = feature.startsWith('-');
+                                                    const displayText = isInactive ? feature.slice(1) : feature;
+                                                    return (
+                                                        <div key={idx} className="flex items-center gap-2">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    const newFeatures = [...(currentPackage.features || [])];
+                                                                    newFeatures[idx] = isInactive ? displayText : '-' + feature;
+                                                                    setCurrentPackage({ ...currentPackage, features: newFeatures });
+                                                                }}
+                                                                className={`p-1 rounded border transition-colors ${isInactive
+                                                                        ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-500'
+                                                                        : 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-500'
+                                                                    }`}
+                                                            >
+                                                                {isInactive ? <XCircle className="w-3 h-3" /> : <CheckCircle className="w-3 h-3" />}
+                                                            </button>
+                                                            <input
+                                                                type="text"
+                                                                value={displayText}
+                                                                onChange={(e) => {
+                                                                    const newFeatures = [...(currentPackage.features || [])];
+                                                                    newFeatures[idx] = isInactive ? '-' + e.target.value : e.target.value;
+                                                                    setCurrentPackage({ ...currentPackage, features: newFeatures });
+                                                                }}
+                                                                className={`flex-1 px-2 py-1 text-sm border border-slate-300 dark:border-slate-700 rounded bg-white dark:bg-slate-950 text-slate-900 dark:text-white outline-none ${isInactive ? 'opacity-60' : ''}`}
+                                                            />
+                                                            <button
+                                                                onClick={() => {
+                                                                    const newFeatures = (currentPackage.features || []).filter((_, i) => i !== idx);
+                                                                    setCurrentPackage({ ...currentPackage, features: newFeatures });
+                                                                }}
+                                                                className="text-slate-400 hover:text-red-500"
+                                                            >
+                                                                <Trash2 className="w-4 h-4" />
+                                                            </button>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                            <button
+                                                onClick={() => setCurrentPackage({
+                                                    ...currentPackage,
+                                                    features: [...(currentPackage.features || []), "New Feature"]
+                                                })}
+                                                className="text-sm text-primary-600 hover:text-primary-700 font-medium flex items-center gap-1 mt-2"
+                                            >
+                                                <Plus className="w-4 h-4" /> Add Feature
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-                            <div className="p-6 bg-slate-50 dark:bg-slate-800/50 flex justify-between gap-3 border-t border-slate-200 dark:border-slate-800">
+                            <div className="p-4 bg-slate-50 dark:bg-slate-800/50 flex justify-between gap-3 border-t border-slate-200 dark:border-slate-800 shrink-0">
                                 {currentPackage.id && (
                                     <button
                                         type="button"

@@ -152,6 +152,7 @@ const mapPackage = (row: any): Package => ({
   color: row.color,
   isActive: row.is_active,
   isVisible: parseIsVisible(row.is_visible),
+  displayOrder: row.display_order ?? 99, // Default to 99 if not set
   allowedRoutes: row.allowed_routes || []
 });
 
@@ -2026,6 +2027,7 @@ export const api = {
         color: data.color,
         is_active: data.isActive,
         is_visible: data.isVisible,
+        display_order: data.displayOrder,
         allowed_routes: data.allowedRoutes,
         updated_at: new Date().toISOString()
       };
@@ -2057,6 +2059,7 @@ export const api = {
         color: data.color,
         is_active: data.isActive,
         is_visible: data.isVisible !== false, // Default to true
+        display_order: data.displayOrder ?? 99, // Default to 99
         allowed_routes: data.allowedRoutes || []
       };
 

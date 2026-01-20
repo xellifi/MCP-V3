@@ -3,9 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import {
   Bot, Zap, MessageCircle, BarChart, ArrowRight, Sparkles, Globe, Shield,
   Menu, X, Home as HomeIcon, Layers, Send, Check, Star, ChevronDown,
-  Play, Users, Lock, CreditCard, HelpCircle
+  Play, Users, Lock, CreditCard, HelpCircle, Loader2, XCircle
 } from 'lucide-react';
 import Footer from '../components/Footer';
+import { api } from '../services/api';
+import { Package } from '../types';
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
@@ -13,6 +15,40 @@ const Home: React.FC = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [pricingPeriod, setPricingPeriod] = useState<'monthly' | 'yearly'>('monthly');
   const [activeFaqIndex, setActiveFaqIndex] = useState<number | null>(null);
+  const [packages, setPackages] = useState<Package[]>([]);
+  const [loadingPackages, setLoadingPackages] = useState(true);
+
+  // Fetch packages from database
+  useEffect(() => {
+    const fetchPackages = async () => {
+      try {
+        const data = await api.admin.getPackages();
+        // Filter only visible packages and sort by displayOrder
+        const visiblePackages = data
+          .filter(pkg => pkg.isVisible === true)
+          .sort((a, b) => (a.displayOrder ?? 99) - (b.displayOrder ?? 99));
+        setPackages(visiblePackages);
+      } catch (error) {
+        console.error('Failed to fetch packages:', error);
+      } finally {
+        setLoadingPackages(false);
+      }
+    };
+    fetchPackages();
+  }, []);
+
+  // Helper function to get descriptions for packages
+  const getPackageDescription = (id: string, name: string): string => {
+    const lowerName = name.toLowerCase();
+    if (id === 'free' || lowerName.includes('free') || lowerName.includes('starter')) {
+      return 'Perfect for individuals and small tests.';
+    } else if (id === 'pro' || lowerName.includes('pro')) {
+      return 'For growing businesses needing power.';
+    } else if (lowerName.includes('enterprise') || lowerName.includes('business')) {
+      return 'Ultimate scale and custom solutions.';
+    }
+    return 'Unlock your business potential.';
+  };
 
   useEffect(() => {
     const handleScroll = () => {
@@ -326,36 +362,83 @@ const Home: React.FC = () => {
           </div>
 
           <div className="grid md:grid-cols-3 gap-8 items-center">
-            {/* Starter Plan */}
-            <PricingCard
-              name="Starter"
-              price={pricingPeriod === 'monthly' ? "0" : "0"}
-              description="Perfect for individuals and small tests."
-              features={["1,000 Messages/mo", "1 Facebook Page", "Basic Automation", "Community Support"]}
-              cta="Start for Free"
-              active={false}
-            />
+            {loadingPackages ? (
+              <div className="col-span-3 flex justify-center py-12">
+                <Loader2 className="w-8 h-8 animate-spin text-violet-500" />
+              </div>
+            ) : packages.length > 0 ? (
+              packages.map((pkg, index) => {
+                // Detect if this is a lifetime-only package (no monthly/yearly price, but has lifetime price)
+                const isLifetimeOnly = (!pkg.priceMonthly || pkg.priceMonthly === 0) &&
+                  (!pkg.priceYearly || pkg.priceYearly === 0) &&
+                  (pkg.priceLifetime && pkg.priceLifetime > 0);
 
-            {/* Pro Plan */}
-            <PricingCard
-              name="Pro"
-              price={pricingPeriod === 'monthly' ? "29" : "24"}
-              description="For growing businesses needing power."
-              features={["10,000 Messages/mo", "5 Facebook Pages", "Advanced Flow Builder", "AI Assistant (GPT-4)", "Priority Support", "Remove Branding"]}
-              cta="Get Started"
-              active={true}
-              popular={true}
-            />
+                // Calculate the display price
+                let displayPrice: string;
+                let billingType: 'monthly' | 'yearly' | 'lifetime' = pricingPeriod;
 
-            {/* Enterprise Plan */}
-            <PricingCard
-              name="Enterprise"
-              price={pricingPeriod === 'monthly' ? "99" : "79"}
-              description="Ultimate scale and custom solutions."
-              features={["Unlimited Messages", "Unlimited Pages", "Custom AI Training", "Dedicated Success Manager", "API Access", "SLA Guarantee"]}
-              cta="Contact Sales"
-              active={false}
-            />
+                if (isLifetimeOnly) {
+                  displayPrice = String(pkg.priceLifetime || 0);
+                  billingType = 'lifetime';
+                } else if (pricingPeriod === 'monthly') {
+                  displayPrice = String(pkg.priceMonthly || 0);
+                } else {
+                  displayPrice = String(pkg.priceYearly || Math.round((pkg.priceMonthly || 0) * 0.8));
+                }
+
+                // Determine CTA text
+                const ctaText = isLifetimeOnly
+                  ? "Get Lifetime Access"
+                  : (pkg.priceMonthly === 0 ? "Start for Free" : "Get Started");
+
+                return (
+                  <PricingCard
+                    key={pkg.id}
+                    name={pkg.name}
+                    price={displayPrice}
+                    billingType={billingType}
+                    description={getPackageDescription(pkg.id, pkg.name)}
+                    features={pkg.features || []}
+                    cta={ctaText}
+                    active={index === 1}
+                    popular={index === 1}
+                    onClick={() => navigate('/register')}
+                  />
+                );
+              })
+            ) : (
+              // Fallback to hardcoded if no packages in database
+              <>
+                <PricingCard
+                  name="Starter"
+                  price={pricingPeriod === 'monthly' ? "0" : "0"}
+                  description="Perfect for individuals and small tests."
+                  features={["1,000 Messages/mo", "1 Facebook Page", "Basic Automation", "Community Support"]}
+                  cta="Start for Free"
+                  active={false}
+                  onClick={() => navigate('/register')}
+                />
+                <PricingCard
+                  name="Pro"
+                  price={pricingPeriod === 'monthly' ? "29" : "24"}
+                  description="For growing businesses needing power."
+                  features={["10,000 Messages/mo", "5 Facebook Pages", "Advanced Flow Builder", "AI Assistant (GPT-4)", "Priority Support", "Remove Branding"]}
+                  cta="Get Started"
+                  active={true}
+                  popular={true}
+                  onClick={() => navigate('/register')}
+                />
+                <PricingCard
+                  name="Enterprise"
+                  price={pricingPeriod === 'monthly' ? "99" : "79"}
+                  description="Ultimate scale and custom solutions."
+                  features={["Unlimited Messages", "Unlimited Pages", "Custom AI Training", "Dedicated Success Manager", "API Access", "SLA Guarantee"]}
+                  cta="Get Started"
+                  active={false}
+                  onClick={() => navigate('/register')}
+                />
+              </>
+            )}
           </div>
         </div>
       </section>
@@ -549,12 +632,17 @@ const FeatureBlock: React.FC<{
 const PricingCard: React.FC<{
   name: string;
   price: string;
+  billingType?: 'monthly' | 'yearly' | 'lifetime';
   description: string;
   features: string[];
   cta: string;
   active: boolean;
   popular?: boolean;
-}> = ({ name, price, description, features, cta, active, popular }) => {
+  onClick?: () => void;
+}> = ({ name, price, billingType = 'monthly', description, features, cta, active, popular, onClick }) => {
+  // Determine billing label based on type
+  const billingLabel = billingType === 'lifetime' ? 'one-time' : (billingType === 'yearly' ? '/year' : '/month');
+
   return (
     <div className={`relative rounded-3xl p-8 border hover:-translate-y-2 transition-transform duration-300 ${active
       ? 'bg-white/5 border-violet-500/30 ring-1 ring-violet-500/30'
@@ -570,24 +658,35 @@ const PricingCard: React.FC<{
         <h3 className="text-lg font-semibold text-white mb-2">{name}</h3>
         <div className="flex items-baseline gap-1 mb-2">
           <span className="text-4xl font-bold text-white">${price}</span>
-          <span className="text-slate-500">/month</span>
+          <span className="text-slate-500">{billingLabel}</span>
         </div>
         <p className="text-sm text-slate-400">{description}</p>
       </div>
 
       <ul className="space-y-4 mb-8">
-        {features.map((feature, i) => (
-          <li key={i} className="flex items-center gap-3 text-sm text-slate-300">
-            <Check className={`w-5 h-5 ${active ? 'text-violet-400' : 'text-slate-600'}`} />
-            {feature}
-          </li>
-        ))}
+        {features.map((feature, i) => {
+          const isInactive = feature.startsWith('-');
+          const displayText = isInactive ? feature.slice(1) : feature;
+          return (
+            <li key={i} className={`flex items-center gap-3 text-sm ${isInactive ? 'text-slate-500' : 'text-slate-300'}`}>
+              {isInactive ? (
+                <XCircle className="w-5 h-5 text-slate-600" />
+              ) : (
+                <Check className={`w-5 h-5 ${active ? 'text-violet-400' : 'text-slate-600'}`} />
+              )}
+              <span className={isInactive ? 'line-through' : ''}>{displayText}</span>
+            </li>
+          );
+        })}
       </ul>
 
-      <button className={`w-full py-3 rounded-xl font-bold transition-all ${active
-        ? 'bg-violet-600 hover:bg-violet-700 text-white shadow-lg shadow-violet-600/25'
-        : 'bg-white/10 hover:bg-white/20 text-white'
-        }`}>
+      <button
+        onClick={onClick}
+        className={`w-full py-3 rounded-xl font-bold transition-all ${active
+          ? 'bg-violet-600 hover:bg-violet-700 text-white shadow-lg shadow-violet-600/25'
+          : 'bg-white/10 hover:bg-white/20 text-white'
+          }`}
+      >
         {cta}
       </button>
     </div>
