@@ -2005,7 +2005,7 @@ export const api = {
       const { data, error } = await supabase
         .from('packages')
         .select('*')
-        .order('price_monthly', { ascending: true });
+        .order('display_order', { ascending: true });
 
       if (error) {
         console.error('Error fetching packages:', error);

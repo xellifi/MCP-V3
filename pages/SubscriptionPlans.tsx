@@ -77,20 +77,12 @@ const SubscriptionPlans: React.FC = () => {
                         };
                     });
 
-                    // Custom sort order: Free -> Starter -> Pro -> Lifetime (lifetime-only packages last)
-                    const planOrder: Record<string, number> = { 'free': 1, 'starter': 2, 'pro': 3 };
+                    // Sort by displayOrder from database (already comes sorted from API, but ensure client-side consistency)
                     mappedPlans.sort((a, b) => {
-                        // Lifetime-only packages go to the end
-                        if (a.isLifetimeOnly && !b.isLifetimeOnly) return 1;
-                        if (!a.isLifetimeOnly && b.isLifetimeOnly) return -1;
-
-                        // Use custom order for known packages
-                        const orderA = planOrder[a.id] || 100;
-                        const orderB = planOrder[b.id] || 100;
-                        if (orderA !== orderB) return orderA - orderB;
-
-                        // Fallback to price for unknown packages
-                        return (a.priceMonthly || 0) - (b.priceMonthly || 0);
+                        // Primary sort: by displayOrder
+                        const orderA = a.displayOrder ?? 99;
+                        const orderB = b.displayOrder ?? 99;
+                        return orderA - orderB;
                     });
                     setPlans(mappedPlans);
                 }
