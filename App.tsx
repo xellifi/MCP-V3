@@ -142,7 +142,7 @@ const App: React.FC = () => {
     };
     checkSession();
 
-    // Listen for auth state changes (for email verification callback AFTER initial load)
+    // Listen for auth state changes (for session refresh, NOT for initial verification)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('Auth state changed:', event, session?.user?.email_confirmed_at);
@@ -153,13 +153,10 @@ const App: React.FC = () => {
           return;
         }
 
-        // Handle email verification callback or user sign-in AFTER initial load
+        // Handle user sign-in events AFTER initial load (e.g., login from another tab)
         if (event === 'SIGNED_IN' && session?.user) {
-          // Check if this is an email verification (user has email_confirmed_at)
-          const isEmailVerification = !!session.user.email_confirmed_at;
-
-          // Sync email verification status if confirmed
-          if (isEmailVerification) {
+          // Sync email verification status if confirmed (in case it was verified elsewhere)
+          if (session.user.email_confirmed_at) {
             try {
               await supabase
                 .from('profiles')
@@ -191,14 +188,8 @@ const App: React.FC = () => {
                   console.error('Failed to create workspace:', wsError);
                 }
               }
-
-              // If email was just verified, redirect to dashboard with success message
-              if (isEmailVerification && refreshedUser.isEmailVerified) {
-                // Store flag in sessionStorage for toast notification
-                sessionStorage.setItem('emailJustVerified', 'true');
-                // Redirect to dashboard
-                window.location.href = '/dashboard';
-              }
+              // NOTE: Verification redirect is handled by checkSession via URL hash detection
+              // Do NOT redirect here - it would cause infinite loops for already-verified users
             }
           } catch (err) {
             console.error('Failed to refresh session after auth state change:', err);
