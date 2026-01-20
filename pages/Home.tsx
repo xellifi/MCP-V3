@@ -5,6 +5,7 @@ import {
   Menu, X, Home as HomeIcon, Layers, Send, Check, Star, ChevronDown,
   Play, Users, Lock, CreditCard, HelpCircle
 } from 'lucide-react';
+import Footer from '../components/Footer';
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
@@ -57,7 +58,7 @@ const Home: React.FC = () => {
 
             {/* Desktop Navigation */}
             <div className="hidden md:flex items-center gap-8">
-              <a href="#features" className="text-sm font-medium hover:text-white transition-colors">Features</a>
+              <button onClick={() => navigate('/features')} className="text-sm font-medium hover:text-white transition-colors bg-transparent border-0 cursor-pointer">Features</button>
               <a href="#pricing" className="text-sm font-medium hover:text-white transition-colors">Pricing</a>
               <a href="#testimonials" className="text-sm font-medium hover:text-white transition-colors">Testimonials</a>
               <a href="#faq" className="text-sm font-medium hover:text-white transition-colors">FAQ</a>
@@ -104,7 +105,7 @@ const Home: React.FC = () => {
                   <div className="bg-gradient-to-tr from-violet-600 to-fuchsia-500 p-2 rounded-xl">
                     <Bot className="w-5 h-5 text-white" />
                   </div>
-                  <span className="text-lg font-bold text-white">MychatPilot</span>
+                  <span className="text-lg font-bold text-white">MyChat Pilot</span>
                 </div>
                 <button
                   onClick={() => setIsMobileMenuOpen(false)}
@@ -115,7 +116,7 @@ const Home: React.FC = () => {
               </div>
 
               <nav className="space-y-2 flex-1">
-                <MobileNavLink onClick={() => setIsMobileMenuOpen(false)} href="#features" icon={<Zap className="w-5 h-5" />}>Features</MobileNavLink>
+                <MobileNavLink onClick={() => { setIsMobileMenuOpen(false); navigate('/features'); }} href="#" icon={<Zap className="w-5 h-5" />}>Features</MobileNavLink>
                 <MobileNavLink onClick={() => setIsMobileMenuOpen(false)} href="#pricing" icon={<CreditCard className="w-5 h-5" />}>Pricing</MobileNavLink>
                 <MobileNavLink onClick={() => setIsMobileMenuOpen(false)} href="#testimonials" icon={<Star className="w-5 h-5" />}>Testimonials</MobileNavLink>
                 <MobileNavLink onClick={() => setIsMobileMenuOpen(false)} href="#faq" icon={<HelpCircle className="w-5 h-5" />}>FAQ</MobileNavLink>
@@ -367,7 +368,7 @@ const Home: React.FC = () => {
           </div>
           <div className="grid md:grid-cols-3 gap-6">
             <TestimonialCard
-              quote="MychatPilot transformed how we handle customer support. Our response time dropped by 80%!"
+              quote="MyChat Pilot transformed how we handle customer support. Our response time dropped by 80%!"
               author="Sarah Jenkins"
               role="Marketing Director, TechFlow"
               rating={5}
@@ -396,7 +397,7 @@ const Home: React.FC = () => {
           </div>
           <div className="space-y-4">
             <FaqItem
-              question="Can I use MychatPilot for free?"
+              question="Can I use MyChat Pilot for free?"
               answer="Yes! We offer a generous free tier that includes 1,000 messages per month and basic automation features so you can test the platform thoroughly."
               isOpen={activeFaqIndex === 0}
               onClick={() => toggleFaq(0)}
@@ -431,7 +432,7 @@ const Home: React.FC = () => {
             <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
             <div className="relative z-10">
               <h2 className="text-3xl md:text-5xl font-bold text-white mb-6">Ready to automate your growth?</h2>
-              <p className="text-xl text-white/90 mb-10 max-w-2xl mx-auto">Join 10,000+ marketers and business owners who are saving time and boosting sales with MychatPilot.</p>
+              <p className="text-xl text-white/90 mb-10 max-w-2xl mx-auto">Join 10,000+ marketers and business owners who are saving time and boosting sales with MyChat Pilot.</p>
               <button
                 onClick={() => navigate('/register')}
                 className="bg-white text-violet-600 px-10 py-4 rounded-xl font-bold text-lg shadow-2xl hover:bg-slate-50 hover:scale-105 transition-all duration-300"
@@ -445,72 +446,7 @@ const Home: React.FC = () => {
       </section>
 
       {/* Main Footer */}
-      <footer className="border-t border-white/5 bg-black/20 pt-16 pb-8 px-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid md:grid-cols-4 gap-12 mb-16">
-            <div className="col-span-1 md:col-span-1">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="bg-gradient-to-tr from-violet-600 to-fuchsia-500 p-2 rounded-xl">
-                  <Bot className="w-5 h-5 text-white" />
-                </div>
-                <span className="text-lg font-bold text-white">MychatPilot</span>
-              </div>
-              <p className="text-slate-500 text-sm leading-relaxed mb-6">
-                The most powerful visual chatbot builder for Facebook & Instagram automation.
-              </p>
-              <div className="flex gap-4">
-                {/* Social icons placeholder */}
-                <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center hover:bg-violet-500 hover:text-white transition-colors cursor-pointer text-slate-400">
-                  <Globe className="w-4 h-4" />
-                </div>
-                <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center hover:bg-violet-500 hover:text-white transition-colors cursor-pointer text-slate-400">
-                  <Send className="w-4 h-4" />
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <h4 className="text-white font-bold mb-6">Product</h4>
-              <ul className="space-y-4 text-sm text-slate-500">
-                <li><a href="#" className="hover:text-violet-400 transition-colors">Features</a></li>
-                <li><a href="#" className="hover:text-violet-400 transition-colors">Pricing</a></li>
-                <li><a href="#" className="hover:text-violet-400 transition-colors">Integrations</a></li>
-                <li><a href="#" className="hover:text-violet-400 transition-colors">Changelog</a></li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="text-white font-bold mb-6">Resources</h4>
-              <ul className="space-y-4 text-sm text-slate-500">
-                <li><a href="#" className="hover:text-violet-400 transition-colors">Documentation</a></li>
-                <li><a href="#" className="hover:text-violet-400 transition-colors">API Reference</a></li>
-                <li><a href="#" className="hover:text-violet-400 transition-colors">Community</a></li>
-                <li><a href="#" className="hover:text-violet-400 transition-colors">Blog</a></li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="text-white font-bold mb-6">Company</h4>
-              <ul className="space-y-4 text-sm text-slate-500">
-                <li><a href="#" className="hover:text-violet-400 transition-colors">About</a></li>
-                <li><a href="#" className="hover:text-violet-400 transition-colors">Careers</a></li>
-                <li><a href="#" className="hover:text-violet-400 transition-colors">Legal</a></li>
-                <li><a href="#" className="hover:text-violet-400 transition-colors">Contact</a></li>
-              </ul>
-            </div>
-          </div>
-
-          <div className="border-t border-white/5 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
-            <p className="text-slate-600 text-sm">
-              © {new Date().getFullYear()} MychatPilot Inc. All rights reserved.
-            </p>
-            <div className="flex gap-6 text-sm text-slate-600">
-              <a href="#" className="hover:text-white">Privacy Policy</a>
-              <a href="#" className="hover:text-white">Terms of Service</a>
-            </div>
-          </div>
-        </div>
-      </footer>
+      <Footer />
 
       {/* Mobile Bottom Navigation Spacer & Bar */}
       <div className="md:hidden h-20"></div>
@@ -621,8 +557,8 @@ const PricingCard: React.FC<{
 }> = ({ name, price, description, features, cta, active, popular }) => {
   return (
     <div className={`relative rounded-3xl p-8 border hover:-translate-y-2 transition-transform duration-300 ${active
-        ? 'bg-white/5 border-violet-500/30 ring-1 ring-violet-500/30'
-        : 'bg-white/[0.02] border-white/5 hover:border-white/10'
+      ? 'bg-white/5 border-violet-500/30 ring-1 ring-violet-500/30'
+      : 'bg-white/[0.02] border-white/5 hover:border-white/10'
       }`}>
       {popular && (
         <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white px-4 py-1 rounded-full text-xs font-bold uppercase tracking-wide shadow-lg">
@@ -649,8 +585,8 @@ const PricingCard: React.FC<{
       </ul>
 
       <button className={`w-full py-3 rounded-xl font-bold transition-all ${active
-          ? 'bg-violet-600 hover:bg-violet-700 text-white shadow-lg shadow-violet-600/25'
-          : 'bg-white/10 hover:bg-white/20 text-white'
+        ? 'bg-violet-600 hover:bg-violet-700 text-white shadow-lg shadow-violet-600/25'
+        : 'bg-white/10 hover:bg-white/20 text-white'
         }`}>
         {cta}
       </button>

@@ -13,6 +13,12 @@ import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import ForgotPassword from './pages/ForgotPassword';
+import Features from './pages/Features';
+import PrivacyPolicy from './pages/PrivacyPolicy';
+import TermsOfService from './pages/TermsOfService';
+import GdprPolicy from './pages/GdprPolicy';
+import RefundPolicy from './pages/RefundPolicy';
+import AffiliatePolicy from './pages/AffiliatePolicy';
 
 // App Pages - Lazy load (only load when route is accessed)
 const Dashboard = lazy(() => import('./pages/Dashboard'));
@@ -176,6 +182,12 @@ const App: React.FC = () => {
           <Route path="/login" element={<Login onLogin={handleLogin} />} />
           <Route path="/register" element={<Register onLogin={handleLogin} />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/features" element={<Features />} />
+          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+          <Route path="/terms-of-service" element={<TermsOfService />} />
+          <Route path="/gdpr-policy" element={<GdprPolicy />} />
+          <Route path="/refund-policy" element={<RefundPolicy />} />
+          <Route path="/affiliate-policy" element={<AffiliatePolicy />} />
 
           {/* Public Form View - No login required */}
           <Route path="/forms/:formId" element={
