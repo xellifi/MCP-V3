@@ -438,7 +438,7 @@ const Support: React.FC<SupportProps> = ({ user, workspace }) => {
                                 </div>
 
                                 {/* Reply input */}
-                                <div className={`p-4 pb-6 md:pb-4 border-t ${borderColor} ${cardBg} relative z-10 flex-shrink-0`}>
+                                <div className={`p-3 md:p-4 pb-4 md:pb-4 border-t ${borderColor} ${cardBg} relative z-10 flex-shrink-0`}>
                                     {/* Pending attachments preview */}
                                     {attachments.length > 0 && (
                                         <div className="flex flex-wrap gap-2 mb-3">
@@ -474,7 +474,7 @@ const Support: React.FC<SupportProps> = ({ user, workspace }) => {
                                                     type="button"
                                                     onClick={() => fileInputRef.current?.click()}
                                                     disabled={uploading}
-                                                    className={`p-3 rounded-xl transition-colors ${isDark ? 'bg-slate-800 hover:bg-slate-700 text-slate-400' : 'bg-slate-100 hover:bg-slate-200 text-slate-500'} disabled:opacity-50`}
+                                                    className={`p-2.5 md:p-3 rounded-lg md:rounded-xl flex-shrink-0 transition-colors ${isDark ? 'bg-slate-800 hover:bg-slate-700 text-slate-400' : 'bg-slate-100 hover:bg-slate-200 text-slate-500'} disabled:opacity-50`}
                                                     title="Attach file"
                                                 >
                                                     {uploading ? (
@@ -489,15 +489,15 @@ const Support: React.FC<SupportProps> = ({ user, workspace }) => {
                                             type="text"
                                             value={replyText}
                                             onChange={e => setReplyText(e.target.value)}
-                                            placeholder="Type your reply..."
-                                            className={`flex-1 border ${borderColor} rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary-500 outline-none bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 transition-all`}
+                                            placeholder="Type reply..."
+                                            className={`flex-1 min-w-0 border ${borderColor} rounded-lg md:rounded-xl px-3 md:px-4 py-2.5 md:py-3 text-sm md:text-base focus:ring-2 focus:ring-primary-500 outline-none bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 transition-all`}
                                         />
                                         <button
                                             type="submit"
                                             disabled={!replyText.trim() && attachments.length === 0}
-                                            className="bg-primary-600 hover:bg-primary-700 active:bg-primary-800 text-white px-5 py-3 rounded-xl font-bold transition-all shadow-md shadow-primary-500/20 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100"
+                                            className="bg-primary-600 hover:bg-primary-700 active:bg-primary-800 text-white px-3 md:px-5 py-2.5 md:py-3 rounded-lg md:rounded-xl font-bold transition-all shadow-md shadow-primary-500/20 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 flex-shrink-0"
                                         >
-                                            <Send className="w-5 h-5" />
+                                            <Send className="w-4 h-4 md:w-5 md:h-5" />
                                         </button>
                                     </form>
                                 </div>
