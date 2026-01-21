@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { User, UserRole, Package } from '../types';
 import { api } from '../services/api';
-import { Search, Shield, User as UserIcon, Trash2, Edit2, ShieldAlert, Plus, X, Lock, UserPlus, MoreHorizontal, Eye, Calendar, CreditCard, Layers, Clock, LogIn, Check } from 'lucide-react';
+import { Search, Shield, User as UserIcon, Trash2, Edit2, ShieldAlert, Plus, X, Lock, UserPlus, MoreHorizontal, Eye, Calendar, CreditCard, Layers, Clock, LogIn, Check, Loader2 } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 
 interface UsersPageProps {
@@ -42,6 +42,11 @@ const UsersPage: React.FC<UsersPageProps> = ({ user }) => {
   // Impersonation state
   const [impersonatingId, setImpersonatingId] = useState<string | null>(null);
 
+  // Loading states for actions
+  const [editingLoading, setEditingLoading] = useState<string | null>(null); // Track which user is being edited
+  const [deletingLoading, setDeletingLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
   useEffect(() => {
     // Basic RBAC check
     if (user.role !== UserRole.ADMIN && user.role !== UserRole.OWNER) return;
@@ -81,10 +86,11 @@ const UsersPage: React.FC<UsersPageProps> = ({ user }) => {
 
   // Handle view profile click
   const handleViewClick = async (userToView: User) => {
+    setOpenDropdownId(null); // Close dropdown FIRST
+    setViewingUserData(null); // Reset previous data
+    setLoadingUserData(true);
     setViewingUser(userToView);
     setIsViewModalOpen(true);
-    setOpenDropdownId(null);
-    setLoadingUserData(true);
 
     try {
       // Get user's subscription
@@ -128,7 +134,9 @@ const UsersPage: React.FC<UsersPageProps> = ({ user }) => {
   const [editingId, setEditingId] = useState<string | null>(null);
 
   const handleEditClick = async (userToEdit: User) => {
-    // Get user's current subscription to find their package
+    setOpenDropdownId(null); // Close dropdown FIRST
+    setEditingLoading(userToEdit.id); // Track which user is being loaded
+
     try {
       const subscriptions = await api.subscriptions.getAll();
       const userSubscription = subscriptions.find(sub => sub.user_id === userToEdit.id);
@@ -144,6 +152,8 @@ const UsersPage: React.FC<UsersPageProps> = ({ user }) => {
     } catch (error) {
       console.error('Failed to load user subscription:', error);
       toast.error('Failed to load user details');
+    } finally {
+      setEditingLoading(null);
     }
   };
 
@@ -155,16 +165,18 @@ const UsersPage: React.FC<UsersPageProps> = ({ user }) => {
 
   const confirmDelete = async () => {
     if (!deleteConfirm) return;
+    setDeletingLoading(true);
 
     try {
       await api.admin.deleteUser(deleteConfirm.id);
       setUsers(users.filter(u => u.id !== deleteConfirm.id));
       toast.success("User deleted successfully");
+      setDeleteConfirm(null);
     } catch (err: any) {
       console.error(err);
       toast.error("Failed to delete user: " + err.message);
     } finally {
-      setDeleteConfirm(null);
+      setDeletingLoading(false);
     }
   };
 
@@ -201,6 +213,8 @@ const UsersPage: React.FC<UsersPageProps> = ({ user }) => {
       return;
     }
 
+    setSubmitting(true);
+
     try {
       if (editingId) {
         // UPDATE USER - Update their subscription package
@@ -231,12 +245,14 @@ const UsersPage: React.FC<UsersPageProps> = ({ user }) => {
         // CREATE USER - Use server-side API to create auth user and subscription
         if (!newUser.password) {
           toast.error("Password is required for new users");
+          setSubmitting(false);
           return;
         }
 
         const selectedPackage = packages.find(p => p.id === newUser.packageId);
         if (!selectedPackage) {
           toast.error("Selected package not found");
+          setSubmitting(false);
           return;
         }
 
@@ -272,6 +288,8 @@ const UsersPage: React.FC<UsersPageProps> = ({ user }) => {
     } catch (error: any) {
       console.error('Operation failed:', error);
       toast.error("Operation failed: " + error.message);
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -404,8 +422,8 @@ const UsersPage: React.FC<UsersPageProps> = ({ user }) => {
                           }
                         }}
                         className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold transition-colors cursor-pointer ${u.isEmailVerified
-                            ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900/50 hover:bg-emerald-200 dark:hover:bg-emerald-900/50'
-                            : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border border-amber-200 dark:border-amber-900/50 hover:bg-amber-200 dark:hover:bg-amber-900/50'
+                          ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900/50 hover:bg-emerald-200 dark:hover:bg-emerald-900/50'
+                          : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border border-amber-200 dark:border-amber-900/50 hover:bg-amber-200 dark:hover:bg-amber-900/50'
                           }`}
                         title={u.isEmailVerified ? 'Click to unverify' : 'Click to verify'}
                       >
@@ -432,10 +450,15 @@ const UsersPage: React.FC<UsersPageProps> = ({ user }) => {
                         {/* Edit - Green/Success */}
                         <button
                           onClick={() => handleEditClick(u)}
-                          className="p-2 text-emerald-500 hover:text-emerald-600 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:text-emerald-300 dark:hover:bg-emerald-900/20 rounded-lg transition-colors"
+                          disabled={editingLoading === u.id}
+                          className={`p-2 text-emerald-500 hover:text-emerald-600 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:text-emerald-300 dark:hover:bg-emerald-900/20 rounded-lg transition-colors ${editingLoading === u.id ? 'opacity-50' : ''}`}
                           title="Edit User"
                         >
-                          <Edit2 className="w-4 h-4" />
+                          {editingLoading === u.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Edit2 className="w-4 h-4" />
+                          )}
                         </button>
                         {/* Impersonate - Blue/Primary (hidden for self) */}
                         {u.id !== user.id && (
@@ -622,9 +645,17 @@ const UsersPage: React.FC<UsersPageProps> = ({ user }) => {
               </button>
               <button
                 onClick={handleSubmit}
-                className="flex-1 py-2.5 bg-primary-600 text-white rounded-xl hover:bg-primary-700 transition-colors font-medium shadow-lg shadow-primary-500/25"
+                disabled={submitting}
+                className={`flex-1 py-2.5 bg-primary-600 text-white rounded-xl hover:bg-primary-700 transition-colors font-medium shadow-lg shadow-primary-500/25 flex items-center justify-center gap-2 ${submitting ? 'opacity-75 cursor-not-allowed' : ''}`}
               >
-                {editingId ? 'Update User' : 'Create User'}
+                {submitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    {editingId ? 'Updating...' : 'Creating...'}
+                  </>
+                ) : (
+                  editingId ? 'Update User' : 'Create User'
+                )}
               </button>
             </div>
           </div>
@@ -659,9 +690,17 @@ const UsersPage: React.FC<UsersPageProps> = ({ user }) => {
                 </button>
                 <button
                   onClick={confirmDelete}
-                  className="flex-1 py-2.5 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-colors font-medium shadow-lg shadow-red-500/25"
+                  disabled={deletingLoading}
+                  className={`flex-1 py-2.5 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-colors font-medium shadow-lg shadow-red-500/25 flex items-center justify-center gap-2 ${deletingLoading ? 'opacity-75 cursor-not-allowed' : ''}`}
                 >
-                  Delete User
+                  {deletingLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Deleting...
+                    </>
+                  ) : (
+                    'Delete User'
+                  )}
                 </button>
               </div>
             </div>
