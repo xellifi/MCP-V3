@@ -49,6 +49,7 @@ const AdminSubscriptions: React.FC = () => {
 
     // Loading states
     const [savingEdit, setSavingEdit] = useState(false);
+    const [deletingLoading, setDeletingLoading] = useState(false);
 
     // Form state
     const [newSubscriber, setNewSubscriber] = useState({
@@ -165,6 +166,7 @@ const AdminSubscriptions: React.FC = () => {
     const handleDeleteConfirm = async () => {
         if (!deletingSubscription) return;
 
+        setDeletingLoading(true);
         try {
             await api.subscriptions.delete(deletingSubscription.id);
             await loadData();
@@ -172,6 +174,8 @@ const AdminSubscriptions: React.FC = () => {
             setDeletingSubscription(null);
         } catch (error: any) {
             alert('Failed to delete subscription: ' + error.message);
+        } finally {
+            setDeletingLoading(false);
         }
     };
 
@@ -676,15 +680,24 @@ const AdminSubscriptions: React.FC = () => {
                             <div className="flex gap-3">
                                 <button
                                     onClick={() => { setIsDeleteModalOpen(false); setDeletingSubscription(null); }}
-                                    className="flex-1 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors font-medium"
+                                    disabled={deletingLoading}
+                                    className="flex-1 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors font-medium disabled:opacity-50"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     onClick={handleDeleteConfirm}
-                                    className="flex-1 py-2.5 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-colors font-medium shadow-lg shadow-red-500/25"
+                                    disabled={deletingLoading}
+                                    className="flex-1 py-2.5 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-colors font-medium shadow-lg shadow-red-500/25 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                                 >
-                                    Delete
+                                    {deletingLoading ? (
+                                        <>
+                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                            Deleting...
+                                        </>
+                                    ) : (
+                                        'Delete'
+                                    )}
                                 </button>
                             </div>
                         </div>
