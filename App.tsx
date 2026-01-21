@@ -96,8 +96,8 @@ const App: React.FC = () => {
         // Check if this is an email verification callback
         const isVerificationCallback = isEmailVerificationCallback();
 
-        // If this is a verification callback, keep loading state to prevent flash
-        // Don't set loading to false until we redirect
+        // If this is a verification callback, handle it and DON'T set loading to false
+        // Keep the loading spinner visible until the full page reload completes
         if (isVerificationCallback) {
           console.log('Email verification callback detected, syncing status...');
 
@@ -116,19 +116,21 @@ const App: React.FC = () => {
             sessionStorage.setItem('emailJustVerified', 'true');
 
             // Clear the URL hash/params and redirect
+            // Keep loading=true to prevent login page flash
             window.history.replaceState(null, '', '/dashboard');
 
             // Use a small timeout to ensure state is saved before redirect
+            // NOTE: Don't set loading=false here - the page will reload
             setTimeout(() => {
               window.location.href = '/dashboard';
             }, 100);
-            return; // Stop further processing
+            return; // Stop further processing - loading stays true until page reloads
           } catch (verifyError) {
             console.error('Email verification sync failed:', verifyError);
             // Clear any stale flags and continue normal flow
             sessionStorage.removeItem('verificationRedirect');
             sessionStorage.removeItem('emailJustVerified');
-            // Don't return - let it fall through to normal session check
+            // Fall through to normal session check
           }
         }
 
@@ -153,10 +155,12 @@ const App: React.FC = () => {
         }
         // Clear verification redirect flag once session is established
         sessionStorage.removeItem('verificationRedirect');
+        // Only set loading=false for normal flow (not verification redirect)
+        setLoading(false);
+        isInitialLoad = false;
       } catch (error) {
         console.error('Session check failed:', error);
         sessionStorage.removeItem('verificationRedirect');
-      } finally {
         setLoading(false);
         isInitialLoad = false;
       }
