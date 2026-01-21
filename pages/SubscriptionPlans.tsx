@@ -4,6 +4,7 @@ import { Check, X, CreditCard, Zap, Shield, Crown, Rocket, Star, Gift, Loader2 }
 import PaymentModal from '../components/PaymentModal';
 import { api } from '../services/api';
 import { Package } from '../types';
+import { useSubscription } from '../context/SubscriptionContext';
 
 const SubscriptionPlans: React.FC = () => {
     const [searchParams, setSearchParams] = useSearchParams();
@@ -13,9 +14,12 @@ const SubscriptionPlans: React.FC = () => {
 
     const [plans, setPlans] = useState<any[]>([]); // Using any[] for UI mapped shape, or define interface
     const [loading, setLoading] = useState(true);
-    const [currentPackageId, setCurrentPackageId] = useState<string | null>(null);
-    const [isPending, setIsPending] = useState(false);
     const [hasLifetimeOptions, setHasLifetimeOptions] = useState(false);
+
+    // Use shared subscription context for realtime updates
+    const { currentSubscription, refreshSubscription } = useSubscription();
+    const currentPackageId = currentSubscription?.package_id || null;
+    const isPending = currentSubscription?.status === 'Pending';
 
     React.useEffect(() => {
         const fetchPlans = async () => {
@@ -26,11 +30,8 @@ const SubscriptionPlans: React.FC = () => {
                     api.subscriptions.getCurrentSubscription()
                 ]);
 
-                // Set current package ID and check if pending
-                if (currentSub && currentSub.package_id) {
-                    setCurrentPackageId(currentSub.package_id);
-                    setIsPending(currentSub.status === 'Pending');
-                }
+                // Subscription is now managed by SubscriptionContext
+                // No need to set local state here
 
                 if (data && data.length > 0) {
                     // Filter only visible packages
@@ -135,18 +136,8 @@ const SubscriptionPlans: React.FC = () => {
         setIsPaymentModalOpen(true);
     };
 
-    // Refresh subscription status after successful payment
-    const refreshSubscription = async () => {
-        try {
-            const currentSub = await api.subscriptions.getCurrentSubscription();
-            if (currentSub && currentSub.package_id) {
-                setCurrentPackageId(currentSub.package_id);
-                setIsPending(currentSub.status === 'Pending');
-            }
-        } catch (error) {
-            console.error('Failed to refresh subscription:', error);
-        }
-    };
+    // Refresh subscription status after successful payment - now uses shared context
+    // The refreshSubscription from context will update Layout header badge in realtime
 
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-950 p-6 lg:p-10 font-sans">

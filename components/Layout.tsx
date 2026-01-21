@@ -34,6 +34,7 @@ import {
 import { User, Workspace, UserRole } from '../types';
 import { api } from '../services/api';
 import { useTheme } from '../context/ThemeContext';
+import { useSubscription } from '../context/SubscriptionContext';
 import UpgradeModal from './UpgradeModal';
 import ProfileModal from './ProfileModal';
 
@@ -66,7 +67,7 @@ const Layout: React.FC<LayoutProps> = ({
   const [affiliateEnabled, setAffiliateEnabled] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
-  const [currentSubscription, setCurrentSubscription] = useState<any>(null);
+  const { currentSubscription, refreshSubscription: refreshSubContext } = useSubscription();
 
   // Impersonation state
   const [isImpersonating, setIsImpersonating] = useState(false);
@@ -134,16 +135,9 @@ const Layout: React.FC<LayoutProps> = ({
     };
     loadMenuSettings();
 
-    // Fetch Subscription Status
-    const loadSubscription = async () => {
-      try {
-        const sub = await api.subscriptions.getCurrentSubscription();
-        setCurrentSubscription(sub);
-      } catch (error) {
-        console.error("Failed to load subscription", error);
-      }
-    };
-    loadSubscription();
+    // Subscription is now managed by SubscriptionContext
+    // Refresh on mount in case there are stale values
+    refreshSubContext();
 
     // Fetch all packages to determine route requirements
     const loadPackages = async () => {

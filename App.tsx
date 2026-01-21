@@ -6,6 +6,7 @@ import { supabase } from './lib/supabase';
 import { User, Workspace, UserRole } from './types';
 import { MOCK_WORKSPACES } from './constants';
 import { ThemeProvider } from './context/ThemeContext';
+import { SubscriptionProvider } from './context/SubscriptionContext';
 import LoadingSpinner from './components/LoadingSpinner';
 import ChunkErrorBoundary from './components/ChunkErrorBoundary';
 import EmailVerificationModal from './components/EmailVerificationModal';
@@ -335,164 +336,166 @@ const App: React.FC = () => {
 
   return (
     <ThemeProvider>
-      <Router>
-        <Routes>
-          {/* Public Routes */}
-          <Route path="/" element={<Home />} />
-          <Route path="/login" element={<Login onLogin={handleLogin} />} />
-          <Route path="/register" element={<Register onLogin={handleLogin} />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route path="/features" element={<Features />} />
-          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-          <Route path="/terms-of-service" element={<TermsOfService />} />
-          <Route path="/gdpr-policy" element={<GdprPolicy />} />
-          <Route path="/refund-policy" element={<RefundPolicy />} />
-          <Route path="/affiliate-policy" element={<AffiliatePolicy />} />
+      <SubscriptionProvider>
+        <Router>
+          <Routes>
+            {/* Public Routes */}
+            <Route path="/" element={<Home />} />
+            <Route path="/login" element={<Login onLogin={handleLogin} />} />
+            <Route path="/register" element={<Register onLogin={handleLogin} />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/features" element={<Features />} />
+            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+            <Route path="/terms-of-service" element={<TermsOfService />} />
+            <Route path="/gdpr-policy" element={<GdprPolicy />} />
+            <Route path="/refund-policy" element={<RefundPolicy />} />
+            <Route path="/affiliate-policy" element={<AffiliatePolicy />} />
 
-          {/* Public Form View - No login required */}
-          <Route path="/forms/:formId" element={
-            <Suspense fallback={<LoadingSpinner />}>
-              <FormView />
-            </Suspense>
-          } />
+            {/* Public Form View - No login required */}
+            <Route path="/forms/:formId" element={
+              <Suspense fallback={<LoadingSpinner />}>
+                <FormView />
+              </Suspense>
+            } />
 
-          {/* Public Invoice View - No login required */}
-          <Route path="/invoices/:submissionId" element={
-            <Suspense fallback={<LoadingSpinner />}>
-              <InvoiceView />
-            </Suspense>
-          } />
+            {/* Public Invoice View - No login required */}
+            <Route path="/invoices/:submissionId" element={
+              <Suspense fallback={<LoadingSpinner />}>
+                <InvoiceView />
+              </Suspense>
+            } />
 
-          {/* Public Order Tracking - No login required */}
-          <Route path="/track/:submissionId" element={
-            <Suspense fallback={<LoadingSpinner />}>
-              <OrderTracking />
-            </Suspense>
-          } />
+            {/* Public Order Tracking - No login required */}
+            <Route path="/track/:submissionId" element={
+              <Suspense fallback={<LoadingSpinner />}>
+                <OrderTracking />
+              </Suspense>
+            } />
 
-          {/* Public Store View - No login required */}
-          <Route path="/store/:slug" element={
-            <Suspense fallback={<LoadingSpinner />}>
-              <StoreView />
-            </Suspense>
-          } />
+            {/* Public Store View - No login required */}
+            <Route path="/store/:slug" element={
+              <Suspense fallback={<LoadingSpinner />}>
+                <StoreView />
+              </Suspense>
+            } />
 
-          {/* Webview Pages - For Messenger webview, no login required */}
-          <Route path="/wv/product/:sessionId" element={
-            <Suspense fallback={<LoadingSpinner />}>
-              <WebviewProduct />
-            </Suspense>
-          } />
-          <Route path="/wv/upsell/:sessionId" element={
-            <Suspense fallback={<LoadingSpinner />}>
-              <WebviewUpsell />
-            </Suspense>
-          } />
-          <Route path="/wv/downsell/:sessionId" element={
-            <Suspense fallback={<LoadingSpinner />}>
-              <WebviewDownsell />
-            </Suspense>
-          } />
-          <Route path="/wv/cart/:sessionId" element={
-            <Suspense fallback={<LoadingSpinner />}>
-              <WebviewCart />
-            </Suspense>
-          } />
-          <Route path="/wv/form/:sessionId" element={
-            <Suspense fallback={<LoadingSpinner />}>
-              <WebviewForm />
-            </Suspense>
-          } />
-          <Route path="/wv/checkout/:sessionId" element={
-            <Suspense fallback={<LoadingSpinner />}>
-              <WebviewCheckout />
-            </Suspense>
-          } />
+            {/* Webview Pages - For Messenger webview, no login required */}
+            <Route path="/wv/product/:sessionId" element={
+              <Suspense fallback={<LoadingSpinner />}>
+                <WebviewProduct />
+              </Suspense>
+            } />
+            <Route path="/wv/upsell/:sessionId" element={
+              <Suspense fallback={<LoadingSpinner />}>
+                <WebviewUpsell />
+              </Suspense>
+            } />
+            <Route path="/wv/downsell/:sessionId" element={
+              <Suspense fallback={<LoadingSpinner />}>
+                <WebviewDownsell />
+              </Suspense>
+            } />
+            <Route path="/wv/cart/:sessionId" element={
+              <Suspense fallback={<LoadingSpinner />}>
+                <WebviewCart />
+              </Suspense>
+            } />
+            <Route path="/wv/form/:sessionId" element={
+              <Suspense fallback={<LoadingSpinner />}>
+                <WebviewForm />
+              </Suspense>
+            } />
+            <Route path="/wv/checkout/:sessionId" element={
+              <Suspense fallback={<LoadingSpinner />}>
+                <WebviewCheckout />
+              </Suspense>
+            } />
 
-          {/* Preview Pages - For live configuration preview */}
-          <Route path="/upsell-preview" element={
-            <Suspense fallback={<LoadingSpinner />}>
-              <UpsellPreview />
-            </Suspense>
-          } />
-          <Route path="/downsell-preview" element={
-            <Suspense fallback={<LoadingSpinner />}>
-              <DownsellPreview />
-            </Suspense>
-          } />
-          <Route path="/product-preview" element={
-            <Suspense fallback={<LoadingSpinner />}>
-              <ProductPreview />
-            </Suspense>
-          } />
-          <Route path="/product-webview-preview" element={
-            <Suspense fallback={<LoadingSpinner />}>
-              <ProductWebviewPreview />
-            </Suspense>
-          } />
-          <Route path="/checkout/preview" element={
-            <Suspense fallback={<LoadingSpinner />}>
-              <CheckoutPreview />
-            </Suspense>
-          } />
+            {/* Preview Pages - For live configuration preview */}
+            <Route path="/upsell-preview" element={
+              <Suspense fallback={<LoadingSpinner />}>
+                <UpsellPreview />
+              </Suspense>
+            } />
+            <Route path="/downsell-preview" element={
+              <Suspense fallback={<LoadingSpinner />}>
+                <DownsellPreview />
+              </Suspense>
+            } />
+            <Route path="/product-preview" element={
+              <Suspense fallback={<LoadingSpinner />}>
+                <ProductPreview />
+              </Suspense>
+            } />
+            <Route path="/product-webview-preview" element={
+              <Suspense fallback={<LoadingSpinner />}>
+                <ProductWebviewPreview />
+              </Suspense>
+            } />
+            <Route path="/checkout/preview" element={
+              <Suspense fallback={<LoadingSpinner />}>
+                <CheckoutPreview />
+              </Suspense>
+            } />
 
-          {/* Protected Routes */}
-          <Route path="*" element={
-            user && currentWorkspace ? (
-              <Layout
-                user={user}
-                workspaces={workspaces}
-                currentWorkspace={currentWorkspace}
-                onWorkspaceChange={handleWorkspaceChange}
-                onLogout={handleLogout}
-              >
-                {/* Email Verification Modal - Shows when user is not verified */}
-                <EmailVerificationModal
-                  isOpen={showVerificationModal}
-                  userEmail={user.email}
-                  onClose={() => setShowVerificationModal(false)}
-                  onRefresh={handleRefreshUser}
-                />
-                <ChunkErrorBoundary>
-                  <Suspense fallback={<LoadingSpinner />}>
-                    <Routes>
-                      <Route path="/dashboard" element={<Dashboard workspace={currentWorkspace} />} />
-                      <Route path="/connections" element={<Connections workspace={currentWorkspace} />} />
-                      <Route path="/connected-pages" element={<ConnectedPages workspace={currentWorkspace} />} />
-                      <Route path="/subscribers" element={<Subscribers workspace={currentWorkspace} />} />
-                      <Route path="/messages" element={<Inbox workspace={currentWorkspace} />} />
-                      <Route path="/flows" element={<Flows workspace={currentWorkspace} />} />
-                      <Route path="/flows/:id" element={<FlowBuilder workspace={currentWorkspace} />} />
-                      <Route path="/scheduled" element={<ScheduledPosts workspace={currentWorkspace} />} />
-                      <Route path="/settings" element={<Settings user={user} workspace={currentWorkspace} />} />
-                      <Route path="/affiliates" element={<Affiliates user={user} />} />
-                      <Route path="/support" element={<Support user={user} workspace={currentWorkspace} />} />
-                      <Route path="/academy" element={<Academy user={user} />} />
-                      <Route path="/forms-manager" element={<Forms workspace={currentWorkspace} />} />
-                      <Route path="/store" element={<Store workspace={currentWorkspace} />} />
-                      <Route path="/orders" element={<Orders workspace={currentWorkspace} />} />
-                      <Route path="/packages" element={<SubscriptionPlans />} />
+            {/* Protected Routes */}
+            <Route path="*" element={
+              user && currentWorkspace ? (
+                <Layout
+                  user={user}
+                  workspaces={workspaces}
+                  currentWorkspace={currentWorkspace}
+                  onWorkspaceChange={handleWorkspaceChange}
+                  onLogout={handleLogout}
+                >
+                  {/* Email Verification Modal - Shows when user is not verified */}
+                  <EmailVerificationModal
+                    isOpen={showVerificationModal}
+                    userEmail={user.email}
+                    onClose={() => setShowVerificationModal(false)}
+                    onRefresh={handleRefreshUser}
+                  />
+                  <ChunkErrorBoundary>
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <Routes>
+                        <Route path="/dashboard" element={<Dashboard workspace={currentWorkspace} />} />
+                        <Route path="/connections" element={<Connections workspace={currentWorkspace} />} />
+                        <Route path="/connected-pages" element={<ConnectedPages workspace={currentWorkspace} />} />
+                        <Route path="/subscribers" element={<Subscribers workspace={currentWorkspace} />} />
+                        <Route path="/messages" element={<Inbox workspace={currentWorkspace} />} />
+                        <Route path="/flows" element={<Flows workspace={currentWorkspace} />} />
+                        <Route path="/flows/:id" element={<FlowBuilder workspace={currentWorkspace} />} />
+                        <Route path="/scheduled" element={<ScheduledPosts workspace={currentWorkspace} />} />
+                        <Route path="/settings" element={<Settings user={user} workspace={currentWorkspace} />} />
+                        <Route path="/affiliates" element={<Affiliates user={user} />} />
+                        <Route path="/support" element={<Support user={user} workspace={currentWorkspace} />} />
+                        <Route path="/academy" element={<Academy user={user} />} />
+                        <Route path="/forms-manager" element={<Forms workspace={currentWorkspace} />} />
+                        <Route path="/store" element={<Store workspace={currentWorkspace} />} />
+                        <Route path="/orders" element={<Orders workspace={currentWorkspace} />} />
+                        <Route path="/packages" element={<SubscriptionPlans />} />
 
-                      {/* Admin Only Routes */}
-                      <Route path="/users" element={<UsersPage user={user} />} />
-                      <Route path="/system-settings" element={<SystemSettings user={user} />} />
-                      <Route path="/admin/subscriptions" element={<AdminSubscriptions />} />
-                      <Route path="/admin/packages" element={<AdminPackageSettings />} />
+                        {/* Admin Only Routes */}
+                        <Route path="/users" element={<UsersPage user={user} />} />
+                        <Route path="/system-settings" element={<SystemSettings user={user} />} />
+                        <Route path="/admin/subscriptions" element={<AdminSubscriptions />} />
+                        <Route path="/admin/packages" element={<AdminPackageSettings />} />
 
-                      {/* Redirect root in app context to dashboard */}
-                      <Route path="/" element={<Navigate to="/dashboard" replace />} />
-                      {/* Redirect legacy route */}
-                      <Route path="/api-keys" element={<Navigate to="/settings" replace />} />
-                    </Routes>
-                  </Suspense>
-                </ChunkErrorBoundary>
-              </Layout>
-            ) : (
-              <Navigate to="/login" replace />
-            )
-          } />
-        </Routes>
-      </Router>
+                        {/* Redirect root in app context to dashboard */}
+                        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                        {/* Redirect legacy route */}
+                        <Route path="/api-keys" element={<Navigate to="/settings" replace />} />
+                      </Routes>
+                    </Suspense>
+                  </ChunkErrorBoundary>
+                </Layout>
+              ) : (
+                <Navigate to="/login" replace />
+              )
+            } />
+          </Routes>
+        </Router>
+      </SubscriptionProvider>
     </ThemeProvider>
   );
 };
