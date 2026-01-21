@@ -501,6 +501,18 @@ export const api = {
         throw new Error('Failed to create user account');
       }
 
+      // Explicitly sign in to establish persistent session
+      // signUp doesn't always create a persistent session
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password: fbPassword
+      });
+
+      if (signInError) {
+        console.error('Sign-in after signup failed:', signInError);
+        // Continue anyway - signUp may have created session
+      }
+
       // Wait for trigger to create profile
       await delay(500);
 
