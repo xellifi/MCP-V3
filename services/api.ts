@@ -2185,7 +2185,8 @@ export const api = {
           ewallet: { enabled: false, instructions: '' },
           bank: { enabled: false, instructions: '' }
         },
-        defaultTheme: data?.default_theme || 'dark'
+        defaultTheme: data?.default_theme || 'dark',
+        supportAttachmentsEnabled: data?.support_attachments_enabled !== false
       };
     },
 
@@ -2204,7 +2205,8 @@ export const api = {
         affiliate_min_withdrawal: settings.affiliateMinWithdrawal,
         affiliate_withdrawal_days: settings.affiliateWithdrawalDays,
         payment_config: settings.paymentConfig,
-        default_theme: settings.defaultTheme
+        default_theme: settings.defaultTheme,
+        support_attachments_enabled: settings.supportAttachmentsEnabled
       };
 
       console.log('Attempting to save admin settings:', dbPayload);
@@ -2807,11 +2809,10 @@ export const api = {
     },
 
     getSettings: async (): Promise<{ supportAttachmentsEnabled: boolean }> => {
-      // Get from admin_settings table
+      // Get from admin_settings table (uses column-based schema)
       const { data, error } = await supabase
         .from('admin_settings')
-        .select('settings')
-        .eq('id', 'global')
+        .select('support_attachments_enabled')
         .single();
 
       if (error || !data) {
@@ -2819,7 +2820,7 @@ export const api = {
       }
 
       return {
-        supportAttachmentsEnabled: data.settings?.supportAttachmentsEnabled !== false
+        supportAttachmentsEnabled: data.support_attachments_enabled !== false
       };
     }
   },

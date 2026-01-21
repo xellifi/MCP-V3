@@ -217,8 +217,8 @@ const Support: React.FC<SupportProps> = ({ user, workspace }) => {
             <div className="flex items-center gap-2 mt-3 pt-3 border-t border-slate-100 dark:border-slate-800">
                 <span className={`text-xs ${subText}`}>{ticket.messages.length} messages</span>
                 <span className={`px-1.5 py-0.5 text-[10px] rounded font-bold ${ticket.priority === 'HIGH' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
-                        ticket.priority === 'LOW' ? 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400' :
-                            'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+                    ticket.priority === 'LOW' ? 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400' :
+                        'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
                     }`}>{ticket.priority}</span>
             </div>
         </button>
@@ -247,7 +247,7 @@ const Support: React.FC<SupportProps> = ({ user, workspace }) => {
     );
 
     return (
-        <div className="h-[calc(100vh-8rem)] flex flex-col gap-4 animate-fade-in">
+        <div className="h-[calc(100vh-10rem)] md:h-[calc(100vh-8rem)] flex flex-col gap-4 animate-fade-in">
             {/* Header with view toggle */}
             <div className="flex items-center justify-between flex-shrink-0">
                 <div>
@@ -325,7 +325,7 @@ const Support: React.FC<SupportProps> = ({ user, workspace }) => {
 
                 {/* Ticket Detail / Chat */}
                 {(selectedTicket || viewMode === 'list') && (
-                    <div className={`flex-1 rounded-2xl shadow-card dark:shadow-none border ${borderColor} flex-col overflow-hidden ${cardBg} ${selectedTicket ? 'flex' : 'hidden md:flex'} ${viewMode === 'grid' ? 'md:w-1/3' : ''}`}>
+                    <div className={`flex-1 rounded-2xl md:rounded-2xl rounded-b-none shadow-card dark:shadow-none border ${borderColor} flex-col overflow-hidden ${cardBg} ${selectedTicket ? 'flex fixed md:relative inset-0 top-auto h-[calc(100vh-6rem)] md:h-auto z-40' : 'hidden md:flex'} ${viewMode === 'grid' ? 'md:w-1/3' : ''}`}>
                         {selectedTicket ? (
                             <>
                                 <div className={`p-4 border-b flex items-center justify-between ${borderColor} bg-slate-50/50 dark:bg-slate-900/50 flex-shrink-0`}>
@@ -438,7 +438,7 @@ const Support: React.FC<SupportProps> = ({ user, workspace }) => {
                                 </div>
 
                                 {/* Reply input */}
-                                <div className={`p-4 border-t ${borderColor} ${cardBg} relative z-10 flex-shrink-0`}>
+                                <div className={`p-4 pb-6 md:pb-4 border-t ${borderColor} ${cardBg} relative z-10 flex-shrink-0`}>
                                     {/* Pending attachments preview */}
                                     {attachments.length > 0 && (
                                         <div className="flex flex-wrap gap-2 mb-3">

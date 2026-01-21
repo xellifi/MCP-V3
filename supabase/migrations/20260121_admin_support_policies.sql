@@ -5,23 +5,9 @@
 -- 1. Add attachments column to ticket_messages
 ALTER TABLE ticket_messages ADD COLUMN IF NOT EXISTS attachments JSONB DEFAULT '[]';
 
--- 2. Add support_attachments_enabled to admin_settings
--- First check and create admin_settings table if needed
-CREATE TABLE IF NOT EXISTS admin_settings (
-  id TEXT PRIMARY KEY DEFAULT 'global',
-  settings JSONB DEFAULT '{}'::jsonb,
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- Insert default settings if not exists
-INSERT INTO admin_settings (id, settings)
-VALUES ('global', '{"supportAttachmentsEnabled": true}'::jsonb)
-ON CONFLICT (id) DO NOTHING;
-
--- Add the setting to existing settings (merge)
-UPDATE admin_settings 
-SET settings = settings || '{"supportAttachmentsEnabled": true}'::jsonb
-WHERE id = 'global' AND NOT (settings ? 'supportAttachmentsEnabled');
+-- 2. Add support_attachments_enabled column to admin_settings
+-- (The existing table uses individual columns, not a JSONB settings column)
+ALTER TABLE admin_settings ADD COLUMN IF NOT EXISTS support_attachments_enabled BOOLEAN DEFAULT TRUE;
 
 -- =====================================================
 -- ADMIN RLS POLICIES FOR SUPPORT TICKETS
