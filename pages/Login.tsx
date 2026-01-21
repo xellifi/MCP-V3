@@ -70,23 +70,40 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col items-center justify-center p-4 relative overflow-hidden">
+    <div className="h-screen py-[10px] bg-slate-50 dark:bg-slate-950 flex flex-col items-center justify-center relative overflow-hidden">
       {/* Cosmic Background */}
       <div className="absolute top-0 left-1/4 w-96 h-96 bg-indigo-600/20 rounded-full blur-[100px] animate-blob pointer-events-none"></div>
       <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-purple-600/20 rounded-full blur-[100px] animate-blob animation-delay-2000 pointer-events-none"></div>
 
-      <div className="w-full max-w-md relative z-10 bg-white/80 dark:bg-white/5 backdrop-blur-xl rounded-3xl overflow-hidden animate-fade-in-up border border-slate-200 dark:border-white/10 shadow-2xl">
-        <div className="p-8 pb-4 text-center">
-          <Link to="/" className="inline-block hover:scale-105 transition-transform duration-200">
-            <div className="w-16 h-16 bg-gradient-to-tr from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-6 text-white shadow-lg shadow-indigo-500/30">
-              <Bot className="w-8 h-8" />
+      <div className="w-full max-w-md relative z-10 bg-white/80 dark:bg-white/5 backdrop-blur-xl rounded-3xl overflow-hidden animate-fade-in-up border border-slate-200 dark:border-white/10 shadow-2xl flex flex-col max-h-full">
+        <div className="p-8 pb-4 text-center shrink-0">
+          <Link to="/" className="inline-block hover:scale-105 transition-transform duration-200 mb-6">
+            <div className="flex items-center justify-center gap-3">
+              <div className="relative flex-shrink-0">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-lg shadow-indigo-500/20">
+                  <Bot className="w-7 h-7" />
+                </div>
+              </div>
+
+              <div className="flex flex-col -space-y-1 text-left">
+                <div className="flex items-center text-2xl font-black tracking-tight leading-none">
+                  <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">MY</span>
+                  <span className="text-indigo-600 dark:text-indigo-400">chat</span>
+                  <span className="text-pink-500 dark:text-pink-400">Pilot</span>
+                </div>
+                <span className="text-[0.7rem] font-bold tracking-[0.2em] text-indigo-500 dark:text-indigo-400 uppercase w-full flex justify-between">
+                  <span>A</span><span>U</span><span>T</span><span>O</span><span>M</span><span>A</span><span>T</span><span>I</span><span>N</span><span>G</span>
+                  <span className="w-1"></span>
+                  <span>T</span><span>O</span><span>O</span><span>L</span>
+                </span>
+              </div>
             </div>
           </Link>
           <h2 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight mb-2">Welcome back</h2>
-          <p className="text-slate-500 dark:text-slate-400">Sign in to your Mychat Pilot account</p>
+          <p className="text-slate-500 dark:text-slate-400">Sign in to your account</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-8 space-y-6">
+        <form onSubmit={handleSubmit} className="p-8 space-y-6 flex-1 overflow-y-auto custom-scrollbar">
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Email Address</label>
