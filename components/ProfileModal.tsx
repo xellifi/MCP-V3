@@ -82,9 +82,12 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, user, onUp
 
         setLoading(true);
         try {
+            // Only send email if it was actually changed
+            const emailChanged = formData.email !== user.email;
+
             await api.auth.updateProfile(user.id, {
                 name: formData.name,
-                email: formData.email,
+                email: emailChanged ? formData.email : undefined,
                 avatarUrl: formData.avatarUrl,
                 password: formData.password || undefined
             });
