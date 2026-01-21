@@ -13,6 +13,7 @@ export interface User {
   affiliateCode?: string; // Unique code for referrals
   features?: string[];
   isEmailVerified?: boolean; // Email verification status
+  authProvider?: 'email' | 'facebook' | 'google'; // Login method
 }
 
 export interface Workspace {
