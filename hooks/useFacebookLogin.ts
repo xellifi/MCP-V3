@@ -77,10 +77,6 @@ export function useFacebookLogin(): UseFacebookLoginResult {
         setError(null);
 
         try {
-            console.log('Starting Facebook login...');
-            console.log('App ID:', FACEBOOK_APP_ID);
-            console.log('Config ID:', FACEBOOK_CONFIG_ID);
-
             // Login with Facebook using Config ID
             const authResponse = await new Promise<any>((resolve, reject) => {
                 const loginOptions: any = {
@@ -89,59 +85,27 @@ export function useFacebookLogin(): UseFacebookLoginResult {
                 };
 
                 // Add config_id if available (for Facebook Login for Business)
-                // NOTE: Config ID requires server-side code exchange (response_type=code)
-                // For now, using standard Facebook Login which works with token flow
-                // To enable Business login, implement server-side token exchange
-                // if (FACEBOOK_CONFIG_ID) {
-                //     loginOptions.config_id = FACEBOOK_CONFIG_ID;
-                // }
-
-                console.log('Login options:', loginOptions);
+                // When using config_id, response_type must be 'code' not 'token'
+                if (FACEBOOK_CONFIG_ID) {
+                    loginOptions.config_id = FACEBOOK_CONFIG_ID;
+                    loginOptions.response_type = 'code,granted_scopes';
+                    loginOptions.override_default_response_type = true;
+                }
 
                 window.FB.login((response: any) => {
-                    console.log('FB.login response:', response);
-
                     if (response.authResponse) {
-                        console.log('Auth response received:', response.authResponse);
                         resolve(response.authResponse);
-                    } else if (response.status === 'connected') {
-                        // Already connected, get auth response
-                        console.log('Already connected, fetching auth response...');
-                        window.FB.getLoginStatus((statusResponse: any) => {
-                            if (statusResponse.authResponse) {
-                                resolve(statusResponse.authResponse);
-                            } else {
-                                reject(new Error('Could not get auth response'));
-                            }
-                        });
                     } else {
-                        console.log('Login failed or cancelled:', response);
                         reject(new Error('Facebook login was cancelled or failed'));
                     }
                 }, loginOptions);
             });
 
-            // Get access token - might be in different places depending on response type
-            const accessToken = authResponse.accessToken || authResponse.access_token;
-
-            console.log('Got auth response:', authResponse);
-            console.log('Access token available:', !!accessToken);
-
-            if (!accessToken) {
-                // If using code flow, we might have a code instead
-                if (authResponse.code) {
-                    console.log('Received authorization code instead of token');
-                    // For now, throw error - code exchange needs server-side implementation
-                    throw new Error('Facebook Login for Business returned a code. Server-side token exchange is required.');
-                }
-                throw new Error('No access token received from Facebook');
-            }
+            const accessToken = authResponse.accessToken;
 
             // Get user info from Facebook
-            console.log('Fetching user info...');
             const userInfo = await new Promise<FacebookUser>((resolve, reject) => {
                 window.FB.api('/me', { fields: 'id,name,email,picture.width(200).height(200)' }, (response: any) => {
-                    console.log('User info response:', response);
                     if (response.error) {
                         reject(new Error(response.error.message));
                     } else {
@@ -150,7 +114,6 @@ export function useFacebookLogin(): UseFacebookLoginResult {
                 });
             });
 
-            console.log('Login successful:', userInfo);
             return { user: userInfo, accessToken };
         } catch (err: any) {
             const errorMessage = err.message || 'Facebook login failed';
