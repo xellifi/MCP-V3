@@ -13,7 +13,8 @@ const mapProfile = (row: any): User => ({
   role: (row.role?.toUpperCase() || 'MEMBER') as UserRole,  // Convert lowercase DB value to uppercase enum
   avatarUrl: row.avatar_url,
   affiliateCode: row.affiliate_code,
-  isEmailVerified: row.email_verified ?? false
+  isEmailVerified: row.email_verified ?? false,
+  authProvider: row.auth_provider
 });
 
 const mapWorkspace = (row: any): Workspace => ({
