@@ -127,57 +127,62 @@ export function useFacebookLogin(): UseFacebookLoginResult {
             console.log('authResponse:', authResponse);
 
             // With code flow, may receive code or accessToken depending on Facebook's response
-            const accessToken = authResponse.accessToken || authResponse.access_token;
+            let accessToken = authResponse.accessToken || authResponse.access_token;
             const code = authResponse.code;
 
             console.log('Access Token present:', !!accessToken);
             console.log('Code present:', !!code);
 
-            // If we got a code but no token, we need server-side exchange
-            // For now, try to get the login status which might have the token
-            if (!accessToken && code) {
-                console.log('Got authorization code, attempting to get access token...');
+            let userInfo: FacebookUser;
 
-                // Try getting login status - sometimes FB has the token cached
-                const statusAuth = await new Promise<any>((resolve, reject) => {
-                    window.FB.getLoginStatus((response: any) => {
-                        console.log('getLoginStatus response:', JSON.stringify(response, null, 2));
-                        if (response.authResponse?.accessToken) {
-                            resolve(response.authResponse);
+            // If we got a code but no token, exchange it via server-side API
+            if (!accessToken && code) {
+                console.log('Got authorization code, exchanging for access token via server...');
+
+                // Call server-side API to exchange code for token
+                const exchangeResponse = await fetch('/api/auth/facebook-token', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        code,
+                        redirectUri: window.location.origin + '/'
+                    }),
+                });
+
+                const exchangeData = await exchangeResponse.json();
+                console.log('Token exchange response:', exchangeData);
+
+                if (!exchangeResponse.ok || !exchangeData.accessToken) {
+                    throw new Error(exchangeData.error || 'Failed to exchange code for access token');
+                }
+
+                accessToken = exchangeData.accessToken;
+                userInfo = exchangeData.user;
+
+                console.log('Token exchange successful!');
+            } else if (accessToken) {
+                // We have an access token, get user info from Facebook
+                console.log('=== Fetching user info ===');
+                userInfo = await new Promise<FacebookUser>((resolve, reject) => {
+                    window.FB.api('/me', { fields: 'id,name,email,picture.width(200).height(200)' }, (response: any) => {
+                        console.log('User info response:', JSON.stringify(response, null, 2));
+                        if (response.error) {
+                            reject(new Error(response.error.message));
                         } else {
-                            reject(new Error('Facebook Login for Business returned a code but no access token. This configuration may require server-side token exchange.'));
+                            resolve(response);
                         }
                     });
                 });
-
-                if (statusAuth.accessToken) {
-                    Object.assign(authResponse, statusAuth);
-                }
+            } else {
+                throw new Error('No access token or code received from Facebook');
             }
-
-            const finalAccessToken = authResponse.accessToken || authResponse.access_token;
-
-            if (!finalAccessToken) {
-                throw new Error('No access token received from Facebook. The Login for Business configuration may require server-side OAuth flow.');
-            }
-
-            // Get user info from Facebook
-            console.log('=== Fetching user info ===');
-            const userInfo = await new Promise<FacebookUser>((resolve, reject) => {
-                window.FB.api('/me', { fields: 'id,name,email,picture.width(200).height(200)' }, (response: any) => {
-                    console.log('User info response:', JSON.stringify(response, null, 2));
-                    if (response.error) {
-                        reject(new Error(response.error.message));
-                    } else {
-                        resolve(response);
-                    }
-                });
-            });
 
             console.log('=== Login successful! ===');
             console.log('User:', userInfo.name);
 
-            return { user: userInfo, accessToken: finalAccessToken };
+            return { user: userInfo, accessToken };
         } catch (err: any) {
             const errorMessage = err.message || 'Facebook login failed';
             setError(errorMessage);
