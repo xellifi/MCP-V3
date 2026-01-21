@@ -569,28 +569,26 @@ const Flows: React.FC<FlowsProps> = ({ workspace }) => {
       </div>
 
       {/* Tab Navigation */}
-      <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
-        <div className={`flex gap-2 p-1.5 rounded-2xl w-max sm:w-fit ${isDark ? 'bg-white/5' : 'bg-slate-100'}`}>
-          {TABS.map(tab => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as 'flows' | 'templates' | 'orders')}
-                className={`flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl font-semibold text-sm transition-all whitespace-nowrap ${isActive
-                  ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white shadow-lg shadow-purple-500/25'
-                  : isDark
-                    ? 'text-slate-400 hover:text-white hover:bg-white/5'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-white'
-                  }`}
-              >
-                <Icon className="w-4 h-4" />
-                {tab.label}
-              </button>
-            );
-          })}
-        </div>
+      <div className={`flex gap-1 sm:gap-2 p-1 sm:p-1.5 rounded-2xl w-full sm:w-fit ${isDark ? 'bg-white/5' : 'bg-slate-100'}`}>
+        {TABS.map(tab => {
+          const Icon = tab.icon;
+          const isActive = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as 'flows' | 'templates' | 'orders')}
+              className={`flex items-center justify-center gap-1 sm:gap-2 px-3 sm:px-5 py-2 sm:py-2.5 rounded-xl font-semibold text-xs sm:text-sm transition-all flex-1 sm:flex-none ${isActive
+                ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white shadow-lg shadow-purple-500/25'
+                : isDark
+                  ? 'text-slate-400 hover:text-white hover:bg-white/5'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-white'
+                }`}
+            >
+              <Icon className="w-4 h-4" />
+              <span className="hidden xs:inline sm:inline">{tab.label}</span>
+            </button>
+          );
+        })}
       </div>
 
       {/* Tab Content */}
