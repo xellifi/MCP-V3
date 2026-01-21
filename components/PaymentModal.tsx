@@ -5,6 +5,7 @@ import { api } from '../services/api';
 interface PaymentModalProps {
     isOpen: boolean;
     onClose: () => void;
+    onSuccess?: () => void; // Callback after successful payment
     planName: string;
     billingCycle: 'monthly' | 'yearly' | 'lifetime';
     price: number;
@@ -13,6 +14,7 @@ interface PaymentModalProps {
 const PaymentModal: React.FC<PaymentModalProps> = ({
     isOpen,
     onClose,
+    onSuccess,
     planName,
     billingCycle,
     price
@@ -101,6 +103,10 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
             }
 
             setIsSuccess(true);
+            // Notify parent of successful payment
+            if (onSuccess) {
+                onSuccess();
+            }
         } catch (error: any) {
             console.error(error);
             alert(error.message || "Payment failed");

@@ -135,6 +135,19 @@ const SubscriptionPlans: React.FC = () => {
         setIsPaymentModalOpen(true);
     };
 
+    // Refresh subscription status after successful payment
+    const refreshSubscription = async () => {
+        try {
+            const currentSub = await api.subscriptions.getCurrentSubscription();
+            if (currentSub && currentSub.package_id) {
+                setCurrentPackageId(currentSub.package_id);
+                setIsPending(currentSub.status === 'Pending');
+            }
+        } catch (error) {
+            console.error('Failed to refresh subscription:', error);
+        }
+    };
+
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-950 p-6 lg:p-10 font-sans">
             <div className="max-w-7xl mx-auto space-y-12">
@@ -348,6 +361,7 @@ const SubscriptionPlans: React.FC = () => {
                 <PaymentModal
                     isOpen={isPaymentModalOpen}
                     onClose={() => setIsPaymentModalOpen(false)}
+                    onSuccess={refreshSubscription}
                     planName={selectedPlan.name}
                     billingCycle={billingCycle}
                     price={selectedPlan.price}
