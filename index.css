@@ -158,6 +158,19 @@
     filter: drop-shadow(0 0 20px rgba(139, 92, 246, 0.5));
   }
 
+  /* Hide scrollbar for Chrome, Safari and Opera */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Hide scrollbar for IE, Edge and Firefox */
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    /* IE and Edge */
+    scrollbar-width: none;
+    /* Firefox */
+  }
+
   /* ========================================
    LIGHT MODE NODE STYLING REFINEMENTS
    Force white background and solid colored borders
