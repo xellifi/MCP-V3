@@ -85,8 +85,11 @@ export function useFacebookLogin(): UseFacebookLoginResult {
                 };
 
                 // Add config_id if available (for Facebook Login for Business)
+                // When using config_id, response_type must be 'code' not 'token'
                 if (FACEBOOK_CONFIG_ID) {
                     loginOptions.config_id = FACEBOOK_CONFIG_ID;
+                    loginOptions.response_type = 'code,granted_scopes';
+                    loginOptions.override_default_response_type = true;
                 }
 
                 window.FB.login((response: any) => {
