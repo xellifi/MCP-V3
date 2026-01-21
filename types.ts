@@ -165,6 +165,8 @@ export interface AdminSettings {
   googleClientSecret?: string;
   facebookLoginEnabled?: boolean;
   googleLoginEnabled?: boolean;
+  // Support Settings
+  supportAttachmentsEnabled?: boolean; // Allow file attachments in support tickets
 }
 
 export interface UserSubscription {
@@ -265,6 +267,7 @@ export interface TicketMessage {
   content: string;
   createdAt: string;
   isAdmin: boolean;
+  attachments?: { name: string; url: string; type: string }[]; // File attachments
 }
 
 // Form Node Types

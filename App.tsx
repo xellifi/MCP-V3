@@ -494,6 +494,7 @@ const App: React.FC = () => {
                         <Route path="/system-settings" element={<SystemSettings user={user} />} />
                         <Route path="/admin/subscriptions" element={<AdminSubscriptions />} />
                         <Route path="/admin/packages" element={<AdminPackageSettings />} />
+                        <Route path="/admin/support" element={<Support user={user} workspace={currentWorkspace} />} />
 
                         {/* Redirect root in app context to dashboard */}
                         <Route path="/" element={<Navigate to="/dashboard" replace />} />

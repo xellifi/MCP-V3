@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { User, UserRole, AdminSettings as AdminSettingsType } from '../types';
 import { api } from '../services/api';
-import { Lock, Save, ShieldAlert, Eye, EyeOff, Server, ChevronDown, ChevronUp, Mail, List, MoveUp, MoveDown, Send, Banknote, Key, Copy, Check, RefreshCw, Sun, Moon } from 'lucide-react';
+import { Lock, Save, ShieldAlert, Eye, EyeOff, Server, ChevronDown, ChevronUp, Mail, List, MoveUp, MoveDown, Send, Banknote, Key, Copy, Check, RefreshCw, Sun, Moon, LifeBuoy } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import { useTheme } from '../context/ThemeContext';
 
@@ -154,6 +154,7 @@ const SystemSettings: React.FC<SystemSettingsProps> = ({ user }) => {
   const [savingMenu, setSavingMenu] = useState(false);
   const [savingSmtp, setSavingSmtp] = useState(false);
   const [savingTheme, setSavingTheme] = useState(false);
+  const [savingSupport, setSavingSupport] = useState(false);
 
   const [showSecret, setShowSecret] = useState(false);
   const [showOpenAi, setShowOpenAi] = useState(false);
@@ -168,7 +169,8 @@ const SystemSettings: React.FC<SystemSettingsProps> = ({ user }) => {
     menu: false,
     smtp: false,
     affiliate: false,
-    theme: false
+    theme: false,
+    support: false
   });
 
   // Test Email State
@@ -718,6 +720,46 @@ const SystemSettings: React.FC<SystemSettingsProps> = ({ user }) => {
                 {savingAffiliate ? 'Saving...' : 'Save Affiliate Settings'}
               </button>
             </div>
+          </div>
+        </div>
+      </CollapsibleCard>
+
+      {/* Support Settings */}
+      <CollapsibleCard
+        title="Support Ticket Settings"
+        subtitle="Configure support ticket options"
+        icon={LifeBuoy}
+        colorClass="bg-cyan-500/20 text-cyan-400 border border-cyan-500/30"
+        isOpen={openSections.support}
+        onToggle={() => toggleSection('support')}
+        isDark={isDark}
+      >
+        <div className="space-y-6">
+          <div className="flex items-center gap-4 p-5 bg-slate-50 dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10">
+            <div className="flex-1">
+              <h4 className="font-bold text-slate-900 dark:text-white">Enable File Attachments</h4>
+              <p className="text-sm text-slate-600 dark:text-slate-400">Allow users to upload files when creating or replying to support tickets.</p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={settings.supportAttachmentsEnabled !== false}
+                onChange={e => setSettings({ ...settings, supportAttachmentsEnabled: e.target.checked })}
+                className="sr-only peer"
+              />
+              <div className="w-14 h-7 bg-slate-200 dark:bg-white/10 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-500/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-indigo-600"></div>
+            </label>
+          </div>
+
+          <div className="flex justify-end pt-6 border-t border-slate-200 dark:border-white/10">
+            <button
+              onClick={() => handleSaveSection('Support Settings', setSavingSupport)}
+              disabled={savingSupport}
+              className={buttonPrimary}
+            >
+              <Save className="w-4 h-4" />
+              {savingSupport ? 'Saving...' : 'Save Support Settings'}
+            </button>
           </div>
         </div>
       </CollapsibleCard>

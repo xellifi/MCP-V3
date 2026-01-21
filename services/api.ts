@@ -120,7 +120,8 @@ const mapTicketMessage = (row: any): TicketMessage => ({
   senderName: row.sender_name,
   content: row.content,
   createdAt: row.created_at,
-  isAdmin: row.is_admin
+  isAdmin: row.is_admin,
+  attachments: row.attachments || []
 });
 
 const mapSupportTicket = (row: any, messages: any[] = []): SupportTicket => ({
@@ -2726,6 +2727,100 @@ export const api = {
         .from('support_tickets')
         .update({ status: isAdmin ? 'IN_PROGRESS' : 'OPEN', last_update_at: new Date().toISOString() })
         .eq('id', ticketId);
+    },
+
+    updateTicketStatus: async (ticketId: string, status: 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED'): Promise<void> => {
+      const { error } = await supabase
+        .from('support_tickets')
+        .update({ status, last_update_at: new Date().toISOString() })
+        .eq('id', ticketId);
+
+      if (error) {
+        console.error('Error updating ticket status:', error);
+        throw new Error('Failed to update ticket status');
+      }
+    },
+
+    uploadAttachment: async (file: File): Promise<{ name: string; url: string; type: string }> => {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('support_attachments')
+        .upload(fileName, file);
+
+      if (uploadError) {
+        console.error('Error uploading attachment:', uploadError);
+        throw new Error('Failed to upload attachment');
+      }
+
+      const { data } = supabase.storage
+        .from('support_attachments')
+        .getPublicUrl(fileName);
+
+      return {
+        name: file.name,
+        url: data.publicUrl,
+        type: file.type
+      };
+    },
+
+    replyWithAttachments: async (
+      ticketId: string,
+      senderId: string,
+      content: string,
+      isAdmin: boolean,
+      attachments: { name: string; url: string; type: string }[] = []
+    ): Promise<void> => {
+      let senderName = isAdmin ? 'Support Agent' : 'User';
+
+      if (!isAdmin) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('name')
+          .eq('id', senderId)
+          .single();
+        senderName = profile?.name || 'User';
+      }
+
+      const { error } = await supabase
+        .from('ticket_messages')
+        .insert({
+          ticket_id: ticketId,
+          sender_id: senderId,
+          sender_name: senderName,
+          content: content,
+          is_admin: isAdmin,
+          attachments: attachments
+        });
+
+      if (error) {
+        console.error('Error replying to ticket:', error);
+        throw new Error('Failed to reply to ticket');
+      }
+
+      // Update ticket status
+      await supabase
+        .from('support_tickets')
+        .update({ status: isAdmin ? 'IN_PROGRESS' : 'OPEN', last_update_at: new Date().toISOString() })
+        .eq('id', ticketId);
+    },
+
+    getSettings: async (): Promise<{ supportAttachmentsEnabled: boolean }> => {
+      // Get from admin_settings table
+      const { data, error } = await supabase
+        .from('admin_settings')
+        .select('settings')
+        .eq('id', 'global')
+        .single();
+
+      if (error || !data) {
+        return { supportAttachmentsEnabled: true }; // Default enabled
+      }
+
+      return {
+        supportAttachmentsEnabled: data.settings?.supportAttachmentsEnabled !== false
+      };
     }
   },
 

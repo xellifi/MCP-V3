@@ -504,6 +504,7 @@ const Layout: React.FC<LayoutProps> = ({
                 <NavItem to="/users" icon={Users} label="Users" />
                 <NavItem to="/admin/subscriptions" icon={Banknote} label="Subscriptions" />
                 <NavItem to="/admin/packages" icon={Settings} label="Package Settings" />
+                <NavItem to="/admin/support" icon={LifeBuoy} label="Support Tickets" />
                 <NavItem to="/system-settings" icon={Shield} label="System Settings" />
               </div>
             )}
