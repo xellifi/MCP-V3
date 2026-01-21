@@ -23,6 +23,9 @@ import GdprPolicy from './pages/GdprPolicy';
 import RefundPolicy from './pages/RefundPolicy';
 import AffiliatePolicy from './pages/AffiliatePolicy';
 
+// Auth Callback Pages
+const FacebookComplete = lazy(() => import('./pages/auth/FacebookComplete'));
+
 // App Pages - Lazy load (only load when route is accessed)
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Connections = lazy(() => import('./pages/Connections'));
@@ -354,6 +357,13 @@ const App: React.FC = () => {
             <Route path="/gdpr-policy" element={<GdprPolicy />} />
             <Route path="/refund-policy" element={<RefundPolicy />} />
             <Route path="/affiliate-policy" element={<AffiliatePolicy />} />
+
+            {/* Facebook OAuth Callback */}
+            <Route path="/auth/facebook-complete" element={
+              <Suspense fallback={<LoadingSpinner />}>
+                <FacebookComplete onLogin={handleLogin} />
+              </Suspense>
+            } />
 
             {/* Public Form View - No login required */}
             <Route path="/forms/:formId" element={
