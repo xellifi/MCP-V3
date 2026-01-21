@@ -742,39 +742,38 @@ const Inbox: React.FC<InboxProps> = ({ workspace }) => {
             )}
 
             {/* Input */}
-            <div className={`p-2 md:p-4 border-t flex-shrink-0 z-20 ${isDark ? 'bg-slate-900/80 backdrop-blur-xl border-white/10' : 'bg-white border-slate-200'}`}>
-              <form onSubmit={handleSendMessage} className="flex items-end gap-2 p-1 relative">
-                <div className="flex gap-2 mb-2 flex-shrink-0">
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    className="hidden"
-                    onChange={handleFileSelect}
-                    accept="image/*,video/*,application/pdf,.doc,.docx"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className={`p-3 rounded-full transition-all ${selectedFile
-                      ? 'text-white bg-indigo-500/20'
-                      : isDark ? 'text-slate-400 hover:text-white hover:bg-white/10' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'}`}
-                    title="Attach file"
-                  >
-                    <Paperclip className="w-5 h-5" />
-                  </button>
-                  <button type="button" className={`p-3 rounded-full transition-colors ${isDark
-                    ? 'text-slate-400 hover:text-amber-400 hover:bg-white/10'
-                    : 'text-slate-400 hover:text-amber-500 hover:bg-slate-100'
-                    }`}>
-                    <Smile className="w-5 h-5" />
-                  </button>
-                </div>
+            <div className={`p-2 md:p-4 pb-3 md:pb-4 border-t flex-shrink-0 z-20 ${isDark ? 'bg-slate-900/80 backdrop-blur-xl border-white/10' : 'bg-white border-slate-200'}`}>
+              <form onSubmit={handleSendMessage} className="flex items-center gap-2">
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  className="hidden"
+                  onChange={handleFileSelect}
+                  accept="image/*,video/*,application/pdf,.doc,.docx"
+                />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className={`p-2 md:p-2.5 rounded-lg md:rounded-full flex-shrink-0 transition-all ${selectedFile
+                    ? 'text-white bg-indigo-500/20'
+                    : isDark ? 'text-slate-400 hover:text-white hover:bg-white/10' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'}`}
+                  title="Attach file"
+                >
+                  <Paperclip className="w-5 h-5" />
+                </button>
+                <button type="button" className={`hidden md:block p-2.5 rounded-full transition-colors ${isDark
+                  ? 'text-slate-400 hover:text-amber-400 hover:bg-white/10'
+                  : 'text-slate-400 hover:text-amber-500 hover:bg-slate-100'
+                  }`}>
+                  <Smile className="w-5 h-5" />
+                </button>
 
-                <div className={`flex-1 min-w-0 rounded-2xl flex items-center border transition-all ${isDark
+                <div className={`flex-1 min-w-0 rounded-xl md:rounded-2xl flex items-center border transition-all ${isDark
                   ? 'bg-white/5 border-white/5 focus-within:border-indigo-500/50 focus-within:bg-white/10'
                   : 'bg-slate-50 border-slate-200 focus-within:border-indigo-500/50 focus-within:bg-white'
                   } focus-within:ring-2 focus-within:ring-indigo-500/20`}>
-                  <textarea
+                  <input
+                    type="text"
                     value={inputText}
                     onChange={e => setInputText(e.target.value)}
                     onKeyDown={e => {
@@ -783,22 +782,18 @@ const Inbox: React.FC<InboxProps> = ({ workspace }) => {
                         handleSendMessage(e);
                       }
                     }}
-                    placeholder={selectedFile ? "Add a caption..." : "Type a message..."}
-                    className={`flex-1 bg-transparent border-none focus:ring-0 resize-none py-3 px-4 max-h-32 text-sm leading-relaxed ${isDark ? 'text-white placeholder:text-slate-500' : 'text-slate-900 placeholder:text-slate-400'}`}
-                    rows={1}
-                    style={{ minHeight: '3rem' }}
+                    placeholder={selectedFile ? "Caption..." : "Message..."}
+                    className={`flex-1 min-w-0 bg-transparent border-none focus:ring-0 py-2.5 md:py-3 px-3 md:px-4 text-sm ${isDark ? 'text-white placeholder:text-slate-500' : 'text-slate-900 placeholder:text-slate-400'}`}
                   />
                 </div>
 
-                <div className="mb-1">
-                  <button
-                    type="submit"
-                    disabled={!inputText.trim() && !selectedFile}
-                    className="p-3 bg-gradient-to-br from-indigo-500 to-purple-600 text-white rounded-full hover:shadow-lg hover:shadow-indigo-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95"
-                  >
-                    <Send className="w-5 h-5 ml-0.5" />
-                  </button>
-                </div>
+                <button
+                  type="submit"
+                  disabled={!inputText.trim() && !selectedFile}
+                  className="p-2.5 md:p-3 bg-gradient-to-br from-indigo-500 to-purple-600 text-white rounded-lg md:rounded-full hover:shadow-lg hover:shadow-indigo-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95 flex-shrink-0"
+                >
+                  <Send className="w-4 h-4 md:w-5 md:h-5" />
+                </button>
               </form>
             </div>
           </>
@@ -817,8 +812,8 @@ const Inbox: React.FC<InboxProps> = ({ workspace }) => {
             </p>
           </div>
         )}
-      </div>
-    </div>
+      </div >
+    </div >
   );
 };
 
