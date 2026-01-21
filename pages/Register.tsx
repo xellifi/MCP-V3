@@ -4,6 +4,7 @@ import { User } from '../types';
 import { Bot, ArrowRight, UserPlus, Mail, Lock, User as UserIcon, Loader2 } from 'lucide-react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useToast } from '../context/ToastContext';
+import { useFacebookLogin } from '../hooks/useFacebookLogin';
 
 interface RegisterProps {
   onLogin: (user: User) => Promise<void>;
@@ -17,6 +18,7 @@ const Register: React.FC<RegisterProps> = ({ onLogin }) => {
   const navigate = useNavigate();
   const toast = useToast();
   const [searchParams] = useSearchParams();
+  const { login: facebookLogin, isLoading: fbLoading } = useFacebookLogin();
 
   // Get plan info from URL (set when user clicks on a paid plan from pricing)
   const selectedPlan = searchParams.get('plan');
@@ -158,19 +160,31 @@ const Register: React.FC<RegisterProps> = ({ onLogin }) => {
           <div className="grid grid-cols-2 gap-3">
             <button
               type="button"
+              disabled={fbLoading}
               onClick={async () => {
                 try {
-                  await api.auth.loginWithFacebook();
+                  const result = await facebookLogin();
+                  if (result) {
+                    const user = await api.auth.loginWithFacebookSDK(result.user, result.accessToken);
+                    await onLogin(user);
+                    toast.success(`Welcome, ${user.name}!`);
+                    navigate('/dashboard', { replace: true });
+                  }
                 } catch (err: any) {
+                  console.error('Facebook login error:', err);
                   toast.error(err.message || 'Facebook login failed');
                 }
               }}
-              className="flex items-center justify-center gap-2 py-3 px-4 bg-[#1877F2] hover:bg-[#1565D8] text-white font-medium rounded-xl transition-all"
+              className="flex items-center justify-center gap-2 py-3 px-4 bg-[#1877F2] hover:bg-[#1565D8] text-white font-medium rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
-              </svg>
-              Facebook
+              {fbLoading ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+                </svg>
+              )}
+              {fbLoading ? 'Connecting...' : 'Facebook'}
             </button>
             <button
               type="button"
