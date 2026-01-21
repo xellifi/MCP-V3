@@ -557,21 +557,20 @@ const Layout: React.FC<LayoutProps> = ({
               >
                 <Menu className="w-6 h-6" />
               </button>
-              <h1 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white transition-opacity duration-200 flex items-center gap-3">
+              <h1 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white transition-opacity duration-200 flex items-center gap-2 sm:gap-3">
                 {getCurrentPageTitle()}
-                <div className="hidden sm:block">
-                  {(!currentSubscription) ? (
-                    <span className="px-2 py-0.5 rounded text-xs font-bold bg-slate-200 text-slate-600 border border-slate-300">Free</span>
+                {/* Package Badge - Always visible */}
+                {(!currentSubscription) ? (
+                  <span className="px-1.5 sm:px-2 py-0.5 rounded text-[10px] sm:text-xs font-bold bg-slate-200 text-slate-600 border border-slate-300">Free</span>
+                ) : (
+                  currentSubscription.status === 'Pending' ? (
+                    <span className="px-1.5 sm:px-2 py-0.5 rounded text-[10px] sm:text-xs font-bold bg-yellow-100 text-yellow-700 border border-yellow-200">Pending</span>
                   ) : (
-                    currentSubscription.status === 'Pending' ? (
-                      <span className="px-2 py-0.5 rounded text-xs font-bold bg-yellow-100 text-yellow-700 border border-yellow-200">Pending</span>
-                    ) : (
-                      <span className={`px-2 py-0.5 rounded text-xs font-bold border uppercase tracking-wider bg-${currentSubscription.packages?.color || 'primary'}-100 text-${currentSubscription.packages?.color || 'primary'}-700 border-${currentSubscription.packages?.color || 'primary'}-200 dark:bg-${currentSubscription.packages?.color || 'primary'}-900/30 dark:text-${currentSubscription.packages?.color || 'primary'}-400 dark:border-${currentSubscription.packages?.color || 'primary'}-800`}>
-                        {currentSubscription.packages?.name || currentSubscription.package_id}
-                      </span>
-                    )
-                  )}
-                </div>
+                    <span className={`px-1.5 sm:px-2 py-0.5 rounded text-[10px] sm:text-xs font-bold border uppercase tracking-wider bg-${currentSubscription.packages?.color || 'primary'}-100 text-${currentSubscription.packages?.color || 'primary'}-700 border-${currentSubscription.packages?.color || 'primary'}-200 dark:bg-${currentSubscription.packages?.color || 'primary'}-900/30 dark:text-${currentSubscription.packages?.color || 'primary'}-400 dark:border-${currentSubscription.packages?.color || 'primary'}-800`}>
+                      {currentSubscription.packages?.name || currentSubscription.package_id}
+                    </span>
+                  )
+                )}
               </h1>
             </div>
 
