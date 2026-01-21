@@ -68,8 +68,6 @@ const CheckoutPreview = lazy(() => import('./pages/CheckoutPreview'));
 
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
-  // Check if we're in the middle of a verification redirect
-  const isVerificationRedirect = sessionStorage.getItem('verificationRedirect') === 'true';
   const [loading, setLoading] = useState(true);
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [currentWorkspace, setCurrentWorkspace] = useState<Workspace | null>(null);
@@ -101,23 +99,36 @@ const App: React.FC = () => {
         // Don't set loading to false until we redirect
         if (isVerificationCallback) {
           console.log('Email verification callback detected, syncing status...');
-          const { data: { session } } = await supabase.auth.getSession();
-          if (session?.user?.email_confirmed_at) {
-            // Update the profiles table with verified status
-            await supabase
-              .from('profiles')
-              .update({ email_verified: true })
-              .eq('id', session.user.id);
-            console.log('Email verification synced to profiles table');
-          }
 
-          // Store flags for redirect
-          sessionStorage.setItem('emailJustVerified', 'true');
-          sessionStorage.setItem('verificationRedirect', 'true');
-          // Replace URL and redirect
-          window.history.replaceState(null, '', '/dashboard');
-          window.location.replace('/dashboard');
-          return; // Stop further processing
+          try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session?.user?.email_confirmed_at) {
+              // Update the profiles table with verified status
+              await supabase
+                .from('profiles')
+                .update({ email_verified: true })
+                .eq('id', session.user.id);
+              console.log('Email verification synced to profiles table');
+            }
+
+            // Store flag for showing success toast on dashboard
+            sessionStorage.setItem('emailJustVerified', 'true');
+
+            // Clear the URL hash/params and redirect
+            window.history.replaceState(null, '', '/dashboard');
+
+            // Use a small timeout to ensure state is saved before redirect
+            setTimeout(() => {
+              window.location.href = '/dashboard';
+            }, 100);
+            return; // Stop further processing
+          } catch (verifyError) {
+            console.error('Email verification sync failed:', verifyError);
+            // Clear any stale flags and continue normal flow
+            sessionStorage.removeItem('verificationRedirect');
+            sessionStorage.removeItem('emailJustVerified');
+            // Don't return - let it fall through to normal session check
+          }
         }
 
         const existingUser = await api.auth.getSession();
@@ -304,8 +315,17 @@ const App: React.FC = () => {
     }
   };
 
-  // Show loading during initial load OR during verification redirect
-  if (loading || isVerificationRedirect) {
+  // Clear any stale verification redirect flags on mount (safety timeout for mobile)
+  useEffect(() => {
+    // Clear stale flags after 10 seconds to prevent infinite loading on mobile
+    const flagTimeout = setTimeout(() => {
+      sessionStorage.removeItem('verificationRedirect');
+    }, 10000);
+    return () => clearTimeout(flagTimeout);
+  }, []);
+
+  // Show loading during initial load
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-950">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
