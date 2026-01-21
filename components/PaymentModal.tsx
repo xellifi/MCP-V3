@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { X, CreditCard, Wallet, Building, ArrowRight, CheckCircle, Smartphone, Shield, Upload, Loader2, Image as ImageIcon } from 'lucide-react';
+import { X, CreditCard, Wallet, Building, ArrowRight, CheckCircle, Smartphone, Shield, Upload, Loader2, Image as ImageIcon, ChevronDown, ChevronUp } from 'lucide-react';
 import { api } from '../services/api';
 
 interface PaymentModalProps {
@@ -20,6 +20,9 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
     const [selectedMethod, setSelectedMethod] = useState<string>('xendit');
     const [isProcessing, setIsProcessing] = useState(false);
     const [isSuccess, setIsSuccess] = useState(false);
+
+    // Collapsible order summary state for mobile
+    const [isSummaryCollapsed, setIsSummaryCollapsed] = useState(true);
 
     // Manual Payment States
     const [proofFile, setProofFile] = useState<File | null>(null);
@@ -137,16 +140,38 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
             <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden border border-slate-200 dark:border-slate-800 flex flex-col md:flex-row h-[90vh] md:h-auto md:max-h-[85vh]">
 
-                {/* Left Panel - Summary */}
-                <div className="w-full md:w-1/3 bg-slate-50 dark:bg-slate-950 p-6 border-b md:border-b-0 md:border-r border-slate-200 dark:border-slate-800 flex flex-col">
-                    <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
-                        <span className="w-8 h-8 rounded-lg bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center text-primary-600 font-bold text-xs">
-                            MP
-                        </span>
-                        Mychat Pilot
-                    </h3>
+                {/* Left Panel - Summary (Collapsible on mobile) */}
+                <div className="w-full md:w-1/3 bg-slate-50 dark:bg-slate-950 p-4 md:p-6 border-b md:border-b-0 md:border-r border-slate-200 dark:border-slate-800 flex flex-col">
+                    {/* Header - Always visible */}
+                    <div className="flex items-center justify-between mb-4 md:mb-6">
+                        <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                            <span className="w-8 h-8 rounded-lg bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center text-primary-600 font-bold text-xs">
+                                MP
+                            </span>
+                            Mychat Pilot
+                        </h3>
+                        {/* Toggle button - Only visible on mobile */}
+                        <button
+                            onClick={() => setIsSummaryCollapsed(!isSummaryCollapsed)}
+                            className="md:hidden p-2 rounded-lg bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-300 dark:hover:bg-slate-700 transition-colors"
+                        >
+                            {isSummaryCollapsed ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+                        </button>
+                    </div>
 
-                    <div className="flex-1">
+                    {/* Collapsed summary (mobile only) - Shows plan name and total only */}
+                    <div className={`md:hidden ${isSummaryCollapsed ? 'block' : 'hidden'}`}>
+                        <div className="flex justify-between items-center py-2 border-t border-slate-200 dark:border-slate-700">
+                            <div>
+                                <span className="font-semibold text-slate-900 dark:text-white">{planName} Plan</span>
+                                <span className="text-slate-500 dark:text-slate-400 text-sm ml-2 capitalize">({billingCycle})</span>
+                            </div>
+                            <span className="text-lg font-bold text-primary-600 dark:text-primary-400">${price}.00</span>
+                        </div>
+                    </div>
+
+                    {/* Full content - Always visible on desktop, toggled on mobile */}
+                    <div className={`flex-1 ${isSummaryCollapsed ? 'hidden md:block' : 'block'}`}>
                         <div className="mb-2 text-sm text-slate-500 font-medium uppercase tracking-wider">Order Summary</div>
                         <div className="flex justify-between items-baseline mb-1">
                             <span className="text-2xl font-bold text-slate-900 dark:text-white">{planName} Plan</span>
@@ -197,7 +222,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                         )}
                     </div>
 
-                    <div className="mt-auto pt-6 text-xs text-slate-400">
+                    <div className={`mt-auto pt-4 md:pt-6 text-xs text-slate-400 ${isSummaryCollapsed ? 'hidden md:block' : 'block'}`}>
                         <p>By confirming your subscription, you allow Mychat Pilot to charge your card for future payments in accordance with our terms.</p>
                     </div>
                 </div>
