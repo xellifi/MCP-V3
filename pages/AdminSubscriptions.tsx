@@ -18,7 +18,8 @@ import {
     PauseCircle,
     PlayCircle,
     Eye,
-    Image
+    Image,
+    Loader2
 } from 'lucide-react';
 import { api } from '../services/api';
 import { Package } from '../types';
@@ -45,6 +46,9 @@ const AdminSubscriptions: React.FC = () => {
     // Delete confirmation state
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [deletingSubscription, setDeletingSubscription] = useState<any>(null);
+
+    // Loading states
+    const [savingEdit, setSavingEdit] = useState(false);
 
     // Form state
     const [newSubscriber, setNewSubscriber] = useState({
@@ -127,6 +131,7 @@ const AdminSubscriptions: React.FC = () => {
         e.preventDefault();
         if (!editingSubscription) return;
 
+        setSavingEdit(true);
         try {
             const selectedPackage = packages.find(p => p.id === editingSubscription.packageId);
             const amount = editingSubscription.billing === 'Yearly'
@@ -145,6 +150,8 @@ const AdminSubscriptions: React.FC = () => {
             setEditingSubscription(null);
         } catch (error: any) {
             alert('Failed to update subscription: ' + error.message);
+        } finally {
+            setSavingEdit(false);
         }
     };
 
@@ -627,15 +634,24 @@ const AdminSubscriptions: React.FC = () => {
                                 <button
                                     type="button"
                                     onClick={() => { setIsEditModalOpen(false); setEditingSubscription(null); }}
-                                    className="flex-1 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors font-medium"
+                                    disabled={savingEdit}
+                                    className="flex-1 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors font-medium disabled:opacity-50"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     type="submit"
-                                    className="flex-1 py-2.5 bg-primary-600 text-white rounded-xl hover:bg-primary-700 transition-colors font-medium shadow-lg shadow-primary-500/25"
+                                    disabled={savingEdit}
+                                    className="flex-1 py-2.5 bg-primary-600 text-white rounded-xl hover:bg-primary-700 transition-colors font-medium shadow-lg shadow-primary-500/25 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                                 >
-                                    Save Changes
+                                    {savingEdit ? (
+                                        <>
+                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                            Saving...
+                                        </>
+                                    ) : (
+                                        'Save Changes'
+                                    )}
                                 </button>
                             </div>
                         </form>
