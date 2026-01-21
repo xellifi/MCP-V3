@@ -53,32 +53,57 @@ export default async function handler(req: any, res: any) {
 
     try {
         console.log('Exchanging Facebook code for access token...');
+        console.log('App ID:', FACEBOOK_APP_ID);
+        console.log('Code length:', code?.length);
 
-        // The redirect_uri must match what was used in the original authorization request
-        // For JS SDK popup, we typically don't need a redirect_uri for token exchange
-        // But Facebook Login for Business may require it
+        // For FB Login for Business with JS SDK popup, the redirect_uri is tricky
+        // Try different approaches:
+        // 1. First try without redirect_uri (works for some OAuth flows)
+        // 2. Then try with the provided redirectUri
+        // 3. Then try with 'https://staticxx.facebook.com/x/connect/xd_arbiter/' (FB popup URL)
 
-        // Exchange the code for an access token
-        const tokenUrl = new URL('https://graph.facebook.com/v18.0/oauth/access_token');
-        tokenUrl.searchParams.set('client_id', FACEBOOK_APP_ID);
-        tokenUrl.searchParams.set('client_secret', FACEBOOK_APP_SECRET);
-        tokenUrl.searchParams.set('code', code);
+        const redirectUris = [
+            '', // No redirect_uri
+            redirectUri,
+            'https://staticxx.facebook.com/x/connect/xd_arbiter/',
+        ].filter(Boolean);
 
-        // For FB Login for Business with JS SDK, use the current origin
-        if (redirectUri) {
-            tokenUrl.searchParams.set('redirect_uri', redirectUri);
+        let tokenData: any = null;
+        let lastError: any = null;
+
+        for (const testRedirectUri of redirectUris) {
+            console.log('Trying with redirect_uri:', testRedirectUri || '(none)');
+
+            const tokenUrl = new URL('https://graph.facebook.com/v18.0/oauth/access_token');
+            tokenUrl.searchParams.set('client_id', FACEBOOK_APP_ID);
+            tokenUrl.searchParams.set('client_secret', FACEBOOK_APP_SECRET);
+            tokenUrl.searchParams.set('code', code);
+
+            if (testRedirectUri) {
+                tokenUrl.searchParams.set('redirect_uri', testRedirectUri);
+            }
+
+            console.log('Token exchange URL:', tokenUrl.toString().replace(FACEBOOK_APP_SECRET, '***'));
+
+            const tokenResponse = await fetch(tokenUrl.toString());
+            const responseData = await tokenResponse.json();
+
+            if (tokenResponse.ok && responseData.access_token) {
+                tokenData = responseData;
+                console.log('Token exchange successful with redirect_uri:', testRedirectUri || '(none)');
+                break;
+            } else {
+                console.log('Token exchange failed with this redirect_uri:', responseData);
+                lastError = responseData;
+            }
         }
 
-        console.log('Token exchange URL:', tokenUrl.toString().replace(FACEBOOK_APP_SECRET, '***'));
-
-        const tokenResponse = await fetch(tokenUrl.toString());
-        const tokenData: FacebookTokenResponse = await tokenResponse.json();
-
-        if (!tokenResponse.ok || !tokenData.access_token) {
-            console.error('Token exchange failed:', tokenData);
+        if (!tokenData?.access_token) {
+            console.error('All token exchange attempts failed. Last error:', lastError);
             return res.status(400).json({
                 error: 'Failed to exchange code for access token',
-                details: tokenData
+                details: lastError,
+                hint: 'Make sure FACEBOOK_APP_SECRET is set correctly in Vercel'
             });
         }
 
