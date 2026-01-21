@@ -89,10 +89,12 @@ export function useFacebookLogin(): UseFacebookLoginResult {
                 };
 
                 // Add config_id if available (for Facebook Login for Business)
-                if (FACEBOOK_CONFIG_ID) {
-                    loginOptions.config_id = FACEBOOK_CONFIG_ID;
-                    // Note: Don't override response_type - let SDK handle it
-                }
+                // NOTE: Config ID requires server-side code exchange (response_type=code)
+                // For now, using standard Facebook Login which works with token flow
+                // To enable Business login, implement server-side token exchange
+                // if (FACEBOOK_CONFIG_ID) {
+                //     loginOptions.config_id = FACEBOOK_CONFIG_ID;
+                // }
 
                 console.log('Login options:', loginOptions);
 
