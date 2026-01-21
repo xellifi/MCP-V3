@@ -55,14 +55,20 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       console.error(err);
       const errorMessage = err?.message?.toLowerCase() || '';
 
-      // Check if the error is about email not being confirmed
+      // Only show "Email Not Verified" for actual email confirmation errors
+      // NOT for "invalid login credentials" which could mean wrong password or unregistered email
       if (errorMessage.includes('email not confirmed') ||
-        errorMessage.includes('email_not_confirmed') ||
-        errorMessage.includes('invalid login credentials')) {
+        errorMessage.includes('email_not_confirmed')) {
         setEmailNotConfirmed(true);
         toast.error('Please verify your email before logging in.');
+      } else if (errorMessage.includes('invalid login credentials')) {
+        // This error means either: email not registered OR wrong password
+        // We show a generic message to prevent email enumeration attacks
+        toast.error('Invalid email or password. Please check your credentials.');
+      } else if (errorMessage.includes('user not found')) {
+        toast.error('No account found with this email. Please register first.');
       } else {
-        toast.error('Invalid email or password. Please try again.');
+        toast.error(err?.message || 'Login failed. Please try again.');
       }
     } finally {
       setLoading(false);
