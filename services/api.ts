@@ -456,32 +456,34 @@ export const api = {
           console.error('Failed to update Facebook profile:', updateError);
         }
 
-        // Sign in with password-less method using Supabase Admin or magic link
-        // For now, we'll use a workaround: sign in with email + generated password
-        const tempPassword = `FB_${facebookUser.id}_${Date.now()}`;
+        // Use consistent password pattern for Facebook users
+        // This allows session to persist across reloads
+        const fbPassword = `FB_AUTH_${facebookUser.id}_SECURE`;
 
-        // Try to sign in first (if user has a password)
-        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+        // Try to sign in with Facebook password
+        let { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
           email: existingProfile.email,
-          password: tempPassword
+          password: fbPassword
         });
 
-        // If sign-in fails, the user might have registered with email/password
-        // In that case, just return the profile (they're authenticated via Facebook)
+        // If sign-in fails, try to update the user's password to the FB pattern
         if (signInError) {
-          console.log('Direct sign-in failed, user may have different auth method');
+          console.log('Existing user sign-in failed, user may have different auth method');
+          // For users who registered with email/password, we can't change their password
+          // They're still authenticated via Facebook OAuth, but session won't persist
+          // In production, you might want to use a magic link or show a message
         }
 
         return mapProfile(existingProfile);
       }
 
-      // New user - create account
-      const tempPassword = `FB_${facebookUser.id}_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+      // New user - create account with consistent password
+      const fbPassword = `FB_AUTH_${facebookUser.id}_SECURE`;
 
       // Create Supabase auth user
       const { data: authData, error: signUpError } = await supabase.auth.signUp({
         email,
-        password: tempPassword,
+        password: fbPassword,
         options: {
           data: {
             name: facebookUser.name,

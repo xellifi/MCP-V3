@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../../services/api';
 import { User } from '../../types';
@@ -25,7 +25,17 @@ const FacebookComplete: React.FC<FacebookCompleteProps> = ({ onLogin }) => {
     const [status, setStatus] = useState<string>('Processing Facebook login...');
     const [error, setError] = useState<string | null>(null);
 
+    // Guard to prevent multiple executions
+    const hasRun = useRef(false);
+
     useEffect(() => {
+        // Prevent running multiple times
+        if (hasRun.current) {
+            console.log('Facebook complete already ran, skipping...');
+            return;
+        }
+        hasRun.current = true;
+
         const completeLogin = async () => {
             const encodedData = searchParams.get('data');
             const errorParam = searchParams.get('error');
@@ -65,7 +75,10 @@ const FacebookComplete: React.FC<FacebookCompleteProps> = ({ onLogin }) => {
                 setStatus('Login successful! Redirecting...');
                 await onLogin(user);
 
+                // Only show one toast
                 toast.success(`Welcome, ${user.name}!`);
+
+                // Navigate to dashboard
                 navigate('/dashboard', { replace: true });
 
             } catch (err: any) {
@@ -77,7 +90,8 @@ const FacebookComplete: React.FC<FacebookCompleteProps> = ({ onLogin }) => {
         };
 
         completeLogin();
-    }, [searchParams, navigate, onLogin, toast]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []); // Empty deps - run once on mount
 
     if (error) {
         return (
