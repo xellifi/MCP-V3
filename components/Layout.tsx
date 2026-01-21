@@ -526,7 +526,21 @@ const Layout: React.FC<LayoutProps> = ({
                 </div>
               )}
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-slate-900 dark:text-white truncate">{user.name}</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-medium text-slate-900 dark:text-white truncate">{user.name}</p>
+                  {/* Package Badge */}
+                  {(!currentSubscription) ? (
+                    <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-slate-200 text-slate-600 border border-slate-300 uppercase">Free</span>
+                  ) : (
+                    currentSubscription.status === 'Pending' ? (
+                      <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-yellow-100 text-yellow-700 border border-yellow-200">Pending</span>
+                    ) : (
+                      <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold border uppercase bg-${currentSubscription.packages?.color || 'primary'}-100 text-${currentSubscription.packages?.color || 'primary'}-700 border-${currentSubscription.packages?.color || 'primary'}-200 dark:bg-${currentSubscription.packages?.color || 'primary'}-900/30 dark:text-${currentSubscription.packages?.color || 'primary'}-400 dark:border-${currentSubscription.packages?.color || 'primary'}-800`}>
+                        {currentSubscription.packages?.name || currentSubscription.package_id}
+                      </span>
+                    )
+                  )}
+                </div>
                 <p className="text-xs text-slate-500 dark:text-slate-400 truncate capitalize">{user.role.toLowerCase()}</p>
               </div>
             </div>
