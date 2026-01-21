@@ -580,12 +580,15 @@ const Layout: React.FC<LayoutProps> = ({
                     (currentSubscription.packages?.name?.toLowerCase() === 'free' || currentSubscription.package_id === 'free') ? (
                       <span className="px-1.5 sm:px-2 py-0.5 rounded text-[10px] sm:text-xs font-bold bg-slate-200 text-slate-600 border border-slate-300">Free</span>
                     ) : (
-                      <span className="px-1.5 sm:px-2 py-0.5 rounded text-[10px] sm:text-xs font-bold bg-yellow-100 text-yellow-700 border border-yellow-200 uppercase">
-                        {currentSubscription.packages?.name || currentSubscription.package_id} Pending
+                      <span className="inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded text-[10px] sm:text-xs font-bold bg-yellow-100 text-yellow-700 border border-yellow-200 uppercase whitespace-nowrap">
+                        <span className="hidden sm:inline">{currentSubscription.packages?.name || currentSubscription.package_id}</span>
+                        <span className="sm:hidden">⏳</span>
+                        <span className="hidden sm:inline">Pending</span>
+                        <span className="sm:hidden">{currentSubscription.packages?.name || currentSubscription.package_id}</span>
                       </span>
                     )
                   ) : (
-                    <span className={`px-1.5 sm:px-2 py-0.5 rounded text-[10px] sm:text-xs font-bold border uppercase tracking-wider bg-${currentSubscription.packages?.color || 'primary'}-100 text-${currentSubscription.packages?.color || 'primary'}-700 border-${currentSubscription.packages?.color || 'primary'}-200 dark:bg-${currentSubscription.packages?.color || 'primary'}-900/30 dark:text-${currentSubscription.packages?.color || 'primary'}-400 dark:border-${currentSubscription.packages?.color || 'primary'}-800`}>
+                    <span className={`px-1.5 sm:px-2 py-0.5 rounded text-[10px] sm:text-xs font-bold border uppercase tracking-wider whitespace-nowrap bg-${currentSubscription.packages?.color || 'primary'}-100 text-${currentSubscription.packages?.color || 'primary'}-700 border-${currentSubscription.packages?.color || 'primary'}-200 dark:bg-${currentSubscription.packages?.color || 'primary'}-900/30 dark:text-${currentSubscription.packages?.color || 'primary'}-400 dark:border-${currentSubscription.packages?.color || 'primary'}-800`}>
                       {currentSubscription.packages?.name || currentSubscription.package_id}
                     </span>
                   )
