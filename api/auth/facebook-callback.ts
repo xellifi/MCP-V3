@@ -1,9 +1,15 @@
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '';
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
-const supabase = createClient(supabaseUrl, supabaseKey);
+// Use service role for admin operations
+const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
+    auth: {
+        autoRefreshToken: false,
+        persistSession: false
+    }
+});
 
 // Facebook App credentials
 const FACEBOOK_APP_ID = process.env.VITE_FACEBOOK_APP_ID || '';
@@ -36,7 +42,6 @@ export default async function handler(req: any, res: any) {
 
     console.log('Facebook OAuth callback received');
     console.log('Code present:', !!code);
-    console.log('State:', state);
 
     // Handle OAuth errors
     if (error) {
@@ -69,8 +74,6 @@ export default async function handler(req: any, res: any) {
         tokenUrl.searchParams.set('code', code);
         tokenUrl.searchParams.set('redirect_uri', redirectUri);
 
-        console.log('Exchanging code for token...');
-
         const tokenResponse = await fetch(tokenUrl.toString());
         const tokenData: FacebookTokenResponse = await tokenResponse.json();
 
@@ -93,24 +96,116 @@ export default async function handler(req: any, res: any) {
 
         console.log('User info fetched:', userData.name, userData.email);
 
-        // Store the token and user data in session/cookie and redirect to a handler page
-        // The handler page will complete the login process
+        // Generate consistent password for Facebook users
+        const fbPassword = `FB_AUTH_${userData.id}_SECURE`;
+        const email = userData.email || `fb_${userData.id}@facebook.placeholder`;
 
-        // Create a temporary token to pass the data securely
+        // Check if user exists by facebook_id or email
+        const { data: existingProfile } = await supabaseAdmin
+            .from('profiles')
+            .select('id, email')
+            .or(`facebook_id.eq.${userData.id},email.eq.${email}`)
+            .maybeSingle();
+
+        let userId: string;
+        let isNewUser = false;
+
+        if (existingProfile) {
+            console.log('Existing user found:', existingProfile.id);
+            userId = existingProfile.id;
+
+            // Update user's password to consistent pattern using admin API
+            const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
+                userId,
+                { password: fbPassword }
+            );
+
+            if (updateError) {
+                console.error('Failed to update user password:', updateError);
+            } else {
+                console.log('Updated user password to consistent pattern');
+            }
+
+            // Update profile with Facebook data
+            await supabaseAdmin
+                .from('profiles')
+                .update({
+                    facebook_id: userData.id,
+                    facebook_access_token: tokenData.access_token,
+                    avatar_url: userData.picture?.data?.url,
+                    email_verified: true
+                })
+                .eq('id', userId);
+        } else {
+            console.log('Creating new user...');
+            isNewUser = true;
+
+            // Create new user with admin API
+            const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
+                email,
+                password: fbPassword,
+                email_confirm: true, // Auto-confirm email for Facebook users
+                user_metadata: {
+                    name: userData.name,
+                    avatar_url: userData.picture?.data?.url,
+                    facebook_id: userData.id
+                }
+            });
+
+            if (createError || !newUser.user) {
+                console.error('Failed to create user:', createError);
+                return res.redirect(`/login?error=${encodeURIComponent(createError?.message || 'Failed to create account')}`);
+            }
+
+            userId = newUser.user.id;
+            console.log('Created new user:', userId);
+
+            // Wait for trigger to create profile
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            // Update profile with Facebook data
+            await supabaseAdmin
+                .from('profiles')
+                .update({
+                    facebook_id: userData.id,
+                    facebook_access_token: tokenData.access_token,
+                    avatar_url: userData.picture?.data?.url || `https://ui-avatars.com/api/?name=${encodeURIComponent(userData.name)}&background=random`,
+                    email_verified: true,
+                    name: userData.name
+                })
+                .eq('id', userId);
+
+            // Create Free subscription for new user
+            try {
+                await supabaseAdmin.rpc('ensure_user_free_subscription', { p_user_id: userId });
+            } catch (e) {
+                console.error('Subscription error:', e);
+            }
+
+            // Create default workspace
+            try {
+                await supabaseAdmin.rpc('ensure_user_workspace', {
+                    p_user_id: userId,
+                    p_user_name: userData.name
+                });
+            } catch (e) {
+                console.error('Workspace error:', e);
+            }
+        }
+
+        // Generate a session token that the frontend can use
+        // Pass data to frontend for final sign-in
         const loginData = {
             facebookId: userData.id,
             name: userData.name,
-            email: userData.email,
+            email: email,
             picture: userData.picture?.data?.url,
             accessToken: tokenData.access_token,
-            expiresIn: tokenData.expires_in
+            userId: userId,
+            isNewUser: isNewUser
         };
 
-        // Encode the data as base64 for URL safety
         const encodedData = Buffer.from(JSON.stringify(loginData)).toString('base64');
-
-        // Redirect to the frontend with the data
-        // The frontend will handle the Supabase user creation
         return res.redirect(`/auth/facebook-complete?data=${encodeURIComponent(encodedData)}`);
 
     } catch (error: any) {
