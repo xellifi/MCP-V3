@@ -176,10 +176,18 @@ export default async function handler(req: any, res: any) {
                 .eq('id', userId);
 
             // Create Free subscription for new user
+            console.log('[Facebook Callback] Creating FREE subscription for new user:', userId);
             try {
-                await supabaseAdmin.rpc('ensure_user_free_subscription', { p_user_id: userId });
-            } catch (e) {
-                console.error('Subscription error:', e);
+                const { data: subResult, error: subError } = await supabaseAdmin.rpc('ensure_user_free_subscription', { p_user_id: userId });
+                if (subError) {
+                    console.error('[Facebook Callback] RPC error creating subscription:', subError);
+                } else if (subResult?.success) {
+                    console.log('[Facebook Callback] Successfully created FREE subscription:', subResult);
+                } else {
+                    console.error('[Facebook Callback] Subscription creation returned error:', subResult?.error || subResult);
+                }
+            } catch (e: any) {
+                console.error('[Facebook Callback] Exception creating subscription:', e.message);
             }
 
             // Create default workspace
