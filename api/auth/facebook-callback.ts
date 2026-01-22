@@ -171,7 +171,8 @@ export default async function handler(req: any, res: any) {
                     facebook_access_token: tokenData.access_token,
                     avatar_url: userData.picture?.data?.url || `https://ui-avatars.com/api/?name=${encodeURIComponent(userData.name)}&background=random`,
                     email_verified: true,
-                    name: userData.name
+                    name: userData.name,
+                    auth_provider: 'facebook'
                 })
                 .eq('id', userId);
 

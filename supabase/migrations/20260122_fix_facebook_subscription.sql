@@ -18,22 +18,34 @@ DECLARE
   user_name TEXT;
   workspace_id UUID;
   free_pkg_id TEXT;
+  auth_prov TEXT;
 BEGIN
   user_name := COALESCE(
     NULLIF(TRIM(NEW.raw_user_meta_data->>'name'), ''),
+    NULLIF(TRIM(NEW.raw_user_meta_data->>'full_name'), ''),
     split_part(NEW.email, '@', 1)
   );
   
-  -- Create Profile
+  -- Detect auth provider from Supabase metadata
+  auth_prov := COALESCE(NEW.raw_app_meta_data->>'provider', 'email');
+  
+  -- Create Profile with auth_provider
   BEGIN
     INSERT INTO public.profiles (
-      id, email, name, role, avatar_url, affiliate_code, email_verified
+      id, email, name, role, avatar_url, affiliate_code, email_verified, auth_provider
     ) VALUES (
       NEW.id, NEW.email, user_name, 'member',
-      'https://ui-avatars.com/api/?name=' || REPLACE(user_name, ' ', '+') || '&background=6366f1&color=fff',
+      COALESCE(
+        NEW.raw_user_meta_data->>'avatar_url',
+        NEW.raw_user_meta_data->>'picture',
+        'https://ui-avatars.com/api/?name=' || REPLACE(user_name, ' ', '+') || '&background=6366f1&color=fff'
+      ),
       LOWER(REPLACE(REPLACE(user_name, ' ', ''), '''', '')) || '_' || SUBSTRING(NEW.id::TEXT, 1, 6),
-      false
-    ) ON CONFLICT (id) DO NOTHING;
+      CASE WHEN auth_prov != 'email' THEN true ELSE false END,
+      auth_prov
+    ) ON CONFLICT (id) DO UPDATE SET
+      auth_provider = COALESCE(EXCLUDED.auth_provider, public.profiles.auth_provider),
+      avatar_url = COALESCE(EXCLUDED.avatar_url, public.profiles.avatar_url);
   EXCEPTION WHEN OTHERS THEN
     RAISE LOG 'Failed to create profile for %: %', NEW.id, SQLERRM;
   END;
@@ -149,3 +161,29 @@ LEFT JOIN user_subscriptions us ON us.user_id = p.id
 LEFT JOIN packages pkg ON pkg.id = us.package_id
 ORDER BY p.created_at DESC
 LIMIT 10;
+
+-- ============================================
+-- STEP 5: Fix auth_provider for Facebook users
+-- Users with facebook_id should have auth_provider = 'facebook'
+-- ============================================
+UPDATE profiles
+SET auth_provider = 'facebook'
+WHERE facebook_id IS NOT NULL
+  AND (auth_provider IS NULL OR auth_provider = 'email');
+
+-- ============================================
+-- STEP 6: Fix auth_provider for Google users
+-- Check auth.users table for google provider
+-- ============================================
+UPDATE public.profiles p
+SET auth_provider = 'google'
+FROM auth.users u
+WHERE p.id = u.id
+  AND u.raw_app_meta_data->>'provider' = 'google'
+  AND (p.auth_provider IS NULL OR p.auth_provider = 'email');
+
+-- Verify auth_provider updates
+SELECT name, email, auth_provider
+FROM profiles
+ORDER BY created_at DESC
+LIMIT 15;
