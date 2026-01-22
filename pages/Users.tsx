@@ -400,8 +400,14 @@ const UsersPage: React.FC<UsersPageProps> = ({ user }) => {
                             </svg>
                           </div>
                         ) : (
-                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center" title="Email">
-                            <Mail className="w-4 h-4 text-white" />
+                          <div className="w-8 h-8 rounded-full bg-white border border-slate-200 dark:border-slate-700 flex items-center justify-center" title="Email">
+                            <svg className="w-5 h-5" viewBox="0 0 24 24">
+                              <path fill="#4285F4" d="M2 6l8 5v9H4c-1.1 0-2-.9-2-2V6z" />
+                              <path fill="#34A853" d="M22 6l-8 5v9h6c1.1 0 2-.9 2-2V6z" />
+                              <path fill="#FBBC05" d="M22 6l-8 5-2-1.25V6.5L22 6z" />
+                              <path fill="#EA4335" d="M2 6l8 5 2-1.25V6.5L2 6z" />
+                              <path fill="#C5221F" d="M12 11l-10-5v-.5C2 4.67 2.67 4 3.5 4h17c.83 0 1.5.67 1.5 1.5v.5l-10 5z" />
+                            </svg>
                           </div>
                         )}
                       </div>
