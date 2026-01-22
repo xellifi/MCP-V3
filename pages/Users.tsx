@@ -385,8 +385,8 @@ const UsersPage: React.FC<UsersPageProps> = ({ user }) => {
                     <td className="px-6 py-4">
                       <div className="flex items-center justify-center">
                         {u.authProvider === 'facebook' ? (
-                          <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center" title="Facebook">
-                            <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
+                          <div className="w-8 h-8 rounded-full bg-white border border-slate-200 dark:border-slate-700 flex items-center justify-center" title="Facebook">
+                            <svg className="w-4 h-4" fill="#1877F2" viewBox="0 0 24 24">
                               <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
                             </svg>
                           </div>
@@ -400,13 +400,10 @@ const UsersPage: React.FC<UsersPageProps> = ({ user }) => {
                             </svg>
                           </div>
                         ) : (
-                          <div className="w-8 h-8 rounded-full bg-white border border-slate-200 dark:border-slate-700 flex items-center justify-center" title="Email">
+                          <div className="w-8 h-8 rounded-full bg-white border border-slate-200 dark:border-slate-700 flex items-center justify-center" title="Gmail">
                             <svg className="w-5 h-5" viewBox="0 0 24 24">
-                              <path fill="#4285F4" d="M2 6l8 5v9H4c-1.1 0-2-.9-2-2V6z" />
-                              <path fill="#34A853" d="M22 6l-8 5v9h6c1.1 0 2-.9 2-2V6z" />
-                              <path fill="#FBBC05" d="M22 6l-8 5-2-1.25V6.5L22 6z" />
-                              <path fill="#EA4335" d="M2 6l8 5 2-1.25V6.5L2 6z" />
-                              <path fill="#C5221F" d="M12 11l-10-5v-.5C2 4.67 2.67 4 3.5 4h17c.83 0 1.5.67 1.5 1.5v.5l-10 5z" />
+                              <path fill="#4285F4" d="M2 6v12c0 1.1.9 2 2 2h2V8l6 4.5L18 8v12h2c1.1 0 2-.9 2-2V6l-10 7.5L2 6z" />
+                              <path fill="#EA4335" d="M22 6v-.5C22 4.67 21.33 4 20.5 4H3.5C2.67 4 2 4.67 2 5.5V6l10 7.5L22 6z" />
                             </svg>
                           </div>
                         )}
