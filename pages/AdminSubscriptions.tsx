@@ -106,9 +106,10 @@ const AdminSubscriptions: React.FC = () => {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    // Handle freeze/unfreeze (toggle between Active and Frozen)
+    // Handle freeze/unfreeze/approve (toggle between Active and Frozen, or activate Pending)
     const handleFreeze = async (sub: any) => {
         try {
+            // If status is Active, freeze it. Otherwise (Frozen, Pending), activate it.
             const newStatus = sub.status === 'Active' ? 'Frozen' : 'Active';
             await api.subscriptions.update(sub.id, { status: newStatus });
             await loadData();
@@ -443,11 +444,11 @@ const AdminSubscriptions: React.FC = () => {
                                                 >
                                                     <Edit className="w-4 h-4" />
                                                 </button>
-                                                {/* Freeze/Unfreeze - Amber/Orange */}
+                                                {/* Freeze/Unfreeze/Approve - Amber/Orange */}
                                                 <button
                                                     onClick={() => handleFreeze(sub)}
                                                     className="p-2 text-amber-500 hover:text-amber-600 hover:bg-amber-50 dark:text-amber-400 dark:hover:text-amber-300 dark:hover:bg-amber-900/20 rounded-lg transition-colors"
-                                                    title={sub.status === 'Active' ? 'Freeze Subscription' : 'Unfreeze Subscription'}
+                                                    title={sub.status === 'Active' ? 'Freeze Subscription' : sub.status === 'Pending' ? 'Approve Subscription' : 'Unfreeze Subscription'}
                                                 >
                                                     {sub.status === 'Active' ? (
                                                         <PauseCircle className="w-4 h-4" />
