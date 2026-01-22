@@ -389,9 +389,17 @@ const AdminSubscriptions: React.FC = () => {
                                     <tr key={sub.id} className="group hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold text-sm">
-                                                    {sub.name.charAt(0)}
-                                                </div>
+                                                {sub.avatar ? (
+                                                    <img
+                                                        src={sub.avatar}
+                                                        alt={sub.name}
+                                                        className="w-10 h-10 rounded-full object-cover ring-2 ring-white dark:ring-slate-800"
+                                                    />
+                                                ) : (
+                                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold text-sm">
+                                                        {sub.name.charAt(0)}
+                                                    </div>
+                                                )}
                                                 <div>
                                                     <div className="font-medium text-slate-900 dark:text-white">{sub.name}</div>
                                                     <div className="text-sm text-slate-500 dark:text-slate-400">{sub.email}</div>
