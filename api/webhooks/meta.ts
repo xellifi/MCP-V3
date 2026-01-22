@@ -96,6 +96,11 @@ async function saveOrUpdateSubscriber(
                 labels: updatedLabels
             };
 
+            // Update page_id if not already set (for subscribers created before page tracking)
+            if (pageId) {
+                updateData.page_id = pageId;
+            }
+
             // Only update name if we have a better name
             if (shouldUpdateName && userName && !genericNames.includes(userName)) {
                 updateData.name = userName;
