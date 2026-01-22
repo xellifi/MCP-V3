@@ -84,76 +84,72 @@ const Dashboard: React.FC<DashboardProps> = ({ workspace }) => {
   const loadDashboardData = async () => {
     setLoading(true);
     try {
-      // Fetch all data in parallel
-      const [pages, conversations, subscribers] = await Promise.all([
+      // Fetch all data in parallel - optimized to reduce API calls
+      const sevenDaysAgo = subDays(new Date(), 7).toISOString();
+
+      const [pages, conversations, subscribers, flowCountResult, recentConversations, recentMessages, recentActivityData] = await Promise.all([
         api.workspace.getConnectedPages(workspace.id),
         api.workspace.getConversations(workspace.id),
-        api.workspace.getSubscribers(workspace.id)
+        api.workspace.getSubscribers(workspace.id),
+        supabase.from('flows').select('*', { count: 'exact', head: true }).eq('workspace_id', workspace.id),
+        // Get all conversations from last 7 days in one query
+        supabase.from('conversations')
+          .select('created_at')
+          .eq('workspace_id', workspace.id)
+          .gte('created_at', sevenDaysAgo),
+        // Get all messages from last 7 days in one query
+        supabase.from('messages')
+          .select('created_at, conversations!inner(workspace_id)')
+          .eq('conversations.workspace_id', workspace.id)
+          .gte('created_at', sevenDaysAgo),
+        // Get recent messages for activity feed
+        supabase.from('messages')
+          .select('*, conversations!inner(*, subscribers!inner(*))')
+          .eq('conversations.workspace_id', workspace.id)
+          .eq('direction', 'INBOUND')
+          .order('created_at', { ascending: false })
+          .limit(5)
       ]);
-
-      // Get total flow count
-      const { count: flowCount } = await supabase
-        .from('flows')
-        .select('*', { count: 'exact', head: true })
-        .eq('workspace_id', workspace.id);
 
       // Update stats
       setStats({
         connectedPages: pages.length,
         totalConversations: conversations.length,
-        totalFlows: flowCount || 0,
+        totalFlows: flowCountResult.count || 0,
         activeSubscribers: subscribers.filter(s => s.status === 'SUBSCRIBED').length
       });
 
-      // Generate chart data for last 7 days
+      // Process chart data locally instead of 14 queries
       const last7Days = Array.from({ length: 7 }, (_, i) => {
         const date = subDays(new Date(), 6 - i);
         return {
           date: startOfDay(date),
-          name: format(date, 'EEE')
+          name: format(date, 'EEE'),
+          conversations: 0,
+          messages: 0
         };
       });
 
-      // Get conversations and messages grouped by day
-      const chartDataPromises = last7Days.map(async (day) => {
-        const nextDay = new Date(day.date);
-        nextDay.setDate(nextDay.getDate() + 1);
-
-        // Count for simple demo purposes - in prod this should be a more optimized query
-        const { count: convCount } = await supabase
-          .from('conversations')
-          .select('*', { count: 'exact', head: true })
-          .eq('workspace_id', workspace.id)
-          .gte('created_at', day.date.toISOString())
-          .lt('created_at', nextDay.toISOString());
-
-        const { count: msgCount } = await supabase
-          .from('messages')
-          .select('*, conversations!inner(workspace_id)', { count: 'exact', head: true })
-          .eq('conversations.workspace_id', workspace.id)
-          .gte('created_at', day.date.toISOString())
-          .lt('created_at', nextDay.toISOString());
-
-        return {
-          name: day.name,
-          conversations: convCount || 0,
-          messages: msgCount || 0
-        };
+      // Count conversations per day
+      (recentConversations.data || []).forEach((conv: any) => {
+        const convDate = startOfDay(new Date(conv.created_at)).getTime();
+        const dayIndex = last7Days.findIndex(d => d.date.getTime() === convDate);
+        if (dayIndex >= 0) {
+          last7Days[dayIndex].conversations++;
+        }
       });
 
-      const chartResults = await Promise.all(chartDataPromises);
-      setChartData(chartResults);
+      // Count messages per day
+      (recentMessages.data || []).forEach((msg: any) => {
+        const msgDate = startOfDay(new Date(msg.created_at)).getTime();
+        const dayIndex = last7Days.findIndex(d => d.date.getTime() === msgDate);
+        if (dayIndex >= 0) {
+          last7Days[dayIndex].messages++;
+        }
+      });
 
-      // Get recent messages for activity feed
-      const { data: recentMessages } = await supabase
-        .from('messages')
-        .select('*, conversations!inner(*, subscribers!inner(*))')
-        .eq('conversations.workspace_id', workspace.id)
-        .eq('direction', 'INBOUND')
-        .order('created_at', { ascending: false })
-        .limit(5);
-
-      setRecentActivity(recentMessages || []);
+      setChartData(last7Days.map(d => ({ name: d.name, conversations: d.conversations, messages: d.messages })));
+      setRecentActivity(recentActivityData.data || []);
     } catch (error) {
       console.error('Error loading dashboard data:', error);
     } finally {
