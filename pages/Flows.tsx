@@ -210,6 +210,13 @@ const Flows: React.FC<FlowsProps> = ({ workspace, user }) => {
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
+
+      // Set up a timeout to prevent infinite loading
+      const timeoutId = setTimeout(() => {
+        console.warn('Load data timed out after 10 seconds');
+        setLoading(false);
+      }, 10000);
+
       try {
         // Fetch flows and pages in parallel
         const [flowsData, pagesData] = await Promise.all([
@@ -244,6 +251,7 @@ const Flows: React.FC<FlowsProps> = ({ workspace, user }) => {
       } catch (error) {
         console.error('Error loading flows data:', error);
       } finally {
+        clearTimeout(timeoutId);
         setLoading(false);
       }
     };

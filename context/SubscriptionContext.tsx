@@ -16,7 +16,14 @@ export const SubscriptionProvider: React.FC<{ children: ReactNode }> = ({ childr
 
     const refreshSubscription = useCallback(async () => {
         try {
-            const sub = await api.subscriptions.getCurrentSubscription();
+            // Add timeout to prevent hanging if auth isn't ready
+            const timeoutPromise = new Promise<null>((resolve) => {
+                setTimeout(() => resolve(null), 5000); // 5 second timeout
+            });
+
+            const subPromise = api.subscriptions.getCurrentSubscription();
+            const sub = await Promise.race([subPromise, timeoutPromise]);
+
             setCurrentSubscription(sub);
         } catch (error) {
             console.error('Failed to load subscription:', error);

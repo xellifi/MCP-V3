@@ -5,6 +5,43 @@ import { User, Workspace, MetaConnection, ConnectedPage, Flow, ScheduledPost, Ad
 // Simulating async API calls (for fallback/demo)
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
+// Helper to ensure supabase session is ready before making API calls
+// This prevents API calls from hanging when the session isn't fully established yet
+let sessionReadyPromise: Promise<boolean> | null = null;
+
+const ensureSession = async (): Promise<boolean> => {
+  // If we already have a pending session check, wait for it
+  if (sessionReadyPromise) {
+    return sessionReadyPromise;
+  }
+
+  sessionReadyPromise = (async () => {
+    try {
+      // Try to get session up to 3 times with 500ms intervals
+      for (let i = 0; i < 3; i++) {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          return true;
+        }
+        if (i < 2) {
+          await delay(500);
+        }
+      }
+      return false;
+    } catch (error) {
+      console.warn('Session check failed:', error);
+      return false;
+    } finally {
+      // Reset the promise after 5 seconds so subsequent calls can retry if needed
+      setTimeout(() => {
+        sessionReadyPromise = null;
+      }, 5000);
+    }
+  })();
+
+  return sessionReadyPromise;
+};
+
 // Helper to convert Supabase row to TypeScript types
 const mapProfile = (row: any): User => ({
   id: row.id,
@@ -981,6 +1018,9 @@ export const api = {
     },
 
     getConnectedPages: async (workspaceId: string): Promise<ConnectedPage[]> => {
+      // Ensure auth session is ready before making the query
+      await ensureSession();
+
       const { data, error } = await supabase
         .from('connected_pages')
         .select('*')
@@ -1016,6 +1056,9 @@ export const api = {
     },
 
     getSubscribers: async (workspaceId: string, pageId?: string): Promise<Subscriber[]> => {
+      // Ensure auth session is ready before making the query
+      await ensureSession();
+
       let query = supabase
         .from('subscribers')
         .select('*')
@@ -1327,6 +1370,9 @@ export const api = {
     },
 
     getConversations: async (workspaceId: string, pageId?: string): Promise<Conversation[]> => {
+      // Ensure auth session is ready before making the query
+      await ensureSession();
+
       let query = supabase
         .from('conversations')
         .select('*')
@@ -1842,6 +1888,9 @@ export const api = {
     },
 
     getFlows: async (workspaceId: string): Promise<Flow[]> => {
+      // Ensure auth session is ready before making the query
+      await ensureSession();
+
       const { data, error } = await supabase
         .from('flows')
         .select('*')
