@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { KeyRound, ArrowRight, ArrowLeft, Mail, Loader2 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 
 const ForgotPassword: React.FC = () => {
@@ -8,6 +8,17 @@ const ForgotPassword: React.FC = () => {
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
+
+  // Auto-redirect to login after successful submission
+  useEffect(() => {
+    if (submitted) {
+      const timer = setTimeout(() => {
+        navigate('/login');
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [submitted, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -96,8 +107,14 @@ const ForgotPassword: React.FC = () => {
             <div className="p-5 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 rounded-xl text-sm border border-green-100 dark:border-green-900/30">
               If an account exists for <strong className="font-bold">{email}</strong>, we have sent a password reset link to it.
             </div>
+            <div className="p-4 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 rounded-xl text-sm border border-amber-100 dark:border-amber-900/30">
+              <strong>Important:</strong> Please close this tab before clicking the reset link in your email.
+            </div>
+            <p className="text-slate-500 dark:text-slate-400 text-sm">
+              Redirecting to login in a few seconds...
+            </p>
             <Link to="/login" className="inline-flex items-center text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 font-bold hover:underline transition-colors">
-              Return to Login
+              Return to Login Now
             </Link>
           </div>
         )}
