@@ -105,11 +105,19 @@ const App: React.FC = () => {
     const checkSession = async () => {
       try {
         // Check if this is a password recovery callback - redirect to reset password page
-        if (isPasswordRecoveryCallback()) {
+        // BUT skip if we're already on the reset-password page
+        if (isPasswordRecoveryCallback() && !window.location.pathname.includes('/reset-password')) {
           console.log('Password recovery callback detected, redirecting to reset password page...');
           // Keep the hash intact for the reset password page to process
           window.location.href = '/reset-password' + window.location.hash;
           return; // Stop further processing
+        }
+
+        // If we're on the reset-password page with a recovery token, just stop loading and let the page handle it
+        if (window.location.pathname.includes('/reset-password')) {
+          console.log('On reset-password page, letting component handle token...');
+          setLoading(false);
+          return;
         }
 
         // Check if this is an email verification callback
