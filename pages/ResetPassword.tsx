@@ -13,88 +13,40 @@ const ResetPassword: React.FC = () => {
     const [success, setSuccess] = useState(false);
     const [sessionReady, setSessionReady] = useState(false);
     const [initializing, setInitializing] = useState(true);
+    const [accessToken, setAccessToken] = useState<string | null>(null);
     const navigate = useNavigate();
 
     useEffect(() => {
-        let mounted = true;
-        console.log('ResetPassword: Component mounted, starting initialization...');
+        console.log('ResetPassword: Component mounted');
 
-        const initializeSession = async () => {
-            try {
-                const hash = window.location.hash;
-                console.log('ResetPassword: Hash present:', !!hash, hash.substring(0, 50) + '...');
+        // Check URL hash for tokens
+        const hash = window.location.hash;
 
-                // If we have recovery tokens in the hash, extract and set session
-                if (hash.includes('access_token')) {
-                    const hashParams = new URLSearchParams(hash.substring(1));
-                    const accessToken = hashParams.get('access_token');
-                    const refreshToken = hashParams.get('refresh_token') || '';
-                    const tokenType = hashParams.get('type');
+        if (hash.includes('access_token') && hash.includes('type=recovery')) {
+            console.log('ResetPassword: Recovery tokens found in URL');
 
-                    console.log('ResetPassword: Token type:', tokenType, 'Has access token:', !!accessToken);
+            // Extract access token for later use
+            const hashParams = new URLSearchParams(hash.substring(1));
+            const token = hashParams.get('access_token');
 
-                    if (accessToken) {
-                        console.log('ResetPassword: Setting session from tokens...');
-                        const { data, error: setSessionError } = await supabase.auth.setSession({
-                            access_token: accessToken,
-                            refresh_token: refreshToken,
-                        });
+            if (token) {
+                setAccessToken(token);
+                setSessionReady(true);
+                setInitializing(false);
 
-                        if (setSessionError) {
-                            console.error('ResetPassword: Set session error:', setSessionError);
-                            if (mounted) {
-                                setError('Invalid or expired password reset link. Please request a new one.');
-                                setInitializing(false);
-                            }
-                            return;
-                        }
-
-                        console.log('ResetPassword: Session set successfully!', data?.session ? 'has session' : 'no session');
-
-                        // Clear the hash from URL for cleaner look
-                        window.history.replaceState(null, '', window.location.pathname);
-
-                        if (mounted) {
-                            setSessionReady(true);
-                            setInitializing(false);
-                        }
-                        return;
-                    }
-                }
-
-                // No hash tokens - check if we already have a session
-                const { data: { session } } = await supabase.auth.getSession();
-                console.log('ResetPassword: Existing session check:', session ? 'found' : 'not found');
-
-                if (session) {
-                    if (mounted) {
-                        setSessionReady(true);
-                        setInitializing(false);
-                    }
-                    return;
-                }
-
-                // No tokens and no session
-                console.log('ResetPassword: No tokens or session found');
-                if (mounted) {
-                    setError('Invalid or expired password reset link. Please request a new one.');
-                    setInitializing(false);
-                }
-            } catch (err) {
-                console.error('ResetPassword: Initialization error:', err);
-                if (mounted) {
-                    setError('Something went wrong. Please try again.');
-                    setInitializing(false);
-                }
+                // Clear the hash from URL
+                window.history.replaceState(null, '', window.location.pathname);
+                console.log('ResetPassword: Ready for password reset');
+            } else {
+                setError('Invalid password reset link. Please request a new one.');
+                setInitializing(false);
             }
-        };
-
-        // Run immediately
-        initializeSession();
-
-        return () => {
-            mounted = false;
-        };
+        } else {
+            // No recovery tokens - show error
+            console.log('ResetPassword: No recovery tokens found');
+            setError('Invalid or expired password reset link. Please request a new one.');
+            setInitializing(false);
+        }
     }, []);
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -115,6 +67,27 @@ const ResetPassword: React.FC = () => {
         setLoading(true);
 
         try {
+            // First, set the session using the stored access token
+            if (accessToken) {
+                const hashParams = new URLSearchParams(window.location.hash.substring(1) || '');
+                const refreshToken = hashParams.get('refresh_token') || localStorage.getItem('sb-refresh-token') || '';
+
+                // Get refresh token from the original URL if we stored it
+                const storedRefresh = sessionStorage.getItem('reset_refresh_token');
+
+                console.log('ResetPassword: Setting session with access token...');
+                const { error: sessionError } = await supabase.auth.setSession({
+                    access_token: accessToken,
+                    refresh_token: storedRefresh || refreshToken,
+                });
+
+                if (sessionError) {
+                    console.error('ResetPassword: Session error:', sessionError);
+                    throw new Error('Session expired. Please request a new password reset link.');
+                }
+            }
+
+            console.log('ResetPassword: Updating password...');
             const { error } = await supabase.auth.updateUser({
                 password: password,
             });
@@ -123,18 +96,33 @@ const ResetPassword: React.FC = () => {
                 throw error;
             }
 
+            console.log('ResetPassword: Password updated successfully!');
             setSuccess(true);
 
-            // Redirect to login after 3 seconds
-            setTimeout(() => {
+            // Sign out and redirect to login after 3 seconds
+            setTimeout(async () => {
+                await supabase.auth.signOut();
                 navigate('/login');
             }, 3000);
         } catch (err: any) {
+            console.error('ResetPassword: Error:', err);
             setError(err.message || 'Failed to reset password. Please try again.');
         } finally {
             setLoading(false);
         }
     };
+
+    // Store refresh token when we first get it
+    useEffect(() => {
+        const hash = window.location.hash;
+        if (hash.includes('refresh_token')) {
+            const hashParams = new URLSearchParams(hash.substring(1));
+            const refreshToken = hashParams.get('refresh_token');
+            if (refreshToken) {
+                sessionStorage.setItem('reset_refresh_token', refreshToken);
+            }
+        }
+    }, []);
 
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col items-center justify-center p-4 transition-colors duration-300">
