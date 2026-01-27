@@ -67,41 +67,44 @@ const ResetPassword: React.FC = () => {
         setLoading(true);
 
         try {
-            // First, set the session using the stored access token
-            if (accessToken) {
-                const hashParams = new URLSearchParams(window.location.hash.substring(1) || '');
-                const refreshToken = hashParams.get('refresh_token') || localStorage.getItem('sb-refresh-token') || '';
+            // Use fetch to directly call Supabase API to update password
+            // This bypasses any SDK issues with setSession
+            const supabaseUrl = (import.meta as any).env.VITE_SUPABASE_URL;
 
-                // Get refresh token from the original URL if we stored it
-                const storedRefresh = sessionStorage.getItem('reset_refresh_token');
-
-                console.log('ResetPassword: Setting session with access token...');
-                const { error: sessionError } = await supabase.auth.setSession({
-                    access_token: accessToken,
-                    refresh_token: storedRefresh || refreshToken,
-                });
-
-                if (sessionError) {
-                    console.error('ResetPassword: Session error:', sessionError);
-                    throw new Error('Session expired. Please request a new password reset link.');
-                }
+            if (!accessToken) {
+                throw new Error('No access token available. Please request a new password reset link.');
             }
 
-            console.log('ResetPassword: Updating password...');
-            const { error } = await supabase.auth.updateUser({
-                password: password,
+            console.log('ResetPassword: Updating password via API...');
+
+            // Call Supabase's user update endpoint directly with the access token
+            const response = await fetch(`${supabaseUrl}/auth/v1/user`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${accessToken}`,
+                    'apikey': (import.meta as any).env.VITE_SUPABASE_ANON_KEY,
+                },
+                body: JSON.stringify({
+                    password: password,
+                }),
             });
 
-            if (error) {
-                throw error;
+            const data = await response.json();
+
+            if (!response.ok) {
+                console.error('ResetPassword: API error:', data);
+                throw new Error(data.error_description || data.msg || 'Failed to reset password');
             }
 
             console.log('ResetPassword: Password updated successfully!');
             setSuccess(true);
 
-            // Sign out and redirect to login after 3 seconds
-            setTimeout(async () => {
-                await supabase.auth.signOut();
+            // Clear any stored tokens
+            sessionStorage.removeItem('reset_refresh_token');
+
+            // Redirect to login after 3 seconds
+            setTimeout(() => {
                 navigate('/login');
             }, 3000);
         } catch (err: any) {
