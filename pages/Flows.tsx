@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { Workspace, Flow, ConnectedPage } from '../types';
+import { Workspace, Flow, ConnectedPage, User, UserRole } from '../types';
 import { api } from '../services/api';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Plus, Search, MoreHorizontal, Play, Edit, Trash, Zap, Facebook, AlertTriangle, X, LayoutGrid, List, ChevronLeft, ChevronRight, GripVertical, ShoppingCart, FileText, Download, Upload, Loader2 } from 'lucide-react';
+import { Plus, Search, MoreHorizontal, Play, Edit, Trash, Zap, Facebook, AlertTriangle, X, LayoutGrid, List, ChevronLeft, ChevronRight, GripVertical, ShoppingCart, FileText, Download, Upload, Loader2, Globe, Lock } from 'lucide-react';
 import { format } from 'date-fns';
 import { useTheme } from '../context/ThemeContext';
 import { useToast } from '../context/ToastContext';
@@ -29,6 +29,7 @@ import { CSS } from '@dnd-kit/utilities';
 
 interface FlowsProps {
   workspace: Workspace;
+  user?: User | null;
 }
 
 // Props interface for the sortable flow card
@@ -152,8 +153,9 @@ const TABS = [
   { id: 'orders', label: 'Orders', icon: ShoppingCart },
 ];
 
-const Flows: React.FC<FlowsProps> = ({ workspace }) => {
+const Flows: React.FC<FlowsProps> = ({ workspace, user }) => {
   const { isDark } = useTheme();
+  const isAdmin = user?.role === UserRole.ADMIN || user?.role === UserRole.OWNER;
   const [searchParams, setSearchParams] = useSearchParams();
 
   // Get initial tab from URL or default to 'flows'
@@ -187,7 +189,8 @@ const Flows: React.FC<FlowsProps> = ({ workspace }) => {
   const toast = useToast();
 
   // Templates state
-  const [templates, setTemplates] = useState<any[]>([]);
+  const [workspaceTemplates, setWorkspaceTemplates] = useState<any[]>([]);
+  const [globalTemplates, setGlobalTemplates] = useState<any[]>([]);
   const [templatesLoading, setTemplatesLoading] = useState(false);
   const [deletingTemplateId, setDeletingTemplateId] = useState<string | null>(null);
   const [templateViewMode, setTemplateViewMode] = useState<'list' | 'grid'>('grid');
@@ -315,7 +318,8 @@ const Flows: React.FC<FlowsProps> = ({ workspace }) => {
         setTemplatesLoading(true);
         try {
           const data = await api.templates.getTemplates(workspace.id);
-          setTemplates(data);
+          setWorkspaceTemplates(data.workspaceTemplates || []);
+          setGlobalTemplates(data.globalTemplates || []);
         } catch (error) {
           console.error('Error fetching templates:', error);
         } finally {
@@ -379,19 +383,50 @@ const Flows: React.FC<FlowsProps> = ({ workspace }) => {
   };
 
   // Delete template
-  const handleDeleteTemplate = async (templateId: string) => {
+  const handleDeleteTemplate = async (templateId: string, isGlobal: boolean = false) => {
     if (!window.confirm('Are you sure you want to delete this template?')) return;
 
     setDeletingTemplateId(templateId);
     try {
       await api.templates.deleteTemplate(templateId);
-      setTemplates(prev => prev.filter(t => t.id !== templateId));
+      if (isGlobal) {
+        setGlobalTemplates(prev => prev.filter(t => t.id !== templateId));
+      } else {
+        setWorkspaceTemplates(prev => prev.filter(t => t.id !== templateId));
+      }
       toast.success('Template deleted!');
     } catch (error) {
       console.error('Error deleting template:', error);
       toast.error('Failed to delete template');
     } finally {
       setDeletingTemplateId(null);
+    }
+  };
+
+  // Toggle global status (admin only)
+  const [togglingTemplateId, setTogglingTemplateId] = useState<string | null>(null);
+
+  const handleToggleGlobalStatus = async (template: any, makeGlobal: boolean) => {
+    setTogglingTemplateId(template.id);
+    try {
+      await api.templates.updateTemplate(template.id, { isGlobal: makeGlobal });
+
+      if (makeGlobal) {
+        // Move from workspace to global
+        setWorkspaceTemplates(prev => prev.filter(t => t.id !== template.id));
+        setGlobalTemplates(prev => [...prev, { ...template, isGlobal: true }]);
+        toast.success(`"${template.name}" is now available to all users`);
+      } else {
+        // Move from global to workspace
+        setGlobalTemplates(prev => prev.filter(t => t.id !== template.id));
+        setWorkspaceTemplates(prev => [...prev, { ...template, isGlobal: false }]);
+        toast.success(`"${template.name}" is now workspace-only`);
+      }
+    } catch (error: any) {
+      console.error('Error toggling global status:', error);
+      toast.error(error.message || 'Failed to update template');
+    } finally {
+      setTogglingTemplateId(null);
     }
   };
 
@@ -428,7 +463,7 @@ const Flows: React.FC<FlowsProps> = ({ workspace }) => {
 
         // Save to database
         try {
-          const newTemplate = await api.templates.createTemplate(workspace.id, {
+          const newTemplate = await api.templates.createTemplate(workspace.id, user?.id || '', {
             name: template.name || file.name.replace('.json', ''),
             description: template.description || 'Imported via upload',
             nodes: template.nodes,
@@ -437,7 +472,7 @@ const Flows: React.FC<FlowsProps> = ({ workspace }) => {
           });
 
           // Add to state if in templates view
-          setTemplates(prev => [newTemplate, ...prev]);
+          setWorkspaceTemplates(prev => [newTemplate, ...prev]);
           toast.success('Template imported successfully');
         } catch (apiError) {
           console.error('Error creating template:', apiError);
@@ -958,174 +993,432 @@ const Flows: React.FC<FlowsProps> = ({ workspace }) => {
 
       {/* Templates Tab */}
       {activeTab === 'templates' && (
-        <div>
+        <div className="space-y-6">
           {templatesLoading ? (
             <div className={`rounded-2xl border p-12 text-center ${isDark ? 'glass-panel border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
               <Loader2 className={`w-8 h-8 mx-auto mb-4 animate-spin ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`} />
               <p className={isDark ? 'text-slate-400' : 'text-slate-500'}>Loading templates...</p>
             </div>
-          ) : templates.length === 0 ? (
-            <div className={`rounded-2xl border p-8 text-center ${isDark ? 'glass-panel border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
-              <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${isDark ? 'bg-white/5' : 'bg-slate-100'}`}>
-                <FileText className={`w-8 h-8 ${isDark ? 'text-slate-400' : 'text-slate-500'}`} />
-              </div>
-              <h3 className={`text-xl font-bold mb-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>No Templates Yet</h3>
-              <p className={`mb-6 max-w-md mx-auto ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                Save your automation flows as templates from the Flow Builder. Look for the "Save Template" button in the toolbar.
-              </p>
-            </div>
-          ) : templateViewMode === 'list' ? (
-            <div className={`rounded-2xl overflow-hidden border ${isDark ? 'glass-panel border-white/10 text-slate-100' : 'bg-white border-gray-200 shadow-sm text-slate-900'}`}>
-              <div className="overflow-x-auto">
-                <table className="w-full text-left">
-                  <thead className={`text-xs uppercase font-bold border-b ${isDark
-                    ? 'bg-white/5 text-slate-400 border-white/10'
-                    : 'bg-slate-50 text-slate-500 border-slate-200'
-                    }`}>
-                    <tr>
-                      <th className="px-6 py-4">Name</th>
-                      <th className="px-6 py-4">Description</th>
-                      <th className="px-6 py-4">Nodes</th>
-                      <th className="px-6 py-4">Created</th>
-                      <th className="px-6 py-4 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className={`divide-y ${isDark ? 'divide-white/5' : 'divide-slate-100'}`}>
-                    {templates.map((template) => (
-                      <tr key={template.id} className={`transition-colors group ${isDark ? 'hover:bg-white/5' : 'hover:bg-slate-50'}`}>
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-4">
-                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-lg border ${isDark
-                              ? 'bg-indigo-500/20 text-indigo-400 shadow-indigo-500/10 border-indigo-500/20'
-                              : 'bg-indigo-50 text-indigo-600 border-indigo-100'
-                              }`}>
-                              <FileText className="w-5 h-5" />
-                            </div>
-                            <span className={`font-semibold ${isDark ? 'text-white' : 'text-slate-900'}`}>{template.name}</span>
+          ) : (
+            <>
+              {/* Global Templates Section */}
+              {globalTemplates.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-2 mb-4">
+                    <Globe className={`w-5 h-5 ${isDark ? 'text-green-400' : 'text-green-600'}`} />
+                    <h2 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>Global Templates</h2>
+                    <span className={`text-xs px-2 py-0.5 rounded-full ${isDark ? 'bg-green-500/20 text-green-400' : 'bg-green-100 text-green-700'}`}>
+                      Available to all users
+                    </span>
+                  </div>
+
+                  {templateViewMode === 'grid' ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                      {globalTemplates.map((template) => (
+                        <div key={template.id} className={`rounded-2xl border p-5 transition-all hover:shadow-lg relative ${isDark
+                          ? 'glass-panel border-green-500/30 hover:border-green-500/50'
+                          : 'bg-white border-green-200 shadow-sm hover:border-green-300'}`}>
+                          {/* Global badge */}
+                          <div className={`absolute top-3 right-3 flex items-center gap-1 text-xs px-2 py-1 rounded-full ${isDark ? 'bg-green-500/20 text-green-400' : 'bg-green-100 text-green-700'}`}>
+                            <Globe className="w-3 h-3" />
+                            Global
                           </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <p className={`text-sm truncate max-w-[200px] ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                            {template.description || '-'}
+
+                          {/* Template Icon */}
+                          <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 ${isDark ? 'bg-green-500/20' : 'bg-green-100'}`}>
+                            <FileText className={`w-6 h-6 ${isDark ? 'text-green-400' : 'text-green-600'}`} />
+                          </div>
+
+                          {/* Template Name */}
+                          <h3 className={`font-bold mb-1 truncate ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                            {template.name}
+                          </h3>
+
+                          {/* Template Info */}
+                          <p className={`text-xs mb-3 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                            {template.nodes?.length || 0} nodes • Created {format(new Date(template.createdAt), 'MMM d, yyyy')}
                           </p>
-                        </td>
-                        <td className="px-6 py-4 text-sm text-slate-500">
-                          {template.nodes?.length || 0}
-                        </td>
-                        <td className="px-6 py-4 text-sm text-slate-500">
-                          {format(new Date(template.createdAt), 'MMM d, yyyy')}
-                        </td>
-                        <td className="px-6 py-4 text-right">
-                          <div className="flex justify-end gap-2">
+
+                          {/* Description */}
+                          {template.description && (
+                            <p className={`text-sm mb-4 line-clamp-2 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                              {template.description}
+                            </p>
+                          )}
+
+                          {/* Actions */}
+                          <div className={`flex items-center gap-2 pt-3 border-t ${isDark ? 'border-white/5' : 'border-slate-100'}`}>
                             <button
                               onClick={() => handleUseTemplate(template)}
-                              className={`p-2 rounded-lg transition-colors border ${isDark
-                                ? 'text-indigo-400 hover:text-white hover:bg-indigo-500/20 border-transparent hover:border-indigo-500/30'
-                                : 'text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 border-transparent hover:border-indigo-100'
-                                }`}
-                              title="Use Template"
+                              className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg transition-colors ${isDark
+                                ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30'
+                                : 'bg-green-50 text-green-600 hover:bg-green-100'}`}
                             >
-                              <Play className="w-4 h-4" />
+                              <Play className="w-3.5 h-3.5" />
+                              Use
                             </button>
                             <button
                               onClick={() => handleDownloadTemplate(template)}
-                              className={`p-2 rounded-lg transition-colors border ${isDark
-                                ? 'text-slate-400 hover:text-white hover:bg-white/5 border-transparent hover:border-white/10'
-                                : 'text-slate-400 hover:text-slate-700 hover:bg-slate-50 border-transparent hover:border-slate-200'
-                                }`}
-                              title="Download JSON"
+                              className={`flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg transition-colors ${isDark
+                                ? 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white'
+                                : 'bg-slate-50 text-slate-500 hover:bg-slate-100 hover:text-slate-700'}`}
                             >
-                              <Download className="w-4 h-4" />
+                              <Download className="w-3.5 h-3.5" />
                             </button>
+                            {/* Admin-only: Toggle global status */}
+                            {isAdmin && (
+                              <button
+                                onClick={() => handleToggleGlobalStatus(template, false)}
+                                disabled={togglingTemplateId === template.id}
+                                title="Make workspace-only"
+                                className={`flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg transition-colors disabled:opacity-50 ${isDark
+                                  ? 'bg-white/5 text-slate-400 hover:bg-amber-500/20 hover:text-amber-400'
+                                  : 'bg-slate-50 text-slate-500 hover:bg-amber-50 hover:text-amber-600'}`}
+                              >
+                                {togglingTemplateId === template.id ? (
+                                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                ) : (
+                                  <Lock className="w-3.5 h-3.5" />
+                                )}
+                              </button>
+                            )}
+                            {/* Admin-only delete for global templates */}
+                            {isAdmin && (
+                              <button
+                                onClick={() => handleDeleteTemplate(template.id, true)}
+                                disabled={deletingTemplateId === template.id}
+                                className={`flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg transition-colors disabled:opacity-50 ${isDark
+                                  ? 'bg-white/5 text-slate-400 hover:bg-red-500/20 hover:text-red-400'
+                                  : 'bg-slate-50 text-slate-500 hover:bg-red-50 hover:text-red-500'}`}
+                              >
+                                {deletingTemplateId === template.id ? (
+                                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                ) : (
+                                  <Trash className="w-3.5 h-3.5" />
+                                )}
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className={`rounded-2xl overflow-hidden border ${isDark ? 'glass-panel border-white/10 text-slate-100' : 'bg-white border-gray-200 shadow-sm text-slate-900'}`}>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left">
+                          <thead className={`text-xs uppercase font-bold border-b ${isDark
+                            ? 'bg-white/5 text-slate-400 border-white/10'
+                            : 'bg-slate-50 text-slate-500 border-slate-200'
+                            }`}>
+                            <tr>
+                              <th className="px-6 py-4">Name</th>
+                              <th className="px-6 py-4">Description</th>
+                              <th className="px-6 py-4">Nodes</th>
+                              <th className="px-6 py-4">Created</th>
+                              <th className="px-6 py-4 text-right">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody className={`divide-y ${isDark ? 'divide-white/5' : 'divide-slate-100'}`}>
+                            {globalTemplates.map((template) => (
+                              <tr key={template.id} className={`transition-colors group ${isDark ? 'hover:bg-white/5' : 'hover:bg-slate-50'}`}>
+                                <td className="px-6 py-4">
+                                  <div className="flex items-center gap-4">
+                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-lg border ${isDark
+                                      ? 'bg-green-500/20 text-green-400 shadow-green-500/10 border-green-500/20'
+                                      : 'bg-green-50 text-green-600 border-green-100'
+                                      }`}>
+                                      <Globe className="w-5 h-5" />
+                                    </div>
+                                    <span className={`font-semibold ${isDark ? 'text-white' : 'text-slate-900'}`}>{template.name}</span>
+                                  </div>
+                                </td>
+                                <td className="px-6 py-4">
+                                  <p className={`text-sm truncate max-w-[200px] ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                                    {template.description || '-'}
+                                  </p>
+                                </td>
+                                <td className="px-6 py-4 text-sm text-slate-500">
+                                  {template.nodes?.length || 0}
+                                </td>
+                                <td className="px-6 py-4 text-sm text-slate-500">
+                                  {format(new Date(template.createdAt), 'MMM d, yyyy')}
+                                </td>
+                                <td className="px-6 py-4 text-right">
+                                  <div className="flex justify-end gap-2">
+                                    <button
+                                      onClick={() => handleUseTemplate(template)}
+                                      className={`p-2 rounded-lg transition-colors border ${isDark
+                                        ? 'text-green-400 hover:text-white hover:bg-green-500/20 border-transparent hover:border-green-500/30'
+                                        : 'text-green-600 hover:text-green-700 hover:bg-green-50 border-transparent hover:border-green-100'
+                                        }`}
+                                      title="Use Template"
+                                    >
+                                      <Play className="w-4 h-4" />
+                                    </button>
+                                    <button
+                                      onClick={() => handleDownloadTemplate(template)}
+                                      className={`p-2 rounded-lg transition-colors border ${isDark
+                                        ? 'text-slate-400 hover:text-white hover:bg-white/5 border-transparent hover:border-white/10'
+                                        : 'text-slate-400 hover:text-slate-700 hover:bg-slate-50 border-transparent hover:border-slate-200'
+                                        }`}
+                                      title="Download JSON"
+                                    >
+                                      <Download className="w-4 h-4" />
+                                    </button>
+                                    {isAdmin && (
+                                      <button
+                                        onClick={() => handleToggleGlobalStatus(template, false)}
+                                        disabled={togglingTemplateId === template.id}
+                                        className={`p-2 rounded-lg transition-colors border disabled:opacity-50 ${isDark
+                                          ? 'text-slate-400 hover:text-amber-400 hover:bg-white/5 border-transparent hover:border-white/10'
+                                          : 'text-slate-400 hover:text-amber-600 hover:bg-amber-50 border-transparent hover:border-amber-100'
+                                          }`}
+                                        title="Make workspace-only"
+                                      >
+                                        {togglingTemplateId === template.id ? (
+                                          <Loader2 className="w-4 h-4 animate-spin" />
+                                        ) : (
+                                          <Lock className="w-4 h-4" />
+                                        )}
+                                      </button>
+                                    )}
+                                    {isAdmin && (
+                                      <button
+                                        onClick={() => handleDeleteTemplate(template.id, true)}
+                                        disabled={deletingTemplateId === template.id}
+                                        className={`p-2 rounded-lg transition-colors border disabled:opacity-50 ${isDark
+                                          ? 'text-slate-400 hover:text-red-400 hover:bg-white/5 border-transparent hover:border-white/10'
+                                          : 'text-slate-400 hover:text-red-600 hover:bg-red-50 border-transparent hover:border-red-100'
+                                          }`}
+                                        title="Delete Template"
+                                      >
+                                        {deletingTemplateId === template.id ? (
+                                          <Loader2 className="w-4 h-4 animate-spin" />
+                                        ) : (
+                                          <Trash className="w-4 h-4" />
+                                        )}
+                                      </button>
+                                    )}
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* My Templates Section */}
+              <div>
+                <div className="flex items-center gap-2 mb-4">
+                  <Lock className={`w-5 h-5 ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`} />
+                  <h2 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>My Templates</h2>
+                  <span className={`text-xs px-2 py-0.5 rounded-full ${isDark ? 'bg-indigo-500/20 text-indigo-400' : 'bg-indigo-100 text-indigo-700'}`}>
+                    Workspace only
+                  </span>
+                </div>
+
+                {workspaceTemplates.length === 0 ? (
+                  <div className={`rounded-2xl border p-8 text-center ${isDark ? 'glass-panel border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
+                    <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${isDark ? 'bg-white/5' : 'bg-slate-100'}`}>
+                      <FileText className={`w-8 h-8 ${isDark ? 'text-slate-400' : 'text-slate-500'}`} />
+                    </div>
+                    <h3 className={`text-xl font-bold mb-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>No Personal Templates Yet</h3>
+                    <p className={`mb-6 max-w-md mx-auto ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                      Save your automation flows as templates from the Flow Builder. Look for the "Save Template" button in the toolbar.
+                    </p>
+                  </div>
+                ) : templateViewMode === 'grid' ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    {workspaceTemplates.map((template) => (
+                      <div key={template.id} className={`rounded-2xl border p-5 transition-all hover:shadow-lg ${isDark
+                        ? 'glass-panel border-white/10 hover:border-indigo-500/30'
+                        : 'bg-white border-slate-200 shadow-sm hover:border-indigo-300'}`}>
+                        {/* Template Icon */}
+                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 ${isDark ? 'bg-indigo-500/20' : 'bg-indigo-100'}`}>
+                          <FileText className={`w-6 h-6 ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`} />
+                        </div>
+
+                        {/* Template Name */}
+                        <h3 className={`font-bold mb-1 truncate ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                          {template.name}
+                        </h3>
+
+                        {/* Template Info */}
+                        <p className={`text-xs mb-3 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                          {template.nodes?.length || 0} nodes • Created {format(new Date(template.createdAt), 'MMM d, yyyy')}
+                        </p>
+
+                        {/* Description */}
+                        {template.description && (
+                          <p className={`text-sm mb-4 line-clamp-2 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                            {template.description}
+                          </p>
+                        )}
+
+                        {/* Actions */}
+                        <div className={`flex items-center gap-2 pt-3 border-t ${isDark ? 'border-white/5' : 'border-slate-100'}`}>
+                          <button
+                            onClick={() => handleUseTemplate(template)}
+                            className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg transition-colors ${isDark
+                              ? 'bg-indigo-500/20 text-indigo-400 hover:bg-indigo-500/30'
+                              : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100'}`}
+                          >
+                            <Play className="w-3.5 h-3.5" />
+                            Use
+                          </button>
+                          <button
+                            onClick={() => handleDownloadTemplate(template)}
+                            className={`flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg transition-colors ${isDark
+                              ? 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white'
+                              : 'bg-slate-50 text-slate-500 hover:bg-slate-100 hover:text-slate-700'}`}
+                          >
+                            <Download className="w-3.5 h-3.5" />
+                          </button>
+                          {/* Admin-only: Make global */}
+                          {isAdmin && (
                             <button
-                              onClick={() => handleDeleteTemplate(template.id)}
-                              disabled={deletingTemplateId === template.id}
-                              className={`p-2 rounded-lg transition-colors border disabled:opacity-50 ${isDark
-                                ? 'text-slate-400 hover:text-red-400 hover:bg-white/5 border-transparent hover:border-white/10'
-                                : 'text-slate-400 hover:text-red-600 hover:bg-red-50 border-transparent hover:border-red-100'
-                                }`}
-                              title="Delete Template"
+                              onClick={() => handleToggleGlobalStatus(template, true)}
+                              disabled={togglingTemplateId === template.id}
+                              title="Make available to all users"
+                              className={`flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg transition-colors disabled:opacity-50 ${isDark
+                                ? 'bg-white/5 text-slate-400 hover:bg-green-500/20 hover:text-green-400'
+                                : 'bg-slate-50 text-slate-500 hover:bg-green-50 hover:text-green-600'}`}
                             >
-                              {deletingTemplateId === template.id ? (
-                                <Loader2 className="w-4 h-4 animate-spin" />
+                              {togglingTemplateId === template.id ? (
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
                               ) : (
-                                <Trash className="w-4 h-4" />
+                                <Globe className="w-3.5 h-3.5" />
                               )}
                             </button>
-                          </div>
-                        </td>
-                      </tr>
+                          )}
+                          <button
+                            onClick={() => handleDeleteTemplate(template.id, false)}
+                            disabled={deletingTemplateId === template.id}
+                            className={`flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg transition-colors disabled:opacity-50 ${isDark
+                              ? 'bg-white/5 text-slate-400 hover:bg-red-500/20 hover:text-red-400'
+                              : 'bg-slate-50 text-slate-500 hover:bg-red-50 hover:text-red-500'}`}
+                          >
+                            {deletingTemplateId === template.id ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <Trash className="w-3.5 h-3.5" />
+                            )}
+                          </button>
+                        </div>
+                      </div>
                     ))}
-                  </tbody>
-                </table>
+                  </div>
+                ) : (
+                  <div className={`rounded-2xl overflow-hidden border ${isDark ? 'glass-panel border-white/10 text-slate-100' : 'bg-white border-gray-200 shadow-sm text-slate-900'}`}>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left">
+                        <thead className={`text-xs uppercase font-bold border-b ${isDark
+                          ? 'bg-white/5 text-slate-400 border-white/10'
+                          : 'bg-slate-50 text-slate-500 border-slate-200'
+                          }`}>
+                          <tr>
+                            <th className="px-6 py-4">Name</th>
+                            <th className="px-6 py-4">Description</th>
+                            <th className="px-6 py-4">Nodes</th>
+                            <th className="px-6 py-4">Created</th>
+                            <th className="px-6 py-4 text-right">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody className={`divide-y ${isDark ? 'divide-white/5' : 'divide-slate-100'}`}>
+                          {workspaceTemplates.map((template) => (
+                            <tr key={template.id} className={`transition-colors group ${isDark ? 'hover:bg-white/5' : 'hover:bg-slate-50'}`}>
+                              <td className="px-6 py-4">
+                                <div className="flex items-center gap-4">
+                                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-lg border ${isDark
+                                    ? 'bg-indigo-500/20 text-indigo-400 shadow-indigo-500/10 border-indigo-500/20'
+                                    : 'bg-indigo-50 text-indigo-600 border-indigo-100'
+                                    }`}>
+                                    <FileText className="w-5 h-5" />
+                                  </div>
+                                  <span className={`font-semibold ${isDark ? 'text-white' : 'text-slate-900'}`}>{template.name}</span>
+                                </div>
+                              </td>
+                              <td className="px-6 py-4">
+                                <p className={`text-sm truncate max-w-[200px] ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                                  {template.description || '-'}
+                                </p>
+                              </td>
+                              <td className="px-6 py-4 text-sm text-slate-500">
+                                {template.nodes?.length || 0}
+                              </td>
+                              <td className="px-6 py-4 text-sm text-slate-500">
+                                {format(new Date(template.createdAt), 'MMM d, yyyy')}
+                              </td>
+                              <td className="px-6 py-4 text-right">
+                                <div className="flex justify-end gap-2">
+                                  <button
+                                    onClick={() => handleUseTemplate(template)}
+                                    className={`p-2 rounded-lg transition-colors border ${isDark
+                                      ? 'text-indigo-400 hover:text-white hover:bg-indigo-500/20 border-transparent hover:border-indigo-500/30'
+                                      : 'text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 border-transparent hover:border-indigo-100'
+                                      }`}
+                                    title="Use Template"
+                                  >
+                                    <Play className="w-4 h-4" />
+                                  </button>
+                                  <button
+                                    onClick={() => handleDownloadTemplate(template)}
+                                    className={`p-2 rounded-lg transition-colors border ${isDark
+                                      ? 'text-slate-400 hover:text-white hover:bg-white/5 border-transparent hover:border-white/10'
+                                      : 'text-slate-400 hover:text-slate-700 hover:bg-slate-50 border-transparent hover:border-slate-200'
+                                      }`}
+                                    title="Download JSON"
+                                  >
+                                    <Download className="w-4 h-4" />
+                                  </button>
+                                  {isAdmin && (
+                                    <button
+                                      onClick={() => handleToggleGlobalStatus(template, true)}
+                                      disabled={togglingTemplateId === template.id}
+                                      className={`p-2 rounded-lg transition-colors border disabled:opacity-50 ${isDark
+                                        ? 'text-slate-400 hover:text-green-400 hover:bg-white/5 border-transparent hover:border-white/10'
+                                        : 'text-slate-400 hover:text-green-600 hover:bg-green-50 border-transparent hover:border-green-100'
+                                        }`}
+                                      title="Make available to all users"
+                                    >
+                                      {togglingTemplateId === template.id ? (
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                      ) : (
+                                        <Globe className="w-4 h-4" />
+                                      )}
+                                    </button>
+                                  )}
+                                  <button
+                                    onClick={() => handleDeleteTemplate(template.id, false)}
+                                    disabled={deletingTemplateId === template.id}
+                                    className={`p-2 rounded-lg transition-colors border disabled:opacity-50 ${isDark
+                                      ? 'text-slate-400 hover:text-red-400 hover:bg-white/5 border-transparent hover:border-white/10'
+                                      : 'text-slate-400 hover:text-red-600 hover:bg-red-50 border-transparent hover:border-red-100'
+                                      }`}
+                                    title="Delete Template"
+                                  >
+                                    {deletingTemplateId === template.id ? (
+                                      <Loader2 className="w-4 h-4 animate-spin" />
+                                    ) : (
+                                      <Trash className="w-4 h-4" />
+                                    )}
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
               </div>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {templates.map((template) => (
-                <div key={template.id} className={`rounded-2xl border p-5 transition-all hover:shadow-lg ${isDark
-                  ? 'glass-panel border-white/10 hover:border-indigo-500/30'
-                  : 'bg-white border-slate-200 shadow-sm hover:border-indigo-300'}`}>
-                  {/* Template Icon */}
-                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 ${isDark ? 'bg-indigo-500/20' : 'bg-indigo-100'}`}>
-                    <FileText className={`w-6 h-6 ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`} />
-                  </div>
-
-                  {/* Template Name */}
-                  <h3 className={`font-bold mb-1 truncate ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                    {template.name}
-                  </h3>
-
-                  {/* Template Info */}
-                  <p className={`text-xs mb-3 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
-                    {template.nodes?.length || 0} nodes • Created {format(new Date(template.createdAt), 'MMM d, yyyy')}
-                  </p>
-
-                  {/* Description */}
-                  {template.description && (
-                    <p className={`text-sm mb-4 line-clamp-2 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                      {template.description}
-                    </p>
-                  )}
-
-                  {/* Actions */}
-                  <div className={`flex items-center gap-2 pt-3 border-t ${isDark ? 'border-white/5' : 'border-slate-100'}`}>
-                    <button
-                      onClick={() => handleUseTemplate(template)}
-                      className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg transition-colors ${isDark
-                        ? 'bg-indigo-500/20 text-indigo-400 hover:bg-indigo-500/30'
-                        : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100'}`}
-                    >
-                      <Play className="w-3.5 h-3.5" />
-                      Use
-                    </button>
-                    <button
-                      onClick={() => handleDownloadTemplate(template)}
-                      className={`flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg transition-colors ${isDark
-                        ? 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white'
-                        : 'bg-slate-50 text-slate-500 hover:bg-slate-100 hover:text-slate-700'}`}
-                    >
-                      <Download className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      onClick={() => handleDeleteTemplate(template.id)}
-                      disabled={deletingTemplateId === template.id}
-                      className={`flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg transition-colors disabled:opacity-50 ${isDark
-                        ? 'bg-white/5 text-slate-400 hover:bg-red-500/20 hover:text-red-400'
-                        : 'bg-slate-50 text-slate-500 hover:bg-red-50 hover:text-red-500'}`}
-                    >
-                      {deletingTemplateId === template.id ? (
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      ) : (
-                        <Trash className="w-3.5 h-3.5" />
-                      )}
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
+            </>
           )}
-
         </div>
       )
       }

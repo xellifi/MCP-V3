@@ -3141,20 +3141,32 @@ export const api = {
   // FLOW TEMPLATES API
   // ============================================
   templates: {
-    // Get all templates for a workspace
+    // Get all templates for a workspace (includes global templates)
     getTemplates: async (workspaceId: string) => {
-      const { data, error } = await supabase
+      // Fetch workspace templates
+      const { data: workspaceTemplates, error: wsError } = await supabase
         .from('flow_templates')
         .select('*')
         .eq('workspace_id', workspaceId)
+        .eq('is_global', false)
         .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Error fetching flow templates:', error);
-        return [];
+      if (wsError) {
+        console.error('Error fetching workspace templates:', wsError);
       }
 
-      return (data || []).map((row: any) => ({
+      // Fetch global templates
+      const { data: globalTemplates, error: globalError } = await supabase
+        .from('flow_templates')
+        .select('*')
+        .eq('is_global', true)
+        .order('created_at', { ascending: false });
+
+      if (globalError) {
+        console.error('Error fetching global templates:', globalError);
+      }
+
+      const mapTemplate = (row: any) => ({
         id: row.id,
         workspaceId: row.workspace_id,
         name: row.name,
@@ -3162,9 +3174,16 @@ export const api = {
         nodes: row.nodes || [],
         edges: row.edges || [],
         configurations: row.configurations || {},
+        isGlobal: row.is_global || false,
+        createdBy: row.created_by,
         createdAt: row.created_at,
         updatedAt: row.updated_at
-      }));
+      });
+
+      return {
+        workspaceTemplates: (workspaceTemplates || []).map(mapTemplate),
+        globalTemplates: (globalTemplates || []).map(mapTemplate)
+      };
     },
 
     // Get single template
@@ -3188,34 +3207,79 @@ export const api = {
         nodes: data.nodes || [],
         edges: data.edges || [],
         configurations: data.configurations || {},
+        isGlobal: data.is_global || false,
+        createdBy: data.created_by,
         createdAt: data.created_at,
         updatedAt: data.updated_at
       };
     },
 
-    // Create template
-    createTemplate: async (workspaceId: string, templateData: {
+    // Create workspace template (regular user template)
+    createTemplate: async (workspaceId: string, userId: string, templateData: {
       name: string;
       description?: string;
       nodes: any[];
       edges: any[];
       configurations?: Record<string, any>;
     }) => {
+      // Build insert data - include new fields only if they exist (migration may not be run yet)
+      const insertData: any = {
+        workspace_id: workspaceId,
+        name: templateData.name,
+        description: templateData.description || '',
+        nodes: templateData.nodes,
+        edges: templateData.edges,
+        configurations: templateData.configurations || {}
+      };
+
+      // Add optional fields if userId is provided (for post-migration compatibility)
+      if (userId) {
+        insertData.is_global = false;
+        insertData.created_by = userId;
+      }
+
       const { data, error } = await supabase
         .from('flow_templates')
-        .insert({
-          workspace_id: workspaceId,
-          name: templateData.name,
-          description: templateData.description || '',
-          nodes: templateData.nodes,
-          edges: templateData.edges,
-          configurations: templateData.configurations || {}
-        })
+        .insert(insertData)
         .select()
         .single();
 
       if (error) {
         console.error('Error creating template:', error);
+        // If error mentions is_global or created_by column, try without them
+        if (error.message?.includes('is_global') || error.message?.includes('created_by')) {
+          console.log('Retrying without new columns (migration not run yet)');
+          const { data: fallbackData, error: fallbackError } = await supabase
+            .from('flow_templates')
+            .insert({
+              workspace_id: workspaceId,
+              name: templateData.name,
+              description: templateData.description || '',
+              nodes: templateData.nodes,
+              edges: templateData.edges,
+              configurations: templateData.configurations || {}
+            })
+            .select()
+            .single();
+
+          if (fallbackError) {
+            throw new Error('Failed to create template');
+          }
+
+          return {
+            id: fallbackData.id,
+            workspaceId: fallbackData.workspace_id,
+            name: fallbackData.name,
+            description: fallbackData.description,
+            nodes: fallbackData.nodes,
+            edges: fallbackData.edges,
+            configurations: fallbackData.configurations,
+            isGlobal: false,
+            createdBy: null,
+            createdAt: fallbackData.created_at,
+            updatedAt: fallbackData.updated_at
+          };
+        }
         throw new Error('Failed to create template');
       }
 
@@ -3227,6 +3291,101 @@ export const api = {
         nodes: data.nodes,
         edges: data.edges,
         configurations: data.configurations,
+        isGlobal: data.is_global || false,
+        createdBy: data.created_by || null,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at
+      };
+    },
+
+    // Create global template (admin only)
+    createGlobalTemplate: async (workspaceId: string, userId: string, templateData: {
+      name: string;
+      description?: string;
+      nodes: any[];
+      edges: any[];
+      configurations?: Record<string, any>;
+    }) => {
+      console.log('[api.templates.createGlobalTemplate] Creating global template:', {
+        workspaceId,
+        userId,
+        name: templateData.name
+      });
+
+      const { data, error } = await supabase
+        .from('flow_templates')
+        .insert({
+          workspace_id: workspaceId,
+          name: templateData.name,
+          description: templateData.description || '',
+          nodes: templateData.nodes,
+          edges: templateData.edges,
+          configurations: templateData.configurations || {},
+          is_global: true,
+          created_by: userId
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('[api.templates.createGlobalTemplate] Error:', error);
+        // If error is about missing columns, migration hasn't been run
+        if (error.message?.includes('is_global') || error.message?.includes('created_by')) {
+          throw new Error('Global templates require database migration. Please run the migration first, or save as a regular template.');
+        }
+        throw new Error(error.message || 'Failed to create global template');
+      }
+
+      console.log('[api.templates.createGlobalTemplate] Success:', data.id);
+
+      return {
+        id: data.id,
+        workspaceId: data.workspace_id,
+        name: data.name,
+        description: data.description,
+        nodes: data.nodes,
+        edges: data.edges,
+        configurations: data.configurations,
+        isGlobal: data.is_global,
+        createdBy: data.created_by,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at
+      };
+    },
+
+    // Update template (name, description, global status)
+    updateTemplate: async (templateId: string, updates: {
+      name?: string;
+      description?: string;
+      isGlobal?: boolean;
+    }) => {
+      const updateData: any = { updated_at: new Date().toISOString() };
+      if (updates.name !== undefined) updateData.name = updates.name;
+      if (updates.description !== undefined) updateData.description = updates.description;
+      if (updates.isGlobal !== undefined) updateData.is_global = updates.isGlobal;
+
+      const { data, error } = await supabase
+        .from('flow_templates')
+        .update(updateData)
+        .eq('id', templateId)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error updating template:', error);
+        throw new Error('Failed to update template');
+      }
+
+      return {
+        id: data.id,
+        workspaceId: data.workspace_id,
+        name: data.name,
+        description: data.description,
+        nodes: data.nodes,
+        edges: data.edges,
+        configurations: data.configurations,
+        isGlobal: data.is_global,
+        createdBy: data.created_by,
         createdAt: data.created_at,
         updatedAt: data.updated_at
       };

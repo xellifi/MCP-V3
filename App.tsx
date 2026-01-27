@@ -521,8 +521,8 @@ const App: React.FC = () => {
                         <Route path="/connected-pages" element={<ConnectedPages workspace={currentWorkspace} />} />
                         <Route path="/subscribers" element={<Subscribers workspace={currentWorkspace} />} />
                         <Route path="/messages" element={<Inbox workspace={currentWorkspace} />} />
-                        <Route path="/flows" element={<Flows workspace={currentWorkspace} />} />
-                        <Route path="/flows/:id" element={<FlowBuilder workspace={currentWorkspace} />} />
+                        <Route path="/flows" element={<Flows workspace={currentWorkspace} user={user} />} />
+                        <Route path="/flows/:id" element={<FlowBuilder workspace={currentWorkspace} user={user} />} />
                         <Route path="/scheduled" element={<ScheduledPosts workspace={currentWorkspace} />} />
                         <Route path="/settings" element={<Settings user={user} workspace={currentWorkspace} />} />
                         <Route path="/affiliates" element={<Affiliates user={user} />} />

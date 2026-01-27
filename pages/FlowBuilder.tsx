@@ -18,7 +18,7 @@ import ReactFlow, {
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { Workspace, ConnectedPage } from '../types';
+import { Workspace, ConnectedPage, User, UserRole } from '../types';
 import { Save, ArrowLeft, PlayCircle, Menu, X, Grid3x3, MessageCircle, Play, Bot, Send, Clock, MousePointer2, SquareMousePointer, Sparkles, GitBranch, MessageSquare, RectangleEllipsis, Plus, Minus, Maximize, Maximize2, Minimize2, Wrench, RotateCcw, Image, Video, FileText, Table, RefreshCw, ShoppingBag, Tag, Receipt, Package, ShoppingCart, Table2, ClipboardList, ArrowUp, ArrowDown, Globe, MoreHorizontal, ChevronDown, FileDown, Loader2 } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import { useTheme } from '../context/ThemeContext';
@@ -73,6 +73,7 @@ import { nodeConfigRegistry } from '../src/utils/nodeConfigRegistry';
 
 interface FlowBuilderProps {
   workspace: Workspace;
+  user?: User | null;
 }
 
 interface NodeConfig {
@@ -107,11 +108,12 @@ const edgeTypes = {
   custom: CustomEdge,
 };
 
-const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
+const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace, user }) => {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
   const toast = useToast();
+  const isAdmin = user?.role === UserRole.ADMIN || user?.role === UserRole.OWNER;
 
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
@@ -147,6 +149,7 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
   const [templateName, setTemplateName] = useState('');
   const [templateDescription, setTemplateDescription] = useState('');
   const [isSavingTemplate, setIsSavingTemplate] = useState(false);
+  const [isGlobalTemplate, setIsGlobalTemplate] = useState(false);
 
   // Node configuration state
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
@@ -1790,6 +1793,13 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
       return;
     }
 
+    console.log('[FlowBuilder] Saving template...', {
+      isGlobalTemplate,
+      isAdmin,
+      userId: user?.id,
+      workspaceId: workspace.id
+    });
+
     setIsSavingTemplate(true);
     try {
       // Prepare template data (clean nodes - remove callbacks)
@@ -1816,22 +1826,33 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
         animated: e.animated
       }));
 
-      // Save template to database
-      await api.templates.createTemplate(workspace.id, {
+      const templateData = {
         name: templateName.trim(),
         description: templateDescription.trim(),
         nodes: cleanNodes,
         edges: cleanEdges,
         configurations: nodeConfigs
-      });
+      };
 
-      toast.success(`Template "${templateName}" saved successfully!`);
+      // Save template to database - global or workspace-specific
+      if (isGlobalTemplate && isAdmin && user?.id) {
+        console.log('[FlowBuilder] Creating GLOBAL template...');
+        await api.templates.createGlobalTemplate(workspace.id, user.id, templateData);
+        toast.success(`Global template "${templateName}" saved! It's now available to all users.`);
+      } else {
+        console.log('[FlowBuilder] Creating workspace template...');
+        await api.templates.createTemplate(workspace.id, user?.id || '', templateData);
+        toast.success(`Template "${templateName}" saved successfully!`);
+      }
+
+      console.log('[FlowBuilder] Template saved successfully!');
       setShowTemplateModal(false);
       setTemplateName('');
       setTemplateDescription('');
+      setIsGlobalTemplate(false);
 
     } catch (error: any) {
-      console.error('Error saving template:', error);
+      console.error('[FlowBuilder] Error saving template:', error);
       toast.error(error.message || 'Failed to save template');
     } finally {
       setIsSavingTemplate(false);
@@ -3316,6 +3337,45 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
                 />
               </div>
 
+              {/* Admin-only: Make Global Toggle */}
+              {isAdmin && (
+                <div className={`p-4 rounded-xl border ${isGlobalTemplate
+                  ? (isDark ? 'bg-green-500/10 border-green-500/30' : 'bg-green-50 border-green-200')
+                  : (isDark ? 'bg-white/5 border-white/10' : 'bg-slate-50 border-slate-200')
+                  }`}>
+                  <label className="flex items-center justify-between cursor-pointer">
+                    <div className="flex items-center gap-3">
+                      <Globe className={`w-5 h-5 ${isGlobalTemplate
+                        ? (isDark ? 'text-green-400' : 'text-green-600')
+                        : (isDark ? 'text-slate-400' : 'text-slate-500')
+                        }`} />
+                      <div>
+                        <p className={`font-medium ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                          Make Global Template
+                        </p>
+                        <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                          Available to all users in the workspace
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsGlobalTemplate(!isGlobalTemplate)}
+                      disabled={isSavingTemplate}
+                      className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${isGlobalTemplate
+                        ? 'bg-green-500'
+                        : (isDark ? 'bg-slate-700' : 'bg-slate-300')
+                        }`}
+                    >
+                      <span className={`absolute left-0.5 top-0.5 w-5 h-5 rounded-full bg-white shadow-md transition-transform duration-200 ${isGlobalTemplate
+                        ? 'translate-x-5'
+                        : 'translate-x-0'
+                        }`} />
+                    </button>
+                  </label>
+                </div>
+              )}
+
               {isValidating && (
                 <div className={`p-4 rounded-xl ${isDark ? 'bg-blue-500/10 border border-blue-500/20' : 'bg-blue-50 border border-blue-200'}`}>
                   <div className="flex items-center gap-3">
@@ -3334,6 +3394,7 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace }) => {
                   setShowTemplateModal(false);
                   setTemplateName('');
                   setTemplateDescription('');
+                  setIsGlobalTemplate(false);
                 }}
                 disabled={isSavingTemplate}
                 className={`flex-1 py-2.5 rounded-xl font-medium transition-colors ${isDark
