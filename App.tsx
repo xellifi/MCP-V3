@@ -16,6 +16,7 @@ import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 import Features from './pages/Features';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfService from './pages/TermsOfService';
@@ -79,15 +80,22 @@ const App: React.FC = () => {
   const [isManualAuth, setIsManualAuth] = useState(false);
   const [showVerificationModal, setShowVerificationModal] = useState(false);
 
+
   useEffect(() => {
     let isInitialLoad = true;
+
+    // Check if this is a password recovery callback (URL contains recovery token)
+    const isPasswordRecoveryCallback = () => {
+      const hash = window.location.hash;
+      return hash.includes('access_token') && hash.includes('type=recovery');
+    };
 
     // Check if this is an email verification callback (URL contains tokens)
     const isEmailVerificationCallback = () => {
       const hash = window.location.hash;
       const search = window.location.search;
       // Supabase confirmation URLs contain access_token in the hash or query params
-      // Check for type=signup (email verification) or type=recovery (password reset)
+      // Check for type=signup (email verification) or type=email - but NOT recovery
       const hasHashToken = hash.includes('access_token') && (hash.includes('type=signup') || hash.includes('type=email'));
       const hasQueryToken = search.includes('token') || search.includes('type=signup') || search.includes('type=email');
       return hasHashToken || hasQueryToken;
@@ -96,6 +104,14 @@ const App: React.FC = () => {
     // Check for existing Supabase session on app load
     const checkSession = async () => {
       try {
+        // Check if this is a password recovery callback - redirect to reset password page
+        if (isPasswordRecoveryCallback()) {
+          console.log('Password recovery callback detected, redirecting to reset password page...');
+          // Keep the hash intact for the reset password page to process
+          window.location.href = '/reset-password' + window.location.hash;
+          return; // Stop further processing
+        }
+
         // Check if this is an email verification callback
         const isVerificationCallback = isEmailVerificationCallback();
 
@@ -136,6 +152,7 @@ const App: React.FC = () => {
             // Fall through to normal session check
           }
         }
+
 
         const existingUser = await api.auth.getSession();
         if (existingUser) {
@@ -351,6 +368,7 @@ const App: React.FC = () => {
             <Route path="/login" element={<Login onLogin={handleLogin} />} />
             <Route path="/register" element={<Register onLogin={handleLogin} />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/features" element={<Features />} />
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
             <Route path="/terms-of-service" element={<TermsOfService />} />
