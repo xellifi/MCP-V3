@@ -263,20 +263,43 @@ const App: React.FC = () => {
     // Set flag to prevent onAuthStateChange from interfering
     setIsManualAuth(true);
     setUser(u);
-    // Fetch workspaces from database
+
+    console.log('handleLogin: Starting workspace load for user:', u.id);
+
+    // Helper function to add timeout to promises
+    const withTimeout = <T,>(promise: Promise<T>, ms: number, fallback: T): Promise<T> => {
+      return Promise.race([
+        promise,
+        new Promise<T>((resolve) => setTimeout(() => {
+          console.warn(`handleLogin: Operation timed out after ${ms}ms, using fallback`);
+          resolve(fallback);
+        }, ms))
+      ]);
+    };
+
+    // Fetch workspaces from database with timeout
     try {
-      const userWorkspaces = await api.workspace.list();
+      const userWorkspaces = await withTimeout(api.workspace.list(), 5000, []);
+      console.log('handleLogin: Got workspaces:', userWorkspaces.length);
+
       if (userWorkspaces.length > 0) {
         setWorkspaces(userWorkspaces);
         setCurrentWorkspace(userWorkspaces[0]);
+        console.log('handleLogin: Set existing workspace:', userWorkspaces[0].id);
       } else {
         // Create a default workspace in the database if none exist
+        console.log('handleLogin: No workspaces found, creating new one...');
         try {
-          const newWorkspace = await api.workspace.create(`${u.name}'s Workspace`, u.id);
+          const newWorkspace = await withTimeout(
+            api.workspace.create(`${u.name}'s Workspace`, u.id),
+            5000,
+            { id: 'fallback-' + Date.now(), name: 'My Workspace', ownerId: u.id }
+          );
           setWorkspaces([newWorkspace]);
           setCurrentWorkspace(newWorkspace);
+          console.log('handleLogin: Created new workspace:', newWorkspace.id);
         } catch (wsError) {
-          console.error('Failed to create workspace:', wsError);
+          console.error('handleLogin: Failed to create workspace:', wsError);
           // Last resort fallback (shouldn't normally reach here)
           const fallbackWs = { id: 'fallback-' + Date.now(), name: 'My Workspace', ownerId: u.id };
           setWorkspaces([fallbackWs]);
@@ -284,19 +307,14 @@ const App: React.FC = () => {
         }
       }
     } catch (error) {
-      console.error('Failed to load workspaces:', error);
-      // Try to create a workspace even if list fails
-      try {
-        const newWorkspace = await api.workspace.create(`${u.name}'s Workspace`, u.id);
-        setWorkspaces([newWorkspace]);
-        setCurrentWorkspace(newWorkspace);
-      } catch (wsError) {
-        console.error('Failed to create workspace:', wsError);
-        const fallbackWs = { id: 'fallback-' + Date.now(), name: 'My Workspace', ownerId: u.id };
-        setWorkspaces([fallbackWs]);
-        setCurrentWorkspace(fallbackWs);
-      }
+      console.error('handleLogin: Failed to load workspaces:', error);
+      // Use fallback workspace immediately
+      const fallbackWs = { id: 'fallback-' + Date.now(), name: 'My Workspace', ownerId: u.id };
+      setWorkspaces([fallbackWs]);
+      setCurrentWorkspace(fallbackWs);
     }
+
+    console.log('handleLogin: Complete');
     // Clear flag after a delay to allow any pending auth state events to be ignored
     setTimeout(() => setIsManualAuth(false), 1000);
   };

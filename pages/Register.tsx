@@ -156,11 +156,16 @@ const Register: React.FC<RegisterProps> = ({ onLogin }) => {
             disabled={loading}
             className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold py-3 rounded-xl shadow-lg shadow-indigo-600/25 transition-all flex items-center justify-center gap-2 group active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
           >
-            {loading ? 'Creating Account...' : 'Get Started'}
             {loading ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Creating Account...
+              </>
             ) : (
-              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              <>
+                Get Started
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </>
             )}
           </button>
 
