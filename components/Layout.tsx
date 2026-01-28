@@ -157,6 +157,18 @@ const Layout: React.FC<LayoutProps> = ({
 
   }, []);
 
+  // Auto-redirect expired users to packages page
+  useEffect(() => {
+    const isExpired = (currentSubscription as any)?.isExpired === true;
+    const isOnPackagesPage = location.pathname === '/packages';
+
+    // If expired and not admin/owner and not already on packages page, redirect
+    if (isExpired && !isAdminOrOwner && !isOnPackagesPage) {
+      console.log('[Layout] Subscription expired - redirecting to /packages');
+      navigate('/packages');
+    }
+  }, [currentSubscription, location.pathname, isAdminOrOwner, navigate]);
+
   // ... (rest of code)
 
   // RENDER HELPERS
