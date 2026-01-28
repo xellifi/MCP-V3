@@ -40,6 +40,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, user, onUp
     useEffect(() => {
         if (isOpen) {
             api.public.getEmailDomainSettings().then(settings => {
+                console.log('[ProfileModal] Email domain settings fetched:', settings);
                 setEmailDomainSettings(settings);
             }).catch(err => {
                 console.error('Failed to fetch email domain settings:', err);
@@ -72,6 +73,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, user, onUp
         }
 
         // If domain restriction is enabled, check against whitelist
+        console.log('[ProfileModal] Validating email domain:', domain, 'Settings:', emailDomainSettings);
         if (emailDomainSettings.enabled && emailDomainSettings.domains.length > 0) {
             if (!emailDomainSettings.domains.includes(domain)) {
                 const allowedList = emailDomainSettings.domains.slice(0, 5).join(', ');
