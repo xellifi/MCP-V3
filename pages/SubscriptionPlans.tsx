@@ -331,6 +331,8 @@ const SubscriptionPlans: React.FC = () => {
                                             <span className="text-5xl font-extrabold text-slate-900 dark:text-white tracking-tight">${plan.price}</span>
                                             {(plan.effectiveBillingCycle === 'lifetime' || plan.isLifetimeOnly) ? (
                                                 <span className="text-lg text-slate-500 dark:text-slate-400 font-medium">one-time</span>
+                                            ) : (plan.effectiveBillingCycle === 'custom' || plan.isCustomOnly) ? (
+                                                <span className="text-lg text-slate-500 dark:text-slate-400 font-medium">/ {plan.durationDays} {plan.durationDays === 1 ? 'day' : 'days'}</span>
                                             ) : (
                                                 <span className="text-lg text-slate-500 dark:text-slate-400 font-medium">/{billingCycle === 'monthly' ? 'mo' : 'yr'}</span>
                                             )}
