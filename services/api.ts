@@ -672,6 +672,22 @@ export const api = {
       } catch {
         return 'dark';
       }
+    },
+
+    // Get email domain restriction settings (for profile validation)
+    getEmailDomainSettings: async (): Promise<{ enabled: boolean; domains: string[] }> => {
+      try {
+        const { data } = await supabase
+          .from('admin_settings')
+          .select('email_domain_restriction_enabled, allowed_email_domains')
+          .single();
+        return {
+          enabled: data?.email_domain_restriction_enabled ?? false,
+          domains: data?.allowed_email_domains || ['gmail.com', 'yahoo.com', 'outlook.com', 'hotmail.com', 'icloud.com', 'protonmail.com', 'aol.com', 'live.com', 'msn.com']
+        };
+      } catch {
+        return { enabled: false, domains: [] };
+      }
     }
   },
 
@@ -2268,7 +2284,9 @@ export const api = {
           bank: { enabled: false, instructions: '' }
         },
         defaultTheme: data?.default_theme || 'dark',
-        supportAttachmentsEnabled: data?.support_attachments_enabled !== false
+        supportAttachmentsEnabled: data?.support_attachments_enabled !== false,
+        emailDomainRestrictionEnabled: data?.email_domain_restriction_enabled ?? false,
+        allowedEmailDomains: data?.allowed_email_domains || ['gmail.com', 'yahoo.com', 'outlook.com', 'hotmail.com', 'icloud.com', 'protonmail.com', 'aol.com', 'live.com', 'msn.com']
       };
     },
 
@@ -2288,7 +2306,9 @@ export const api = {
         affiliate_withdrawal_days: settings.affiliateWithdrawalDays,
         payment_config: settings.paymentConfig,
         default_theme: settings.defaultTheme,
-        support_attachments_enabled: settings.supportAttachmentsEnabled
+        support_attachments_enabled: settings.supportAttachmentsEnabled,
+        email_domain_restriction_enabled: settings.emailDomainRestrictionEnabled,
+        allowed_email_domains: settings.allowedEmailDomains
       };
 
       console.log('Attempting to save admin settings:', dbPayload);

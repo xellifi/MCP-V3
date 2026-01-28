@@ -167,6 +167,9 @@ export interface AdminSettings {
   googleLoginEnabled?: boolean;
   // Support Settings
   supportAttachmentsEnabled?: boolean; // Allow file attachments in support tickets
+  // Email Domain Whitelist Settings
+  emailDomainRestrictionEnabled?: boolean; // Enable/disable domain restriction
+  allowedEmailDomains?: string[]; // e.g. ['gmail.com', 'yahoo.com', 'outlook.com']
 }
 
 export interface UserSubscription {

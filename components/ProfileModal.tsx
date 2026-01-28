@@ -30,6 +30,23 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, user, onUp
     const [avatarMethod, setAvatarMethod] = useState<'upload' | 'url'>('upload');
     const [emailError, setEmailError] = useState<string>('');
 
+    // Email domain restriction settings
+    const [emailDomainSettings, setEmailDomainSettings] = useState<{ enabled: boolean; domains: string[] }>({
+        enabled: false,
+        domains: []
+    });
+
+    // Fetch email domain settings when modal opens
+    useEffect(() => {
+        if (isOpen) {
+            api.public.getEmailDomainSettings().then(settings => {
+                setEmailDomainSettings(settings);
+            }).catch(err => {
+                console.error('Failed to fetch email domain settings:', err);
+            });
+        }
+    }, [isOpen]);
+
     // Email validation helper
     const validateEmail = (email: string): { isValid: boolean; error: string } => {
         // Basic format check
@@ -38,37 +55,32 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, user, onUp
             return { isValid: false, error: 'Please enter a valid email address' };
         }
 
-        // Check for placeholder/fake domains
-        const invalidDomains = [
-            'placeholder',
-            'facebook.placeholder',
-            'example.com',
-            'test.com',
-            'fake.com',
-            'invalid.com',
-            'temp.com',
-            'temporary.com'
-        ];
-
         const domain = email.split('@')[1]?.toLowerCase();
         if (!domain) {
             return { isValid: false, error: 'Please enter a valid email address' };
         }
 
-        // Check if domain contains 'placeholder' anywhere
+        // Check if domain contains 'placeholder' anywhere (always block)
         if (domain.includes('placeholder')) {
             return { isValid: false, error: 'Please provide a real email address, not a placeholder' };
-        }
-
-        // Check against known invalid domains
-        if (invalidDomains.includes(domain)) {
-            return { isValid: false, error: 'Please provide a real email address' };
         }
 
         // Check for minimum domain parts (e.g., domain.tld)
         const domainParts = domain.split('.');
         if (domainParts.length < 2 || domainParts.some(part => part.length < 2)) {
             return { isValid: false, error: 'Please enter a valid email domain' };
+        }
+
+        // If domain restriction is enabled, check against whitelist
+        if (emailDomainSettings.enabled && emailDomainSettings.domains.length > 0) {
+            if (!emailDomainSettings.domains.includes(domain)) {
+                const allowedList = emailDomainSettings.domains.slice(0, 5).join(', ');
+                const moreCount = emailDomainSettings.domains.length > 5 ? ` and ${emailDomainSettings.domains.length - 5} more` : '';
+                return {
+                    isValid: false,
+                    error: `Email domain not allowed. Please use: ${allowedList}${moreCount}`
+                };
+            }
         }
 
         return { isValid: true, error: '' };
@@ -83,6 +95,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, user, onUp
                 password: '',
                 confirmPassword: ''
             });
+            setEmailError('');
         }
     }, [isOpen, user]);
 
@@ -346,10 +359,10 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, user, onUp
                                         setEmailError(validation.isValid ? '' : validation.error);
                                     }}
                                     className={`block w-full pl-10 pr-3 py-2.5 rounded-xl border-2 transition-colors focus:ring-0 ${emailError
-                                            ? 'border-red-500 focus:border-red-500'
-                                            : isDark
-                                                ? 'bg-slate-950 border-slate-800 text-white focus:border-indigo-500'
-                                                : 'bg-white border-slate-200 text-slate-900 focus:border-indigo-500'
+                                        ? 'border-red-500 focus:border-red-500'
+                                        : isDark
+                                            ? 'bg-slate-950 border-slate-800 text-white focus:border-indigo-500'
+                                            : 'bg-white border-slate-200 text-slate-900 focus:border-indigo-500'
                                         } ${isDark ? 'bg-slate-950 text-white' : 'bg-white text-slate-900'}`}
                                     placeholder="john@example.com"
                                 />
