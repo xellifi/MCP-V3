@@ -2539,7 +2539,9 @@ export const api = {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return null;
 
-      // Fetch all subscriptions (Active and Pending) to find both current and previous
+      console.log('[getCurrentSubscription] Fetching subscription for user:', user.id);
+
+      // Fetch all subscriptions including expired ones
       const { data: allSubs, error } = await supabase
         .from('user_subscriptions')
         .select(`
@@ -2547,8 +2549,14 @@ export const api = {
           packages (name, color, allowed_routes)
         `)
         .eq('user_id', user.id)
-        .in('status', ['Active', 'Pending'])
+        .in('status', ['Active', 'Pending', 'expired'])
         .order('created_at', { ascending: false });
+
+      console.log('[getCurrentSubscription] Query result:', {
+        subsFound: allSubs?.length || 0,
+        error: error?.message,
+        statuses: allSubs?.map(s => s.status)
+      });
 
       if (error) {
         if (error.code !== 'PGRST116') {
@@ -2586,8 +2594,27 @@ export const api = {
         return null;
       }
 
-      // The most recent subscription (could be Pending or Active)
+      // The most recent subscription (could be Pending, Active, or expired)
       const currentSub = allSubs[0];
+
+      console.log('[getCurrentSubscription] Current subscription:', {
+        id: currentSub.id,
+        status: currentSub.status,
+        billing_cycle: currentSub.billing_cycle,
+        next_billing_date: currentSub.next_billing_date,
+        package: currentSub.packages?.name
+      });
+
+      // If subscription already has status 'expired', return with isExpired flag
+      if (currentSub.status === 'expired') {
+        console.log('[getCurrentSubscription] Subscription status is already EXPIRED');
+        return {
+          ...currentSub,
+          isExpired: true,
+          access_packages: null,
+          access_package_id: null
+        } as UserSubscription;
+      }
 
       // Check if subscription has passed its next_billing_date (expired but not yet updated by cron)
       // This check applies to ALL subscriptions except Lifetime
