@@ -104,7 +104,7 @@ const SubscriptionPlans: React.FC = () => {
                             isLifetimeOnly: isLifetimeOnly, // Flag for UI rendering
                             isCustomOnly: isCustomOnly,
                             effectiveBillingCycle: effectiveBillingCycle,
-                            description: getDescriptionForPlan(pkg.id),
+                            description: pkg.description || getDescriptionForPlan(pkg.id),
                             icon: Icon,
                             popular: pkg.id === 'pro', // Default popular logic
                             features: pkg.features || [] // Already string[]

@@ -316,6 +316,7 @@ export interface FormSubmission {
 export interface Package {
   id: string;
   name: string;
+  description?: string; // Editable description shown below plan name
   priceMonthly: number;
   priceYearly: number;
   priceLifetime?: number; // Lifetime one-time payment price

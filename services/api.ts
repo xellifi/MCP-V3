@@ -216,6 +216,7 @@ const parseIsVisible = (value: any): boolean => {
 const mapPackage = (row: any): Package => ({
   id: row.id,
   name: row.name,
+  description: row.description || '',
   priceMonthly: row.price_monthly,
   priceYearly: row.price_yearly,
   priceLifetime: row.price_lifetime,
@@ -2350,6 +2351,7 @@ export const api = {
     updatePackage: async (data: Partial<Package> & { id: string }): Promise<void> => {
       const updateData: any = {
         name: data.name,
+        description: data.description,
         price_monthly: data.priceMonthly,
         price_yearly: data.priceYearly,
         price_lifetime: data.priceLifetime,
@@ -2384,6 +2386,7 @@ export const api = {
       const insertData = {
         id: data.id,
         name: data.name,
+        description: data.description || '',
         price_monthly: data.priceMonthly,
         price_yearly: data.priceYearly,
         price_lifetime: data.priceLifetime || null,

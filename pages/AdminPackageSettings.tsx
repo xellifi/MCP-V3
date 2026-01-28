@@ -575,7 +575,10 @@ const AdminPackageSettings: React.FC = () => {
                                                 </div>
                                                 <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-1">{pkg.name}</h3>
                                                 <div className="text-2xl font-bold text-slate-900 dark:text-white mb-4 flex items-end gap-1">
-                                                    {(!pkg.priceMonthly && !pkg.priceYearly && pkg.priceLifetime) ? (
+                                                    {/* Custom-only package (no monthly/yearly, has custom price) */}
+                                                    {(!pkg.priceMonthly && !pkg.priceYearly && !pkg.priceLifetime && ((pkg as any).priceCustom > 0 || (pkg as any).priceDaily > 0)) ? (
+                                                        <>${(pkg as any).priceCustom || (pkg as any).priceDaily}<span className="text-sm font-normal text-slate-500 mb-1">/ {pkg.durationDays || 1} {(pkg.durationDays || 1) === 1 ? 'day' : 'days'}</span></>
+                                                    ) : (!pkg.priceMonthly && !pkg.priceYearly && pkg.priceLifetime) ? (
                                                         <>${pkg.priceLifetime}<span className="text-sm font-normal text-slate-500 mb-1">one-time</span></>
                                                     ) : (
                                                         <>${pkg.priceMonthly}<span className="text-sm font-normal text-slate-500 mb-1">/mo</span></>
@@ -992,6 +995,16 @@ const AdminPackageSettings: React.FC = () => {
                                                 onChange={e => setCurrentPackage({ ...currentPackage, name: e.target.value })}
                                                 className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none"
                                                 placeholder="e.g. Enterprise"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Description</label>
+                                            <textarea
+                                                value={currentPackage.description || ''}
+                                                onChange={e => setCurrentPackage({ ...currentPackage, description: e.target.value })}
+                                                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none resize-none"
+                                                placeholder="Brief description shown below plan name"
+                                                rows={2}
                                             />
                                         </div>
                                         <div className="grid grid-cols-2 gap-3">
