@@ -2589,27 +2589,53 @@ export const api = {
       // The most recent subscription (could be Pending or Active)
       const currentSub = allSubs[0];
 
-      // Check if Active subscription has passed its next_billing_date (expired but not yet updated)
-      if (currentSub.status === 'Active' && currentSub.next_billing_date) {
+      // Check if subscription has passed its next_billing_date (expired but not yet updated by cron)
+      // This check applies to ALL subscriptions except Lifetime
+      if (currentSub.next_billing_date && currentSub.billing_cycle !== 'Lifetime') {
         const billingDate = new Date(currentSub.next_billing_date);
         const now = new Date();
-        console.log('[getCurrentSubscription] Checking expiry:', {
+        const isPastDue = billingDate < now;
+
+        console.log('[getCurrentSubscription] Expiry check:', {
+          user_id: user.id,
           next_billing_date: currentSub.next_billing_date,
-          billingDate: billingDate.toISOString(),
-          now: now.toISOString(),
+          billingDateParsed: billingDate.toISOString(),
+          nowTime: now.toISOString(),
           billing_cycle: currentSub.billing_cycle,
-          isPastDue: billingDate < now,
-          isLifetime: currentSub.billing_cycle === 'Lifetime'
+          status: currentSub.status,
+          isPastDue: isPastDue
         });
-        if (billingDate < now && currentSub.billing_cycle !== 'Lifetime') {
-          console.log('[getCurrentSubscription] Subscription billing date has PASSED - marking as EXPIRED');
+
+        if (isPastDue) {
+          console.log('[getCurrentSubscription] *** SUBSCRIPTION EXPIRED *** - updating status to expired');
+
+          // Update the subscription status to 'expired' in the database
+          try {
+            await supabase
+              .from('user_subscriptions')
+              .update({
+                status: 'expired',
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', currentSub.id);
+            console.log('[getCurrentSubscription] Status updated to expired for subscription:', currentSub.id);
+          } catch (updateError) {
+            console.error('[getCurrentSubscription] Failed to update status:', updateError);
+          }
+
           return {
             ...currentSub,
+            status: 'expired', // Also update in the returned object
             isExpired: true, // Flag for Layout to block access
             access_packages: null,
             access_package_id: null
           } as UserSubscription;
         }
+      } else {
+        console.log('[getCurrentSubscription] No expiry check needed:', {
+          has_next_billing_date: !!currentSub.next_billing_date,
+          billing_cycle: currentSub.billing_cycle
+        });
       }
 
       // If current is Pending, find the previous Active subscription for access control
