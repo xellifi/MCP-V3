@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { Workspace } from '../types';
+import { Workspace, User, UserRole } from '../types';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { MessageCircle, Users, Activity, TrendingUp, Facebook, MoreHorizontal, ArrowRight, CalendarDays } from 'lucide-react';
+import { MessageCircle, Users, Activity, TrendingUp, Facebook, MoreHorizontal, ArrowRight, CalendarDays, Shield, Sparkles, CreditCard, Clock, ChevronDown, ChevronUp, Package } from 'lucide-react';
 import { api } from '../services/api';
 import { supabase } from '../lib/supabase';
 import { format, subDays, startOfDay } from 'date-fns';
@@ -10,6 +10,16 @@ import { useToast } from '../context/ToastContext';
 
 interface DashboardProps {
   workspace: Workspace;
+  user: User;
+}
+
+interface AdminStats {
+  totalUsers: number;
+  newUsersToday: number;
+  newUsersWeek: number;
+  activeSubscriptions: number;
+  pendingSubscriptions: number;
+  usersByPlan: { name: string; count: number; color: string }[];
 }
 
 interface DashboardStats {
@@ -53,7 +63,7 @@ const StatCard = ({ title, value, icon: Icon, gradient, loading }: any) => {
   );
 };
 
-const Dashboard: React.FC<DashboardProps> = ({ workspace }) => {
+const Dashboard: React.FC<DashboardProps> = ({ workspace, user }) => {
   const { isDark } = useTheme();
   const toast = useToast();
   const [stats, setStats] = useState<DashboardStats>({
@@ -65,6 +75,19 @@ const Dashboard: React.FC<DashboardProps> = ({ workspace }) => {
   const [chartData, setChartData] = useState<ChartData[]>([]);
   const [recentActivity, setRecentActivity] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Admin-only stats
+  const isAdmin = user?.role === UserRole.ADMIN || user?.role === UserRole.OWNER;
+  const [adminStats, setAdminStats] = useState<AdminStats>({
+    totalUsers: 0,
+    newUsersToday: 0,
+    newUsersWeek: 0,
+    activeSubscriptions: 0,
+    pendingSubscriptions: 0,
+    usersByPlan: []
+  });
+  const [adminStatsLoading, setAdminStatsLoading] = useState(true);
+  const [showAdminPanel, setShowAdminPanel] = useState(true);
 
   // Check if user just verified email and show success toast
   useEffect(() => {
@@ -157,6 +180,74 @@ const Dashboard: React.FC<DashboardProps> = ({ workspace }) => {
     }
   };
 
+  // Load admin stats (only for admin users)
+  const loadAdminStats = async () => {
+    if (!isAdmin) return;
+
+    setAdminStatsLoading(true);
+    try {
+      const today = startOfDay(new Date()).toISOString();
+      const weekAgo = subDays(new Date(), 7).toISOString();
+
+      // Fetch all admin data in parallel
+      const [
+        allUsersResult,
+        newTodayResult,
+        newWeekResult,
+        activeSubsResult,
+        pendingSubsResult,
+        packagesResult,
+        subsWithPackageResult
+      ] = await Promise.all([
+        // Total users
+        supabase.from('profiles').select('*', { count: 'exact', head: true }),
+        // New users today
+        supabase.from('profiles').select('*', { count: 'exact', head: true }).gte('created_at', today),
+        // New users this week
+        supabase.from('profiles').select('*', { count: 'exact', head: true }).gte('created_at', weekAgo),
+        // Active subscriptions
+        supabase.from('subscriptions').select('*', { count: 'exact', head: true }).eq('status', 'ACTIVE'),
+        // Pending subscriptions
+        supabase.from('subscriptions').select('*', { count: 'exact', head: true }).eq('status', 'PENDING'),
+        // All packages
+        supabase.from('packages').select('id, name'),
+        // Subscriptions grouped by package
+        supabase.from('subscriptions').select('package_id').eq('status', 'ACTIVE')
+      ]);
+
+      // Calculate users by plan
+      const packages = packagesResult.data || [];
+      const subscriptions = subsWithPackageResult.data || [];
+
+      const planColors = ['#818cf8', '#c084fc', '#22c55e', '#f59e0b', '#ef4444', '#06b6d4'];
+      const usersByPlan = packages.map((pkg: any, index: number) => ({
+        name: pkg.name,
+        count: subscriptions.filter((s: any) => s.package_id === pkg.id).length,
+        color: planColors[index % planColors.length]
+      })).filter((p: any) => p.count > 0);
+
+      setAdminStats({
+        totalUsers: allUsersResult.count || 0,
+        newUsersToday: newTodayResult.count || 0,
+        newUsersWeek: newWeekResult.count || 0,
+        activeSubscriptions: activeSubsResult.count || 0,
+        pendingSubscriptions: pendingSubsResult.count || 0,
+        usersByPlan
+      });
+    } catch (error) {
+      console.error('Error loading admin stats:', error);
+    } finally {
+      setAdminStatsLoading(false);
+    }
+  };
+
+  // Load admin stats on mount if admin
+  useEffect(() => {
+    if (isAdmin) {
+      loadAdminStats();
+    }
+  }, [isAdmin]);
+
   return (
     <div className="space-y-8 animate-fade-in pb-12">
       {/* Header */}
@@ -180,6 +271,173 @@ const Dashboard: React.FC<DashboardProps> = ({ workspace }) => {
           Last 7 Days
         </div>
       </div>
+
+      {/* Admin-Only: User Activity Monitor Panel */}
+      {isAdmin && (
+        <div className={`rounded-2xl border overflow-hidden transition-all ${isDark
+          ? 'bg-gradient-to-r from-violet-900/30 via-purple-900/30 to-indigo-900/30 border-purple-500/20'
+          : 'bg-gradient-to-r from-violet-50 via-purple-50 to-indigo-50 border-purple-200'
+          }`}>
+          {/* Header */}
+          <button
+            onClick={() => setShowAdminPanel(!showAdminPanel)}
+            className={`w-full flex items-center justify-between p-4 md:p-5 transition-colors ${isDark
+              ? 'hover:bg-white/5'
+              : 'hover:bg-purple-100/50'
+              }`}
+          >
+            <div className="flex items-center gap-3">
+              <div className={`p-2.5 rounded-xl ${isDark
+                ? 'bg-purple-500/20 border border-purple-500/30'
+                : 'bg-purple-100 border border-purple-200'
+                }`}>
+                <Shield className={`w-5 h-5 ${isDark ? 'text-purple-400' : 'text-purple-600'}`} />
+              </div>
+              <div className="text-left">
+                <h3 className={`text-base font-bold tracking-tight ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                  Admin: User Activity Monitor
+                </h3>
+                <p className={`text-xs mt-0.5 ${isDark ? 'text-slate-400' : 'text-gray-500'}`}>
+                  System-wide statistics (visible to admins only)
+                </p>
+              </div>
+            </div>
+            <div className={`p-1.5 rounded-lg transition-transform ${showAdminPanel ? 'rotate-180' : ''} ${isDark
+              ? 'text-slate-400 hover:text-white'
+              : 'text-gray-400 hover:text-gray-700'
+              }`}>
+              <ChevronDown className="w-5 h-5" />
+            </div>
+          </button>
+
+          {/* Content */}
+          {showAdminPanel && (
+            <div className={`px-4 md:px-5 pb-5 border-t ${isDark ? 'border-purple-500/20' : 'border-purple-200'}`}>
+              {/* Stats Grid */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mt-4">
+                {/* Total Users */}
+                <div className={`p-4 rounded-xl border ${isDark
+                  ? 'bg-white/5 border-white/10'
+                  : 'bg-white border-gray-200'
+                  }`}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Users className={`w-4 h-4 ${isDark ? 'text-purple-400' : 'text-purple-600'}`} />
+                    <span className={`text-xs font-medium ${isDark ? 'text-slate-400' : 'text-gray-500'}`}>Total Users</span>
+                  </div>
+                  {adminStatsLoading ? (
+                    <div className={`h-7 w-16 animate-pulse rounded ${isDark ? 'bg-white/10' : 'bg-gray-200'}`} />
+                  ) : (
+                    <p className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                      {adminStats.totalUsers.toLocaleString()}
+                    </p>
+                  )}
+                </div>
+
+                {/* New Users Today */}
+                <div className={`p-4 rounded-xl border ${isDark
+                  ? 'bg-white/5 border-white/10'
+                  : 'bg-white border-gray-200'
+                  }`}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Sparkles className={`w-4 h-4 ${isDark ? 'text-green-400' : 'text-green-600'}`} />
+                    <span className={`text-xs font-medium ${isDark ? 'text-slate-400' : 'text-gray-500'}`}>New Today</span>
+                  </div>
+                  {adminStatsLoading ? (
+                    <div className={`h-7 w-12 animate-pulse rounded ${isDark ? 'bg-white/10' : 'bg-gray-200'}`} />
+                  ) : (
+                    <p className={`text-2xl font-bold ${isDark ? 'text-green-400' : 'text-green-600'}`}>
+                      +{adminStats.newUsersToday}
+                    </p>
+                  )}
+                </div>
+
+                {/* Active Subscriptions */}
+                <div className={`p-4 rounded-xl border ${isDark
+                  ? 'bg-white/5 border-white/10'
+                  : 'bg-white border-gray-200'
+                  }`}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <CreditCard className={`w-4 h-4 ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`} />
+                    <span className={`text-xs font-medium ${isDark ? 'text-slate-400' : 'text-gray-500'}`}>Active Subs</span>
+                  </div>
+                  {adminStatsLoading ? (
+                    <div className={`h-7 w-14 animate-pulse rounded ${isDark ? 'bg-white/10' : 'bg-gray-200'}`} />
+                  ) : (
+                    <p className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                      {adminStats.activeSubscriptions.toLocaleString()}
+                    </p>
+                  )}
+                </div>
+
+                {/* Pending Payments */}
+                <div className={`p-4 rounded-xl border ${isDark
+                  ? 'bg-white/5 border-white/10'
+                  : 'bg-white border-gray-200'
+                  }`}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Clock className={`w-4 h-4 ${isDark ? 'text-amber-400' : 'text-amber-600'}`} />
+                    <span className={`text-xs font-medium ${isDark ? 'text-slate-400' : 'text-gray-500'}`}>Pending</span>
+                  </div>
+                  {adminStatsLoading ? (
+                    <div className={`h-7 w-10 animate-pulse rounded ${isDark ? 'bg-white/10' : 'bg-gray-200'}`} />
+                  ) : (
+                    <p className={`text-2xl font-bold ${adminStats.pendingSubscriptions > 0
+                      ? (isDark ? 'text-amber-400' : 'text-amber-600')
+                      : (isDark ? 'text-slate-500' : 'text-gray-400')
+                      }`}>
+                      {adminStats.pendingSubscriptions}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Users by Plan */}
+              {!adminStatsLoading && adminStats.usersByPlan.length > 0 && (
+                <div className={`mt-4 p-4 rounded-xl border ${isDark
+                  ? 'bg-white/5 border-white/10'
+                  : 'bg-white border-gray-200'
+                  }`}>
+                  <div className="flex items-center gap-2 mb-3">
+                    <Package className={`w-4 h-4 ${isDark ? 'text-slate-400' : 'text-gray-500'}`} />
+                    <span className={`text-xs font-medium ${isDark ? 'text-slate-400' : 'text-gray-500'}`}>
+                      Users by Plan
+                    </span>
+                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${isDark
+                      ? 'bg-purple-500/20 text-purple-400'
+                      : 'bg-purple-100 text-purple-600'
+                      }`}>
+                      {adminStats.newUsersWeek} new this week
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-3">
+                    {adminStats.usersByPlan.map((plan) => (
+                      <div
+                        key={plan.name}
+                        className="flex items-center gap-2 px-3 py-1.5 rounded-lg"
+                        style={{ backgroundColor: `${plan.color}20` }}
+                      >
+                        <div
+                          className="w-2 h-2 rounded-full"
+                          style={{ backgroundColor: plan.color }}
+                        />
+                        <span className={`text-sm font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                          {plan.name}
+                        </span>
+                        <span
+                          className="text-sm font-bold"
+                          style={{ color: plan.color }}
+                        >
+                          {plan.count}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Stats Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">

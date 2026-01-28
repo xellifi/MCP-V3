@@ -556,7 +556,7 @@ const App: React.FC = () => {
                   <ChunkErrorBoundary>
                     <Suspense fallback={<LoadingSpinner />}>
                       <Routes>
-                        <Route path="/dashboard" element={<Dashboard workspace={currentWorkspace} />} />
+                        <Route path="/dashboard" element={<Dashboard workspace={currentWorkspace} user={user} />} />
                         <Route path="/connections" element={<Connections workspace={currentWorkspace} />} />
                         <Route path="/connected-pages" element={<ConnectedPages workspace={currentWorkspace} />} />
                         <Route path="/subscribers" element={<Subscribers workspace={currentWorkspace} />} />
