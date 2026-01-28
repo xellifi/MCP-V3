@@ -28,6 +28,51 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, user, onUp
 
     const [uploading, setUploading] = useState(false);
     const [avatarMethod, setAvatarMethod] = useState<'upload' | 'url'>('upload');
+    const [emailError, setEmailError] = useState<string>('');
+
+    // Email validation helper
+    const validateEmail = (email: string): { isValid: boolean; error: string } => {
+        // Basic format check
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            return { isValid: false, error: 'Please enter a valid email address' };
+        }
+
+        // Check for placeholder/fake domains
+        const invalidDomains = [
+            'placeholder',
+            'facebook.placeholder',
+            'example.com',
+            'test.com',
+            'fake.com',
+            'invalid.com',
+            'temp.com',
+            'temporary.com'
+        ];
+
+        const domain = email.split('@')[1]?.toLowerCase();
+        if (!domain) {
+            return { isValid: false, error: 'Please enter a valid email address' };
+        }
+
+        // Check if domain contains 'placeholder' anywhere
+        if (domain.includes('placeholder')) {
+            return { isValid: false, error: 'Please provide a real email address, not a placeholder' };
+        }
+
+        // Check against known invalid domains
+        if (invalidDomains.includes(domain)) {
+            return { isValid: false, error: 'Please provide a real email address' };
+        }
+
+        // Check for minimum domain parts (e.g., domain.tld)
+        const domainParts = domain.split('.');
+        if (domainParts.length < 2 || domainParts.some(part => part.length < 2)) {
+            return { isValid: false, error: 'Please enter a valid email domain' };
+        }
+
+        return { isValid: true, error: '' };
+    };
 
     useEffect(() => {
         if (isOpen && user) {
@@ -74,6 +119,15 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, user, onUp
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        // Validate email
+        const emailValidation = validateEmail(formData.email);
+        if (!emailValidation.isValid) {
+            setEmailError(emailValidation.error);
+            toast.error(emailValidation.error);
+            return;
+        }
+        setEmailError('');
 
         if (formData.password && formData.password !== formData.confirmPassword) {
             toast.error("Passwords don't match");
@@ -272,20 +326,39 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, user, onUp
                             </label>
                             <div className="relative">
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <Mail className="w-5 h-5 text-slate-400" />
+                                    <Mail className={`w-5 h-5 ${emailError ? 'text-red-400' : 'text-slate-400'}`} />
                                 </div>
                                 <input
                                     type="email"
                                     required
                                     value={formData.email}
-                                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                                    className={`block w-full pl-10 pr-3 py-2.5 rounded-xl border-2 transition-colors focus:ring-0 ${isDark
-                                        ? 'bg-slate-950 border-slate-800 text-white focus:border-indigo-500'
-                                        : 'bg-white border-slate-200 text-slate-900 focus:border-indigo-500'
-                                        }`}
+                                    onChange={(e) => {
+                                        setFormData({ ...formData, email: e.target.value });
+                                        // Clear error when user starts typing
+                                        if (emailError) {
+                                            const validation = validateEmail(e.target.value);
+                                            setEmailError(validation.isValid ? '' : validation.error);
+                                        }
+                                    }}
+                                    onBlur={() => {
+                                        // Validate on blur
+                                        const validation = validateEmail(formData.email);
+                                        setEmailError(validation.isValid ? '' : validation.error);
+                                    }}
+                                    className={`block w-full pl-10 pr-3 py-2.5 rounded-xl border-2 transition-colors focus:ring-0 ${emailError
+                                            ? 'border-red-500 focus:border-red-500'
+                                            : isDark
+                                                ? 'bg-slate-950 border-slate-800 text-white focus:border-indigo-500'
+                                                : 'bg-white border-slate-200 text-slate-900 focus:border-indigo-500'
+                                        } ${isDark ? 'bg-slate-950 text-white' : 'bg-white text-slate-900'}`}
                                     placeholder="john@example.com"
                                 />
                             </div>
+                            {emailError && (
+                                <p className="mt-1 text-sm text-red-500 flex items-center gap-1">
+                                    <span>⚠</span> {emailError}
+                                </p>
+                            )}
                         </div>
 
                         {/* Avatar URL (Horizontal/Fallback) */}
