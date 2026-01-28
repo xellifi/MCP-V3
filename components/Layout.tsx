@@ -162,6 +162,15 @@ const Layout: React.FC<LayoutProps> = ({
     const isExpired = (currentSubscription as any)?.isExpired === true;
     const isOnPackagesPage = location.pathname === '/packages';
 
+    console.log('[Layout] Subscription check:', {
+      hasSubscription: !!currentSubscription,
+      isExpired,
+      isOnPackagesPage,
+      isAdminOrOwner,
+      subscriptionStatus: currentSubscription?.status,
+      subscriptionIsExpiredFlag: (currentSubscription as any)?.isExpired
+    });
+
     // If expired and not admin/owner and not already on packages page, redirect
     if (isExpired && !isAdminOrOwner && !isOnPackagesPage) {
       console.log('[Layout] Subscription expired - redirecting to /packages');
@@ -178,6 +187,12 @@ const Layout: React.FC<LayoutProps> = ({
     const planName = currentSubscription.packages?.name || currentSubscription.package_id || 'Plan';
     const color = currentSubscription.packages?.color || 'slate';
     const status = currentSubscription.status;
+    const isExpired = (currentSubscription as any)?.isExpired === true;
+
+    // Show EXPIRED badge with red styling
+    if (isExpired) {
+      return <span className="px-2 py-0.5 rounded text-xs font-bold bg-red-100 text-red-700 border border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800 uppercase tracking-wider">EXPIRED</span>;
+    }
 
     let badgeColor = `bg-${color}-100 text-${color}-700 border-${color}-200 dark:bg-${color}-900/30 dark:text-${color}-400 dark:border-${color}-800`;
 
@@ -610,26 +625,38 @@ const Layout: React.FC<LayoutProps> = ({
               <h1 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white transition-opacity duration-200 flex items-center gap-2 sm:gap-3">
                 {getCurrentPageTitle()}
                 {/* Package Badge - Always visible */}
-                {(!currentSubscription) ? (
-                  <span className="px-1.5 sm:px-2 py-0.5 rounded text-[10px] sm:text-xs font-bold bg-slate-200 text-slate-600 border border-slate-300">Free</span>
-                ) : (
-                  currentSubscription.status === 'Pending' ? (
-                    (currentSubscription.packages?.name?.toLowerCase() === 'free' || currentSubscription.package_id === 'free') ? (
-                      <span className="px-1.5 sm:px-2 py-0.5 rounded text-[10px] sm:text-xs font-bold bg-slate-200 text-slate-600 border border-slate-300">Free</span>
-                    ) : (
+                {(() => {
+                  const isExpired = (currentSubscription as any)?.isExpired === true;
+
+                  // Show EXPIRED badge if subscription is expired
+                  if (isExpired) {
+                    return <span className="px-1.5 sm:px-2 py-0.5 rounded text-[10px] sm:text-xs font-bold bg-red-100 text-red-700 border border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800 uppercase tracking-wider">EXPIRED</span>;
+                  }
+
+                  if (!currentSubscription) {
+                    return <span className="px-1.5 sm:px-2 py-0.5 rounded text-[10px] sm:text-xs font-bold bg-slate-200 text-slate-600 border border-slate-300">Free</span>;
+                  }
+
+                  if (currentSubscription.status === 'Pending') {
+                    if (currentSubscription.packages?.name?.toLowerCase() === 'free' || currentSubscription.package_id === 'free') {
+                      return <span className="px-1.5 sm:px-2 py-0.5 rounded text-[10px] sm:text-xs font-bold bg-slate-200 text-slate-600 border border-slate-300">Free</span>;
+                    }
+                    return (
                       <span className="inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded text-[10px] sm:text-xs font-bold bg-yellow-100 text-yellow-700 border border-yellow-200 uppercase whitespace-nowrap">
                         <span className="hidden sm:inline">{currentSubscription.packages?.name || currentSubscription.package_id}</span>
                         <span className="sm:hidden">⏳</span>
                         <span className="hidden sm:inline">Pending</span>
                         <span className="sm:hidden">{currentSubscription.packages?.name || currentSubscription.package_id}</span>
                       </span>
-                    )
-                  ) : (
+                    );
+                  }
+
+                  return (
                     <span className={`px-1.5 sm:px-2 py-0.5 rounded text-[10px] sm:text-xs font-bold border uppercase tracking-wider whitespace-nowrap bg-${currentSubscription.packages?.color || 'primary'}-100 text-${currentSubscription.packages?.color || 'primary'}-700 border-${currentSubscription.packages?.color || 'primary'}-200 dark:bg-${currentSubscription.packages?.color || 'primary'}-900/30 dark:text-${currentSubscription.packages?.color || 'primary'}-400 dark:border-${currentSubscription.packages?.color || 'primary'}-800`}>
                       {currentSubscription.packages?.name || currentSubscription.package_id}
                     </span>
-                  )
-                )}
+                  );
+                })()}
               </h1>
             </div>
 
@@ -740,6 +767,24 @@ const Layout: React.FC<LayoutProps> = ({
               </div>
             </div>
           </header>
+
+          {/* Expired Subscription Banner */}
+          {(currentSubscription as any)?.isExpired && !isAdminOrOwner && (
+            <div className="bg-red-500 text-white px-4 py-3 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <LockIcon className="w-5 h-5" />
+                <span className="text-sm font-medium">
+                  Your subscription has expired. Please renew to continue using the platform.
+                </span>
+              </div>
+              <button
+                onClick={() => navigate('/packages')}
+                className="px-4 py-1.5 bg-white text-red-600 rounded-lg text-sm font-bold hover:bg-red-50 transition-colors"
+              >
+                Renew Now
+              </button>
+            </div>
+          )}
 
           {/* Content Viewport */}
           <div className="flex-1 overflow-auto bg-slate-50 dark:bg-slate-950 p-4 sm:p-6 lg:p-8">

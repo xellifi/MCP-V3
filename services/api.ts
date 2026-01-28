@@ -2593,8 +2593,16 @@ export const api = {
       if (currentSub.status === 'Active' && currentSub.next_billing_date) {
         const billingDate = new Date(currentSub.next_billing_date);
         const now = new Date();
+        console.log('[getCurrentSubscription] Checking expiry:', {
+          next_billing_date: currentSub.next_billing_date,
+          billingDate: billingDate.toISOString(),
+          now: now.toISOString(),
+          billing_cycle: currentSub.billing_cycle,
+          isPastDue: billingDate < now,
+          isLifetime: currentSub.billing_cycle === 'Lifetime'
+        });
         if (billingDate < now && currentSub.billing_cycle !== 'Lifetime') {
-          console.log('[getCurrentSubscription] Subscription billing date has PASSED:', currentSub.next_billing_date);
+          console.log('[getCurrentSubscription] Subscription billing date has PASSED - marking as EXPIRED');
           return {
             ...currentSub,
             isExpired: true, // Flag for Layout to block access
