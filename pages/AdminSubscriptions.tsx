@@ -217,9 +217,24 @@ const AdminSubscriptions: React.FC = () => {
                         ? (selectedPackage?.priceLifetime || 0)
                         : (selectedPackage?.priceMonthly || 0);
 
-            // Calculate next bill date
-            const date = new Date();
-            date.setMonth(date.getMonth() + 1);
+            // Calculate next bill date based on billing cycle
+            let nextBillingDate: string | null = null;
+            if (newSubscriber.billing === 'Lifetime') {
+                nextBillingDate = null;
+            } else if (newSubscriber.billing === 'Custom' && selectedPackage?.durationDays) {
+                const date = new Date();
+                date.setDate(date.getDate() + selectedPackage.durationDays);
+                nextBillingDate = date.toISOString();
+            } else if (newSubscriber.billing === 'Yearly') {
+                const date = new Date();
+                date.setFullYear(date.getFullYear() + 1);
+                nextBillingDate = date.toISOString();
+            } else {
+                // Monthly default
+                const date = new Date();
+                date.setMonth(date.getMonth() + 1);
+                nextBillingDate = date.toISOString();
+            }
 
             await api.subscriptions.create({
                 email: newSubscriber.email,
@@ -227,7 +242,7 @@ const AdminSubscriptions: React.FC = () => {
                 status: newSubscriber.status as any,
                 billing_cycle: newSubscriber.billing as any,
                 amount: amount,
-                next_billing_date: date.toISOString()
+                next_billing_date: nextBillingDate
             });
 
             await loadData(); // Reload list

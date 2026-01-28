@@ -10,7 +10,7 @@ const SubscriptionPlans: React.FC = () => {
     const [searchParams, setSearchParams] = useSearchParams();
     const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly' | 'lifetime' | 'custom'>('monthly');
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
-    const [selectedPlan, setSelectedPlan] = useState<{ name: string, price: number, durationDays?: number } | null>(null);
+    const [selectedPlan, setSelectedPlan] = useState<{ name: string, price: number, durationDays?: number, effectiveBillingCycle?: 'monthly' | 'yearly' | 'lifetime' | 'custom' } | null>(null);
 
     const [plans, setPlans] = useState<any[]>([]); // Using any[] for UI mapped shape, or define interface
     const [loading, setLoading] = useState(true);
@@ -166,7 +166,8 @@ const SubscriptionPlans: React.FC = () => {
         setSelectedPlan({
             name: plan.name,
             price: plan.price,
-            durationDays: plan.effectiveBillingCycle === 'custom' ? plan.durationDays : undefined
+            durationDays: plan.effectiveBillingCycle === 'custom' ? plan.durationDays : undefined,
+            effectiveBillingCycle: plan.effectiveBillingCycle
         });
         setIsPaymentModalOpen(true);
     };
@@ -427,7 +428,7 @@ const SubscriptionPlans: React.FC = () => {
                     onClose={() => setIsPaymentModalOpen(false)}
                     onSuccess={refreshSubscription}
                     planName={selectedPlan.name}
-                    billingCycle={billingCycle}
+                    billingCycle={selectedPlan.effectiveBillingCycle || billingCycle}
                     price={selectedPlan.price}
                     durationDays={selectedPlan.durationDays}
                 />
