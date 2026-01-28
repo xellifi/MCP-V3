@@ -151,6 +151,13 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace, user }) => {
   const [isSavingTemplate, setIsSavingTemplate] = useState(false);
   const [isGlobalTemplate, setIsGlobalTemplate] = useState(false);
 
+  // Template editing mode state (when admin edits global template directly)
+  const [isEditingTemplate, setIsEditingTemplate] = useState(false);
+  const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null);
+  const [editingTemplateName, setEditingTemplateName] = useState('');
+  const [editingTemplateDescription, setEditingTemplateDescription] = useState('');
+  const [editingTemplateIsGlobal, setEditingTemplateIsGlobal] = useState(false);
+
   // Node configuration state
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
   const [showConfigModal, setShowConfigModal] = useState(false);
@@ -278,6 +285,18 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace, user }) => {
               const templateData = JSON.parse(pendingTemplate);
               console.log('[FlowBuilder] Loading template data:', templateData);
 
+              // Check if we're editing an existing template (admin edit mode)
+              const isEditMode = searchParams.get('edit') === 'true' && templateData.isEditingTemplate;
+              if (isEditMode) {
+                console.log('[FlowBuilder] Entering template EDIT mode for:', templateData.templateName);
+                setIsEditingTemplate(true);
+                setEditingTemplateId(templateData.templateId);
+                setEditingTemplateName(templateData.templateName || 'Untitled Template');
+                setEditingTemplateDescription(templateData.templateDescription || '');
+                setEditingTemplateIsGlobal(templateData.isGlobal || false);
+                setCurrentFlowName(templateData.templateName || 'Editing Template');
+              }
+
               const savedConfigs = templateData.configurations || {};
               setNodeConfigs(savedConfigs);
 
@@ -299,7 +318,7 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace, user }) => {
 
               // Clean up
               localStorage.removeItem('pendingTemplate');
-              toast.success('Template loaded successfully');
+              toast.success(isEditMode ? 'Template loaded for editing' : 'Template loaded successfully');
             } catch (e) {
               console.error('Error parsing template data:', e);
               toast.error('Failed to load template');
@@ -1848,7 +1867,6 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace, user }) => {
       console.log('[FlowBuilder] Template saved successfully!');
       setShowTemplateModal(false);
       setTemplateName('');
-      setTemplateDescription('');
       setIsGlobalTemplate(false);
 
     } catch (error: any) {
@@ -1856,6 +1874,63 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace, user }) => {
       toast.error(error.message || 'Failed to save template');
     } finally {
       setIsSavingTemplate(false);
+    }
+  };
+
+  // Handle updating an existing template (when in edit template mode)
+  const handleUpdateTemplate = async () => {
+    if (!editingTemplateId) {
+      toast.error('No template to update');
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      console.log('[FlowBuilder] Updating template:', editingTemplateId);
+
+      // Prepare template data (clean nodes - remove callbacks)
+      const cleanNodes = nodes.map(n => ({
+        id: n.id,
+        type: n.type,
+        position: n.position,
+        data: {
+          ...n.data,
+          onConfigure: undefined,
+          onDelete: undefined,
+          onClone: undefined,
+          executionStatus: undefined
+        }
+      }));
+
+      const cleanEdges = edges.map(e => ({
+        id: e.id,
+        source: e.source,
+        target: e.target,
+        sourceHandle: e.sourceHandle,
+        targetHandle: e.targetHandle,
+        type: e.type,
+        animated: e.animated
+      }));
+
+      // Update template in database
+      await api.templates.updateTemplate(editingTemplateId, {
+        name: editingTemplateName,
+        description: editingTemplateDescription,
+        isGlobal: editingTemplateIsGlobal,
+        nodes: cleanNodes,
+        edges: cleanEdges,
+        configurations: nodeConfigs
+      });
+
+      toast.success(`Template "${editingTemplateName}" updated successfully!`);
+
+      // Navigate back to templates tab
+      navigate('/flows?tab=templates');
+    } catch (error: any) {
+      console.error('[FlowBuilder] Error updating template:', error);
+      toast.error(error.message || 'Failed to update template');
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -2635,10 +2710,26 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace, user }) => {
             {isEditingName ? (
               <input
                 type="text"
-                value={editedName}
-                onChange={(e) => setEditedName(e.target.value)}
-                onBlur={handleNameSave}
-                onKeyDown={handleNameKeyPress}
+                value={isEditingTemplate ? editingTemplateName : editedName}
+                onChange={(e) => isEditingTemplate ? setEditingTemplateName(e.target.value) : setEditedName(e.target.value)}
+                onBlur={() => {
+                  if (isEditingTemplate) {
+                    setIsEditingName(false);
+                  } else {
+                    handleNameSave();
+                  }
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    if (isEditingTemplate) {
+                      setIsEditingName(false);
+                    } else {
+                      handleNameSave();
+                    }
+                  } else if (e.key === 'Escape') {
+                    setIsEditingName(false);
+                  }
+                }}
                 className={`font-bold bg-white/10 border border-indigo-500/50 rounded-lg px-2 py-0.5 text-lg outline-none focus:ring-2 focus:ring-indigo-500/50 shadow-lg backdrop-blur-md ${isDark ? 'text-white' : 'text-gray-900'
                   }`}
                 autoFocus
@@ -2651,18 +2742,27 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace, user }) => {
                   className={`text-lg font-bold tracking-tight cursor-pointer hover:opacity-80 transition-opacity ${isDark ? 'text-white' : 'text-gray-900'
                     }`}
                 >
-                  {currentFlowName}
+                  {isEditingTemplate ? editingTemplateName : currentFlowName}
                 </h1>
-                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider border backdrop-blur-md shadow-sm ${flowStatus === 'ACTIVE'
-                  ? 'bg-green-500 text-white border-green-600'
-                  : 'bg-transparent text-black dark:text-slate-300 border-slate-300 dark:border-white/20'
-                  }`}>
-                  {flowStatus === 'ACTIVE' ? 'ACTIVE' : 'DRAFT'}
-                </span>
+                {isEditingTemplate ? (
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider border backdrop-blur-md shadow-sm ${editingTemplateIsGlobal
+                    ? 'bg-green-500/20 text-green-400 border-green-500/30'
+                    : 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30'
+                    }`}>
+                    {editingTemplateIsGlobal ? 'GLOBAL TEMPLATE' : 'TEMPLATE'}
+                  </span>
+                ) : (
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider border backdrop-blur-md shadow-sm ${flowStatus === 'ACTIVE'
+                    ? 'bg-green-500 text-white border-green-600'
+                    : 'bg-transparent text-black dark:text-slate-300 border-slate-300 dark:border-white/20'
+                    }`}>
+                    {flowStatus === 'ACTIVE' ? 'ACTIVE' : 'DRAFT'}
+                  </span>
+                )}
               </div>
             )}
             <p className={`text-sm drop-shadow-sm font-medium ${isDark ? 'text-slate-400' : 'text-gray-600'
-              }`}>Flow Automation Builder</p>
+              }`}>{isEditingTemplate ? 'Template Editor' : 'Flow Automation Builder'}</p>
           </div>
         </div>
       </div>
@@ -2708,6 +2808,28 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace, user }) => {
             {isSaving ? 'Saving...' : 'Save and Publish'}
           </span>
         </button>
+
+        {/* Update Template button - visible only when editing a template */}
+        {isEditingTemplate && (
+          <button
+            onClick={handleUpdateTemplate}
+            disabled={isSaving}
+            className={`group relative w-10 h-10 flex items-center justify-center backdrop-blur-md rounded-xl transition-all border shadow-lg disabled:opacity-50 ${isDark
+              ? 'bg-green-500/20 border-green-500/30 text-green-400 hover:bg-green-500/30'
+              : 'bg-green-50 border-green-200 text-green-700 hover:bg-green-100'
+              }`}
+            title="Update Template"
+          >
+            {isSaving ? (
+              <span className="w-4 h-4 border-2 border-green-400/30 border-t-green-400 rounded-full animate-spin" />
+            ) : (
+              <ArrowUp className="w-4 h-4" />
+            )}
+            <span className={`absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 ${isDark ? 'bg-slate-800 text-white' : 'bg-white border border-gray-300 text-slate-900 shadow-sm'} text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none`}>
+              {isSaving ? 'Updating...' : 'Update Template'}
+            </span>
+          </button>
+        )}
 
         <button
           onClick={handleResetLayout}

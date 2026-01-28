@@ -3607,11 +3607,17 @@ export const api = {
       name?: string;
       description?: string;
       isGlobal?: boolean;
+      nodes?: any[];
+      edges?: any[];
+      configurations?: any;
     }) => {
       const updateData: any = { updated_at: new Date().toISOString() };
       if (updates.name !== undefined) updateData.name = updates.name;
       if (updates.description !== undefined) updateData.description = updates.description;
       if (updates.isGlobal !== undefined) updateData.is_global = updates.isGlobal;
+      if (updates.nodes !== undefined) updateData.nodes = updates.nodes;
+      if (updates.edges !== undefined) updateData.edges = updates.edges;
+      if (updates.configurations !== undefined) updateData.configurations = updates.configurations;
 
       const { data, error } = await supabase
         .from('flow_templates')

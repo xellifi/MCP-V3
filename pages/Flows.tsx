@@ -450,6 +450,23 @@ const Flows: React.FC<FlowsProps> = ({ workspace, user }) => {
     toast.success(`Creating flow from "${template.name}" template`);
   };
 
+  // Edit template directly (admin only) - opens template in FlowBuilder for editing
+  const handleEditTemplate = (template: any) => {
+    // Store template data with edit flag
+    localStorage.setItem('pendingTemplate', JSON.stringify({
+      nodes: template.nodes,
+      edges: template.edges,
+      configurations: template.configurations,
+      templateId: template.id,
+      templateName: template.name,
+      templateDescription: template.description,
+      isEditingTemplate: true,
+      isGlobal: template.isGlobal
+    }));
+    navigate(`/flows/new-${Date.now()}?template=true&edit=true`);
+    toast.info(`Editing template "${template.name}"`);
+  };
+
   // Import template from JSON file
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -1073,6 +1090,18 @@ const Flows: React.FC<FlowsProps> = ({ workspace, user }) => {
                             >
                               <Download className="w-3.5 h-3.5" />
                             </button>
+                            {/* Admin-only: Edit global template */}
+                            {isAdmin && (
+                              <button
+                                onClick={() => handleEditTemplate(template)}
+                                title="Edit template"
+                                className={`flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg transition-colors ${isDark
+                                  ? 'bg-white/5 text-slate-400 hover:bg-indigo-500/20 hover:text-indigo-400'
+                                  : 'bg-slate-50 text-slate-500 hover:bg-indigo-50 hover:text-indigo-600'}`}
+                              >
+                                <Edit className="w-3.5 h-3.5" />
+                              </button>
+                            )}
                             {/* Admin-only: Toggle global status */}
                             {isAdmin && (
                               <button
@@ -1173,6 +1202,19 @@ const Flows: React.FC<FlowsProps> = ({ workspace, user }) => {
                                     >
                                       <Download className="w-4 h-4" />
                                     </button>
+                                    {/* Admin-only: Edit global template */}
+                                    {isAdmin && (
+                                      <button
+                                        onClick={() => handleEditTemplate(template)}
+                                        className={`p-2 rounded-lg transition-colors border ${isDark
+                                          ? 'text-slate-400 hover:text-indigo-400 hover:bg-white/5 border-transparent hover:border-white/10'
+                                          : 'text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 border-transparent hover:border-indigo-100'
+                                          }`}
+                                        title="Edit Template"
+                                      >
+                                        <Edit className="w-4 h-4" />
+                                      </button>
+                                    )}
                                     {isAdmin && (
                                       <button
                                         onClick={() => handleToggleGlobalStatus(template, false)}
