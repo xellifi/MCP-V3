@@ -2665,30 +2665,68 @@ export const api = {
         });
       }
 
-      // If current is Pending, find the previous Active subscription for access control
-      let accessSub = currentSub;
+      // If current is Pending, check if user had an expired subscription
+      // If yes, they stay locked until new plan is approved
       if (currentSub.status === 'Pending') {
+        // Check if there's an expired subscription in their history
+        const hasExpiredSub = allSubs.some(sub => sub.status === 'expired') ||
+          allSubs.some(sub => {
+            // Also check any sub with past billing date (could still be marked Active but expired)
+            if (sub.status === 'Active' && sub.billing_cycle !== 'Lifetime' && sub.next_billing_date) {
+              return new Date(sub.next_billing_date) < new Date();
+            }
+            return false;
+          });
+
+        if (hasExpiredSub) {
+          // User was expired, now has pending - still lock them until approved
+          console.log('[getCurrentSubscription] User has EXPIRED history with PENDING new plan - keeping locked');
+          return {
+            ...currentSub,
+            isExpired: true, // Keep them locked
+            hasPendingUpgrade: true, // Flag to show pending status
+            pendingPackage: currentSub.packages, // Info about the pending package
+            access_packages: null,
+            access_package_id: null
+          } as UserSubscription;
+        }
+
+        // No expired history - check for previous Active subscription
         const previousActive = allSubs.find(sub => sub.status === 'Active');
         if (previousActive) {
-          accessSub = previousActive;
+          console.log('[getCurrentSubscription] Pending user has previous Active subscription for access control');
+          const result = {
+            ...currentSub,
+            isExpired: false,
+            access_packages: previousActive.packages,
+            access_package_id: previousActive.package_id
+          };
+          return result as UserSubscription;
+        } else {
+          // No previous Active - user should only get FREE_PLAN_ROUTES (new user with pending)
+          console.log('[getCurrentSubscription] Pending user has NO previous Active subscription - will use free plan routes');
+          return {
+            ...currentSub,
+            isExpired: false,
+            isPendingWithNoAccess: true,
+            access_packages: null,
+            access_package_id: null
+          } as UserSubscription;
         }
       }
 
-      // Attach the access subscription's routes to the current subscription
-      // This way the UI shows the Pending info but uses the previous plan's routes
+      // Normal Active subscription
       const result = {
         ...currentSub,
         isExpired: false,
-        // Add a special field for access control routes
-        access_packages: accessSub.packages,
-        access_package_id: accessSub.package_id
+        access_packages: currentSub.packages,
+        access_package_id: currentSub.package_id
       };
 
       console.log('[getCurrentSubscription] Fetched subscription:', {
         display_status: currentSub.status,
         display_package: currentSub.packages?.name,
-        access_package: accessSub.packages?.name,
-        access_routes: accessSub.packages?.allowed_routes
+        access_package: currentSub.packages?.name
       });
 
       return result as UserSubscription;

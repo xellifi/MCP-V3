@@ -20,6 +20,9 @@ const SubscriptionPlans: React.FC = () => {
     const { currentSubscription, refreshSubscription } = useSubscription();
     const currentPackageId = currentSubscription?.package_id || null;
     const isPending = currentSubscription?.status === 'Pending';
+    const hasPendingUpgrade = (currentSubscription as any)?.hasPendingUpgrade === true;
+    const pendingPackage = (currentSubscription as any)?.pendingPackage;
+    const isExpired = (currentSubscription as any)?.isExpired === true;
 
     React.useEffect(() => {
         const fetchPlans = async () => {
@@ -142,6 +145,31 @@ const SubscriptionPlans: React.FC = () => {
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-950 p-6 lg:p-10 font-sans">
             <div className="max-w-7xl mx-auto space-y-12">
+
+                {/* Pending Upgrade Status Banner - Show when expired user has submitted a plan purchase */}
+                {(hasPendingUpgrade || (isExpired && isPending)) && pendingPackage && (
+                    <div className="mb-8 p-6 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border-2 border-amber-200 dark:border-amber-700 rounded-2xl">
+                        <div className="flex items-center gap-4">
+                            <div className="flex-shrink-0 w-12 h-12 bg-amber-100 dark:bg-amber-900/50 rounded-xl flex items-center justify-center">
+                                <CreditCard className="w-6 h-6 text-amber-600" />
+                            </div>
+                            <div className="flex-1">
+                                <h3 className="text-lg font-bold text-amber-800 dark:text-amber-300">
+                                    Your {pendingPackage.name} Subscription is Pending Approval
+                                </h3>
+                                <p className="text-sm text-amber-700 dark:text-amber-400 mt-1">
+                                    Your payment has been received. Once verified by our team, your subscription will be activated and you'll have full access to all features.
+                                </p>
+                            </div>
+                            <div className="flex-shrink-0">
+                                <span className="inline-flex items-center gap-2 px-4 py-2 bg-amber-200 dark:bg-amber-800 text-amber-800 dark:text-amber-200 rounded-full text-sm font-bold">
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                    Pending Review
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {/* Header Section */}
                 <div className="text-center space-y-4">
