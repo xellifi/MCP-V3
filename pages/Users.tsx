@@ -36,7 +36,8 @@ const UsersPage: React.FC<UsersPageProps> = ({ user }) => {
     name: '',
     email: '',
     password: '',
-    packageId: '' // Selected package ID
+    packageId: '', // Selected package ID
+    expiryDate: '' // Subscription expiry date for testing
   });
 
   // Impersonation state
@@ -145,7 +146,10 @@ const UsersPage: React.FC<UsersPageProps> = ({ user }) => {
         name: userToEdit.name,
         email: userToEdit.email,
         password: '',
-        packageId: userSubscription?.package_id || ''
+        packageId: userSubscription?.package_id || '',
+        expiryDate: userSubscription?.next_billing_date
+          ? new Date(userSubscription.next_billing_date).toISOString().split('T')[0]
+          : ''
       });
       setEditingId(userToEdit.id);
       setIsAddModalOpen(true);
@@ -226,11 +230,13 @@ const UsersPage: React.FC<UsersPageProps> = ({ user }) => {
           name: newUser.name
         });
 
-        // Update subscription package if changed
+        // Update subscription package and expiry date
         if (userSubscription && newUser.packageId) {
-          await api.subscriptions.update(userSubscription.id, {
-            package_id: newUser.packageId
-          });
+          const updates: any = { package_id: newUser.packageId };
+          if (newUser.expiryDate) {
+            updates.next_billing_date = new Date(newUser.expiryDate).toISOString();
+          }
+          await api.subscriptions.update(userSubscription.id, updates);
         }
 
         // Reload users and subscriptions to reflect changes
@@ -282,7 +288,8 @@ const UsersPage: React.FC<UsersPageProps> = ({ user }) => {
         name: '',
         email: '',
         password: '',
-        packageId: ''
+        packageId: '',
+        expiryDate: ''
       });
 
     } catch (error: any) {
@@ -314,7 +321,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ user }) => {
           onClick={() => {
             setIsAddModalOpen(true);
             setEditingId(null);
-            setNewUser({ name: '', email: '', password: '', packageId: '' });
+            setNewUser({ name: '', email: '', password: '', packageId: '', expiryDate: '' });
           }}
           className="flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors shadow-sm"
         >
@@ -593,6 +600,23 @@ const UsersPage: React.FC<UsersPageProps> = ({ user }) => {
                       ))}
                     </select>
                   </div>
+                  {editingId && (
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                        <Calendar className="w-4 h-4" />
+                        Subscription Expiry Date
+                      </label>
+                      <input
+                        type="date"
+                        className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none"
+                        value={newUser.expiryDate}
+                        onChange={e => setNewUser({ ...newUser, expiryDate: e.target.value })}
+                      />
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        Set to past date to expire the subscription (for testing)
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
 

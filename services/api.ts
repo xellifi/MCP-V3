@@ -2557,12 +2557,52 @@ export const api = {
         return null;
       }
 
+      // If no Active/Pending subscriptions, check for expired ones
       if (!allSubs || allSubs.length === 0) {
+        // Check if user has any expired/cancelled subscriptions
+        const { data: expiredSubs } = await supabase
+          .from('user_subscriptions')
+          .select(`
+            *,
+            packages (name, color, allowed_routes)
+          `)
+          .eq('user_id', user.id)
+          .in('status', ['Cancelled', 'Past Due', 'expired'])
+          .order('created_at', { ascending: false })
+          .limit(1);
+
+        if (expiredSubs && expiredSubs.length > 0) {
+          // User has expired subscription - mark it as expired for access control
+          const expiredSub = expiredSubs[0];
+          console.log('[getCurrentSubscription] User has EXPIRED subscription:', expiredSub.packages?.name);
+          return {
+            ...expiredSub,
+            isExpired: true, // Flag for Layout to block access
+            access_packages: null,
+            access_package_id: null
+          } as UserSubscription;
+        }
+
         return null;
       }
 
       // The most recent subscription (could be Pending or Active)
       const currentSub = allSubs[0];
+
+      // Check if Active subscription has passed its next_billing_date (expired but not yet updated)
+      if (currentSub.status === 'Active' && currentSub.next_billing_date) {
+        const billingDate = new Date(currentSub.next_billing_date);
+        const now = new Date();
+        if (billingDate < now && currentSub.billing_cycle !== 'Lifetime') {
+          console.log('[getCurrentSubscription] Subscription billing date has PASSED:', currentSub.next_billing_date);
+          return {
+            ...currentSub,
+            isExpired: true, // Flag for Layout to block access
+            access_packages: null,
+            access_package_id: null
+          } as UserSubscription;
+        }
+      }
 
       // If current is Pending, find the previous Active subscription for access control
       let accessSub = currentSub;
@@ -2577,6 +2617,7 @@ export const api = {
       // This way the UI shows the Pending info but uses the previous plan's routes
       const result = {
         ...currentSub,
+        isExpired: false,
         // Add a special field for access control routes
         access_packages: accessSub.packages,
         access_package_id: accessSub.package_id

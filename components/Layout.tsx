@@ -242,10 +242,28 @@ const Layout: React.FC<LayoutProps> = ({
   // This should match the routes configured in the Free package in admin settings
   const FREE_PLAN_ROUTES = ['/', '/dashboard', '/connected-pages', '/flows', '/settings', '/academy', '/orders', '/packages'];
 
+  // Routes allowed for EXPIRED subscriptions - only packages page to renew
+  const EXPIRED_PLAN_ROUTES = ['/packages'];
+
   // Handle navigation click with permission check
   const handleNavClick = (e: React.MouseEvent, path: string, label: string) => {
     // Admins/Owners bypass all restrictions
     if (isAdminOrOwner) {
+      setSidebarOpen(false);
+      return;
+    }
+
+    // Check if subscription is EXPIRED - only allow /packages
+    const isExpired = (currentSubscription as any)?.isExpired === true;
+    if (isExpired) {
+      if (!EXPIRED_PLAN_ROUTES.includes(path)) {
+        e.preventDefault();
+        setRestrictedFeature('Your subscription has expired');
+        setRequiredPlan('any active plan');
+        setShowUpgradeModal(true);
+        setSidebarOpen(false);
+        return;
+      }
       setSidebarOpen(false);
       return;
     }
@@ -478,15 +496,21 @@ const Layout: React.FC<LayoutProps> = ({
               let isLocked = false;
 
               if (!isAdminOrOwner) {
-                const accessPackages = (currentSubscription as any)?.access_packages || currentSubscription?.packages;
-                const allowedRoutes = accessPackages?.allowed_routes?.length > 0
-                  ? accessPackages.allowed_routes
-                  : FREE_PLAN_ROUTES; // Free plan routes if no access routes
+                // Check if subscription is expired - lock everything except /packages
+                const isExpired = (currentSubscription as any)?.isExpired === true;
+                if (isExpired) {
+                  isLocked = !EXPIRED_PLAN_ROUTES.includes(path) && !EXPIRED_PLAN_ROUTES.includes(renderPath);
+                } else {
+                  const accessPackages = (currentSubscription as any)?.access_packages || currentSubscription?.packages;
+                  const allowedRoutes = accessPackages?.allowed_routes?.length > 0
+                    ? accessPackages.allowed_routes
+                    : FREE_PLAN_ROUTES; // Free plan routes if no access routes
 
-                // Check if path is allowed
-                const pathIsAllowed = allowedRoutes.includes(path) || allowedRoutes.includes(renderPath);
-                if (!pathIsAllowed) {
-                  isLocked = true;
+                  // Check if path is allowed
+                  const pathIsAllowed = allowedRoutes.includes(path) || allowedRoutes.includes(renderPath);
+                  if (!pathIsAllowed) {
+                    isLocked = true;
+                  }
                 }
               }
 
