@@ -138,7 +138,11 @@ const AdminSubscriptions: React.FC = () => {
             const selectedPackage = packages.find(p => p.id === editingSubscription.packageId);
             const amount = editingSubscription.billing === 'Yearly'
                 ? (selectedPackage?.priceYearly || 0)
-                : (selectedPackage?.priceMonthly || 0);
+                : editingSubscription.billing === 'Daily'
+                    ? (selectedPackage?.priceDaily || 0)
+                    : editingSubscription.billing === 'Lifetime'
+                        ? (selectedPackage?.priceLifetime || 0)
+                        : (selectedPackage?.priceMonthly || 0);
 
             await api.subscriptions.update(editingSubscription.id, {
                 package_id: editingSubscription.packageId,
@@ -207,7 +211,11 @@ const AdminSubscriptions: React.FC = () => {
             const selectedPackage = packages.find(p => p.id === newSubscriber.plan);
             const amount = newSubscriber.billing === 'Yearly'
                 ? (selectedPackage?.priceYearly || 0)
-                : (selectedPackage?.priceMonthly || 0);
+                : newSubscriber.billing === 'Daily'
+                    ? (selectedPackage?.priceDaily || 0)
+                    : newSubscriber.billing === 'Lifetime'
+                        ? (selectedPackage?.priceLifetime || 0)
+                        : (selectedPackage?.priceMonthly || 0);
 
             // Calculate next bill date
             const date = new Date();
@@ -539,8 +547,10 @@ const AdminSubscriptions: React.FC = () => {
                                         value={newSubscriber.billing}
                                         onChange={e => setNewSubscriber({ ...newSubscriber, billing: e.target.value })}
                                     >
+                                        <option value="Daily">Daily</option>
                                         <option value="Monthly">Monthly</option>
                                         <option value="Yearly">Yearly</option>
+                                        <option value="Lifetime">Lifetime</option>
                                     </select>
                                 </div>
                             </div>
@@ -623,8 +633,10 @@ const AdminSubscriptions: React.FC = () => {
                                         value={editingSubscription.billing}
                                         onChange={e => setEditingSubscription({ ...editingSubscription, billing: e.target.value })}
                                     >
+                                        <option value="Daily">Daily</option>
                                         <option value="Monthly">Monthly</option>
                                         <option value="Yearly">Yearly</option>
+                                        <option value="Lifetime">Lifetime</option>
                                     </select>
                                 </div>
                             </div>

@@ -233,6 +233,8 @@ const AdminPackageSettings: React.FC = () => {
             name: '',
             priceMonthly: 0,
             priceYearly: 0,
+            priceDaily: 0,
+            durationDays: undefined,
             currency: 'USD',
             color: 'slate',
             isActive: true,
@@ -278,6 +280,8 @@ const AdminPackageSettings: React.FC = () => {
                     priceMonthly: Number(currentPackage.priceMonthly) || 0,
                     priceYearly: Number(currentPackage.priceYearly) || 0,
                     priceLifetime: currentPackage.priceLifetime ? Number(currentPackage.priceLifetime) : undefined,
+                    priceDaily: Number(currentPackage.priceDaily) || 0,
+                    durationDays: currentPackage.durationDays ? Number(currentPackage.durationDays) : undefined,
                     currency: currentPackage.currency || 'USD',
                     isActive: currentPackage.isActive !== false,
                     isVisible: currentPackage.isVisible !== false, // Explicitly pass visibility
@@ -1046,6 +1050,38 @@ const AdminPackageSettings: React.FC = () => {
                                                 />
                                             </div>
                                         </div>
+                                        {/* Sachet/Daily Package Section */}
+                                        <div className="p-3 border border-dashed border-slate-300 dark:border-slate-700 rounded-lg bg-slate-50/50 dark:bg-slate-800/30">
+                                            <div className="flex items-center gap-2 mb-2">
+                                                <span className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide">Sachet Package (Custom Days)</span>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <div>
+                                                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Daily Price ($)</label>
+                                                    <input
+                                                        type="number"
+                                                        value={currentPackage.priceDaily || 0}
+                                                        onChange={e => setCurrentPackage({ ...currentPackage, priceDaily: parseFloat(e.target.value) || 0 })}
+                                                        className="w-full px-2 py-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none text-sm"
+                                                        placeholder="0"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Duration (Days)</label>
+                                                    <select
+                                                        value={currentPackage.durationDays || ''}
+                                                        onChange={e => setCurrentPackage({ ...currentPackage, durationDays: e.target.value ? parseInt(e.target.value) : undefined })}
+                                                        className="w-full px-2 py-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none text-sm"
+                                                    >
+                                                        <option value="">Not a sachet package</option>
+                                                        {[1, 2, 3, 5, 7, 10, 14, 15, 21, 30].map(d => (
+                                                            <option key={d} value={d}>{d} {d === 1 ? 'Day' : 'Days'}</option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <p className="text-[10px] text-slate-500 mt-2">Set a duration to create a sachet package (e.g., 1 day, 3 days, 7 days accounts)</p>
+                                        </div>
                                         <div className="grid grid-cols-2 gap-2">
                                             <label className="flex items-center gap-2 p-2 border border-slate-200 dark:border-slate-700 rounded-lg cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50">
                                                 <input
@@ -1086,8 +1122,8 @@ const AdminPackageSettings: React.FC = () => {
                                                                     setCurrentPackage({ ...currentPackage, features: newFeatures });
                                                                 }}
                                                                 className={`p-1 rounded border transition-colors ${isInactive
-                                                                        ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-500'
-                                                                        : 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-500'
+                                                                    ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-500'
+                                                                    : 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-500'
                                                                     }`}
                                                             >
                                                                 {isInactive ? <XCircle className="w-3 h-3" /> : <CheckCircle className="w-3 h-3" />}
