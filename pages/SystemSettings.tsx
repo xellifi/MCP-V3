@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { User, UserRole, AdminSettings as AdminSettingsType } from '../types';
 import { api } from '../services/api';
-import { Lock, Save, ShieldAlert, Eye, EyeOff, Server, ChevronDown, ChevronUp, Mail, List, MoveUp, MoveDown, Send, Banknote, Key, Copy, Check, RefreshCw, Sun, Moon, LifeBuoy } from 'lucide-react';
+import { Lock, Save, ShieldAlert, Eye, EyeOff, Server, ChevronDown, ChevronUp, Mail, List, MoveUp, MoveDown, Send, Banknote, Key, Copy, Check, RefreshCw, Sun, Moon, LifeBuoy, Shield, X, Plus } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import { useTheme } from '../context/ThemeContext';
 
@@ -47,6 +47,21 @@ const DAYS_OF_WEEK = [
   { id: 4, label: 'Thursday' },
   { id: 5, label: 'Friday' },
   { id: 6, label: 'Saturday' },
+];
+
+const COMMON_EMAIL_DOMAINS = [
+  'gmail.com',
+  'yahoo.com',
+  'outlook.com',
+  'hotmail.com',
+  'icloud.com',
+  'protonmail.com',
+  'aol.com',
+  'live.com',
+  'msn.com',
+  'zoho.com',
+  'yandex.com',
+  'mail.com'
 ];
 
 interface CopyButtonProps {
@@ -155,6 +170,7 @@ const SystemSettings: React.FC<SystemSettingsProps> = ({ user }) => {
   const [savingSmtp, setSavingSmtp] = useState(false);
   const [savingTheme, setSavingTheme] = useState(false);
   const [savingSupport, setSavingSupport] = useState(false);
+  const [savingEmailDomains, setSavingEmailDomains] = useState(false);
 
   const [showSecret, setShowSecret] = useState(false);
   const [showOpenAi, setShowOpenAi] = useState(false);
@@ -170,12 +186,16 @@ const SystemSettings: React.FC<SystemSettingsProps> = ({ user }) => {
     smtp: false,
     affiliate: false,
     theme: false,
-    support: false
+    support: false,
+    emailDomains: false
   });
 
   // Test Email State
   const [testEmail, setTestEmail] = useState('');
   const [sendingTest, setSendingTest] = useState(false);
+
+  // Email Domain Whitelist State
+  const [newDomain, setNewDomain] = useState('');
 
   // Derive URL from env or window
   const appDomain = (import.meta as any).env.VITE_APP_DOMAIN || window.location.origin;
@@ -295,6 +315,48 @@ const SystemSettings: React.FC<SystemSettingsProps> = ({ user }) => {
       : [...currentDays, dayId];
     setSettings({ ...settings, affiliateWithdrawalDays: newDays.sort() });
   };
+
+  // Email domain management functions
+  const addEmailDomain = (domain: string) => {
+    const cleanDomain = domain.toLowerCase().trim().replace(/^@/, '');
+    if (!cleanDomain) return;
+
+    // Validate domain format
+    if (!/^[a-z0-9]+([\-\.]{1}[a-z0-9]+)*\.[a-z]{2,}$/.test(cleanDomain)) {
+      toast.error('Invalid domain format. Example: gmail.com');
+      return;
+    }
+
+    if (settings.allowedEmailDomains?.includes(cleanDomain)) {
+      toast.error('Domain already added');
+      return;
+    }
+
+    setSettings({
+      ...settings,
+      allowedEmailDomains: [...(settings.allowedEmailDomains || []), cleanDomain]
+    });
+    setNewDomain('');
+  };
+
+  const removeEmailDomain = (domain: string) => {
+    setSettings({
+      ...settings,
+      allowedEmailDomains: (settings.allowedEmailDomains || []).filter(d => d !== domain)
+    });
+  };
+
+  const toggleDomainRestriction = () => {
+    setSettings({
+      ...settings,
+      emailDomainRestrictionEnabled: !settings.emailDomainRestrictionEnabled
+    });
+  };
+
+  // Suggested domains (not yet added)
+  const suggestedDomains = COMMON_EMAIL_DOMAINS.filter(
+    d => !(settings.allowedEmailDomains || []).includes(d)
+  );
 
   if (user.role !== UserRole.ADMIN && user.role !== UserRole.OWNER) {
     return (
@@ -759,6 +821,144 @@ const SystemSettings: React.FC<SystemSettingsProps> = ({ user }) => {
             >
               <Save className="w-4 h-4" />
               {savingSupport ? 'Saving...' : 'Save Support Settings'}
+            </button>
+          </div>
+        </div>
+      </CollapsibleCard>
+
+      {/* Email Domain Whitelist */}
+      <CollapsibleCard
+        title="Allowed Email Domains"
+        subtitle="Restrict which email providers users can use"
+        icon={Shield}
+        colorClass="bg-rose-500/20 text-rose-400 border border-rose-500/30"
+        isOpen={openSections.emailDomains}
+        onToggle={() => toggleSection('emailDomains')}
+        isDark={isDark}
+      >
+        <div className="space-y-6">
+          {/* Enable/Disable Toggle */}
+          <div className="flex items-center justify-between p-5 bg-slate-50 dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10">
+            <div className="flex-1">
+              <h4 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                Enable Domain Restriction
+                <span className={`text-xs font-normal px-2 py-0.5 rounded-full ${settings.emailDomainRestrictionEnabled
+                    ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400'
+                    : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
+                  }`}>
+                  {settings.emailDomainRestrictionEnabled ? 'Active' : 'Inactive'}
+                </span>
+              </h4>
+              <p className="text-sm text-slate-600 dark:text-slate-400">When enabled, users can only register or update their profile with emails from allowed domains.</p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={settings.emailDomainRestrictionEnabled}
+                onChange={toggleDomainRestriction}
+                className="sr-only peer"
+              />
+              <div className="w-14 h-7 bg-slate-200 dark:bg-white/10 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-rose-500/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-gradient-to-r peer-checked:from-rose-500 peer-checked:to-pink-500"></div>
+            </label>
+          </div>
+
+          <div className={`space-y-6 transition-opacity ${settings.emailDomainRestrictionEnabled ? 'opacity-100' : 'opacity-50 pointer-events-none'}`}>
+            {/* Current allowed domains */}
+            <div>
+              <label className={labelClasses}>Currently Allowed Domains</label>
+              <div className="flex flex-wrap gap-2 min-h-[48px] p-3 bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl">
+                {(settings.allowedEmailDomains || []).length === 0 ? (
+                  <span className="text-slate-400 dark:text-slate-500 text-sm italic">No domains added yet. Add domains below.</span>
+                ) : (
+                  (settings.allowedEmailDomains || []).map(domain => (
+                    <span
+                      key={domain}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-rose-500 to-pink-500 text-white text-sm font-medium rounded-full shadow-sm hover:shadow-md transition-shadow"
+                    >
+                      <Mail className="w-3.5 h-3.5" />
+                      {domain}
+                      <button
+                        type="button"
+                        onClick={() => removeEmailDomain(domain)}
+                        className="ml-1 p-0.5 hover:bg-white/20 rounded-full transition-colors"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </span>
+                  ))
+                )}
+              </div>
+            </div>
+
+            {/* Add custom domain */}
+            <div>
+              <label className={labelClasses}>Add Custom Domain</label>
+              <div className="flex gap-3">
+                <div className="flex-1 relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">@</span>
+                  <input
+                    type="text"
+                    value={newDomain}
+                    onChange={e => setNewDomain(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        addEmailDomain(newDomain);
+                      }
+                    }}
+                    className={`${inputClasses} pl-9`}
+                    placeholder="example.com"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => addEmailDomain(newDomain)}
+                  className="flex items-center gap-2 bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-400 hover:to-pink-400 text-white px-5 py-3 rounded-xl font-bold shadow-lg shadow-rose-500/20 transition-all active:scale-95 whitespace-nowrap border border-white/20"
+                >
+                  <Plus className="w-5 h-5" />
+                  Add
+                </button>
+              </div>
+            </div>
+
+            {/* Quick add popular domains */}
+            {suggestedDomains.length > 0 && (
+              <div>
+                <label className={labelClasses}>Quick Add Popular Providers</label>
+                <div className="flex flex-wrap gap-2">
+                  {suggestedDomains.map(domain => (
+                    <button
+                      key={domain}
+                      type="button"
+                      onClick={() => addEmailDomain(domain)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-white/5 hover:bg-rose-100 dark:hover:bg-rose-500/20 text-slate-700 dark:text-slate-300 hover:text-rose-600 dark:hover:text-rose-400 text-sm font-medium rounded-full border border-slate-200 dark:border-white/10 hover:border-rose-300 dark:hover:border-rose-500/30 transition-all"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      {domain}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Info box */}
+            <div className="flex items-start gap-3 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl">
+              <ShieldAlert className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+              <div className="text-sm text-amber-800 dark:text-amber-200">
+                <p className="font-semibold mb-1">How it works</p>
+                <p className="text-amber-700 dark:text-amber-300">When enabled, users can only register or update their profile with email addresses from the domains listed above. This helps prevent fake or temporary email signups.</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-end pt-6 border-t border-slate-200 dark:border-white/10">
+            <button
+              onClick={() => handleSaveSection('Email Domain Settings', setSavingEmailDomains)}
+              disabled={savingEmailDomains}
+              className={buttonPrimary}
+            >
+              <Save className="w-4 h-4" />
+              {savingEmailDomains ? 'Saving...' : 'Save Email Domain Settings'}
             </button>
           </div>
         </div>
