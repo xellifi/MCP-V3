@@ -8,34 +8,67 @@ const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 // Helper to ensure supabase session is ready before making API calls
 // This prevents API calls from hanging when the session isn't fully established yet
 let sessionReadyPromise: Promise<boolean> | null = null;
+let lastSessionCheck = 0;
 
 const ensureSession = async (): Promise<boolean> => {
-  // If we already have a pending session check, wait for it
-  if (sessionReadyPromise) {
+  const now = Date.now();
+
+  // If we checked recently (within 30 seconds), skip the check
+  if (sessionReadyPromise && (now - lastSessionCheck) < 30000) {
     return sessionReadyPromise;
   }
 
+  lastSessionCheck = now;
+
   sessionReadyPromise = (async () => {
     try {
-      // Try to get session up to 3 times with 500ms intervals
-      for (let i = 0; i < 3; i++) {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session) {
+      // First, try to get the current session
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (session) {
+        // Check if token expires within the next 5 minutes
+        const expiresAt = session.expires_at ? session.expires_at * 1000 : 0;
+        const timeUntilExpiry = expiresAt - Date.now();
+
+        if (timeUntilExpiry < 300000) { // 5 minutes
+          console.log('Session token expiring soon, refreshing...');
+          const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+          if (refreshError) {
+            console.warn('Session refresh failed:', refreshError.message);
+          } else if (refreshData.session) {
+            console.log('Session refreshed successfully');
+          }
+        }
+        return true;
+      }
+
+      // No session found, try refreshing (in case there's a valid refresh token)
+      console.log('No session found, attempting refresh...');
+      const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+
+      if (!refreshError && refreshData.session) {
+        console.log('Session restored via refresh');
+        return true;
+      }
+
+      // If refresh fails, try getting session a couple more times
+      for (let i = 0; i < 2; i++) {
+        await delay(500);
+        const { data: { session: retrySession } } = await supabase.auth.getSession();
+        if (retrySession) {
           return true;
         }
-        if (i < 2) {
-          await delay(500);
-        }
       }
+
       return false;
     } catch (error) {
       console.warn('Session check failed:', error);
       return false;
     } finally {
-      // Reset the promise after 5 seconds so subsequent calls can retry if needed
+      // Reset the promise after 30 seconds so subsequent calls can retry
       setTimeout(() => {
         sessionReadyPromise = null;
-      }, 5000);
+      }, 30000);
     }
   })();
 

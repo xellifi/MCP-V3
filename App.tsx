@@ -259,6 +259,46 @@ const App: React.FC = () => {
     return () => subscription.unsubscribe();
   }, []);
 
+  // Refresh session when user returns to the tab after being away
+  // This prevents stale token issues that cause API calls to hang
+  useEffect(() => {
+    let lastActiveTime = Date.now();
+
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState === 'visible') {
+        const timeSinceActive = Date.now() - lastActiveTime;
+
+        // If user was away for more than 1 minute, refresh the session
+        if (timeSinceActive > 60000) {
+          console.log('User returned after', Math.round(timeSinceActive / 1000), 'seconds - refreshing session');
+          try {
+            const { data: { session }, error } = await supabase.auth.refreshSession();
+            if (error) {
+              console.warn('Session refresh failed:', error.message);
+              // If session refresh fails completely, the user may need to re-login
+              if (error.message.includes('refresh_token') || error.message.includes('invalid')) {
+                console.log('Session invalid, user may need to re-login');
+              }
+            } else if (session) {
+              console.log('Session refreshed successfully');
+            }
+          } catch (err) {
+            console.warn('Error refreshing session:', err);
+          }
+        }
+      } else {
+        // User is leaving the tab, record the time
+        lastActiveTime = Date.now();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
+
   const handleLogin = async (u: User): Promise<void> => {
     // Set flag to prevent onAuthStateChange from interfering
     setIsManualAuth(true);
