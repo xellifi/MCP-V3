@@ -81,8 +81,6 @@ const SendMessageNodeForm: React.FC<SendMessageNodeFormProps> = ({
     }, [workspaceId, pageId]);
 
     const fetchStartFlows = async () => {
-        console.log('Fetching flows for workspace:', workspaceId, 'pageId:', pageId);
-
         // Fetch flows and pages in parallel
         const [flowsResult, pagesResult] = await Promise.all([
             supabase
@@ -103,14 +101,11 @@ const SendMessageNodeForm: React.FC<SendMessageNodeFormProps> = ({
             setPages(pagesData);
         }
 
-        console.log('Flows query result:', { flows, error });
-
         if (!error && flows) {
             // Filter flows that have Start nodes
             let filteredFlows = flows.filter(flow => {
                 const nodes = flow.nodes || [];
                 const hasStartNode = nodes.some((n: any) => n.type === 'startNode');
-                console.log(`Flow "${flow.name}" has Start node:`, hasStartNode);
                 return hasStartNode;
             });
 
@@ -169,7 +164,6 @@ const SendMessageNodeForm: React.FC<SendMessageNodeFormProps> = ({
                 };
             });
 
-            console.log('Enriched flows:', enrichedFlows);
             setStartFlows(enrichedFlows);
         } else if (error) {
             console.error('Error fetching flows:', error);
@@ -192,9 +186,6 @@ const SendMessageNodeForm: React.FC<SendMessageNodeFormProps> = ({
                 .select('openai_api_key, gemini_api_key')
                 .eq('id', 1)
                 .single();
-
-            console.log('Workspace settings:', workspaceSettings);
-            console.log('Admin settings:', adminSettings);
 
             const providers = AI_PROVIDERS.map(provider => {
                 let available = false;

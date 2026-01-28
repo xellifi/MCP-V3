@@ -91,9 +91,6 @@ const CommentReplyNodeForm: React.FC<CommentReplyNodeFormProps> = ({
                 .eq('id', 1)
                 .single();
 
-            console.log('Workspace settings for AI:', workspaceSettings);
-            console.log('Admin settings for AI:', adminSettings);
-
             const providers = AI_PROVIDERS.map(provider => {
                 let available = false;
                 if (provider.id === 'openai') {

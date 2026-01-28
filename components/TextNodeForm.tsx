@@ -130,8 +130,6 @@ const TextNodeForm: React.FC<TextNodeFormProps> = ({
     };
 
     const fetchStartFlows = async () => {
-        console.log('TextNodeForm: Fetching flows for workspace:', workspaceId, 'pageId:', pageId);
-
         // Fetch flows and pages in parallel
         const [flowsResult, pagesResult] = await Promise.all([
             supabase
@@ -151,8 +149,6 @@ const TextNodeForm: React.FC<TextNodeFormProps> = ({
         if (pagesData) {
             setPages(pagesData);
         }
-
-        console.log('TextNodeForm: Flows query result:', { flows, error });
 
         if (!error && flows) {
             // Filter flows that have Start nodes
@@ -216,7 +212,6 @@ const TextNodeForm: React.FC<TextNodeFormProps> = ({
                 };
             });
 
-            console.log('TextNodeForm: Enriched flows:', enrichedFlows);
             setStartFlows(enrichedFlows);
         } else if (error) {
             console.error('TextNodeForm: Error fetching flows:', error);

@@ -26,8 +26,6 @@ export const sendMessageNodeConfig: NodeConfigDefinition = {
     }),
 
     extractConfig: (nodeData: any) => {
-        console.log('[sendMessageNodeConfig] Extracting config from nodeData:', nodeData);
-
         const config = {
             messageTemplate: nodeData.messageTemplate || '',
             buttons: nodeData.buttons || [],
@@ -36,7 +34,6 @@ export const sendMessageNodeConfig: NodeConfigDefinition = {
             aiPrompt: nodeData.aiPrompt || ''
         };
 
-        console.log('[sendMessageNodeConfig] Extracted config:', config);
         return config;
     },
 

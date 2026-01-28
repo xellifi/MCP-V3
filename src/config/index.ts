@@ -17,13 +17,6 @@ export function initializeNodeConfigs() {
     nodeConfigRegistry.register(commentReplyNodeConfig);
     nodeConfigRegistry.register(sendMessageNodeConfig);
     nodeConfigRegistry.register(textNodeConfig);
-
-    console.log('[NodeConfig] Registered node configurations:', {
-        trigger: triggerNodeConfig.nodeType,
-        commentReply: commentReplyNodeConfig.nodeType,
-        sendMessage: sendMessageNodeConfig.nodeType,
-        text: textNodeConfig.nodeType
-    });
 }
 
 // Auto-initialize when this module is imported

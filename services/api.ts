@@ -2311,8 +2311,6 @@ export const api = {
         allowed_email_domains: settings.allowedEmailDomains
       };
 
-      console.log('Attempting to save admin settings:', dbPayload);
-
       const { error } = await supabase
         .from('admin_settings')
         .upsert(dbPayload);

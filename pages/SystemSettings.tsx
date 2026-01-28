@@ -254,7 +254,6 @@ const SystemSettings: React.FC<SystemSettingsProps> = ({ user }) => {
   const handleSaveSection = async (sectionName: string, setLoadingState: (v: boolean) => void) => {
     setLoadingState(true);
     try {
-      console.log(`Saving ${sectionName}...`, settings);
       await api.admin.saveSettings(settings);
 
       // If saving theme, also update local preference to match immediately
@@ -266,11 +265,9 @@ const SystemSettings: React.FC<SystemSettingsProps> = ({ user }) => {
         }
       }
 
-      console.log(`${sectionName} saved successfully!`);
       toast.success(`${sectionName} saved successfully`);
     } catch (err: any) {
-      console.error(`Failed to save ${sectionName}:`, err);
-      console.error('Error details:', err.message, err.stack);
+      console.error(`Failed to save ${sectionName}:`, err.message);
       toast.error(`Failed to save ${sectionName}: ${err.message || 'Please try again'}`);
     } finally {
       setLoadingState(false);
@@ -843,8 +840,8 @@ const SystemSettings: React.FC<SystemSettingsProps> = ({ user }) => {
               <h4 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
                 Enable Domain Restriction
                 <span className={`text-xs font-normal px-2 py-0.5 rounded-full ${settings.emailDomainRestrictionEnabled
-                    ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400'
-                    : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
+                  ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400'
+                  : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
                   }`}>
                   {settings.emailDomainRestrictionEnabled ? 'Active' : 'Inactive'}
                 </span>

@@ -17,8 +17,6 @@ export const commentReplyNodeConfig: NodeConfigDefinition = {
     }),
 
     extractConfig: (nodeData: any) => {
-        console.log('[commentReplyNodeConfig] Extracting config from nodeData:', nodeData);
-
         const config = {
             replyTemplate: nodeData.replyTemplate || '',
             useAiReply: nodeData.useAiReply || false,
@@ -26,7 +24,6 @@ export const commentReplyNodeConfig: NodeConfigDefinition = {
             aiPrompt: nodeData.aiPrompt || ''
         };
 
-        console.log('[commentReplyNodeConfig] Extracted config:', config);
         return config;
     },
 

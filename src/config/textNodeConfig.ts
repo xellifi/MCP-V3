@@ -22,15 +22,12 @@ export const textNodeConfig: NodeConfigDefinition = {
     }),
 
     extractConfig: (nodeData: any) => {
-        console.log('[textNodeConfig] Extracting config from nodeData:', nodeData);
-
         const config = {
             textContent: nodeData.textContent || '',
             delaySeconds: nodeData.delaySeconds || 0,
             buttons: nodeData.buttons || []
         };
 
-        console.log('[textNodeConfig] Extracted config:', config);
         return config;
     },
 

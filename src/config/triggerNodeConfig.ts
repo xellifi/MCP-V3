@@ -16,8 +16,6 @@ export const triggerNodeConfig: NodeConfigDefinition = {
     }),
 
     extractConfig: (nodeData: any) => {
-        console.log('[triggerNodeConfig] Extracting config from nodeData:', nodeData);
-
         const config = {
             pageId: nodeData.pageId || '',
             // CRITICAL: Explicitly check for undefined to preserve false values
@@ -30,7 +28,6 @@ export const triggerNodeConfig: NodeConfigDefinition = {
                 : true
         };
 
-        console.log('[triggerNodeConfig] Extracted config:', config);
         return config;
     },
 
