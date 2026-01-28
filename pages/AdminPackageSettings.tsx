@@ -233,7 +233,7 @@ const AdminPackageSettings: React.FC = () => {
             name: '',
             priceMonthly: 0,
             priceYearly: 0,
-            priceDaily: 0,
+            priceCustom: 0,
             durationDays: undefined,
             currency: 'USD',
             color: 'slate',
@@ -280,7 +280,7 @@ const AdminPackageSettings: React.FC = () => {
                     priceMonthly: Number(currentPackage.priceMonthly) || 0,
                     priceYearly: Number(currentPackage.priceYearly) || 0,
                     priceLifetime: currentPackage.priceLifetime ? Number(currentPackage.priceLifetime) : undefined,
-                    priceDaily: Number(currentPackage.priceDaily) || 0,
+                    priceCustom: Number((currentPackage as any).priceCustom || (currentPackage as any).priceDaily) || 0,
                     durationDays: currentPackage.durationDays ? Number(currentPackage.durationDays) : undefined,
                     currency: currentPackage.currency || 'USD',
                     isActive: currentPackage.isActive !== false,
@@ -1021,14 +1021,14 @@ const AdminPackageSettings: React.FC = () => {
                                                 </select>
                                             </div>
                                         </div>
-                                        <div className="grid grid-cols-5 gap-2">
+                                        <div className="grid grid-cols-3 gap-3">
                                             <div>
                                                 <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Monthly ($)</label>
                                                 <input
                                                     type="number"
                                                     value={currentPackage.priceMonthly || 0}
                                                     onChange={e => setCurrentPackage({ ...currentPackage, priceMonthly: parseFloat(e.target.value) })}
-                                                    className="w-full px-2 py-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none text-sm"
+                                                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none text-sm"
                                                 />
                                             </div>
                                             <div>
@@ -1037,7 +1037,7 @@ const AdminPackageSettings: React.FC = () => {
                                                     type="number"
                                                     value={currentPackage.priceYearly || 0}
                                                     onChange={e => setCurrentPackage({ ...currentPackage, priceYearly: parseFloat(e.target.value) })}
-                                                    className="w-full px-2 py-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none text-sm"
+                                                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none text-sm"
                                                 />
                                             </div>
                                             <div>
@@ -1046,28 +1046,31 @@ const AdminPackageSettings: React.FC = () => {
                                                     type="number"
                                                     value={currentPackage.priceLifetime || 0}
                                                     onChange={e => setCurrentPackage({ ...currentPackage, priceLifetime: parseFloat(e.target.value) || undefined })}
-                                                    className="w-full px-2 py-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none text-sm"
+                                                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none text-sm"
                                                 />
                                             </div>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-3 mt-3">
                                             <div>
-                                                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Daily ($)</label>
+                                                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Custom Price ($)</label>
                                                 <input
                                                     type="number"
-                                                    value={currentPackage.priceDaily || 0}
-                                                    onChange={e => setCurrentPackage({ ...currentPackage, priceDaily: parseFloat(e.target.value) || 0 })}
-                                                    className="w-full px-2 py-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none text-sm"
+                                                    value={(currentPackage as any).priceCustom || (currentPackage as any).priceDaily || 0}
+                                                    onChange={e => setCurrentPackage({ ...currentPackage, priceCustom: parseFloat(e.target.value) || 0 } as any)}
+                                                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none text-sm"
+                                                    placeholder="e.g. 5"
                                                 />
                                             </div>
                                             <div>
-                                                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Days</label>
+                                                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Custom Validity (Days)</label>
                                                 <input
                                                     type="number"
                                                     min="1"
-                                                    max="30"
+                                                    max="365"
                                                     value={currentPackage.durationDays || ''}
                                                     onChange={e => setCurrentPackage({ ...currentPackage, durationDays: e.target.value ? parseInt(e.target.value) : undefined })}
-                                                    className="w-full px-2 py-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none text-sm"
-                                                    placeholder="1-30"
+                                                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none text-sm"
+                                                    placeholder="e.g. 7"
                                                 />
                                             </div>
                                         </div>

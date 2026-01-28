@@ -8,13 +8,14 @@ import { useSubscription } from '../context/SubscriptionContext';
 
 const SubscriptionPlans: React.FC = () => {
     const [searchParams, setSearchParams] = useSearchParams();
-    const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly' | 'lifetime'>('monthly');
+    const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly' | 'lifetime' | 'custom'>('monthly');
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
-    const [selectedPlan, setSelectedPlan] = useState<{ name: string, price: number } | null>(null);
+    const [selectedPlan, setSelectedPlan] = useState<{ name: string, price: number, durationDays?: number } | null>(null);
 
     const [plans, setPlans] = useState<any[]>([]); // Using any[] for UI mapped shape, or define interface
     const [loading, setLoading] = useState(true);
     const [hasLifetimeOptions, setHasLifetimeOptions] = useState(false);
+    const [hasCustomOptions, setHasCustomOptions] = useState(false);
 
     // Use shared subscription context for realtime updates
     const { currentSubscription, refreshSubscription } = useSubscription();
@@ -44,6 +45,14 @@ const SubscriptionPlans: React.FC = () => {
                     const anyLifetime = visiblePackages.some(pkg => pkg.priceLifetime && pkg.priceLifetime > 0);
                     setHasLifetimeOptions(anyLifetime);
 
+                    // Check if any package has custom duration pricing
+                    const anyCustom = visiblePackages.some(pkg =>
+                        ((pkg as any).priceCustom || (pkg as any).priceDaily) &&
+                        ((pkg as any).priceCustom > 0 || (pkg as any).priceDaily > 0) &&
+                        pkg.durationDays && pkg.durationDays > 0
+                    );
+                    setHasCustomOptions(anyCustom);
+
                     // Map DB packages to UI structure
                     const mappedPlans = visiblePackages.map(pkg => {
                         // Determine Icon based on ID or Name
@@ -52,29 +61,48 @@ const SubscriptionPlans: React.FC = () => {
                         else if (pkg.id === 'starter') Icon = Zap;
                         else if (pkg.id === 'pro') Icon = Crown;
 
+                        // Get custom price (supports both old priceDaily and new priceCustom)
+                        const customPrice = (pkg as any).priceCustom || (pkg as any).priceDaily || 0;
+                        const durationDays = pkg.durationDays || 0;
+                        const hasCustomPricing = customPrice > 0 && durationDays > 0;
+
                         // Check if this is a lifetime-only package (no monthly/yearly pricing)
                         const isLifetimeOnly = (!pkg.priceMonthly || pkg.priceMonthly === 0) &&
                             (!pkg.priceYearly || pkg.priceYearly === 0) &&
                             (pkg.priceLifetime && pkg.priceLifetime > 0);
 
+                        // Check if this is a custom-only package (no monthly/yearly/lifetime pricing)
+                        const isCustomOnly = (!pkg.priceMonthly || pkg.priceMonthly === 0) &&
+                            (!pkg.priceYearly || pkg.priceYearly === 0) &&
+                            (!pkg.priceLifetime || pkg.priceLifetime === 0) &&
+                            hasCustomPricing;
+
                         // Determine price based on billing cycle
-                        // For lifetime-only packages, always show lifetime price
                         let price = pkg.priceMonthly;
                         let effectiveBillingCycle = billingCycle;
 
-                        if (isLifetimeOnly) {
+                        if (isCustomOnly) {
+                            price = customPrice;
+                            effectiveBillingCycle = 'custom';
+                        } else if (isLifetimeOnly) {
                             price = pkg.priceLifetime;
                             effectiveBillingCycle = 'lifetime';
                         } else if (billingCycle === 'yearly') {
                             price = pkg.priceYearly;
                         } else if (billingCycle === 'lifetime') {
                             price = pkg.priceLifetime || 0;
+                        } else if (billingCycle === 'custom' && hasCustomPricing) {
+                            price = customPrice;
                         }
 
                         return {
                             ...pkg, // id, name, priceMonthly, priceYearly, priceLifetime, color, features (string[])
                             price: price,
+                            customPrice: customPrice,
+                            durationDays: durationDays,
+                            hasCustomPricing: hasCustomPricing,
                             isLifetimeOnly: isLifetimeOnly, // Flag for UI rendering
+                            isCustomOnly: isCustomOnly,
                             effectiveBillingCycle: effectiveBillingCycle,
                             description: getDescriptionForPlan(pkg.id),
                             icon: Icon,
@@ -135,7 +163,11 @@ const SubscriptionPlans: React.FC = () => {
     };
 
     const handleSelectPlan = (plan: typeof plans[0]) => {
-        setSelectedPlan({ name: plan.name, price: plan.price });
+        setSelectedPlan({
+            name: plan.name,
+            price: plan.price,
+            durationDays: plan.effectiveBillingCycle === 'custom' ? plan.durationDays : undefined
+        });
         setIsPaymentModalOpen(true);
     };
 
@@ -186,7 +218,7 @@ const SubscriptionPlans: React.FC = () => {
 
                     {/* Billing Toggle */}
                     <div className="flex justify-center mt-8">
-                        <div className="relative flex items-center bg-slate-200 dark:bg-slate-800 p-1 rounded-xl">
+                        <div className="relative flex items-center flex-wrap justify-center gap-1 bg-slate-200 dark:bg-slate-800 p-1 rounded-xl">
                             <button
                                 onClick={() => setBillingCycle('monthly')}
                                 className={`relative z-10 px-6 py-2 text-sm font-semibold rounded-lg transition-all duration-300 ${billingCycle === 'monthly'
@@ -194,7 +226,7 @@ const SubscriptionPlans: React.FC = () => {
                                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                                     }`}
                             >
-                                Monthly billing
+                                Monthly
                             </button>
                             <button
                                 onClick={() => setBillingCycle('yearly')}
@@ -203,7 +235,7 @@ const SubscriptionPlans: React.FC = () => {
                                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                                     }`}
                             >
-                                Yearly billing <span className="ml-1 text-xs text-green-600 font-bold bg-green-100 dark:bg-green-900/30 px-1.5 py-0.5 rounded-full">-20%</span>
+                                Yearly <span className="ml-1 text-xs text-green-600 font-bold bg-green-100 dark:bg-green-900/30 px-1.5 py-0.5 rounded-full">-20%</span>
                             </button>
                             {hasLifetimeOptions && (
                                 <button
@@ -214,6 +246,19 @@ const SubscriptionPlans: React.FC = () => {
                                         }`}
                                 >
                                     Lifetime <span className="ml-1 text-xs text-amber-600 font-bold bg-amber-100 dark:bg-amber-900/30 px-1.5 py-0.5 rounded-full">∞</span>
+                                </button>
+                            )}
+                            {hasCustomOptions && (
+                                <button
+                                    onClick={() => setBillingCycle('custom')}
+                                    className={`relative z-10 px-6 py-2 text-sm font-semibold rounded-lg transition-all duration-300 ${billingCycle === 'custom'
+                                        ? 'text-slate-900 dark:text-white shadow-sm bg-white dark:bg-slate-700'
+                                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                                        }`}
+                                >
+                                    Custom <span className="ml-1 text-xs text-purple-600 font-bold bg-purple-100 dark:bg-purple-900/30 px-1.5 py-0.5 rounded-full">
+                                        {plans.find(p => p.hasCustomPricing)?.durationDays || 'X'} days
+                                    </span>
                                 </button>
                             )}
                         </div>
@@ -384,6 +429,7 @@ const SubscriptionPlans: React.FC = () => {
                     planName={selectedPlan.name}
                     billingCycle={billingCycle}
                     price={selectedPlan.price}
+                    durationDays={selectedPlan.durationDays}
                 />
             )}
         </div>

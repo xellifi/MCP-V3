@@ -177,7 +177,7 @@ export interface UserSubscription {
   user_id: string;
   package_id: string;
   status: 'Active' | 'Pending' | 'Past Due' | 'Cancelled';
-  billing_cycle: 'Monthly' | 'Yearly' | 'Lifetime' | 'Daily';
+  billing_cycle: 'Monthly' | 'Yearly' | 'Lifetime' | 'Custom';
   amount: number;
   next_billing_date: string | null;
   created_at: string;
@@ -319,8 +319,8 @@ export interface Package {
   priceMonthly: number;
   priceYearly: number;
   priceLifetime?: number; // Lifetime one-time payment price
-  priceDaily?: number; // Daily/sachet package price
-  durationDays?: number; // Number of days for sachet packages (1-30)
+  priceCustom?: number; // Custom duration price (e.g., $5 for X days)
+  durationDays?: number; // Number of days for custom packages (1-365)
   currency: string;
   features: string[];
   limits: Record<string, number | string>;

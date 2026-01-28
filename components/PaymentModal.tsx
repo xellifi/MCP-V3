@@ -7,8 +7,9 @@ interface PaymentModalProps {
     onClose: () => void;
     onSuccess?: () => void; // Callback after successful payment
     planName: string;
-    billingCycle: 'monthly' | 'yearly' | 'lifetime';
+    billingCycle: 'monthly' | 'yearly' | 'lifetime' | 'custom';
     price: number;
+    durationDays?: number; // For custom duration billing
 }
 
 const PaymentModal: React.FC<PaymentModalProps> = ({
@@ -17,7 +18,8 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
     onSuccess,
     planName,
     billingCycle,
-    price
+    price,
+    durationDays
 }) => {
     const [selectedMethod, setSelectedMethod] = useState<string>('xendit');
     const [isProcessing, setIsProcessing] = useState(false);
@@ -90,9 +92,16 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                     email: finalEmail || 'guest@example.com', // Fallback for safety, logic should be tighter
                     package_id: packageId,
                     status: 'Pending', // Manual payments require admin approval
-                    billing_cycle: billingCycle === 'monthly' ? 'Monthly' : billingCycle === 'yearly' ? 'Yearly' : 'Lifetime',
+                    billing_cycle: billingCycle === 'monthly' ? 'Monthly' :
+                        billingCycle === 'yearly' ? 'Yearly' :
+                            billingCycle === 'custom' ? 'Custom' : 'Lifetime',
                     amount: price,
-                    next_billing_date: billingCycle === 'lifetime' ? null : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+                    next_billing_date: billingCycle === 'lifetime' ? null :
+                        billingCycle === 'custom' && durationDays ?
+                            new Date(Date.now() + durationDays * 24 * 60 * 60 * 1000).toISOString() :
+                            billingCycle === 'yearly' ?
+                                new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString() :
+                                new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
                     payment_method: selectedMethod,
                     proof_url: proofUrl
                 });

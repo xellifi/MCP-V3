@@ -138,8 +138,8 @@ const AdminSubscriptions: React.FC = () => {
             const selectedPackage = packages.find(p => p.id === editingSubscription.packageId);
             const amount = editingSubscription.billing === 'Yearly'
                 ? (selectedPackage?.priceYearly || 0)
-                : editingSubscription.billing === 'Daily'
-                    ? (selectedPackage?.priceDaily || 0)
+                : editingSubscription.billing === 'Custom'
+                    ? ((selectedPackage as any)?.priceCustom || 0)
                     : editingSubscription.billing === 'Lifetime'
                         ? (selectedPackage?.priceLifetime || 0)
                         : (selectedPackage?.priceMonthly || 0);
@@ -211,8 +211,8 @@ const AdminSubscriptions: React.FC = () => {
             const selectedPackage = packages.find(p => p.id === newSubscriber.plan);
             const amount = newSubscriber.billing === 'Yearly'
                 ? (selectedPackage?.priceYearly || 0)
-                : newSubscriber.billing === 'Daily'
-                    ? (selectedPackage?.priceDaily || 0)
+                : newSubscriber.billing === 'Custom'
+                    ? ((selectedPackage as any)?.priceCustom || 0)
                     : newSubscriber.billing === 'Lifetime'
                         ? (selectedPackage?.priceLifetime || 0)
                         : (selectedPackage?.priceMonthly || 0);
