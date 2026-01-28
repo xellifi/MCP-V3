@@ -1021,7 +1021,7 @@ const AdminPackageSettings: React.FC = () => {
                                                 </select>
                                             </div>
                                         </div>
-                                        <div className="grid grid-cols-4 gap-2">
+                                        <div className="grid grid-cols-5 gap-2">
                                             <div>
                                                 <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Monthly ($)</label>
                                                 <input
@@ -1056,6 +1056,18 @@ const AdminPackageSettings: React.FC = () => {
                                                     value={currentPackage.priceDaily || 0}
                                                     onChange={e => setCurrentPackage({ ...currentPackage, priceDaily: parseFloat(e.target.value) || 0 })}
                                                     className="w-full px-2 py-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none text-sm"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Days</label>
+                                                <input
+                                                    type="number"
+                                                    min="1"
+                                                    max="30"
+                                                    value={currentPackage.durationDays || ''}
+                                                    onChange={e => setCurrentPackage({ ...currentPackage, durationDays: e.target.value ? parseInt(e.target.value) : undefined })}
+                                                    className="w-full px-2 py-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none text-sm"
+                                                    placeholder="1-30"
                                                 />
                                             </div>
                                         </div>
