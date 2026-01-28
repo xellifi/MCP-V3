@@ -68,6 +68,7 @@ const AdminPackageSettings: React.FC = () => {
     const [activePaymentMethod, setActivePaymentMethod] = useState<string | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [currentPackage, setCurrentPackage] = useState<Partial<Package>>({});
+    const [savingPackage, setSavingPackage] = useState(false);
     const toast = useToast();
 
     // Fetch packages on mount
@@ -256,6 +257,7 @@ const AdminPackageSettings: React.FC = () => {
             return;
         }
 
+        setSavingPackage(true);
         try {
             if (currentPackage.id) {
                 // Update
@@ -268,6 +270,7 @@ const AdminPackageSettings: React.FC = () => {
                 // Check locally if ID already exists
                 if (packages.some(p => p.id === newId)) {
                     toast.error(`Package with ID '${newId}' already exists. Please choose a different name.`);
+                    setSavingPackage(false);
                     return;
                 }
 
@@ -294,6 +297,8 @@ const AdminPackageSettings: React.FC = () => {
             console.error('Error saving package:', error);
             const msg = error.message || 'Failed to save package';
             toast.error(msg);
+        } finally {
+            setSavingPackage(false);
         }
     };
 
@@ -973,8 +978,8 @@ const AdminPackageSettings: React.FC = () => {
                     </div>
                 )}
                 {isModalOpen && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm" onClick={() => setIsModalOpen(false)}>
-                        <div className="relative max-w-3xl w-full bg-white dark:bg-slate-900 rounded-xl overflow-hidden shadow-2xl max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm">
+                        <div className="relative max-w-3xl w-full bg-white dark:bg-slate-900 rounded-xl overflow-hidden shadow-2xl max-h-[90vh] flex flex-col">
                             <div className="flex items-center justify-between p-6 border-b border-slate-200 dark:border-slate-800 shrink-0">
                                 <h3 className="text-xl font-bold text-slate-900 dark:text-white">
                                     {currentPackage.id ? 'Edit Package' : 'Create New Package'}
@@ -1192,10 +1197,15 @@ const AdminPackageSettings: React.FC = () => {
                                     </button>
                                     <button
                                         onClick={handleModalSave}
-                                        className="px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-lg transition-colors shadow-sm flex items-center gap-2"
+                                        disabled={savingPackage}
+                                        className="px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-lg transition-colors shadow-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
-                                        <Save className="w-4 h-4" />
-                                        {currentPackage.id ? 'Save Changes' : 'Create Package'}
+                                        {savingPackage ? (
+                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                        ) : (
+                                            <Save className="w-4 h-4" />
+                                        )}
+                                        {savingPackage ? 'Saving...' : (currentPackage.id ? 'Save Changes' : 'Create Package')}
                                     </button>
                                 </div>
                             </div>
