@@ -10,7 +10,7 @@ const SubscriptionPlans: React.FC = () => {
     const [searchParams, setSearchParams] = useSearchParams();
     const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly' | 'lifetime' | 'custom'>('monthly');
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
-    const [selectedPlan, setSelectedPlan] = useState<{ name: string, price: number, durationDays?: number, effectiveBillingCycle?: 'monthly' | 'yearly' | 'lifetime' | 'custom' } | null>(null);
+    const [selectedPlan, setSelectedPlan] = useState<{ id: string, name: string, price: number, durationDays?: number, effectiveBillingCycle?: 'monthly' | 'yearly' | 'lifetime' | 'custom' } | null>(null);
 
     const [plans, setPlans] = useState<any[]>([]); // Using any[] for UI mapped shape, or define interface
     const [loading, setLoading] = useState(true);
@@ -145,7 +145,7 @@ const SubscriptionPlans: React.FC = () => {
                     setBillingCycle(billingFromUrl);
                 }
                 // Open payment modal with the selected plan
-                setSelectedPlan({ name: matchedPlan.name, price: parseFloat(priceFromUrl) });
+                setSelectedPlan({ id: matchedPlan.id, name: matchedPlan.name, price: parseFloat(priceFromUrl) });
                 setIsPaymentModalOpen(true);
                 // Clear URL params after handling
                 setSearchParams({});
@@ -164,6 +164,7 @@ const SubscriptionPlans: React.FC = () => {
 
     const handleSelectPlan = (plan: typeof plans[0]) => {
         setSelectedPlan({
+            id: plan.id,
             name: plan.name,
             price: plan.price,
             durationDays: plan.effectiveBillingCycle === 'custom' ? plan.durationDays : undefined,
@@ -430,6 +431,7 @@ const SubscriptionPlans: React.FC = () => {
                     onClose={() => setIsPaymentModalOpen(false)}
                     onSuccess={refreshSubscription}
                     planName={selectedPlan.name}
+                    packageId={selectedPlan.id}
                     billingCycle={selectedPlan.effectiveBillingCycle || billingCycle}
                     price={selectedPlan.price}
                     durationDays={selectedPlan.durationDays}

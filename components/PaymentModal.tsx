@@ -7,6 +7,7 @@ interface PaymentModalProps {
     onClose: () => void;
     onSuccess?: () => void; // Callback after successful payment
     planName: string;
+    packageId: string; // Actual package ID from database
     billingCycle: 'monthly' | 'yearly' | 'lifetime' | 'custom';
     price: number;
     durationDays?: number; // For custom duration billing
@@ -17,6 +18,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
     onClose,
     onSuccess,
     planName,
+    packageId,
     billingCycle,
     price,
     durationDays
@@ -84,10 +86,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                 const proofUrl = await api.subscriptions.uploadProof(proofFile);
 
                 // 2. Create Subscription (Pending)
-                // Map planName to id. E.g. "Starter Plan" -> "starter"
-                // Ideally this prop should be planId.
-                const packageId = planName.toLowerCase().split(' ')[0];
-
+                // Use actual packageId prop instead of deriving from plan name
                 await api.subscriptions.create({
                     email: finalEmail || 'guest@example.com', // Fallback for safety, logic should be tighter
                     package_id: packageId,
