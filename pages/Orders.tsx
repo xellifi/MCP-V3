@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useTheme } from '../context/ThemeContext';
+import { useCurrency } from '../context/CurrencyContext';
 import ShippingModal from '../components/ShippingModal';
 
 interface OrdersProps {
@@ -56,6 +57,7 @@ const PAYMENT_ICONS: Record<string, string> = {
 };
 
 const Orders: React.FC<OrdersProps> = ({ workspace }) => {
+    const { selectedCurrency } = useCurrency();
     const [orders, setOrders] = useState<Order[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
@@ -626,7 +628,7 @@ const Orders: React.FC<OrdersProps> = ({ workspace }) => {
                                                 <p className="text-slate-500 text-xs">Qty: {item.quantity || 1}</p>
                                             </div>
                                         </div>
-                                        <p className="text-emerald-400 font-semibold">₱{(item.productPrice * (item.quantity || 1)).toLocaleString()}</p>
+                                        <p className="text-emerald-400 font-semibold">{selectedCurrency} {(item.productPrice * (item.quantity || 1)).toLocaleString()}</p>
                                     </div>
                                 ))}
                             </div>
@@ -641,12 +643,12 @@ const Orders: React.FC<OrdersProps> = ({ workspace }) => {
                             <div className="space-y-2 text-sm">
                                 <div className={`flex justify-between ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
                                     <span>Subtotal</span>
-                                    <span>₱{selectedOrder.subtotal.toLocaleString()}</span>
+                                    <span>{selectedCurrency} {selectedOrder.subtotal.toLocaleString()}</span>
                                 </div>
                                 <div className={`flex justify-between ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
                                     <span>Shipping</span>
                                     <span className={selectedOrder.shipping_fee === 0 ? 'text-emerald-400' : ''}>
-                                        {selectedOrder.shipping_fee === 0 ? 'FREE' : `₱${selectedOrder.shipping_fee.toLocaleString()}`}
+                                        {selectedOrder.shipping_fee === 0 ? 'FREE' : `${selectedCurrency} ${selectedOrder.shipping_fee.toLocaleString()}`}
                                     </span>
                                 </div>
                                 {selectedOrder.metadata?.discount > 0 && (
@@ -656,12 +658,12 @@ const Orders: React.FC<OrdersProps> = ({ workspace }) => {
                                             Discount
                                             {selectedOrder.metadata?.promoCode && <span className="text-xs opacity-75">({selectedOrder.metadata.promoCode})</span>}
                                         </span>
-                                        <span>-₱{selectedOrder.metadata.discount.toLocaleString()}</span>
+                                        <span>-{selectedCurrency} {selectedOrder.metadata.discount.toLocaleString()}</span>
                                     </div>
                                 )}
                                 <div className={`flex justify-between font-bold text-lg pt-2 border-t ${isDark ? 'text-white border-white/10' : 'text-slate-900 border-slate-200'}`}>
                                     <span>Total</span>
-                                    <span className="text-emerald-400">₱{selectedOrder.total.toLocaleString()}</span>
+                                    <span className="text-emerald-400">{selectedCurrency} {selectedOrder.total.toLocaleString()}</span>
                                 </div>
                                 <div className={`flex items-center gap-2 pt-2 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
                                     <span className="text-lg">{PAYMENT_ICONS[selectedOrder.payment_method] || '💳'}</span>
@@ -1325,7 +1327,7 @@ const Orders: React.FC<OrdersProps> = ({ workspace }) => {
                                                 <p className={`${isDark ? 'text-slate-300' : 'text-slate-600'}`}>{order.items.length} item(s)</p>
                                             </td>
                                             <td className="p-4">
-                                                <p className={`font-bold ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`}>₱{order.total.toLocaleString()}</p>
+                                                <p className={`font-bold ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`}>{selectedCurrency} {order.total.toLocaleString()}</p>
                                             </td>
                                             <td className="p-4">
                                                 <div className="flex items-center gap-2">

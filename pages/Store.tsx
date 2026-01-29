@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import {
     Store as StoreIcon, Package, ShoppingCart, Settings, Plus, Edit2, Trash2,
     Search, Filter, MoreVertical, Image as ImageIcon, Upload, X, Save,
@@ -93,7 +94,18 @@ const PRESET_COLORS = ['#7c3aed', '#6366f1', '#3b82f6', '#0891b2', '#10b981', '#
 
 const Store: React.FC<StoreProps> = ({ workspace }) => {
     const { isDark } = useTheme();
+    const location = useLocation();
     const [activeTab, setActiveTab] = useState('products');
+
+    // Handle initial tab from query param
+    useEffect(() => {
+        const params = new URLSearchParams(location.search);
+        const tab = params.get('tab');
+        if (tab && TABS.some(t => t.id === tab)) {
+            setActiveTab(tab);
+        }
+    }, [location.search]);
+
     const [loading, setLoading] = useState(true);
 
     // Products state

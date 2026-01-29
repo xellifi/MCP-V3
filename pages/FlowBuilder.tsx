@@ -1369,6 +1369,7 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace, user }) => {
           // Merge sheets config into form config
           const formConfigWithSheets = {
             ...formConfig,
+            pageId: flowPageId,
             // Add sheets config if connected
             ...(sheetsConfig ? {
               googleSheetId: sheetsConfig.spreadsheetId,

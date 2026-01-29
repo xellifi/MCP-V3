@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Package as PackageIcon, Check, Shield, CreditCard, Edit3, Save, Image as ImageIcon, CheckCircle, XCircle, Eye, Plus, Loader2, Trash2, ShieldAlert, Banknote, Smartphone, Globe, Settings, LayoutList, LayoutGrid } from 'lucide-react';
 import { api } from '../services/api';
+import { useCurrency } from '../context/CurrencyContext';
 import { useToast } from '../context/ToastContext';
 import { Package, User, UserRole } from '../types';
 
@@ -46,6 +47,7 @@ const ALL_ROUTES = Object.entries(ALL_NAV_ITEMS)
 // e.g. { id: '/admin', label: 'Admin Area' }
 
 const AdminPackageSettings: React.FC = () => {
+    const { selectedCurrency } = useCurrency();
     const [activeTab, setActiveTab] = useState<'packages' | 'payments' | 'modes' | 'pages'>('packages');
     const [permissions, setPermissions] = useState<any>(INITIAL_PERMISSIONS);
     const [routePermissions, setRoutePermissions] = useState<any>({}); // { [packageId]: ['/dashboard', '/settings'] }
@@ -582,11 +584,11 @@ const AdminPackageSettings: React.FC = () => {
                                                 <div className="text-2xl font-bold text-slate-900 dark:text-white mb-4 flex items-end gap-1">
                                                     {/* Custom-only package (no monthly/yearly, has custom price) */}
                                                     {(!pkg.priceMonthly && !pkg.priceYearly && !pkg.priceLifetime && ((pkg as any).priceCustom > 0 || (pkg as any).priceDaily > 0)) ? (
-                                                        <>${(pkg as any).priceCustom || (pkg as any).priceDaily}<span className="text-sm font-normal text-slate-500 mb-1">/ {pkg.durationDays || 1} {(pkg.durationDays || 1) === 1 ? 'day' : 'days'}</span></>
+                                                        <>{selectedCurrency} {(pkg as any).priceCustom || (pkg as any).priceDaily}<span className="text-sm font-normal text-slate-500 mb-1">/ {pkg.durationDays || 1} {(pkg.durationDays || 1) === 1 ? 'day' : 'days'}</span></>
                                                     ) : (!pkg.priceMonthly && !pkg.priceYearly && pkg.priceLifetime) ? (
-                                                        <>${pkg.priceLifetime}<span className="text-sm font-normal text-slate-500 mb-1">one-time</span></>
+                                                        <>{selectedCurrency} {pkg.priceLifetime}<span className="text-sm font-normal text-slate-500 mb-1">one-time</span></>
                                                     ) : (
-                                                        <>${pkg.priceMonthly}<span className="text-sm font-normal text-slate-500 mb-1">/mo</span></>
+                                                        <>{selectedCurrency} {pkg.priceMonthly}<span className="text-sm font-normal text-slate-500 mb-1">/mo</span></>
                                                     )}
                                                 </div>
                                                 <ul className="space-y-2 mb-6 min-h-[100px]">
@@ -657,8 +659,8 @@ const AdminPackageSettings: React.FC = () => {
                                                                 </div>
                                                             </td>
                                                             <td className="px-6 py-4">
-                                                                <div className="text-sm text-slate-900 dark:text-white font-medium">${pkg.priceMonthly} <span className="text-slate-400 font-normal">/mo</span></div>
-                                                                <div className="text-xs text-slate-500">${pkg.priceYearly} /yr</div>
+                                                                <div className="text-sm text-slate-900 dark:text-white font-medium">{selectedCurrency} {pkg.priceMonthly} <span className="text-slate-400 font-normal">/mo</span></div>
+                                                                <div className="text-xs text-slate-500">{selectedCurrency} {pkg.priceYearly} /yr</div>
                                                             </td>
                                                             <td className="px-6 py-4">
                                                                 {pkg.isVisible === false ? (
@@ -799,7 +801,7 @@ const AdminPackageSettings: React.FC = () => {
                                             <td className="px-6 py-4 font-medium text-slate-900 dark:text-white">{req.user}</td>
                                             <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-300">
                                                 <div>{req.plan}</div>
-                                                <div className="font-semibold">${req.amount}</div>
+                                                <div className="font-semibold">{selectedCurrency} {req.amount}</div>
                                             </td>
                                             <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">{req.method}</td>
                                             <td className="px-6 py-4">
@@ -1041,7 +1043,7 @@ const AdminPackageSettings: React.FC = () => {
                                         </div>
                                         <div className="grid grid-cols-3 gap-3">
                                             <div>
-                                                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Monthly ($)</label>
+                                                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Monthly ({selectedCurrency})</label>
                                                 <input
                                                     type="number"
                                                     value={currentPackage.priceMonthly || 0}
@@ -1050,7 +1052,7 @@ const AdminPackageSettings: React.FC = () => {
                                                 />
                                             </div>
                                             <div>
-                                                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Yearly ($)</label>
+                                                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Yearly ({selectedCurrency})</label>
                                                 <input
                                                     type="number"
                                                     value={currentPackage.priceYearly || 0}
@@ -1059,7 +1061,7 @@ const AdminPackageSettings: React.FC = () => {
                                                 />
                                             </div>
                                             <div>
-                                                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Lifetime ($)</label>
+                                                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Lifetime ({selectedCurrency})</label>
                                                 <input
                                                     type="number"
                                                     value={currentPackage.priceLifetime || 0}
@@ -1070,7 +1072,7 @@ const AdminPackageSettings: React.FC = () => {
                                         </div>
                                         <div className="grid grid-cols-2 gap-3 mt-3">
                                             <div>
-                                                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Custom Price ($)</label>
+                                                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Custom Price ({selectedCurrency})</label>
                                                 <input
                                                     type="number"
                                                     value={(currentPackage as any).priceCustom || (currentPackage as any).priceDaily || 0}

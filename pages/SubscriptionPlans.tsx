@@ -4,6 +4,7 @@ import { Check, X, CreditCard, Zap, Shield, Crown, Rocket, Star, Gift, Loader2 }
 import PaymentModal from '../components/PaymentModal';
 import { api } from '../services/api';
 import { Package } from '../types';
+import { useCurrency } from '../context/CurrencyContext';
 import { useSubscription } from '../context/SubscriptionContext';
 
 const SubscriptionPlans: React.FC = () => {
@@ -19,6 +20,7 @@ const SubscriptionPlans: React.FC = () => {
 
     // Use shared subscription context for realtime updates
     const { currentSubscription, refreshSubscription } = useSubscription();
+    const { selectedCurrency } = useCurrency();
     const currentPackageId = currentSubscription?.package_id || null;
     const isPending = currentSubscription?.status === 'Pending';
     const hasPendingUpgrade = (currentSubscription as any)?.hasPendingUpgrade === true;
@@ -329,7 +331,7 @@ const SubscriptionPlans: React.FC = () => {
 
                                     <div className="mb-8">
                                         <div className="flex items-baseline gap-1">
-                                            <span className="text-5xl font-extrabold text-slate-900 dark:text-white tracking-tight">${plan.price}</span>
+                                            <span className="text-5xl font-extrabold text-slate-900 dark:text-white tracking-tight">{selectedCurrency} {plan.price}</span>
                                             {(plan.effectiveBillingCycle === 'lifetime' || plan.isLifetimeOnly) ? (
                                                 <span className="text-lg text-slate-500 dark:text-slate-400 font-medium">one-time</span>
                                             ) : (plan.effectiveBillingCycle === 'custom' || plan.isCustomOnly) ? (
@@ -341,7 +343,7 @@ const SubscriptionPlans: React.FC = () => {
                                         {/* Show monthly equivalent for yearly billing */}
                                         {billingCycle === 'yearly' && plan.price > 0 && !plan.isLifetimeOnly && (
                                             <p className="text-sm text-emerald-500 dark:text-emerald-400 mt-1">
-                                                Only ${(plan.price / 12).toFixed(0)}/mo — Save {Math.round((1 - (plan.price / 12) / plan.priceMonthly) * 100)}%
+                                                Only {selectedCurrency} {(plan.price / 12).toFixed(0)}/mo — Save {Math.round((1 - (plan.price / 12) / plan.priceMonthly) * 100)}%
                                             </p>
                                         )}
                                     </div>

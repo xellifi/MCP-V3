@@ -1,0 +1,377 @@
+import { useState, useEffect } from 'react';
+import { supabase } from '../lib/supabase';
+import { Workspace } from '../types';
+
+export interface Transaction {
+    id: string;
+    name: string;
+    type: string;
+    amount: number;
+    payment_method: string;
+    created_at: string;
+    positive: boolean;
+}
+
+export interface DashboardStats {
+    totalSales: number;
+    totalOrders: number;
+    subscriberCount: number;
+    connectedPagesCount: number;
+    earningData: { month: string; checkout: number; leads: number; web: number }[];
+    recentTransactions: Transaction[];
+    topPages: {
+        id: string;
+        name: string;
+        pageId: string;
+        pageImageUrl: string;
+        pageFollowers: number;
+        ordersCount: number;
+        isAutomationEnabled: boolean;
+    }[];
+    loading: boolean;
+}
+
+export const useDashboardStats = (workspace: Workspace) => {
+    const [stats, setStats] = useState<DashboardStats>({
+        totalSales: 0,
+        totalOrders: 0,
+        subscriberCount: 0,
+        connectedPagesCount: 0,
+        earningData: [],
+        recentTransactions: [],
+        topPages: [],
+        loading: true,
+    });
+
+    useEffect(() => {
+        const fetchStats = async () => {
+            if (!workspace?.id) return;
+
+            try {
+                setStats(prev => ({ ...prev, loading: true }));
+
+                // 1. Fetch Messenger Orders (Checkout & Leads initiated from flow/form in orders table)
+                const { data: ordersData, error: ordersError } = await supabase
+                    .from('orders')
+                    .select('total, status, created_at, flow_id, form_id') // Safe select
+                    .eq('workspace_id', workspace.id);
+
+                if (ordersError) throw ordersError;
+
+                // 2. Fetch Connected Pages (Move up for attribution logic)
+                const { data: connectedPages, error: pagesFetchError } = await supabase
+                    .from('connected_pages')
+                    .select('id, name, page_id, page_image_url, page_followers, is_automation_enabled')
+                    .eq('workspace_id', workspace.id);
+
+                if (pagesFetchError) throw pagesFetchError;
+
+                // 3. Fetch Form Submissions (Leads from forms page)
+                // First get forms to get IDs
+                const { data: forms, error: formsError } = await supabase
+                    .from('forms')
+                    .select('id, page_id')
+                    .eq('workspace_id', workspace.id);
+
+                if (formsError) throw formsError;
+
+                // Fetch flows to map forms/orders to pages
+                const { data: flowsData } = await supabase
+                    .from('flows')
+                    .select('id, configurations, nodes')
+                    .eq('workspace_id', workspace.id);
+
+                const flowToPageId: Record<string, string> = {};
+                const formToFlowId: Record<string, string> = {};
+
+                flowsData?.forEach(flow => {
+                    if (!flow.configurations || !flow.nodes) return;
+
+                    // 1. Map Flow to Page (via Trigger Node)
+                    for (const node of (flow.nodes as any[])) {
+                        const nodeType = node.type || node.data?.nodeType;
+                        const nodeLabel = node.data?.label?.toLowerCase() || '';
+
+                        if (nodeType === 'triggerNode' || nodeType === 'startNode' ||
+                            nodeLabel.includes('trigger') || nodeLabel.includes('start') ||
+                            nodeLabel.includes('new comment')) {
+                            const config = flow.configurations[node.id];
+                            if (config?.pageId) {
+                                // Match the UUID from config to the real page_id
+                                const page = connectedPages?.find(p => p.id === config.pageId);
+                                if (page) {
+                                    flowToPageId[flow.id] = page.page_id;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+
+                    // 2. Map Form to Flow
+                    for (const node of (flow.nodes as any[])) {
+                        if (node.type === 'formNode') {
+                            const config = flow.configurations[node.id];
+                            if (config?.formId) {
+                                formToFlowId[config.formId] = flow.id;
+                            }
+                        }
+                    }
+                });
+
+                let submissionsData: any[] = [];
+                if (forms && forms.length > 0) {
+                    const formIds = forms.map(f => f.id);
+                    const { data: subs, error: subsError } = await supabase
+                        .from('form_submissions')
+                        .select('form_id, data, created_at')
+                        .in('form_id', formIds);
+
+                    if (subsError) throw subsError;
+                    submissionsData = subs || [];
+                }
+
+                // 4. Fetch Direct Store Orders (Web)
+                const { data: stores, error: storesError } = await supabase
+                    .from('stores')
+                    .select('id')
+                    .eq('workspace_id', workspace.id);
+
+                if (storesError) throw storesError;
+
+                let storeOrdersData: any[] = [];
+                if (stores && stores.length > 0) {
+                    const storeIds = stores.map(s => s.id);
+                    const { data: sOrders, error: sOrdersError } = await supabase
+                        .from('store_orders')
+                        .select('store_id, total, status, created_at')
+                        .in('store_id', storeIds);
+
+                    if (sOrdersError) throw sOrdersError;
+                    storeOrdersData = sOrders || [];
+                }
+
+                // 5. Fetch Subscriber count
+                const { count: subscriberCount, error: subError } = await supabase
+                    .from('subscribers')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('workspace_id', workspace.id);
+
+                if (subError) throw subError;
+
+                // 6. Connected Pages count (already fetched above)
+                const pagesCount = connectedPages?.length || 0;
+
+                // --- Processing Logic ---
+                let totalSales = 0;
+                let totalOrders = (ordersData?.length || 0) + submissionsData.length + storeOrdersData.length;
+                let refundedCount = 0;
+
+                const monthlyStats: Record<string, { checkout: number; leads: number; web: number }> = {};
+                const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+                // Initialize months
+                months.forEach(m => monthlyStats[m] = { checkout: 0, leads: 0, web: 0 });
+
+                // Process Messenger Orders (from 'orders' table)
+                ordersData?.forEach(order => {
+                    const amount = parseFloat(order.total) || 0;
+                    const date = new Date(order.created_at);
+                    const month = months[date.getMonth()];
+
+                    if (order.status === 'completed' || order.status === 'Paid') {
+                        totalSales += amount;
+
+                        if (order.flow_id) {
+                            monthlyStats[month].checkout += amount;
+                        } else if (order.form_id) {
+                            monthlyStats[month].leads += amount;
+                        } else {
+                            monthlyStats[month].checkout += amount;
+                        }
+                    } else if (order.status === 'refunded' || order.status === 'Cancelled') {
+                        refundedCount++;
+                    }
+                });
+
+                // Process Form Submissions (from 'form_submissions' table - The "Leads")
+                submissionsData.forEach(sub => {
+                    const data = sub.data || {};
+                    const amount = parseFloat(data.total) || 0;
+                    const date = new Date(sub.created_at);
+                    const month = months[date.getMonth()];
+
+                    // Consider submissions as "Leads" income
+                    // Usually form_submissions are active leads/orders unless deleted
+                    totalSales += amount;
+                    monthlyStats[month].leads += amount;
+
+                    if (data.status === 'cancelled' || data.order_status === 'cancelled') {
+                        refundedCount++;
+                    }
+                });
+
+                // Process Store Orders (Web)
+                storeOrdersData.forEach(order => {
+                    const amount = parseFloat(order.total) || 0;
+                    const date = new Date(order.created_at);
+                    const month = months[date.getMonth()];
+
+                    if (order.status === 'completed' || order.status === 'delivered' || order.payment_status === 'paid') {
+                        totalSales += amount;
+                        monthlyStats[month].web += amount;
+                    } else if (order.status === 'cancelled' || order.status === 'refunded') {
+                        refundedCount++;
+                    }
+                });
+
+                const earningData = months.map(month => ({
+                    month,
+                    checkout: monthlyStats[month].checkout,
+                    leads: monthlyStats[month].leads,
+                    web: monthlyStats[month].web
+                }));
+
+                // 6. Fetch Recent Transactions
+                const { data: recentOrders } = await supabase
+                    .from('orders')
+                    .select('id, customer_name, total, payment_method, created_at, status')
+                    .eq('workspace_id', workspace.id)
+                    .order('created_at', { ascending: false })
+                    .limit(5);
+
+                const { data: recentStoreOrders } = await supabase
+                    .from('store_orders')
+                    .select('id, customer_name, total, payment_method, created_at, status')
+                    .in('store_id', stores?.map(s => s.id) || [])
+                    .order('created_at', { ascending: false })
+                    .limit(5);
+
+                // Fetch recent form submissions (Leads)
+                let recentFormSubmissions: any[] = [];
+                if (forms && forms.length > 0) {
+                    const { data: recentSubs } = await supabase
+                        .from('form_submissions')
+                        .select('id, data, created_at')
+                        .in('form_id', forms.map(f => f.id))
+                        .order('created_at', { ascending: false })
+                        .limit(5);
+                    recentFormSubmissions = recentSubs || [];
+                }
+
+                const recentTransactions: Transaction[] = [
+                    ...(recentOrders || []).map(o => ({
+                        id: o.id,
+                        name: o.customer_name || 'Messenger User',
+                        type: 'Checkout',
+                        amount: parseFloat(o.total) || 0,
+                        payment_method: o.payment_method || 'cod',
+                        created_at: o.created_at,
+                        positive: o.status !== 'cancelled' && o.status !== 'refunded'
+                    })),
+                    ...(recentStoreOrders || []).map(o => ({
+                        id: o.id,
+                        name: o.customer_name || 'Store Customer',
+                        type: 'Store',
+                        amount: parseFloat(o.total) || 0,
+                        payment_method: o.payment_method || 'cod',
+                        created_at: o.created_at,
+                        positive: o.status !== 'cancelled' && o.status !== 'refunded'
+                    })),
+                    ...recentFormSubmissions.map(s => ({
+                        id: s.id,
+                        name: s.data?.name || s.data?.customer_name || 'Lead',
+                        type: 'Lead',
+                        amount: parseFloat(s.data?.total) || 0,
+                        payment_method: s.data?.payment_method || 'form',
+                        created_at: s.created_at,
+                        positive: s.data?.status !== 'cancelled' && s.data?.order_status !== 'cancelled'
+                    }))
+                ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+                    .slice(0, 5);
+
+                // 7. Calculate Top Pages - show all connected pages
+                const allPages = connectedPages || [];
+
+                const pageOrderCounts: Record<string, number> = {};
+
+                // 1. Count from Messenger Orders (Checkout / Leads via flow)
+                ordersData?.forEach(order => {
+                    // Try to attribute via flow_id mapping
+                    const pid = order.flow_id ? flowToPageId[order.flow_id] : null;
+                    if (pid) {
+                        pageOrderCounts[pid] = (pageOrderCounts[pid] || 0) + 1;
+                    }
+                });
+
+                // 2. Count from Form Submissions (Leads)
+                if (forms && forms.length > 0) {
+                    const formToPage: Record<string, string> = {};
+                    forms.forEach(f => {
+                        if (f.page_id) {
+                            formToPage[f.id] = f.page_id;
+                        } else {
+                            // FALLBACK 1: Use direct form-to-flow mapping from flow configurations
+                            const flowId = formToFlowId[f.id];
+                            if (flowId && flowToPageId[flowId]) {
+                                formToPage[f.id] = flowToPageId[flowId];
+                            }
+                        }
+                    });
+
+                    submissionsData.forEach(sub => {
+                        const pid = formToPage[sub.form_id];
+                        if (pid) {
+                            pageOrderCounts[pid] = (pageOrderCounts[pid] || 0) + 1;
+                        }
+                    });
+                }
+
+                // 3. Count from Store Orders (Store) 
+                // Note: Attribution to page is only possible if stores have page_id
+                if (stores && stores.length > 0 && storeOrdersData.length > 0) {
+                    const storeToPage: Record<string, string> = {};
+                    stores.forEach((s: any) => {
+                        if (s.page_id) storeToPage[s.id] = s.page_id;
+                    });
+
+                    storeOrdersData.forEach(order => {
+                        const pid = storeToPage[order.store_id];
+                        if (pid) {
+                            pageOrderCounts[pid] = (pageOrderCounts[pid] || 0) + 1;
+                        }
+                    });
+                }
+
+                const topPages = allPages.map(p => ({
+                    id: p.id,
+                    name: p.name,
+                    pageId: p.page_id,
+                    pageImageUrl: p.page_image_url,
+                    pageFollowers: p.page_followers || 0,
+                    ordersCount: pageOrderCounts[p.page_id] || 0,
+                    isAutomationEnabled: p.is_automation_enabled
+                })).sort((a, b) => b.ordersCount - a.ordersCount)
+                    .slice(0, 5);
+
+                setStats({
+                    totalSales,
+                    totalOrders,
+                    subscriberCount: subscriberCount || 0,
+                    connectedPagesCount: pagesCount || 0,
+                    earningData,
+                    recentTransactions,
+                    topPages,
+                    loading: false,
+                });
+
+            } catch (error) {
+                console.error('Error fetching dashboard stats:', error);
+                setStats(prev => ({ ...prev, loading: false }));
+            }
+        };
+
+        fetchStats();
+    }, [workspace.id]);
+
+    return stats;
+};

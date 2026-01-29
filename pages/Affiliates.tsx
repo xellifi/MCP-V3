@@ -75,7 +75,7 @@ const Affiliates: React.FC<AffiliatesProps> = ({ user }) => {
         const minAmount = settings?.affiliateMinWithdrawal || 100;
         if (!stats || stats.unpaidEarnings < minAmount) return;
 
-        const confirmed = window.confirm(`Are you sure you want to withdraw $${stats.unpaidEarnings.toFixed(2)}?`);
+        const confirmed = window.confirm(`Are you sure you want to withdraw ${formatCurrency(stats.unpaidEarnings)}?`);
         if (!confirmed) return;
 
         setWithdrawing(true);
@@ -132,7 +132,16 @@ const Affiliates: React.FC<AffiliatesProps> = ({ user }) => {
 
     const currency = settings?.affiliateCurrency || 'USD';
     const formatCurrency = (amount: number) => {
-        return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(amount);
+        // Use a more generic formatter if locale is unknown, or default to en-US
+        try {
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: currency,
+                minimumFractionDigits: 2
+            }).format(amount);
+        } catch (e) {
+            return `${currency} ${amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
+        }
     };
 
     const currentDay = new Date().getDay();

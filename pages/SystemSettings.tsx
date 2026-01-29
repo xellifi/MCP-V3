@@ -157,7 +157,9 @@ const SystemSettings: React.FC<SystemSettingsProps> = ({ user }) => {
     openaiApiKey: '',
     geminiApiKey: '',
     menuSequence: DEFAULT_MENU_ORDER.map(i => i.id),
-    defaultTheme: 'dark'
+    defaultTheme: 'dark',
+    availableCurrencies: ['USD', 'PHP', 'EUR', 'GBP'],
+    defaultCurrency: 'USD'
   });
 
   const [loading, setLoading] = useState(true);
@@ -171,6 +173,7 @@ const SystemSettings: React.FC<SystemSettingsProps> = ({ user }) => {
   const [savingTheme, setSavingTheme] = useState(false);
   const [savingSupport, setSavingSupport] = useState(false);
   const [savingEmailDomains, setSavingEmailDomains] = useState(false);
+  const [savingCurrency, setSavingCurrency] = useState(false);
 
   const [showSecret, setShowSecret] = useState(false);
   const [showOpenAi, setShowOpenAi] = useState(false);
@@ -187,7 +190,8 @@ const SystemSettings: React.FC<SystemSettingsProps> = ({ user }) => {
     affiliate: false,
     theme: false,
     support: false,
-    emailDomains: false
+    emailDomains: false,
+    currency: false
   });
 
   // Test Email State
@@ -230,6 +234,8 @@ const SystemSettings: React.FC<SystemSettingsProps> = ({ user }) => {
       if (data.affiliateCurrency === undefined) data.affiliateCurrency = 'USD';
       if (data.affiliateMinWithdrawal === undefined) data.affiliateMinWithdrawal = 100;
       if (data.affiliateWithdrawalDays === undefined) data.affiliateWithdrawalDays = [1]; // Monday
+      if (!data.availableCurrencies) data.availableCurrencies = ['USD', 'PHP', 'EUR', 'GBP'];
+      if (!data.defaultCurrency) data.defaultCurrency = 'USD';
 
       // Auto-generate Facebook verify token if missing
       if (!data.facebookVerifyToken || data.facebookVerifyToken.trim() === '') {
@@ -355,6 +361,35 @@ const SystemSettings: React.FC<SystemSettingsProps> = ({ user }) => {
     d => !(settings.allowedEmailDomains || []).includes(d)
   );
 
+  const addCurrency = (code: string) => {
+    const cleanCode = code.toUpperCase().trim();
+    if (!cleanCode || cleanCode.length !== 3) {
+      toast.error('Currency code must be 3 characters (e.g., USD)');
+      return;
+    }
+
+    if (settings.availableCurrencies?.includes(cleanCode)) {
+      toast.error('Currency already added');
+      return;
+    }
+
+    setSettings({
+      ...settings,
+      availableCurrencies: [...(settings.availableCurrencies || []), cleanCode]
+    });
+  };
+
+  const removeCurrency = (code: string) => {
+    if (code === settings.defaultCurrency) {
+      toast.error('Cannot remove the default currency');
+      return;
+    }
+    setSettings({
+      ...settings,
+      availableCurrencies: (settings.availableCurrencies || []).filter(c => c !== code)
+    });
+  };
+
   if (user.role !== UserRole.ADMIN && user.role !== UserRole.OWNER) {
     return (
       <div className="flex flex-col items-center justify-center h-96 text-slate-500">
@@ -446,6 +481,98 @@ const SystemSettings: React.FC<SystemSettingsProps> = ({ user }) => {
           </div>
         </div>
       </CollapsibleCard>
+
+      {/* Currency Support */}
+      <CollapsibleCard
+        title="Currency Support"
+        subtitle="Manage available currencies and set system default"
+        icon={Banknote}
+        colorClass="bg-amber-500/10 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400 border border-amber-500/20 dark:border-amber-500/30"
+        isOpen={openSections.currency}
+        onToggle={() => toggleSection('currency')}
+        isDark={isDark}
+      >
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label className={labelClasses}>Available Currencies</label>
+              <div className="flex flex-wrap gap-2 mb-4">
+                {settings.availableCurrencies?.map(code => (
+                  <div key={code} className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 dark:bg-white/5 rounded-lg border border-slate-200 dark:border-white/10 group">
+                    <span className="text-sm font-bold text-slate-700 dark:text-slate-200">{code}</span>
+                    <button
+                      type="button"
+                      onClick={() => removeCurrency(code)}
+                      className="text-slate-400 hover:text-red-500 transition-colors"
+                      title="Remove Currency"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="e.g. PHP"
+                  className={`${inputClasses} uppercase`}
+                  maxLength={3}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      addCurrency((e.target as HTMLInputElement).value);
+                      (e.target as HTMLInputElement).value = '';
+                    }
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    const input = e.currentTarget.previousSibling as HTMLInputElement;
+                    addCurrency(input.value);
+                    input.value = '';
+                  }}
+                  className="p-3 rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white shadow-lg shadow-indigo-500/20 transition-all active:scale-95"
+                >
+                  <Plus className="w-5 h-5" />
+                </button>
+              </div>
+              <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">Add 3-letter currency codes (e.g. PHP, USD, EUR).</p>
+            </div>
+
+            <div>
+              <label className={labelClasses}>Default Currency</label>
+              <div className="relative">
+                <select
+                  value={settings.defaultCurrency}
+                  onChange={e => setSettings({ ...settings, defaultCurrency: e.target.value })}
+                  className={`${inputClasses} appearance-none`}
+                >
+                  {settings.availableCurrencies?.map(code => (
+                    <option key={code} value={code}>{code}</option>
+                  ))}
+                </select>
+                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
+                  <ChevronDown className="w-4 h-4 text-slate-500" />
+                </div>
+              </div>
+              <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">Users who haven't selected a currency will see this by default.</p>
+            </div>
+          </div>
+
+          <div className="flex justify-end pt-6 border-t border-slate-200 dark:border-white/10">
+            <button
+              onClick={() => handleSaveSection('Currency Settings', setSavingCurrency)}
+              disabled={savingCurrency}
+              className={buttonPrimary}
+            >
+              <Save className="w-4 h-4" />
+              {savingCurrency ? 'Saving...' : 'Save Currency Settings'}
+            </button>
+          </div>
+        </div>
+      </CollapsibleCard>
+
       <CollapsibleCard
         title="Facebook App Configuration"
         subtitle="Credentials for OAuth and Webhooks"
@@ -700,7 +827,7 @@ const SystemSettings: React.FC<SystemSettingsProps> = ({ user }) => {
               <label className={labelClasses}>Commission per Referral</label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-500">
-                  {settings.affiliateCurrency === 'USD' ? '$' : settings.affiliateCurrency}
+                  {settings.affiliateCurrency}
                 </div>
                 <input
                   type="number"
@@ -722,9 +849,9 @@ const SystemSettings: React.FC<SystemSettingsProps> = ({ user }) => {
                   onChange={e => setSettings({ ...settings, affiliateCurrency: e.target.value })}
                   className={`${inputClasses} appearance-none`}
                 >
-                  <option value="USD">USD ($)</option>
-                  <option value="EUR">EUR (€)</option>
-                  <option value="GBP">GBP (£)</option>
+                  {settings.availableCurrencies?.map(code => (
+                    <option key={code} value={code}>{code}</option>
+                  ))}
                 </select>
                 <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
                   <ChevronDown className="w-4 h-4 text-slate-500" />
@@ -736,7 +863,7 @@ const SystemSettings: React.FC<SystemSettingsProps> = ({ user }) => {
               <label className={labelClasses}>Minimum Withdrawal Amount</label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-500">
-                  {settings.affiliateCurrency === 'USD' ? '$' : settings.affiliateCurrency}
+                  {settings.affiliateCurrency}
                 </div>
                 <input
                   type="number"

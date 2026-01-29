@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { X, CreditCard, Wallet, Building, ArrowRight, CheckCircle, Smartphone, Shield, Upload, Loader2, Image as ImageIcon, ChevronDown, ChevronUp } from 'lucide-react';
 import { api } from '../services/api';
+import { useCurrency } from '../context/CurrencyContext';
 
 interface PaymentModalProps {
     isOpen: boolean;
@@ -23,6 +24,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
     price,
     durationDays
 }) => {
+    const { selectedCurrency } = useCurrency();
     const [selectedMethod, setSelectedMethod] = useState<string>('xendit');
     const [isProcessing, setIsProcessing] = useState(false);
     const [isSuccess, setIsSuccess] = useState(false);
@@ -180,7 +182,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                                 <span className="font-semibold text-slate-900 dark:text-white">{planName} Plan</span>
                                 <span className="text-slate-500 dark:text-slate-400 text-sm ml-2 capitalize">({billingCycle})</span>
                             </div>
-                            <span className="text-lg font-bold text-primary-600 dark:text-primary-400">${price}.00</span>
+                            <span className="text-lg font-bold text-primary-600 dark:text-primary-400">{selectedCurrency} {price}.00</span>
                         </div>
                     </div>
 
@@ -195,16 +197,16 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                         <div className="space-y-3 mb-6">
                             <div className="flex justify-between text-sm text-slate-600 dark:text-slate-400">
                                 <span>Subtotal</span>
-                                <span>${price}.00</span>
+                                <span>{selectedCurrency} {price}.00</span>
                             </div>
                             <div className="flex justify-between text-sm text-slate-600 dark:text-slate-400">
                                 <span>Tax (0%)</span>
-                                <span>$0.00</span>
+                                <span>{selectedCurrency} 0.00</span>
                             </div>
                             <div className="h-px bg-slate-200 dark:bg-slate-800 my-2"></div>
                             <div className="flex justify-between text-base font-bold text-slate-900 dark:text-white">
                                 <span>Total Due</span>
-                                <span>${price}.00</span>
+                                <span>{selectedCurrency} {price}.00</span>
                             </div>
                         </div>
 
@@ -387,7 +389,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                                 <><Loader2 className="w-5 h-5 animate-spin" /> Processing...</>
                             ) : (
                                 <>
-                                    {isManualMethod ? 'Submit Payment Proof' : `Pay $${price}.00 via ${selectedMethod}`}
+                                    {isManualMethod ? 'Submit Payment Proof' : `Pay ${selectedCurrency} ${price}.00 via ${selectedMethod}`}
                                     {!isManualMethod && <ArrowRight className="w-5 h-5" />}
                                 </>
                             )}

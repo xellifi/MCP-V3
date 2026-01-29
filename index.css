@@ -6,7 +6,7 @@
 
 @layer base {
   body {
-    @apply font-sans antialiased text-gray-900 bg-white dark:bg-slate-950 dark:text-slate-100 transition-colors duration-200;
+    @apply font-sans antialiased text-gray-900 bg-[#f3f4f6] dark:bg-[#0b1120] dark:text-slate-100 transition-colors duration-200;
   }
 
   /* Smooth scroll */
@@ -169,6 +169,24 @@
     /* IE and Edge */
     scrollbar-width: none;
     /* Firefox */
+  }
+
+  /* Custom scrollbar utility for dark containers */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 10px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.25);
   }
 
   /* ========================================

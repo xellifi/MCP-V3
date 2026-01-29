@@ -170,6 +170,9 @@ export interface AdminSettings {
   // Email Domain Whitelist Settings
   emailDomainRestrictionEnabled?: boolean; // Enable/disable domain restriction
   allowedEmailDomains?: string[]; // e.g. ['gmail.com', 'yahoo.com', 'outlook.com']
+  // Currency Settings
+  availableCurrencies?: string[];
+  defaultCurrency?: string;
 }
 
 export interface UserSubscription {

@@ -29,11 +29,13 @@ import {
   Package,
   ShoppingBag,
   Lock as LockIcon,
-  UserX
+  UserX,
+  Coins
 } from 'lucide-react';
 import { User, Workspace, UserRole } from '../types';
 import { api } from '../services/api';
 import { useTheme } from '../context/ThemeContext';
+import { useCurrency } from '../context/CurrencyContext';
 import { useSubscription } from '../context/SubscriptionContext';
 import UpgradeModal from './UpgradeModal';
 import ProfileModal from './ProfileModal';
@@ -86,6 +88,7 @@ const Layout: React.FC<LayoutProps> = ({
   const navigate = useNavigate();
   const location = useLocation();
   const { theme, toggleTheme, isDark } = useTheme();
+  const { selectedCurrency, setCurrency, availableCurrencies } = useCurrency();
 
   const toggleSidebar = () => setSidebarOpen(!isSidebarOpen);
   const toggleSidebarCollapse = () => {
@@ -397,7 +400,7 @@ const Layout: React.FC<LayoutProps> = ({
   const sidebarWidth = isSidebarCollapsed ? 'w-[280px] lg:w-20' : 'w-[280px]';
 
   return (
-    <div className={`h-screen flex flex-col w-full overflow-hidden bg-slate-50 dark:bg-slate-950 transition-colors duration-200 relative`}>
+    <div className={`h-screen flex flex-col w-full overflow-hidden bg-[#f3f4f6] dark:bg-[#0b1120] transition-colors duration-200 relative`}>
       {/* Impersonation Banner */}
       {isImpersonating && (
         <div className="bg-amber-500 text-white px-4 py-2 flex items-center justify-between z-[100] flex-shrink-0">
@@ -661,6 +664,20 @@ const Layout: React.FC<LayoutProps> = ({
             </div>
 
             <div className="flex items-center gap-2 sm:gap-4">
+              {/* Currency Selector */}
+              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 transition-all">
+                <Coins className="w-4 h-4 text-amber-500" />
+                <select
+                  value={selectedCurrency}
+                  onChange={(e) => setCurrency(e.target.value)}
+                  className="bg-transparent border-none text-xs font-bold text-slate-700 dark:text-slate-200 focus:ring-0 cursor-pointer outline-none"
+                >
+                  {availableCurrencies.map(code => (
+                    <option key={code} value={code} className="bg-white dark:bg-slate-900">{code}</option>
+                  ))}
+                </select>
+              </div>
+
               {/* Theme Toggle */}
               <button
                 onClick={toggleTheme}
@@ -787,7 +804,7 @@ const Layout: React.FC<LayoutProps> = ({
           )}
 
           {/* Content Viewport */}
-          <div className="flex-1 overflow-auto bg-slate-50 dark:bg-slate-950 p-4 sm:p-6 lg:p-8">
+          <div className="flex-1 overflow-auto bg-[#f3f4f6] dark:bg-[#0b1120] p-4 sm:p-6 lg:p-8">
             <div className="max-w-[1600px] mx-auto animate-fade-in">
               {children}
             </div>

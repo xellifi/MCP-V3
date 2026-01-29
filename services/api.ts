@@ -1242,6 +1242,7 @@ export const api = {
           form_template: formData.formTemplate || 'modern',
           promo_text: formData.promoText !== undefined ? formData.promoText : 'Promo Only!',
           promo_icon: formData.promoIcon !== undefined ? formData.promoIcon : '🔥',
+          page_id: formData.pageId || null,
         })
         .select()
         .single();
@@ -1292,6 +1293,7 @@ export const api = {
           google_webhook_url: formData.googleWebhookUrl || null,
           promo_text: formData.promoText !== undefined ? formData.promoText : 'Promo Only!',
           promo_icon: formData.promoIcon !== undefined ? formData.promoIcon : '🔥',
+          page_id: formData.pageId || null,
           updated_at: new Date().toISOString(),
         })
         .eq('id', formId)
@@ -2289,7 +2291,9 @@ export const api = {
         defaultTheme: data?.default_theme || 'dark',
         supportAttachmentsEnabled: data?.support_attachments_enabled !== false,
         emailDomainRestrictionEnabled: data?.email_domain_restriction_enabled ?? false,
-        allowedEmailDomains: data?.allowed_email_domains || ['gmail.com', 'yahoo.com', 'outlook.com', 'hotmail.com', 'icloud.com', 'protonmail.com', 'aol.com', 'live.com', 'msn.com']
+        allowedEmailDomains: data?.allowed_email_domains || ['gmail.com', 'yahoo.com', 'outlook.com', 'hotmail.com', 'icloud.com', 'protonmail.com', 'aol.com', 'live.com', 'msn.com'],
+        availableCurrencies: data?.available_currencies || ['USD', 'PHP', 'EUR', 'GBP'],
+        defaultCurrency: data?.default_currency || 'USD'
       };
     },
 
@@ -2311,7 +2315,9 @@ export const api = {
         default_theme: settings.defaultTheme,
         support_attachments_enabled: settings.supportAttachmentsEnabled,
         email_domain_restriction_enabled: settings.emailDomainRestrictionEnabled,
-        allowed_email_domains: settings.allowedEmailDomains
+        allowed_email_domains: settings.allowedEmailDomains,
+        available_currencies: settings.availableCurrencies,
+        default_currency: settings.defaultCurrency
       };
 
       const { error } = await supabase
