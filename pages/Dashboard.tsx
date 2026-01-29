@@ -230,7 +230,7 @@ const Dashboard: React.FC<DashboardProps> = ({ workspace, user }) => {
   const { currentSubscription } = useSubscription();
   const { totalSales, totalOrders, subscriberCount, connectedPagesCount, earningData: realEarningData, recentTransactions, recentOrders, topPages, topCustomers, scheduledPosts, loading: statsLoading } = useDashboardStats(workspace);
   const [showOrdersDropdown, setShowOrdersDropdown] = useState(false);
-  const [automationFilter, setAutomationFilter] = useState<'all' | 'enabled'>('all');
+  const [automationFilter, setAutomationFilter] = useState<'all' | 'enabled'>('enabled');
   const [pagesCurrentPage, setPagesCurrentPage] = useState(1);
   const [selectedScheduledPost, setSelectedScheduledPost] = useState<any>(null);
   const [showComingSoon, setShowComingSoon] = useState(false);
@@ -887,7 +887,18 @@ const Dashboard: React.FC<DashboardProps> = ({ workspace, user }) => {
                   <tr key={idx} className={`transition-colors ${isDark ? 'hover:bg-slate-800/20' : 'hover:bg-slate-50/50'}`}>
                     <td className="px-6 py-4 pl-8">
                       <div className="flex items-center gap-3">
-                        <img src={page.pageImageUrl} alt={page.name} className="w-10 h-10 rounded-[12px] object-cover border-2 border-slate-100 dark:border-slate-700" />
+                        <img
+                          src={page.pageImageUrl || `https://graph.facebook.com/${page.pageId}/picture?type=large`}
+                          alt={page.name}
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            const fallbackUrl = `https://graph.facebook.com/${page.pageId}/picture?type=large`;
+                            if (target.src !== fallbackUrl) {
+                              target.src = fallbackUrl;
+                            }
+                          }}
+                          className="w-10 h-10 rounded-[12px] object-cover border-2 border-slate-100 dark:border-slate-700"
+                        />
                         <span className={`text-sm font-bold ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>{page.name}</span>
                       </div>
                     </td>
