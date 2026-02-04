@@ -46,11 +46,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             }
             return handleImpersonateUser(req, res);
 
+        case 'global-stats':
+            if (req.method !== 'GET') {
+                return res.status(405).json({ error: 'Method not allowed' });
+            }
+            return handleGetGlobalStats(req, res);
+
         default:
             return res.status(400).json({
                 error: 'Invalid action parameter',
-                validActions: ['create-user', 'delete-user', 'impersonate'],
-                usage: '/api/admin?action=create-user (POST) | /api/admin?action=delete-user (DELETE) | /api/admin?action=impersonate (POST)'
+                validActions: ['create-user', 'delete-user', 'impersonate', 'global-stats'],
+                usage: '/api/admin?action=create-user (POST) | /api/admin?action=delete-user (DELETE) | /api/admin?action=impersonate (POST) | /api/admin?action=global-stats (GET)'
             });
     }
 }
@@ -291,5 +297,43 @@ async function handleImpersonateUser(req: VercelRequest, res: VercelResponse) {
     } catch (error: any) {
         console.error('Impersonation error:', error);
         return res.status(500).json({ error: error.message || 'Internal server error' });
+    }
+}
+
+// ============================================
+// GET GLOBAL STATS (For Admin Dashboard)
+// ============================================
+async function handleGetGlobalStats(req: VercelRequest, res: VercelResponse) {
+    try {
+        // Fetch all counts in parallel using service role (bypasses RLS)
+        const [
+            { count: totalUsers },
+            { count: verifiedUsers },
+            { count: totalPages },
+            { count: totalFlows },
+            { count: totalStores }
+        ] = await Promise.all([
+            supabaseAdmin.from('profiles').select('*', { count: 'exact', head: true }),
+            supabaseAdmin.from('profiles').select('*', { count: 'exact', head: true }).eq('email_verified', true),
+            supabaseAdmin.from('connected_pages').select('*', { count: 'exact', head: true }),
+            supabaseAdmin.from('flows').select('*', { count: 'exact', head: true }),
+            supabaseAdmin.from('stores').select('*', { count: 'exact', head: true })
+        ]);
+
+        return res.status(200).json({
+            success: true,
+            stats: {
+                totalUsers: totalUsers || 0,
+                verifiedUsers: verifiedUsers || 0,
+                unverifiedUsers: (totalUsers || 0) - (verifiedUsers || 0),
+                totalPages: totalPages || 0,
+                totalFlows: totalFlows || 0,
+                totalStores: totalStores || 0
+            }
+        });
+
+    } catch (error: any) {
+        console.error('[Global Stats] Error:', error);
+        return res.status(500).json({ error: error.message || 'Failed to fetch global stats' });
     }
 }

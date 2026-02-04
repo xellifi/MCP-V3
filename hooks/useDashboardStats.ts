@@ -2,6 +2,16 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { ensureSession } from '../services/api';
 import { Workspace } from '../types';
+import {
+    startOfDay,
+    endOfDay,
+    subDays,
+    isWithinInterval,
+    eachDayOfInterval,
+    format,
+    parseISO,
+    isSameDay
+} from 'date-fns';
 
 export interface DashboardOrder {
     id: string;
@@ -65,6 +75,23 @@ export interface DashboardStats {
     topCustomers: TopCustomer[];
     scheduledPosts: DashboardScheduledPost[];
     loading: boolean;
+    adminStats?: {
+        newUsers: { value: string; trend: string; trendNegative: boolean; chartData: number[] };
+        activeUsers: { value: string; trend: string; trendNegative: boolean; chartData: number[] };
+        totalSales: { value: string; trend: string; trendNegative: boolean; chartData: number[] };
+        conversion: { value: string; trend: string; trendNegative: boolean; chartData: number[] };
+        leads: { value: string; trend: string; trendNegative: boolean; chartData: number[] };
+        totalProfit: { value: string; trend: string; trendNegative: boolean; chartData: number[] };
+        sources: { name: string; percentage: number; count: number }[];
+
+        // SaaS Global Stats
+        allUsers: { value: string; trend: string; trendNegative: boolean; chartData: number[] };
+        verifiedUsers: { value: string; trend: string; trendNegative: boolean; chartData: number[] };
+        unverifiedUsers: { value: string; trend: string; trendNegative: boolean; chartData: number[] };
+        totalPages: { value: string; trend: string; trendNegative: boolean; chartData: number[] };
+        totalFlows: { value: string; trend: string; trendNegative: boolean; chartData: number[] };
+        totalStores: { value: string; trend: string; trendNegative: boolean; chartData: number[] };
+    };
 }
 
 export const useDashboardStats = (workspace: Workspace) => {
@@ -204,6 +231,89 @@ export const useDashboardStats = (workspace: Workspace) => {
                 const pagesCount = connectedPages?.length || 0;
 
                 // --- Processing Logic ---
+                const now = new Date();
+                const today = endOfDay(now);
+                const sevenDaysAgo = subDays(startOfDay(now), 7);
+                const fourteenDaysAgo = subDays(startOfDay(now), 14);
+
+                // Helper to check range
+                const inRange = (dateStr: string, start: Date, end: Date) => {
+                    if (!dateStr) return false;
+                    const d = new Date(dateStr);
+                    return d >= start && d <= end;
+                };
+
+                // Admin Stats Calculation
+                const last7Days = eachDayOfInterval({ start: subDays(now, 6), end: now });
+
+                // 1. New Users (Subscribers Created)
+                const newUsersCurrent = (subscribersData || []).filter(s => inRange(s.created_at, sevenDaysAgo, today));
+                const newUsersPrev = (subscribersData || []).filter(s => inRange(s.created_at, fourteenDaysAgo, sevenDaysAgo));
+                const newUsersTrend = newUsersCurrent.length - newUsersPrev.length;
+                const newUsersChart = last7Days.map(day =>
+                    (subscribersData || []).filter(s => isSameDay(new Date(s.created_at), day)).length
+                );
+
+                // 2. Active Users (Last Active At)
+                // Note: 'last_active_at' or 'lastActiveAt' depending on DB column name returned. Supabase returns snake_case by default usually.
+                const activeUsersCurrent = (subscribersData || []).filter(s => inRange((s as any).last_active_at || (s as any).lastActiveAt, sevenDaysAgo, today));
+                const activeUsersPrev = (subscribersData || []).filter(s => inRange((s as any).last_active_at || (s as any).lastActiveAt, fourteenDaysAgo, sevenDaysAgo));
+                const activeUsersTrend = activeUsersCurrent.length - activeUsersPrev.length;
+                const activeUsersChart = last7Days.map(day =>
+                    (subscribersData || []).filter(s => isSameDay(new Date((s as any).last_active_at || (s as any).lastActiveAt || 0), day)).length
+                );
+
+                // 3. Total Sales & Profit (Combining all sources)
+                const getSalesAmount = (item: any, type: 'messenger' | 'store' | 'lead') => {
+                    // logic reused from below
+                    if (type === 'messenger' && (item.status === 'completed' || item.status === 'Paid')) return parseFloat(item.total) || 0;
+                    if (type === 'store' && (
+                        item.status === 'completed' || item.status === 'delivered' || item.payment_status === 'paid'
+                    )) return parseFloat(item.total) || 0;
+                    if (type === 'lead') return parseFloat(item.data?.total) || 0; // Assuming leads are potential sales or settled
+                    return 0;
+                };
+
+                const allSalesItems = [
+                    ...(ordersData || []).map(i => ({ item: i, type: 'messenger', date: i.created_at })),
+                    ...(storeOrdersData || []).map(i => ({ item: i, type: 'store', date: i.created_at })),
+                    ...(submissionsData || []).map(i => ({ item: i, type: 'lead', date: i.created_at }))
+                ];
+
+                const salesCurrent = allSalesItems.filter(i => inRange(i.date, sevenDaysAgo, today));
+                const salesPrev = allSalesItems.filter(i => inRange(i.date, fourteenDaysAgo, sevenDaysAgo));
+
+                const salesTotalCurrent = salesCurrent.reduce((sum, i) => sum + getSalesAmount(i.item, i.type as any), 0);
+                const salesTotalPrev = salesPrev.reduce((sum, i) => sum + getSalesAmount(i.item, i.type as any), 0);
+                const salesTrend = salesTotalCurrent - salesTotalPrev;
+                const salesChart = last7Days.map(day =>
+                    allSalesItems
+                        .filter(i => isSameDay(new Date(i.date), day))
+                        .reduce((sum, i) => sum + getSalesAmount(i.item, i.type as any), 0)
+                );
+
+                // 4. Leads (Form Submissions)
+                const leadsCurrent = (submissionsData || []).filter(s => inRange(s.created_at, sevenDaysAgo, today));
+                const leadsPrev = (submissionsData || []).filter(s => inRange(s.created_at, fourteenDaysAgo, sevenDaysAgo));
+                const leadsTrend = leadsCurrent.length - leadsPrev.length;
+                const leadsChart = last7Days.map(day =>
+                    (submissionsData || []).filter(s => isSameDay(new Date(s.created_at), day)).length
+                );
+
+                // 5. Conversion (Orders / Unique Visitors approximation OR Orders / New Subscribers)
+                // Proxy: Orders Count / New Users Count * 100
+                const ordersCountCurrent = salesCurrent.length; // Approximate "Sales" count
+                const ordersCountPrev = salesPrev.length;
+
+                const conversionCurrent = newUsersCurrent.length > 0 ? (ordersCountCurrent / newUsersCurrent.length) * 100 : 0;
+                const conversionPrev = newUsersPrev.length > 0 ? (ordersCountPrev / newUsersPrev.length) * 100 : 0;
+                const conversionTrend = conversionCurrent - conversionPrev;
+                const conversionChart = last7Days.map(day => {
+                    const dayOrders = allSalesItems.filter(i => isSameDay(new Date(i.date), day)).length;
+                    const dayUsers = (subscribersData || []).filter(s => isSameDay(new Date(s.created_at), day)).length;
+                    return dayUsers > 0 ? (dayOrders / dayUsers) * 100 : 0;
+                });
+
                 let totalSales = 0;
                 let totalOrders = (ordersData?.length || 0) + submissionsData.length + storeOrdersData.length;
                 let refundedCount = 0;
@@ -595,6 +705,56 @@ export const useDashboardStats = (workspace: Workspace) => {
                     });
                 }
 
+                // 10. Fetch Global SaaS Stats (For Admin Dashboard) via Server API
+                // This uses the service role to bypass RLS and get true global counts
+                let globalStats = {
+                    totalUsers: 0,
+                    verifiedUsers: 0,
+                    unverifiedUsers: 0,
+                    totalPages: 0,
+                    totalFlows: 0,
+                    totalStores: 0
+                };
+
+                try {
+                    const response = await fetch('/api/admin?action=global-stats');
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.success && data.stats) {
+                            globalStats = data.stats;
+                        }
+                    } else {
+                        throw new Error('API not available');
+                    }
+                } catch (err) {
+                    // Fallback: Try direct Supabase queries (may be limited by RLS)
+                    console.warn('Global stats API not available, using fallback:', err);
+                    const [profilesRes, pagesRes, flowsRes, storesRes] = await Promise.all([
+                        supabase.from('profiles').select('id, email_verified', { count: 'exact' }),
+                        supabase.from('connected_pages').select('id', { count: 'exact', head: true }),
+                        supabase.from('flows').select('id', { count: 'exact', head: true }),
+                        supabase.from('stores').select('id', { count: 'exact', head: true })
+                    ]);
+
+                    const profilesData = profilesRes.data || [];
+                    globalStats.totalUsers = profilesRes.count || profilesData.length;
+                    globalStats.verifiedUsers = profilesData.filter(p => p.email_verified).length;
+                    globalStats.unverifiedUsers = globalStats.totalUsers - globalStats.verifiedUsers;
+                    globalStats.totalPages = pagesRes.count || 0;
+                    globalStats.totalFlows = flowsRes.count || 0;
+                    globalStats.totalStores = storesRes.count || 0;
+                }
+
+                // Chart data for global stats (we'll use flat lines since we don't have historical data from the API)
+                const flatChartData = [0, 0, 0, 0, 0, 0, 0];
+
+                const profilesTrend = { str: '+0', isNegative: false };
+                const verifiedTrend = { str: '+0', isNegative: false };
+                const unverifiedTrend = { str: '+0', isNegative: false };
+                const pagesTrend = { str: '+0', isNegative: false };
+                const flowsTrend = { str: '+0', isNegative: false };
+                const storesTrend = { str: '+0', isNegative: false };
+
                 setStats({
                     totalSales,
                     totalOrders,
@@ -607,6 +767,96 @@ export const useDashboardStats = (workspace: Workspace) => {
                     topCustomers,
                     scheduledPosts,
                     loading: false,
+                    adminStats: {
+                        newUsers: {
+                            value: newUsersCurrent.length.toLocaleString(),
+                            trend: `${newUsersTrend >= 0 ? '+' : ''}${newUsersTrend}`,
+                            trendNegative: newUsersTrend < 0,
+                            chartData: newUsersChart
+                        },
+                        activeUsers: {
+                            value: activeUsersCurrent.length.toLocaleString(),
+                            trend: `${activeUsersTrend >= 0 ? '+' : ''}${activeUsersTrend}`,
+                            trendNegative: activeUsersTrend < 0,
+                            chartData: activeUsersChart
+                        },
+                        totalSales: {
+                            value: salesTotalCurrent.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 }), // Currency handled in UI
+                            trend: `${salesTrend >= 0 ? '+' : ''}${salesTrend.toLocaleString(undefined, { maximumFractionDigits: 0 })}`,
+                            trendNegative: salesTrend < 0,
+                            chartData: salesChart
+                        },
+                        conversion: {
+                            value: `${conversionCurrent.toFixed(1)}%`,
+                            trend: `${conversionTrend >= 0 ? '+' : ''}${conversionTrend.toFixed(1)}%`,
+                            trendNegative: conversionTrend < 0,
+                            chartData: conversionChart
+                        },
+                        leads: {
+                            value: leadsCurrent.length.toLocaleString(),
+                            trend: `${leadsTrend >= 0 ? '+' : ''}${leadsTrend}`,
+                            trendNegative: leadsTrend < 0,
+                            chartData: leadsChart
+                        },
+                        totalProfit: {
+                            value: salesTotalCurrent.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 }),
+                            trend: `${salesTrend >= 0 ? '+' : ''}${salesTrend.toLocaleString(undefined, { maximumFractionDigits: 0 })}`,
+                            trendNegative: salesTrend < 0,
+                            chartData: salesChart // Using Sales as Profit proxy for now
+                        },
+                        sources: (() => {
+                            const total = subscriberCount || 1;
+                            const fb = (subscribersData || []).filter(s => s.platform === 'FACEBOOK').length;
+                            const ig = (subscribersData || []).filter(s => s.platform === 'INSTAGRAM').length;
+                            // Mocking others for now since we only track FB/IG
+                            const web = 0;
+                            const tiktok = 0;
+                            return [
+                                { name: 'Facebook', count: fb, percentage: Math.round((fb / total) * 100) },
+                                { name: 'Instagram', count: ig, percentage: Math.round((ig / total) * 100) },
+                                { name: 'Website', count: web, percentage: 0 },
+                                { name: 'TikTok', count: tiktok, percentage: 0 }
+                            ].sort((a, b) => b.count - a.count);
+                        })(),
+
+                        // New SaaS Stats (from server API)
+                        allUsers: {
+                            value: globalStats.totalUsers.toLocaleString(),
+                            trend: profilesTrend.str,
+                            trendNegative: profilesTrend.isNegative,
+                            chartData: flatChartData
+                        },
+                        verifiedUsers: {
+                            value: globalStats.verifiedUsers.toLocaleString(),
+                            trend: verifiedTrend.str,
+                            trendNegative: verifiedTrend.isNegative,
+                            chartData: flatChartData
+                        },
+                        unverifiedUsers: {
+                            value: globalStats.unverifiedUsers.toLocaleString(),
+                            trend: unverifiedTrend.str,
+                            trendNegative: unverifiedTrend.isNegative,
+                            chartData: flatChartData
+                        },
+                        totalPages: {
+                            value: globalStats.totalPages.toLocaleString(),
+                            trend: pagesTrend.str,
+                            trendNegative: pagesTrend.isNegative,
+                            chartData: flatChartData
+                        },
+                        totalFlows: {
+                            value: globalStats.totalFlows.toLocaleString(),
+                            trend: flowsTrend.str,
+                            trendNegative: flowsTrend.isNegative,
+                            chartData: flatChartData
+                        },
+                        totalStores: {
+                            value: globalStats.totalStores.toLocaleString(),
+                            trend: storesTrend.str,
+                            trendNegative: storesTrend.isNegative,
+                            chartData: flatChartData
+                        }
+                    },
                 });
 
             } catch (error) {

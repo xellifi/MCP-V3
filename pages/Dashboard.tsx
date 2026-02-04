@@ -12,7 +12,7 @@ import {
   Facebook, Instagram, Globe, ArrowUpRight, Home,
   Ticket, Tag, CheckCircle, UserCheck, DollarSign, BarChart3, Activity, Zap, EyeOff,
   ArrowLeft, ArrowRight, FileText, Monitor, Settings, Banknote, ShoppingBag, Filter, Clock, X,
-  ThumbsUp, MessageSquare, Share2, Smile, Camera, Image, SmilePlus, Smartphone, MessageCircle
+  ThumbsUp, MessageSquare, Share2, Smile, Camera, Image, SmilePlus, Smartphone, MessageCircle, Workflow
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useCurrency } from '../context/CurrencyContext';
@@ -83,14 +83,7 @@ const campaignData = [
 ];
 
 
-const newStatsData = [
-  { name: 'New Users', value: '15,000', trend: '+200', icon: Users, color: '#487fff', chartData: [10, 25, 15, 30, 22, 40, 35] },
-  { name: 'Active Users', value: '8,000', trend: '+200', icon: UserCheck, color: '#22c55e', chartData: [15, 20, 18, 25, 30, 22, 28] },
-  { name: 'Total Sales', value: '$500,000', trend: '-$10k', trendNegative: true, icon: DollarSign, color: '#f59e0b', chartData: [30, 45, 35, 50, 40, 60, 55] },
-  { name: 'Conversion', value: '25%', trend: '+5%', icon: BarChart3, color: '#8b5cf6', chartData: [20, 15, 25, 20, 35, 30, 40] },
-  { name: 'Leads', value: '250', trend: '+20', icon: Zap, color: '#ec4899', chartData: [10, 15, 12, 18, 15, 25, 20] },
-  { name: 'Total Profit', value: '$300,700', trend: '+$15k', icon: Activity, color: '#0ea5e9', chartData: [25, 35, 30, 45, 40, 55, 50] },
-];
+
 
 const newCampaignsData = [
   { name: 'Email', percentage: 80, icon: Mail, color: '#f97316' },
@@ -228,13 +221,22 @@ const Dashboard: React.FC<DashboardProps> = ({ workspace, user }) => {
   const { selectedCurrency } = useCurrency();
   const navigate = useNavigate();
   const { currentSubscription } = useSubscription();
-  const { totalSales, totalOrders, subscriberCount, connectedPagesCount, earningData: realEarningData, recentTransactions, recentOrders, topPages, topCustomers, scheduledPosts, loading: statsLoading } = useDashboardStats(workspace);
+  const { totalSales, totalOrders, subscriberCount, connectedPagesCount, earningData: realEarningData, recentTransactions, recentOrders, topPages, topCustomers, scheduledPosts, loading: statsLoading, adminStats } = useDashboardStats(workspace);
   const [showOrdersDropdown, setShowOrdersDropdown] = useState(false);
   const [automationFilter, setAutomationFilter] = useState<'all' | 'enabled'>('enabled');
   const [pagesCurrentPage, setPagesCurrentPage] = useState(1);
   const [selectedScheduledPost, setSelectedScheduledPost] = useState<any>(null);
   const [showComingSoon, setShowComingSoon] = useState(false);
   const pagesPerPage = 5;
+
+  const statsCards = [
+    { name: 'All Users', value: adminStats?.allUsers.value || '0', trend: adminStats?.allUsers.trend || '+0', trendNegative: adminStats?.allUsers.trendNegative, icon: Users, color: '#487fff', chartData: adminStats?.allUsers.chartData || [0, 0, 0, 0, 0, 0, 0] },
+    { name: 'Verified Users', value: adminStats?.verifiedUsers.value || '0', trend: adminStats?.verifiedUsers.trend || '+0', trendNegative: adminStats?.verifiedUsers.trendNegative, icon: UserCheck, color: '#22c55e', chartData: adminStats?.verifiedUsers.chartData || [0, 0, 0, 0, 0, 0, 0] },
+    { name: 'Unverified Users', value: adminStats?.unverifiedUsers.value || '0', trend: adminStats?.unverifiedUsers.trend || '+0', trendNegative: adminStats?.unverifiedUsers.trendNegative, icon: UserMinus, color: '#ef4444', chartData: adminStats?.unverifiedUsers.chartData || [0, 0, 0, 0, 0, 0, 0] },
+    { name: 'Total Pages', value: adminStats?.totalPages.value || '0', trend: adminStats?.totalPages.trend || '+0', trendNegative: adminStats?.totalPages.trendNegative, icon: Facebook, color: '#3b82f6', chartData: adminStats?.totalPages.chartData || [0, 0, 0, 0, 0, 0, 0] },
+    { name: 'Total Flows', value: adminStats?.totalFlows.value || '0', trend: adminStats?.totalFlows.trend || '+0', trendNegative: adminStats?.totalFlows.trendNegative, icon: Workflow, color: '#ec4899', chartData: adminStats?.totalFlows.chartData || [0, 0, 0, 0, 0, 0, 0] },
+    { name: 'Total Stores', value: adminStats?.totalStores.value || '0', trend: adminStats?.totalStores.trend || '+0', trendNegative: adminStats?.totalStores.trendNegative, icon: ShoppingBag, color: '#f59e0b', chartData: adminStats?.totalStores.chartData || [0, 0, 0, 0, 0, 0, 0] },
+  ];
 
   // Calculate trial days if applicable
   const getTrialStatus = () => {
@@ -482,7 +484,7 @@ const Dashboard: React.FC<DashboardProps> = ({ workspace, user }) => {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Left Side: 3x2 Grid of Stat Cards */}
           <div className="lg:col-span-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {newStatsData.map((stat, idx) => (
+            {statsCards.map((stat, idx) => (
               <div key={idx} className={`rounded-[15px] p-5 border flex flex-col transition-all duration-300 hover:shadow-lg ${isDark ? 'bg-[#1b253b]/40 border-[#2d3a56]' : 'bg-white border-slate-100 shadow-sm'}`}
                 style={{
                   background: !isDark ? `linear-gradient(135deg, white 0%, ${stat.color}08 100%)` : undefined,
@@ -535,12 +537,12 @@ const Dashboard: React.FC<DashboardProps> = ({ workspace, user }) => {
             </div>
 
             <div className="mb-8">
-              <p className={`text-4xl font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>524,756</p>
-              <p className={`text-base ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Total Platform Visitors</p>
+              <p className={`text-4xl font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>{subscriberCount.toLocaleString()}</p>
+              <p className={`text-base ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Total Subscribers</p>
             </div>
 
             <div className="flex flex-col lg:flex-row lg:items-end gap-3 flex-1 lg:min-h-[200px] pb-2">
-              {sourceVisitors.map((source, idx) => {
+              {(adminStats?.sources || sourceVisitors || []).map((source, idx) => {
                 const heights = ['lg:h-[50%]', 'lg:h-[66%]', 'lg:h-[82%]', 'lg:h-[96%]'];
                 const bgColors = [
                   isDark ? 'bg-[#ffb300]/15' : 'bg-[#fffbeb]',
@@ -552,20 +554,15 @@ const Dashboard: React.FC<DashboardProps> = ({ workspace, user }) => {
 
                 const renderIcon = () => {
                   switch (source.name) {
-                    case 'TikTok':
-                      return (
-                        <svg className="w-6 h-6 fill-white" viewBox="0 0 24 24">
-                          <path d="M12.53.02C13.84 0 15.14.01 16.44 0c.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.06-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.9-.32-1.98-.23-2.81.23-.76.42-1.4 1.07-1.63 1.88-.3.97-.24 2.11.35 2.97.41.64 1.08 1.13 1.84 1.28.85.12 1.83-.07 2.47-.65.57-.54.81-1.32.81-2.1.02-5.93-.01-11.85.02-17.78z" />
-                        </svg>
-                      );
-                    case 'Instagram':
-                      return <Instagram className="w-6 h-6 text-white" />;
-                    case 'Facebook':
-                      return <Facebook className="w-6 h-6 text-white fill-white" />;
-                    case 'Website':
-                      return <Globe className="w-6 h-6 text-white" />;
-                    default:
-                      return <Globe className="w-6 h-6 text-white" />;
+                    case 'TikTok': return (
+                      <svg className="w-6 h-6 fill-white" viewBox="0 0 24 24">
+                        <path d="M12.53.02C13.84 0 15.14.01 16.44 0c.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.06-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.9-.32-1.98-.23-2.81.23-.76.42-1.4 1.07-1.63 1.88-.3.97-.24 2.11.35 2.97.41.64 1.08 1.13 1.84 1.28.85.12 1.83-.07 2.47-.65.57-.54.81-1.32.81-2.1.02-5.93-.01-11.85.02-17.78z" />
+                      </svg>
+                    );
+                    case 'Instagram': return <Instagram className="w-6 h-6 text-white" />;
+                    case 'Facebook': return <Facebook className="w-6 h-6 text-white fill-white" />;
+                    case 'Website': return <Globe className="w-6 h-6 text-white" />;
+                    default: return <Globe className="w-6 h-6 text-white" />;
                   }
                 };
 
