@@ -66,11 +66,11 @@ const countriesData = [
 ];
 
 
-const sourceVisitors = [
-  { name: 'TikTok', percentage: 50, color: '#000000', icon: '🎵' },
-  { name: 'Instagram', percentage: 66, color: '#e1306c', icon: '📸' },
-  { name: 'Facebook', percentage: 82, color: '#1877f2', icon: Facebook },
-  { name: 'Website', percentage: 96, color: '#22c55e', icon: Globe },
+const defaultSourceVisitors = [
+  { name: 'TikTok', percentage: 0, count: 0, color: '#000000' },
+  { name: 'Instagram', percentage: 0, count: 0, color: '#e1306c' },
+  { name: 'Facebook', percentage: 0, count: 0, color: '#1877f2' },
+  { name: 'Website', percentage: 0, count: 0, color: '#22c55e' },
 ];
 
 const campaignData = [
@@ -549,13 +549,14 @@ const Dashboard: React.FC<DashboardProps> = ({ workspace, user }) => {
             </div>
 
             <div className="mb-8">
-              <p className={`text-4xl font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>{subscriberCount.toLocaleString()}</p>
+              <p className={`text-4xl font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>{(adminStats?.globalSubscriberCount || subscriberCount).toLocaleString()}</p>
               <p className={`text-base ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Total Subscribers</p>
             </div>
 
             <div className="flex flex-col lg:flex-row lg:items-end gap-3 flex-1 lg:min-h-[200px] pb-2">
-              {(adminStats?.sources || sourceVisitors || []).map((source, idx) => {
-                const heights = ['lg:h-[50%]', 'lg:h-[66%]', 'lg:h-[82%]', 'lg:h-[96%]'];
+              {(adminStats?.sources || defaultSourceVisitors).map((source, idx) => {
+                // Dynamic height based on percentage (min 30%, max 96%)
+                const dynamicHeight = Math.max(30, Math.min(96, source.percentage > 0 ? 30 + (source.percentage * 0.66) : 30));
                 const bgColors = [
                   isDark ? 'bg-[#ffb300]/15' : 'bg-[#fffbeb]',
                   isDark ? 'bg-[#8a3bf6]/15' : 'bg-[#f5f3ff]',
@@ -581,7 +582,8 @@ const Dashboard: React.FC<DashboardProps> = ({ workspace, user }) => {
                 return (
                   <div
                     key={idx}
-                    className={`flex-1 rounded-[15px] p-4 flex flex-col items-center justify-between transition-all duration-500 hover:translate-y-[-4px] hover:shadow-lg ${heights[idx]} ${bgColors[idx]}`}
+                    className={`flex-1 rounded-[15px] p-4 flex flex-col items-center justify-between transition-all duration-500 hover:translate-y-[-4px] hover:shadow-lg ${bgColors[idx]}`}
+                    style={{ height: `${dynamicHeight}%` }}
                   >
                     <div className="flex-1 flex items-center justify-center w-full">
                       <div className={`w-10 h-10 rounded-full flex items-center justify-center shadow-md ${iconBgs[idx]}`}>

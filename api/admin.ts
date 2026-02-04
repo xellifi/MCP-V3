@@ -311,14 +311,29 @@ async function handleGetGlobalStats(req: VercelRequest, res: VercelResponse) {
             { count: verifiedUsers },
             { data: pagesData, count: totalPages },
             { data: flowsData, count: totalFlows },
-            { data: storesData, count: totalStores }
+            { data: storesData, count: totalStores },
+            { data: subscribersData, count: totalSubscribers }
         ] = await Promise.all([
             supabaseAdmin.from('profiles').select('*', { count: 'exact', head: true }),
             supabaseAdmin.from('profiles').select('*', { count: 'exact', head: true }).eq('email_verified', true),
             supabaseAdmin.from('connected_pages').select('id, name, page_id, page_image_url, workspace_id', { count: 'exact' }),
             supabaseAdmin.from('flows').select('id, name, workspace_id', { count: 'exact' }),
-            supabaseAdmin.from('stores').select('id, name, slug, workspace_id, created_at', { count: 'exact' })
+            supabaseAdmin.from('stores').select('id, name, slug, workspace_id, created_at', { count: 'exact' }),
+            supabaseAdmin.from('subscribers').select('platform', { count: 'exact' })
         ]);
+
+        // Calculate subscriber sources breakdown
+        const subscriberTotal = totalSubscribers || 1;
+        const facebookCount = (subscribersData || []).filter(s => s.platform === 'FACEBOOK').length;
+        const instagramCount = (subscribersData || []).filter(s => s.platform === 'INSTAGRAM').length;
+        const otherCount = (subscribersData || []).filter(s => s.platform && s.platform !== 'FACEBOOK' && s.platform !== 'INSTAGRAM').length;
+
+        const subscriberSources = [
+            { name: 'TikTok', count: 0, percentage: 0 },
+            { name: 'Instagram', count: instagramCount, percentage: Math.round((instagramCount / subscriberTotal) * 100) },
+            { name: 'Facebook', count: facebookCount, percentage: Math.round((facebookCount / subscriberTotal) * 100) },
+            { name: 'Website', count: otherCount, percentage: Math.round((otherCount / subscriberTotal) * 100) }
+        ];
 
         // Get workspace names for context
         const workspaceIds = [
@@ -349,7 +364,9 @@ async function handleGetGlobalStats(req: VercelRequest, res: VercelResponse) {
                 unverifiedUsers: (totalUsers || 0) - (verifiedUsers || 0),
                 totalPages: totalPages || 0,
                 totalFlows: totalFlows || 0,
-                totalStores: totalStores || 0
+                totalStores: totalStores || 0,
+                totalSubscribers: totalSubscribers || 0,
+                subscriberSources
             },
             lists: {
                 pages: (pagesData || []).map(p => ({

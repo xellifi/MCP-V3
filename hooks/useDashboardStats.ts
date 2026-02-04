@@ -91,6 +91,7 @@ export interface DashboardStats {
         totalPages: { value: string; trend: string; trendNegative: boolean; chartData: number[] };
         totalFlows: { value: string; trend: string; trendNegative: boolean; chartData: number[] };
         totalStores: { value: string; trend: string; trendNegative: boolean; chartData: number[] };
+        globalSubscriberCount: number;
     };
     globalLists?: {
         pages: { id: string; name: string; pageId: string; imageUrl: string; workspaceName: string }[];
@@ -712,7 +713,16 @@ export const useDashboardStats = (workspace: Workspace) => {
 
                 // 10. Fetch Global SaaS Stats (For Admin Dashboard) via Server API
                 // This uses the service role to bypass RLS and get true global counts
-                let globalStats = {
+                let globalStats: {
+                    totalUsers: number;
+                    verifiedUsers: number;
+                    unverifiedUsers: number;
+                    totalPages: number;
+                    totalFlows: number;
+                    totalStores: number;
+                    totalSubscribers?: number;
+                    subscriberSources?: { name: string; count: number; percentage: number }[];
+                } = {
                     totalUsers: 0,
                     verifiedUsers: 0,
                     unverifiedUsers: 0,
@@ -823,20 +833,21 @@ export const useDashboardStats = (workspace: Workspace) => {
                             trendNegative: salesTrend < 0,
                             chartData: salesChart // Using Sales as Profit proxy for now
                         },
-                        sources: (() => {
+                        sources: globalStats.subscriberSources || (() => {
+                            // Fallback: calculate from workspace subscribers if API data not available
                             const total = subscriberCount || 1;
                             const fb = (subscribersData || []).filter(s => s.platform === 'FACEBOOK').length;
                             const ig = (subscribersData || []).filter(s => s.platform === 'INSTAGRAM').length;
-                            // Mocking others for now since we only track FB/IG
                             const web = 0;
                             const tiktok = 0;
                             return [
-                                { name: 'Facebook', count: fb, percentage: Math.round((fb / total) * 100) },
+                                { name: 'TikTok', count: tiktok, percentage: Math.round((tiktok / total) * 100) },
                                 { name: 'Instagram', count: ig, percentage: Math.round((ig / total) * 100) },
-                                { name: 'Website', count: web, percentage: 0 },
-                                { name: 'TikTok', count: tiktok, percentage: 0 }
-                            ].sort((a, b) => b.count - a.count);
+                                { name: 'Facebook', count: fb, percentage: Math.round((fb / total) * 100) },
+                                { name: 'Website', count: web, percentage: Math.round((web / total) * 100) }
+                            ];
                         })(),
+                        globalSubscriberCount: globalStats.totalSubscribers || subscriberCount || 0,
 
                         // New SaaS Stats (from server API)
                         allUsers: {
