@@ -309,16 +309,37 @@ async function handleGetGlobalStats(req: VercelRequest, res: VercelResponse) {
         const [
             { count: totalUsers },
             { count: verifiedUsers },
-            { count: totalPages },
-            { count: totalFlows },
-            { count: totalStores }
+            { data: pagesData, count: totalPages },
+            { data: flowsData, count: totalFlows },
+            { data: storesData, count: totalStores }
         ] = await Promise.all([
             supabaseAdmin.from('profiles').select('*', { count: 'exact', head: true }),
             supabaseAdmin.from('profiles').select('*', { count: 'exact', head: true }).eq('email_verified', true),
-            supabaseAdmin.from('connected_pages').select('*', { count: 'exact', head: true }),
-            supabaseAdmin.from('flows').select('*', { count: 'exact', head: true }),
-            supabaseAdmin.from('stores').select('*', { count: 'exact', head: true })
+            supabaseAdmin.from('connected_pages').select('id, name, page_id, page_image_url, workspace_id', { count: 'exact' }),
+            supabaseAdmin.from('flows').select('id, name, workspace_id', { count: 'exact' }),
+            supabaseAdmin.from('stores').select('id, name, slug, workspace_id, created_at', { count: 'exact' })
         ]);
+
+        // Get workspace names for context
+        const workspaceIds = [
+            ...(pagesData || []).map(p => p.workspace_id),
+            ...(flowsData || []).map(f => f.workspace_id),
+            ...(storesData || []).map(s => s.workspace_id)
+        ].filter(Boolean);
+
+        const uniqueWorkspaceIds = [...new Set(workspaceIds)];
+
+        let workspaceMap: Record<string, string> = {};
+        if (uniqueWorkspaceIds.length > 0) {
+            const { data: workspaces } = await supabaseAdmin
+                .from('workspaces')
+                .select('id, name')
+                .in('id', uniqueWorkspaceIds);
+
+            workspaces?.forEach(w => {
+                workspaceMap[w.id] = w.name;
+            });
+        }
 
         return res.status(200).json({
             success: true,
@@ -329,6 +350,27 @@ async function handleGetGlobalStats(req: VercelRequest, res: VercelResponse) {
                 totalPages: totalPages || 0,
                 totalFlows: totalFlows || 0,
                 totalStores: totalStores || 0
+            },
+            lists: {
+                pages: (pagesData || []).map(p => ({
+                    id: p.id,
+                    name: p.name,
+                    pageId: p.page_id,
+                    imageUrl: p.page_image_url,
+                    workspaceName: workspaceMap[p.workspace_id] || 'Unknown'
+                })),
+                flows: (flowsData || []).map(f => ({
+                    id: f.id,
+                    name: f.name || 'Untitled Flow',
+                    workspaceName: workspaceMap[f.workspace_id] || 'Unknown'
+                })),
+                stores: (storesData || []).map(s => ({
+                    id: s.id,
+                    name: s.name || 'Untitled Store',
+                    slug: s.slug,
+                    workspaceName: workspaceMap[s.workspace_id] || 'Unknown',
+                    createdAt: s.created_at
+                }))
             }
         });
 

@@ -221,21 +221,22 @@ const Dashboard: React.FC<DashboardProps> = ({ workspace, user }) => {
   const { selectedCurrency } = useCurrency();
   const navigate = useNavigate();
   const { currentSubscription } = useSubscription();
-  const { totalSales, totalOrders, subscriberCount, connectedPagesCount, earningData: realEarningData, recentTransactions, recentOrders, topPages, topCustomers, scheduledPosts, loading: statsLoading, adminStats } = useDashboardStats(workspace);
+  const { totalSales, totalOrders, subscriberCount, connectedPagesCount, earningData: realEarningData, recentTransactions, recentOrders, topPages, topCustomers, scheduledPosts, loading: statsLoading, adminStats, globalLists } = useDashboardStats(workspace);
   const [showOrdersDropdown, setShowOrdersDropdown] = useState(false);
   const [automationFilter, setAutomationFilter] = useState<'all' | 'enabled'>('enabled');
   const [pagesCurrentPage, setPagesCurrentPage] = useState(1);
   const [selectedScheduledPost, setSelectedScheduledPost] = useState<any>(null);
   const [showComingSoon, setShowComingSoon] = useState(false);
+  const [statsListModal, setStatsListModal] = useState<{ type: string; title: string } | null>(null);
   const pagesPerPage = 5;
 
   const statsCards = [
-    { name: 'All Users', value: adminStats?.allUsers.value || '0', trend: adminStats?.allUsers.trend || '+0', trendNegative: adminStats?.allUsers.trendNegative, icon: Users, color: '#487fff', chartData: adminStats?.allUsers.chartData || [0, 0, 0, 0, 0, 0, 0] },
-    { name: 'Verified Users', value: adminStats?.verifiedUsers.value || '0', trend: adminStats?.verifiedUsers.trend || '+0', trendNegative: adminStats?.verifiedUsers.trendNegative, icon: UserCheck, color: '#22c55e', chartData: adminStats?.verifiedUsers.chartData || [0, 0, 0, 0, 0, 0, 0] },
-    { name: 'Unverified Users', value: adminStats?.unverifiedUsers.value || '0', trend: adminStats?.unverifiedUsers.trend || '+0', trendNegative: adminStats?.unverifiedUsers.trendNegative, icon: UserMinus, color: '#ef4444', chartData: adminStats?.unverifiedUsers.chartData || [0, 0, 0, 0, 0, 0, 0] },
-    { name: 'Total Pages', value: adminStats?.totalPages.value || '0', trend: adminStats?.totalPages.trend || '+0', trendNegative: adminStats?.totalPages.trendNegative, icon: Facebook, color: '#3b82f6', chartData: adminStats?.totalPages.chartData || [0, 0, 0, 0, 0, 0, 0] },
-    { name: 'Total Flows', value: adminStats?.totalFlows.value || '0', trend: adminStats?.totalFlows.trend || '+0', trendNegative: adminStats?.totalFlows.trendNegative, icon: Workflow, color: '#ec4899', chartData: adminStats?.totalFlows.chartData || [0, 0, 0, 0, 0, 0, 0] },
-    { name: 'Total Stores', value: adminStats?.totalStores.value || '0', trend: adminStats?.totalStores.trend || '+0', trendNegative: adminStats?.totalStores.trendNegative, icon: ShoppingBag, color: '#f59e0b', chartData: adminStats?.totalStores.chartData || [0, 0, 0, 0, 0, 0, 0] },
+    { key: 'allUsers', name: 'All Users', value: adminStats?.allUsers.value || '0', trend: adminStats?.allUsers.trend || '+0', trendNegative: adminStats?.allUsers.trendNegative, icon: Users, color: '#487fff', chartData: adminStats?.allUsers.chartData || [0, 0, 0, 0, 0, 0, 0] },
+    { key: 'verifiedUsers', name: 'Verified Users', value: adminStats?.verifiedUsers.value || '0', trend: adminStats?.verifiedUsers.trend || '+0', trendNegative: adminStats?.verifiedUsers.trendNegative, icon: UserCheck, color: '#22c55e', chartData: adminStats?.verifiedUsers.chartData || [0, 0, 0, 0, 0, 0, 0] },
+    { key: 'unverifiedUsers', name: 'Unverified Users', value: adminStats?.unverifiedUsers.value || '0', trend: adminStats?.unverifiedUsers.trend || '+0', trendNegative: adminStats?.unverifiedUsers.trendNegative, icon: UserMinus, color: '#ef4444', chartData: adminStats?.unverifiedUsers.chartData || [0, 0, 0, 0, 0, 0, 0] },
+    { key: 'totalPages', name: 'Total Pages', value: adminStats?.totalPages.value || '0', trend: adminStats?.totalPages.trend || '+0', trendNegative: adminStats?.totalPages.trendNegative, icon: Facebook, color: '#3b82f6', chartData: adminStats?.totalPages.chartData || [0, 0, 0, 0, 0, 0, 0] },
+    { key: 'totalFlows', name: 'Total Flows', value: adminStats?.totalFlows.value || '0', trend: adminStats?.totalFlows.trend || '+0', trendNegative: adminStats?.totalFlows.trendNegative, icon: Workflow, color: '#ec4899', chartData: adminStats?.totalFlows.chartData || [0, 0, 0, 0, 0, 0, 0] },
+    { key: 'totalStores', name: 'Total Stores', value: adminStats?.totalStores.value || '0', trend: adminStats?.totalStores.trend || '+0', trendNegative: adminStats?.totalStores.trendNegative, icon: ShoppingBag, color: '#f59e0b', chartData: adminStats?.totalStores.chartData || [0, 0, 0, 0, 0, 0, 0] },
   ];
 
   // Calculate trial days if applicable
@@ -484,46 +485,57 @@ const Dashboard: React.FC<DashboardProps> = ({ workspace, user }) => {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Left Side: 3x2 Grid of Stat Cards */}
           <div className="lg:col-span-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {statsCards.map((stat, idx) => (
-              <div key={idx} className={`rounded-[15px] p-5 border flex flex-col transition-all duration-300 hover:shadow-lg ${isDark ? 'bg-[#1b253b]/40 border-[#2d3a56]' : 'bg-white border-slate-100 shadow-sm'}`}
-                style={{
-                  background: !isDark ? `linear-gradient(135deg, white 0%, ${stat.color}08 100%)` : undefined,
-                  borderLeft: `3px solid ${stat.color}`
-                }}
-              >
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="w-10 h-10 rounded-full flex items-center justify-center p-2" style={{ backgroundColor: stat.color }}>
-                    <stat.icon className="w-5 h-5 text-white" />
+            {statsCards.map((stat, idx) => {
+              const isClickable = ['totalStores', 'totalFlows', 'totalPages'].includes(stat.key);
+              return (
+                <div
+                  key={idx}
+                  className={`rounded-[15px] p-5 border flex flex-col transition-all duration-300 hover:shadow-lg ${isDark ? 'bg-[#1b253b]/40 border-[#2d3a56]' : 'bg-white border-slate-100 shadow-sm'} ${isClickable ? 'cursor-pointer hover:scale-[1.02]' : ''}`}
+                  style={{
+                    background: !isDark ? `linear-gradient(135deg, white 0%, ${stat.color}08 100%)` : undefined,
+                    borderLeft: `3px solid ${stat.color}`
+                  }}
+                  onClick={() => {
+                    if (isClickable) {
+                      setStatsListModal({ type: stat.key, title: stat.name });
+                    }
+                  }}
+                >
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center p-2" style={{ backgroundColor: stat.color }}>
+                      <stat.icon className="w-5 h-5 text-white" />
+                    </div>
+                    <h4 className={`text-[13px] font-bold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{stat.name}</h4>
+                    {isClickable && <ChevronRight className={`w-4 h-4 ml-auto ${isDark ? 'text-slate-500' : 'text-slate-400'}`} />}
                   </div>
-                  <h4 className={`text-[13px] font-bold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{stat.name}</h4>
-                </div>
 
-                <div className="flex items-center justify-between mb-6">
-                  <p className={`text-2xl font-black ${isDark ? 'text-white' : 'text-slate-900'}`}>{stat.value}</p>
-                  <div className="h-12 w-24 opacity-80">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart data={stat.chartData.map((v) => ({ v }))}>
-                        <defs>
-                          <linearGradient id={`grad-${idx}`} x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor={stat.color} stopOpacity={0.3} />
-                            <stop offset="95%" stopColor={stat.color} stopOpacity={0} />
-                          </linearGradient>
-                        </defs>
-                        <Area type="monotone" dataKey="v" stroke={stat.color} strokeWidth={2.5} fill={`url(#grad-${idx})`} dot={false} />
-                      </AreaChart>
-                    </ResponsiveContainer>
+                  <div className="flex items-center justify-between mb-6">
+                    <p className={`text-2xl font-black ${isDark ? 'text-white' : 'text-slate-900'}`}>{stat.value}</p>
+                    <div className="h-12 w-24 opacity-80">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={stat.chartData.map((v) => ({ v }))}>
+                          <defs>
+                            <linearGradient id={`grad-${idx}`} x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor={stat.color} stopOpacity={0.3} />
+                              <stop offset="95%" stopColor={stat.color} stopOpacity={0} />
+                            </linearGradient>
+                          </defs>
+                          <Area type="monotone" dataKey="v" stroke={stat.color} strokeWidth={2.5} fill={`url(#grad-${idx})`} dot={false} />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-1.5 mt-auto text-[11px] font-bold">
+                    <span className={`${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Increase by</span>
+                    <span className={`px-2 py-0.5 rounded-[4px] ${stat.trendNegative ? 'bg-rose-500/10 text-rose-500' : 'bg-emerald-500/10 text-emerald-500'}`}>
+                      {stat.trend}
+                    </span>
+                    <span className={`${isDark ? 'text-slate-500' : 'text-slate-400'}`}>this week</span>
                   </div>
                 </div>
-
-                <div className="flex items-center gap-1.5 mt-auto text-[11px] font-bold">
-                  <span className={`${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Increase by</span>
-                  <span className={`px-2 py-0.5 rounded-[4px] ${stat.trendNegative ? 'bg-rose-500/10 text-rose-500' : 'bg-emerald-500/10 text-emerald-500'}`}>
-                    {stat.trend}
-                  </span>
-                  <span className={`${isDark ? 'text-slate-500' : 'text-slate-400'}`}>this week</span>
-                </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
 
           {/* Right Side: Source Visitors Card */}
@@ -1346,6 +1358,130 @@ const Dashboard: React.FC<DashboardProps> = ({ workspace, user }) => {
             >
               GOT IT!
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Stats List Modal */}
+      {statsListModal && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+          <div className={`relative w-full max-w-2xl max-h-[80vh] rounded-[24px] border shadow-2xl animate-scale-in overflow-hidden ${isDark ? 'bg-[#1b253b] border-[#2d3a56]' : 'bg-white border-slate-200'}`}>
+            {/* Header */}
+            <div className={`flex items-center justify-between p-6 border-b ${isDark ? 'border-[#2d3a56]' : 'border-slate-200'}`}>
+              <h2 className={`text-xl font-black ${isDark ? 'text-white' : 'text-slate-900'}`}>{statsListModal.title}</h2>
+              <button
+                onClick={() => setStatsListModal(null)}
+                className={`p-2 rounded-lg transition-colors ${isDark ? 'hover:bg-[#2d3a56] text-slate-400' : 'hover:bg-slate-100 text-slate-500'}`}
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* List Content */}
+            <div className="p-6 overflow-y-auto max-h-[60vh]">
+              {statsListModal.type === 'totalStores' && (
+                <div className="space-y-3">
+                  {(globalLists?.stores || []).length === 0 ? (
+                    <p className={`text-center py-8 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>No stores found</p>
+                  ) : (
+                    (globalLists?.stores || []).map((store) => (
+                      <div
+                        key={store.id}
+                        className={`flex items-center justify-between p-4 rounded-xl border transition-all hover:shadow-md ${isDark ? 'bg-[#243049] border-[#2d3a56] hover:border-amber-500/50' : 'bg-slate-50 border-slate-200 hover:border-amber-500'}`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-amber-500 rounded-lg flex items-center justify-center">
+                            <ShoppingBag className="w-5 h-5 text-white" />
+                          </div>
+                          <div>
+                            <h4 className={`font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>{store.name}</h4>
+                            <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                              {store.workspaceName} • /store/{store.slug}
+                            </p>
+                          </div>
+                        </div>
+                        <a
+                          href={`/store/${store.slug}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-bold text-sm transition-colors"
+                        >
+                          View Live
+                          <ArrowUpRight className="w-4 h-4" />
+                        </a>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+
+              {statsListModal.type === 'totalFlows' && (
+                <div className="space-y-3">
+                  {(globalLists?.flows || []).length === 0 ? (
+                    <p className={`text-center py-8 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>No flows found</p>
+                  ) : (
+                    (globalLists?.flows || []).map((flow) => (
+                      <div
+                        key={flow.id}
+                        className={`flex items-center justify-between p-4 rounded-xl border transition-all ${isDark ? 'bg-[#243049] border-[#2d3a56]' : 'bg-slate-50 border-slate-200'}`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-pink-500 rounded-lg flex items-center justify-center">
+                            <Workflow className="w-5 h-5 text-white" />
+                          </div>
+                          <div>
+                            <h4 className={`font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>{flow.name}</h4>
+                            <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                              {flow.workspaceName}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+
+              {statsListModal.type === 'totalPages' && (
+                <div className="space-y-3">
+                  {(globalLists?.pages || []).length === 0 ? (
+                    <p className={`text-center py-8 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>No pages found</p>
+                  ) : (
+                    (globalLists?.pages || []).map((page) => (
+                      <div
+                        key={page.id}
+                        className={`flex items-center justify-between p-4 rounded-xl border transition-all ${isDark ? 'bg-[#243049] border-[#2d3a56]' : 'bg-slate-50 border-slate-200'}`}
+                      >
+                        <div className="flex items-center gap-3">
+                          {page.imageUrl ? (
+                            <img src={page.imageUrl} alt={page.name} className="w-10 h-10 rounded-lg object-cover" />
+                          ) : (
+                            <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
+                              <Facebook className="w-5 h-5 text-white" />
+                            </div>
+                          )}
+                          <div>
+                            <h4 className={`font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>{page.name}</h4>
+                            <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                              {page.workspaceName} • ID: {page.pageId}
+                            </p>
+                          </div>
+                        </div>
+                        <a
+                          href={`https://facebook.com/${page.pageId}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-bold text-sm transition-colors"
+                        >
+                          View Page
+                          <ArrowUpRight className="w-4 h-4" />
+                        </a>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

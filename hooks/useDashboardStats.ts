@@ -92,6 +92,11 @@ export interface DashboardStats {
         totalFlows: { value: string; trend: string; trendNegative: boolean; chartData: number[] };
         totalStores: { value: string; trend: string; trendNegative: boolean; chartData: number[] };
     };
+    globalLists?: {
+        pages: { id: string; name: string; pageId: string; imageUrl: string; workspaceName: string }[];
+        flows: { id: string; name: string; workspaceName: string }[];
+        stores: { id: string; name: string; slug: string; workspaceName: string; createdAt: string }[];
+    };
 }
 
 export const useDashboardStats = (workspace: Workspace) => {
@@ -716,12 +721,21 @@ export const useDashboardStats = (workspace: Workspace) => {
                     totalStores: 0
                 };
 
+                let globalLists: {
+                    pages: { id: string; name: string; pageId: string; imageUrl: string; workspaceName: string }[];
+                    flows: { id: string; name: string; workspaceName: string }[];
+                    stores: { id: string; name: string; slug: string; workspaceName: string; createdAt: string }[];
+                } = { pages: [], flows: [], stores: [] };
+
                 try {
                     const response = await fetch('/api/admin?action=global-stats');
                     if (response.ok) {
                         const data = await response.json();
                         if (data.success && data.stats) {
                             globalStats = data.stats;
+                        }
+                        if (data.lists) {
+                            globalLists = data.lists;
                         }
                     } else {
                         throw new Error('API not available');
@@ -731,9 +745,9 @@ export const useDashboardStats = (workspace: Workspace) => {
                     console.warn('Global stats API not available, using fallback:', err);
                     const [profilesRes, pagesRes, flowsRes, storesRes] = await Promise.all([
                         supabase.from('profiles').select('id, email_verified', { count: 'exact' }),
-                        supabase.from('connected_pages').select('id', { count: 'exact', head: true }),
-                        supabase.from('flows').select('id', { count: 'exact', head: true }),
-                        supabase.from('stores').select('id', { count: 'exact', head: true })
+                        supabase.from('connected_pages').select('id, name, page_id, page_image_url', { count: 'exact' }),
+                        supabase.from('flows').select('id, name', { count: 'exact' }),
+                        supabase.from('stores').select('id, name, slug, created_at', { count: 'exact' })
                     ]);
 
                     const profilesData = profilesRes.data || [];
@@ -743,6 +757,11 @@ export const useDashboardStats = (workspace: Workspace) => {
                     globalStats.totalPages = pagesRes.count || 0;
                     globalStats.totalFlows = flowsRes.count || 0;
                     globalStats.totalStores = storesRes.count || 0;
+
+                    // Populate lists from fallback data
+                    globalLists.pages = (pagesRes.data || []).map(p => ({ id: p.id, name: p.name, pageId: p.page_id, imageUrl: p.page_image_url, workspaceName: 'Current' }));
+                    globalLists.flows = (flowsRes.data || []).map(f => ({ id: f.id, name: f.name || 'Untitled', workspaceName: 'Current' }));
+                    globalLists.stores = (storesRes.data || []).map(s => ({ id: s.id, name: s.name || 'Untitled', slug: s.slug, workspaceName: 'Current', createdAt: s.created_at }));
                 }
 
                 // Chart data for global stats (we'll use flat lines since we don't have historical data from the API)
@@ -857,6 +876,7 @@ export const useDashboardStats = (workspace: Workspace) => {
                             chartData: flatChartData
                         }
                     },
+                    globalLists,
                 });
 
             } catch (error) {
