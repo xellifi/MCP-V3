@@ -10,7 +10,7 @@ const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 let sessionReadyPromise: Promise<boolean> | null = null;
 let lastSessionCheck = 0;
 
-const ensureSession = async (): Promise<boolean> => {
+export const ensureSession = async (): Promise<boolean> => {
   const now = Date.now();
 
   // If we checked recently (within 30 seconds), skip the check
@@ -715,6 +715,7 @@ export const api = {
 
   workspace: {
     list: async (): Promise<Workspace[]> => {
+      await ensureSession();
       const { data, error } = await supabase
         .from('workspaces')
         .select('*')
@@ -744,6 +745,7 @@ export const api = {
     },
 
     getConnections: async (workspaceId: string): Promise<MetaConnection[]> => {
+      await ensureSession();
       const { data, error } = await supabase
         .from('meta_connections')
         .select('*')
@@ -947,6 +949,7 @@ export const api = {
     },
 
     fetchPagesFromFacebook: async (workspaceId: string): Promise<ConnectedPage[]> => {
+      await ensureSession();
       console.log('Fetching pages from Facebook for workspace:', workspaceId);
 
       // Get all connections for this workspace
@@ -1322,6 +1325,7 @@ export const api = {
     },
 
     getForms: async (workspaceId: string): Promise<any[]> => {
+      await ensureSession();
       // Get forms
       const { data: forms, error } = await supabase
         .from('forms')
@@ -1410,6 +1414,7 @@ export const api = {
     },
 
     getFormSubmissions: async (formId: string): Promise<any[]> => {
+      await ensureSession();
       const { data, error } = await supabase
         .from('form_submissions')
         .select('*')
@@ -1448,6 +1453,7 @@ export const api = {
     },
 
     getMessages: async (conversationId: string): Promise<Message[]> => {
+      await ensureSession();
       const { data, error } = await supabase
         .from('messages')
         .select('*')
@@ -1488,6 +1494,7 @@ export const api = {
 
     // Fetch conversations from Facebook Messenger and sync to database
     fetchMessengerConversations: async (workspaceId: string, pageId?: string): Promise<Conversation[]> => {
+      await ensureSession();
       console.log('Fetching Messenger conversations for workspace:', workspaceId, pageId ? `page: ${pageId}` : 'all pages');
 
       // Get all connected pages with access tokens
@@ -1641,6 +1648,7 @@ export const api = {
 
     // Fetch message history for a specific conversation from Facebook
     fetchConversationMessages: async (conversationId: string): Promise<Message[]> => {
+      await ensureSession();
       console.log('Fetching messages for conversation:', conversationId);
 
       // Get conversation details
@@ -1960,6 +1968,7 @@ export const api = {
     },
 
     getFlow: async (flowId: string): Promise<Flow | null> => {
+      await ensureSession();
       const { data, error } = await supabase
         .from('flows')
         .select('*')
@@ -2037,6 +2046,7 @@ export const api = {
     },
 
     getScheduledPosts: async (workspaceId: string): Promise<ScheduledPost[]> => {
+      await ensureSession();
       const { data, error } = await supabase
         .from('scheduled_posts')
         .select('*')
@@ -2074,6 +2084,7 @@ export const api = {
     },
 
     getIntegrations: async (workspaceId: string): Promise<IntegrationSettings> => {
+      await ensureSession();
       // Fetch from workspace_settings table
       const { data: settings, error } = await supabase
         .from('workspace_settings')
@@ -2157,6 +2168,7 @@ export const api = {
 
   admin: {
     getUsers: async (): Promise<User[]> => {
+      await ensureSession();
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -2260,6 +2272,7 @@ export const api = {
     },
 
     getSettings: async (): Promise<AdminSettings> => {
+      await ensureSession();
       const { data, error } = await supabase
         .from('admin_settings')
         .select('*')
@@ -2341,6 +2354,7 @@ export const api = {
     },
 
     getPackages: async (): Promise<Package[]> => {
+      await ensureSession();
       const { data, error } = await supabase
         .from('packages')
         .select('*')

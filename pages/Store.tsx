@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { supabase } from '../lib/supabase';
+import { ensureSession } from '../services/api';
 import { Workspace } from '../types';
 
 // Types
@@ -148,6 +149,7 @@ const Store: React.FC<StoreProps> = ({ workspace }) => {
 
     const loadStore = async () => {
         try {
+            await ensureSession();
             const { data, error } = await supabase
                 .from('stores')
                 .select('*')
@@ -180,6 +182,7 @@ const Store: React.FC<StoreProps> = ({ workspace }) => {
     const loadProducts = async () => {
         setLoading(true);
         try {
+            await ensureSession();
             const { data } = await supabase
                 .from('products')
                 .select('*')
@@ -194,6 +197,7 @@ const Store: React.FC<StoreProps> = ({ workspace }) => {
 
     const loadOrders = async () => {
         try {
+            await ensureSession();
             const { data } = await supabase
                 .from('store_orders')
                 .select(`
@@ -219,6 +223,7 @@ const Store: React.FC<StoreProps> = ({ workspace }) => {
     // Save store settings
     const saveStore = async () => {
         try {
+            await ensureSession();
             const { error } = await supabase
                 .from('stores')
                 .update({
@@ -251,6 +256,7 @@ const Store: React.FC<StoreProps> = ({ workspace }) => {
     const uploadImage = async (file: File, type: 'product' | 'logo') => {
         setUploadingImage(true);
         try {
+            await ensureSession();
             const fileName = `${type}-${Date.now()}-${file.name}`;
             const { data, error } = await supabase.storage
                 .from('attachments')
@@ -292,6 +298,7 @@ const Store: React.FC<StoreProps> = ({ workspace }) => {
     // Update order status
     const updateOrderStatus = async (orderId: string, status: string) => {
         try {
+            await ensureSession();
             // Get order details for sync
             const { data: orderData } = await supabase
                 .from('store_orders')
@@ -335,6 +342,7 @@ const Store: React.FC<StoreProps> = ({ workspace }) => {
     const deleteOrder = async (orderId: string) => {
         if (!confirm('Are you sure you want to delete this order? This cannot be undone.')) return;
         try {
+            await ensureSession();
             // First delete order items
             await supabase
                 .from('order_items')
@@ -358,6 +366,7 @@ const Store: React.FC<StoreProps> = ({ workspace }) => {
     // Update payment status
     const updatePaymentStatus = async (orderId: string, paymentStatus: string) => {
         try {
+            await ensureSession();
             // Get order details for sync
             const { data: orderData } = await supabase
                 .from('store_orders')
@@ -401,6 +410,7 @@ const Store: React.FC<StoreProps> = ({ workspace }) => {
     const deleteProduct = async (productId: string) => {
         if (!confirm('Delete this product?')) return;
         try {
+            await ensureSession();
             await supabase.from('products').delete().eq('id', productId);
             loadProducts();
         } catch (err) {

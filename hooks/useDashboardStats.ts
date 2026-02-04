@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
+import { ensureSession } from '../services/api';
 import { Workspace } from '../types';
 
 export interface DashboardOrder {
@@ -87,6 +88,9 @@ export const useDashboardStats = (workspace: Workspace) => {
 
             try {
                 setStats(prev => ({ ...prev, loading: true }));
+
+                // Ensure session is valid before making requests
+                await ensureSession();
 
                 // 1. Fetch Messenger Orders
                 const { data: ordersData, error: ordersError } = await supabase
