@@ -34,6 +34,8 @@ const AdminSubscriptions: React.FC = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [packages, setPackages] = useState<Package[]>([]);
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
 
     // Actions dropdown state
     const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
@@ -259,6 +261,18 @@ const AdminSubscriptions: React.FC = () => {
         return matchesSearch && matchesFilter;
     });
 
+    // Pagination
+    const totalPages = Math.ceil(filteredSubscribers.length / itemsPerPage);
+    const paginatedSubscribers = filteredSubscribers.slice(
+        (currentPage - 1) * itemsPerPage,
+        currentPage * itemsPerPage
+    );
+
+    // Reset page when filters change
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchTerm, filterStatus]);
+
     // Calculate real stats
     const activeSubscribers = subscribers.filter(s => s.status === 'Active').length;
     const cancelledSubscribers = subscribers.filter(s => s.status === 'Cancelled').length;
@@ -408,7 +422,7 @@ const AdminSubscriptions: React.FC = () => {
                                     </td>
                                 </tr>
                             ) : (
-                                filteredSubscribers.map((sub) => (
+                                paginatedSubscribers.map((sub) => (
                                     <tr key={sub.id} className="group hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-3">
@@ -504,10 +518,29 @@ const AdminSubscriptions: React.FC = () => {
                     </table>
                 </div>
 
-                {/* Pagination (Simplified for now) */}
+                {/* Pagination */}
                 <div className="px-6 py-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
                     <div className="text-sm text-slate-500 dark:text-slate-400">
-                        Showing <span className="font-medium text-slate-900 dark:text-white">1</span> to <span className="font-medium text-slate-900 dark:text-white">{filteredSubscribers.length}</span> of <span className="font-medium text-slate-900 dark:text-white">{filteredSubscribers.length}</span> results
+                        Showing <span className="font-medium text-slate-900 dark:text-white">{((currentPage - 1) * itemsPerPage) + 1}</span> to <span className="font-medium text-slate-900 dark:text-white">{Math.min(currentPage * itemsPerPage, filteredSubscribers.length)}</span> of <span className="font-medium text-slate-900 dark:text-white">{filteredSubscribers.length}</span> results
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                            disabled={currentPage === 1}
+                            className="px-4 py-2 text-sm font-medium bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                            Previous
+                        </button>
+                        <span className="text-sm text-slate-600 dark:text-slate-400">
+                            Page {currentPage} of {totalPages || 1}
+                        </span>
+                        <button
+                            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                            disabled={currentPage >= totalPages}
+                            className="px-4 py-2 text-sm font-medium bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                            Next
+                        </button>
                     </div>
                 </div>
             </div>

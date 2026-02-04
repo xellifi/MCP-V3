@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Workspace, User, UserRole } from '../types';
 import {
@@ -18,6 +18,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useCurrency } from '../context/CurrencyContext';
 import { useSubscription } from '../context/SubscriptionContext';
 import { useDashboardStats } from '../hooks/useDashboardStats';
+import { api } from '../services/api';
 
 interface DashboardProps {
   workspace: Workspace;
@@ -137,62 +138,8 @@ const earningCategoriesData = [
 
 
 
-const recentPurchaseData = [
-  {
-    user: 'Tokyo Tower',
-    amount: '$49.00',
-    startDate: '10 min ago',
-    endDate: 'Feb 15, 2025',
-    duration: '2 Months',
-    status: 'Completed',
-    avatar: 'https://i.pravatar.cc/150?u=a042581f4e29026704d'
-  },
-  {
-    user: 'Santorini Resort',
-    amount: '$65.00',
-    startDate: '1 hour ago',
-    endDate: 'Mar 10, 2025',
-    duration: '3 Months',
-    status: 'Pending',
-    avatar: 'https://i.pravatar.cc/150?u=a042581f4e290267041'
-  },
-  {
-    user: 'Bali Beach Villa',
-    amount: '$99.00',
-    startDate: '2 hours ago',
-    endDate: 'Apr 1, 2025',
-    duration: '6 Months',
-    status: 'Completed',
-    avatar: 'https://i.pravatar.cc/150?u=a042581f4e29026704c'
-  },
-  {
-    user: 'Swiss Alps Hotel',
-    amount: '$120.00',
-    startDate: '1 day ago',
-    endDate: 'May 20, 2025',
-    duration: '1 Year',
-    status: 'Cancelled',
-    avatar: 'https://i.pravatar.cc/150?u=a042581f4e290267032'
-  },
-  {
-    user: 'Maldives Retreat',
-    amount: '$89.00',
-    startDate: '3 days ago',
-    endDate: 'Jun 5, 2025',
-    duration: '4 Months',
-    status: 'In Progress',
-    avatar: 'https://i.pravatar.cc/150?u=a042581f4e29026704e'
-  },
-  {
-    user: 'Bali Beach Villa',
-    amount: '$99.00',
-    startDate: '2 hours ago',
-    endDate: 'Apr 1, 2025',
-    duration: '6 Months',
-    status: 'Completed',
-    avatar: 'https://i.pravatar.cc/150?u=a042581f4e29026704c'
-  },
-];
+// Recent Purchase Data - will be fetched from API
+const defaultRecentPurchaseData: { user: string; amount: string; startDate: string; endDate: string; duration: string; status: string; avatar: string }[] = [];
 
 const ticketStatusData = [
   { name: 'Pending', value: 32, color: '#facc15' },
@@ -228,6 +175,69 @@ const Dashboard: React.FC<DashboardProps> = ({ workspace, user }) => {
   const [selectedScheduledPost, setSelectedScheduledPost] = useState<any>(null);
   const [showComingSoon, setShowComingSoon] = useState(false);
   const [statsListModal, setStatsListModal] = useState<{ type: string; title: string } | null>(null);
+  const [recentPurchaseData, setRecentPurchaseData] = useState(defaultRecentPurchaseData);
+
+  // Fetch recent subscription purchases for Admin view
+  useEffect(() => {
+    if (user.role === UserRole.ADMIN || user.role === UserRole.OWNER) {
+      api.subscriptions.getAll().then((subs) => {
+        const transformed = subs.slice(0, 5).map((sub: any) => {
+          const profile = sub.profiles || {};
+          const pkg = sub.packages || {};
+          const createdAt = new Date(sub.created_at);
+          const nextBilling = sub.next_billing_date ? new Date(sub.next_billing_date) : null;
+
+          // Calculate relative time for startDate
+          const now = Date.now();
+          const diffMs = now - createdAt.getTime();
+          const diffMins = Math.floor(diffMs / 60000);
+          const diffHours = Math.floor(diffMs / 3600000);
+          const diffDays = Math.floor(diffMs / 86400000);
+          let startDateStr = '';
+          if (diffMins < 60) startDateStr = `${diffMins} min ago`;
+          else if (diffHours < 24) startDateStr = `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+          else startDateStr = `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+
+          // Format end date
+          const endDateStr = nextBilling
+            ? nextBilling.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+            : 'N/A';
+
+          // Duration from billing_cycle
+          const durationMap: Record<string, string> = {
+            'monthly': '1 Month',
+            'yearly': '1 Year',
+            'Lifetime': 'Lifetime',
+            'custom': 'Custom'
+          };
+          const duration = durationMap[sub.billing_cycle] || sub.billing_cycle || 'N/A';
+
+          // Map status
+          const statusMap: Record<string, string> = {
+            'Active': 'Completed',
+            'Pending': 'Pending',
+            'Cancelled': 'Cancelled',
+            'expired': 'Expired',
+            'Past Due': 'Past Due'
+          };
+          const status = statusMap[sub.status] || sub.status;
+
+          return {
+            user: profile.name || profile.email || 'Unknown User',
+            amount: `$${(sub.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`,
+            startDate: startDateStr,
+            endDate: endDateStr,
+            duration,
+            status,
+            avatar: profile.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(profile.name || 'U')}&background=random`
+          };
+        });
+        setRecentPurchaseData(transformed);
+      }).catch((err) => {
+        console.error('Failed to fetch subscriptions:', err);
+      });
+    }
+  }, [user.role]);
   const pagesPerPage = 5;
 
   const statsCards = [
@@ -833,302 +843,305 @@ const Dashboard: React.FC<DashboardProps> = ({ workspace, user }) => {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Top Pages */}
-        <div className={`lg:col-span-8 rounded-[15px] border overflow-hidden ${isDark ? 'bg-[#1b253b]/60 border-[#2d3a56]' : 'bg-white border-slate-100 shadow-sm'}`}>
-          <div className="p-6 flex items-center justify-between border-b border-slate-100 dark:border-slate-700/50">
-            <div className="flex items-center gap-4">
-              <h2 className={`text-xl font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>Top Pages</h2>
-              <div className="relative">
-                <select
-                  value={automationFilter}
-                  onChange={(e) => {
-                    setAutomationFilter(e.target.value as 'all' | 'enabled');
-                    setPagesCurrentPage(1);
-                  }}
-                  className={`pl-3 pr-8 py-1.5 rounded-lg text-xs font-bold appearance-none border transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500/20
+      {user.role !== UserRole.ADMIN && user.role !== UserRole.OWNER && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          {/* Top Pages */}
+          <div className={`lg:col-span-8 rounded-[15px] border overflow-hidden ${isDark ? 'bg-[#1b253b]/60 border-[#2d3a56]' : 'bg-white border-slate-100 shadow-sm'}`}>
+            <div className="p-6 flex items-center justify-between border-b border-slate-100 dark:border-slate-700/50">
+              <div className="flex items-center gap-4">
+                <h2 className={`text-xl font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>Top Pages</h2>
+                <div className="relative">
+                  <select
+                    value={automationFilter}
+                    onChange={(e) => {
+                      setAutomationFilter(e.target.value as 'all' | 'enabled');
+                      setPagesCurrentPage(1);
+                    }}
+                    className={`pl-3 pr-8 py-1.5 rounded-lg text-xs font-bold appearance-none border transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500/20
                     ${isDark
-                      ? 'bg-[#1b253b] border-slate-700 text-slate-300 hover:border-slate-600'
-                      : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300 shadow-sm'}`}
-                >
-                  <option value="all">All Pages</option>
-                  <option value="enabled">Automation Enabled</option>
-                </select>
-                <ChevronDown className="w-3.5 h-3.5 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400" />
+                        ? 'bg-[#1b253b] border-slate-700 text-slate-300 hover:border-slate-600'
+                        : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300 shadow-sm'}`}
+                  >
+                    <option value="all">All Pages</option>
+                    <option value="enabled">Automation Enabled</option>
+                  </select>
+                  <ChevronDown className="w-3.5 h-3.5 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400" />
+                </div>
+              </div>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={() => handlePageChange(pagesCurrentPage - 1)}
+                    disabled={pagesCurrentPage === 1}
+                    className={`p-1.5 rounded-lg border transition-all disabled:opacity-30 disabled:cursor-not-allowed
+                    ${isDark ? 'border-slate-700 hover:bg-slate-800 text-slate-400' : 'border-slate-100 hover:bg-slate-50 text-slate-500'}`}
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+                  <span className={`text-xs font-bold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                    {pagesCurrentPage} / {totalPagesCount || 1}
+                  </span>
+                  <button
+                    onClick={() => handlePageChange(pagesCurrentPage + 1)}
+                    disabled={pagesCurrentPage === totalPagesCount || totalPagesCount === 0}
+                    className={`p-1.5 rounded-lg border transition-all disabled:opacity-30 disabled:cursor-not-allowed
+                    ${isDark ? 'border-slate-700 hover:bg-slate-800 text-slate-400' : 'border-slate-100 hover:bg-slate-50 text-slate-500'}`}
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
             </div>
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-1.5">
-                <button
-                  onClick={() => handlePageChange(pagesCurrentPage - 1)}
-                  disabled={pagesCurrentPage === 1}
-                  className={`p-1.5 rounded-lg border transition-all disabled:opacity-30 disabled:cursor-not-allowed
-                    ${isDark ? 'border-slate-700 hover:bg-slate-800 text-slate-400' : 'border-slate-100 hover:bg-slate-50 text-slate-500'}`}
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                </button>
-                <span className={`text-xs font-bold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                  {pagesCurrentPage} / {totalPagesCount || 1}
-                </span>
-                <button
-                  onClick={() => handlePageChange(pagesCurrentPage + 1)}
-                  disabled={pagesCurrentPage === totalPagesCount || totalPagesCount === 0}
-                  className={`p-1.5 rounded-lg border transition-all disabled:opacity-30 disabled:cursor-not-allowed
-                    ${isDark ? 'border-slate-700 hover:bg-slate-800 text-slate-400' : 'border-slate-100 hover:bg-slate-50 text-slate-500'}`}
-                >
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className={`${isDark ? 'bg-slate-800/30' : 'bg-slate-50/80'} border-y ${isDark ? 'border-slate-700/50' : 'border-slate-100'}`}>
-                  <th className={`px-6 py-4 text-sm font-semibold pl-8 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Facebook Page</th>
-                  <th className={`px-6 py-4 text-sm font-semibold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Page ID</th>
-                  <th className={`px-6 py-4 text-sm font-semibold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Followers</th>
-                  <th className={`px-6 py-4 text-sm font-semibold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Total Orders</th>
-                  <th className={`px-6 py-4 text-sm font-semibold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Automation</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50">
-                {paginatedPages.map((page, idx) => (
-                  <tr key={idx} className={`transition-colors ${isDark ? 'hover:bg-slate-800/20' : 'hover:bg-slate-50/50'}`}>
-                    <td className="px-6 py-4 pl-8">
-                      <div className="flex items-center gap-3">
-                        <img
-                          src={page.pageImageUrl || `https://graph.facebook.com/${page.pageId}/picture?type=large`}
-                          alt={page.name}
-                          onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            const fallbackUrl = `https://graph.facebook.com/${page.pageId}/picture?type=large`;
-                            if (target.src !== fallbackUrl) {
-                              target.src = fallbackUrl;
-                            }
-                          }}
-                          className="w-10 h-10 rounded-[12px] object-cover border-2 border-slate-100 dark:border-slate-700"
-                        />
-                        <span className={`text-sm font-bold ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>{page.name}</span>
-                      </div>
-                    </td>
-                    <td className={`px-6 py-4 text-sm font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{page.pageId}</td>
-                    <td className={`px-6 py-4 text-sm font-bold ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>{page.pageFollowers.toLocaleString()}</td>
-                    <td className={`px-6 py-4 text-sm font-black ${isDark ? 'text-blue-500' : 'text-indigo-600'}`}>{page.ordersCount}</td>
-                    <td className="px-6 py-4">
-                      <span className={`px-4 py-1.5 rounded-full text-xs font-bold inline-block
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className={`${isDark ? 'bg-slate-800/30' : 'bg-slate-50/80'} border-y ${isDark ? 'border-slate-700/50' : 'border-slate-100'}`}>
+                    <th className={`px-6 py-4 text-sm font-semibold pl-8 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Facebook Page</th>
+                    <th className={`px-6 py-4 text-sm font-semibold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Page ID</th>
+                    <th className={`px-6 py-4 text-sm font-semibold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Followers</th>
+                    <th className={`px-6 py-4 text-sm font-semibold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Total Orders</th>
+                    <th className={`px-6 py-4 text-sm font-semibold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Automation</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50">
+                  {paginatedPages.map((page, idx) => (
+                    <tr key={idx} className={`transition-colors ${isDark ? 'hover:bg-slate-800/20' : 'hover:bg-slate-50/50'}`}>
+                      <td className="px-6 py-4 pl-8">
+                        <div className="flex items-center gap-3">
+                          <img
+                            src={page.pageImageUrl || `https://graph.facebook.com/${page.pageId}/picture?type=large`}
+                            alt={page.name}
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              const fallbackUrl = `https://graph.facebook.com/${page.pageId}/picture?type=large`;
+                              if (target.src !== fallbackUrl) {
+                                target.src = fallbackUrl;
+                              }
+                            }}
+                            className="w-10 h-10 rounded-[12px] object-cover border-2 border-slate-100 dark:border-slate-700"
+                          />
+                          <span className={`text-sm font-bold ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>{page.name}</span>
+                        </div>
+                      </td>
+                      <td className={`px-6 py-4 text-sm font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{page.pageId}</td>
+                      <td className={`px-6 py-4 text-sm font-bold ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>{page.pageFollowers.toLocaleString()}</td>
+                      <td className={`px-6 py-4 text-sm font-black ${isDark ? 'text-blue-500' : 'text-indigo-600'}`}>{page.ordersCount}</td>
+                      <td className="px-6 py-4">
+                        <span className={`px-4 py-1.5 rounded-full text-xs font-bold inline-block
                         ${page.isAutomationEnabled ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-500' : 'bg-rose-100 text-rose-600 dark:bg-rose-500/10 dark:text-rose-500'}
                       `}>
-                        {page.isAutomationEnabled ? 'Enabled' : 'Disabled'}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-                {paginatedPages.length === 0 && (
-                  <tr>
-                    <td colSpan={5} className="px-6 py-12 text-center text-slate-400">
-                      No automated pages found
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* Transactions */}
-        <div className={`lg:col-span-4 rounded-[15px] border p-6 ${isDark ? 'bg-[#1b253b]/60 border-[#2d3a56]' : 'bg-white border-slate-100 shadow-sm'}`}>
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white">Transactions</h3>
+                          {page.isAutomationEnabled ? 'Enabled' : 'Disabled'}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                  {paginatedPages.length === 0 && (
+                    <tr>
+                      <td colSpan={5} className="px-6 py-12 text-center text-slate-400">
+                        No automated pages found
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
 
-          <div className="space-y-5">
-            {recentTransactions.length > 0 ? recentTransactions.map((tx) => {
-              const methodInfo = (() => {
-                const m = (tx.payment_method || '').toLowerCase();
-                const type = tx.type;
+          {/* Transactions */}
+          <div className={`lg:col-span-4 rounded-[15px] border p-6 ${isDark ? 'bg-[#1b253b]/60 border-[#2d3a56]' : 'bg-white border-slate-100 shadow-sm'}`}>
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white">Transactions</h3>
+            </div>
 
-                let info = { icon: ShoppingCart, color: '#6366f1', displayName: type };
+            <div className="space-y-5">
+              {recentTransactions.length > 0 ? recentTransactions.map((tx) => {
+                const methodInfo = (() => {
+                  const m = (tx.payment_method || '').toLowerCase();
+                  const type = tx.type;
 
-                if (m.includes('paypal')) {
-                  info = {
-                    icon: CreditCard,
-                    color: '#3b82f6',
-                    displayName: 'PayPal'
-                  };
-                } else if (m.includes('card')) {
-                  info = { icon: CreditCard, color: '#f59e0b', displayName: 'Credit Card' };
-                } else if (m.includes('bank')) {
-                  info = { icon: Building2, color: '#8b5cf6', displayName: 'Bank Transfer' };
-                } else if (m.includes('cod')) {
-                  info = { icon: Banknote, color: '#10b981', displayName: 'Cash on Delivery' };
-                } else if (m.includes('gcash') || m.includes('paymaya') || m.includes('wallet')) {
-                  info = {
-                    icon: Wallet,
-                    color: '#22c55e',
-                    displayName: m.includes('gcash') ? 'GCash' : m.includes('paymaya') ? 'PayMaya' : 'E-Wallet'
-                  };
-                } else if (type === 'Lead') {
-                  info = { icon: Filter, color: '#6366f1', displayName: 'Form Lead' };
-                } else if (type === 'Checkout') {
-                  info = { icon: ShoppingBag, color: '#ec4899', displayName: 'Checkout' };
-                }
+                  let info = { icon: ShoppingCart, color: '#6366f1', displayName: type };
 
-                return info;
-              })();
+                  if (m.includes('paypal')) {
+                    info = {
+                      icon: CreditCard,
+                      color: '#3b82f6',
+                      displayName: 'PayPal'
+                    };
+                  } else if (m.includes('card')) {
+                    info = { icon: CreditCard, color: '#f59e0b', displayName: 'Credit Card' };
+                  } else if (m.includes('bank')) {
+                    info = { icon: Building2, color: '#8b5cf6', displayName: 'Bank Transfer' };
+                  } else if (m.includes('cod')) {
+                    info = { icon: Banknote, color: '#10b981', displayName: 'Cash on Delivery' };
+                  } else if (m.includes('gcash') || m.includes('paymaya') || m.includes('wallet')) {
+                    info = {
+                      icon: Wallet,
+                      color: '#22c55e',
+                      displayName: m.includes('gcash') ? 'GCash' : m.includes('paymaya') ? 'PayMaya' : 'E-Wallet'
+                    };
+                  } else if (type === 'Lead') {
+                    info = { icon: Filter, color: '#6366f1', displayName: 'Form Lead' };
+                  } else if (type === 'Checkout') {
+                    info = { icon: ShoppingBag, color: '#ec4899', displayName: 'Checkout' };
+                  }
 
-              const IconComponent = methodInfo.icon;
+                  return info;
+                })();
 
-              return (
-                <div key={tx.id} className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className={`w-12 h-12 rounded-[12px] flex items-center justify-center`} style={{ backgroundColor: `${methodInfo.color}15` }}>
-                      <IconComponent className="w-6 h-6" style={{ color: methodInfo.color }} />
+                const IconComponent = methodInfo.icon;
+
+                return (
+                  <div key={tx.id} className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className={`w-12 h-12 rounded-[12px] flex items-center justify-center`} style={{ backgroundColor: `${methodInfo.color}15` }}>
+                        <IconComponent className="w-6 h-6" style={{ color: methodInfo.color }} />
+                      </div>
+                      <div>
+                        <p className={`font-bold text-base truncate max-w-[150px] ${isDark ? 'text-white' : 'text-slate-900'}`}>{tx.name}</p>
+                        <p className="text-sm text-gray-500 dark:text-slate-400">
+                          {tx.type} • {methodInfo.displayName}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <p className={`font-bold text-base truncate max-w-[150px] ${isDark ? 'text-white' : 'text-slate-900'}`}>{tx.name}</p>
-                      <p className="text-sm text-gray-500 dark:text-slate-400">
-                        {tx.type} • {methodInfo.displayName}
-                      </p>
-                    </div>
+                    <p className={`font-bold text-lg ${tx.positive ? 'text-green-500' : 'text-rose-500'}`}>
+                      {tx.positive ? '+' : '-'}{selectedCurrency}{tx.amount.toLocaleString()}
+                    </p>
                   </div>
-                  <p className={`font-bold text-lg ${tx.positive ? 'text-green-500' : 'text-rose-500'}`}>
-                    {tx.positive ? '+' : '-'}{selectedCurrency}{tx.amount.toLocaleString()}
-                  </p>
+                );
+              }) : (
+                <div className="py-8 text-center">
+                  <p className={`text-sm ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>No recent transactions</p>
                 </div>
-              );
-            }) : (
-              <div className="py-8 text-center">
-                <p className={`text-sm ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>No recent transactions</p>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
-      </div>
-
+      )}
 
       {/* Bottom Section: Recent Activity + Daily Sales */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 pb-6">
-        {/* Top Orders Table */}
-        <div className={`lg:col-span-8 rounded-[15px] border overflow-hidden ${isDark ? 'bg-[#1b253b]/60 border-[#2d3a56]' : 'bg-white border-slate-100 shadow-sm'}`}>
-          <div className="p-6 flex items-center justify-between">
-            <h2 className={`text-xl font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>Top Orders</h2>
+      {user.role !== UserRole.ADMIN && user.role !== UserRole.OWNER && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 pb-6">
+          {/* Top Orders Table */}
+          <div className={`lg:col-span-8 rounded-[15px] border overflow-hidden ${isDark ? 'bg-[#1b253b]/60 border-[#2d3a56]' : 'bg-white border-slate-100 shadow-sm'}`}>
+            <div className="p-6 flex items-center justify-between">
+              <h2 className={`text-xl font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>Top Orders</h2>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className={`${isDark ? 'bg-slate-800/30' : 'bg-slate-50/80'} border-y ${isDark ? 'border-slate-700/50' : 'border-slate-100'}`}>
+                    <th className={`px-6 py-4 text-sm font-semibold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Product Image</th>
+                    <th className={`px-6 py-4 text-sm font-semibold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Invoice</th>
+                    <th className={`px-6 py-4 text-sm font-semibold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Items</th>
+                    <th className={`px-6 py-4 text-sm font-semibold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Qty</th>
+                    <th className={`px-6 py-4 text-sm font-semibold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Amount</th>
+                    <th className={`px-6 py-4 text-sm font-semibold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50">
+                  {recentOrders.map((order, idx) => (
+                    <tr key={idx} className={`transition-colors ${isDark ? 'hover:bg-slate-800/20' : 'hover:bg-slate-50/50'}`}>
+                      <td className="px-6 py-4">
+                        <div className={`w-10 h-10 rounded-[12px] flex items-center justify-center overflow-hidden border-2 transition-all ${isDark ? 'border-slate-700 bg-slate-800/40' : 'border-slate-100 bg-slate-50'}`}>
+                          <img
+                            src={order.productImage}
+                            alt={order.items}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              (e.target as any).style.display = 'none';
+                              (e.target as any).nextSibling.style.display = 'flex';
+                            }}
+                          />
+                          <div style={{ display: 'none' }} className="w-full h-full items-center justify-center">
+                            <Package className={`w-5 h-5 ${isDark ? 'text-slate-500' : 'text-slate-400'}`} />
+                          </div>
+                        </div>
+                      </td>
+                      <td className={`px-6 py-4 text-sm font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>#{order.invoice}</td>
+                      <td className={`px-6 py-4 text-sm font-medium truncate max-w-[150px] ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>{order.items}</td>
+                      <td className={`px-6 py-4 text-sm font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{order.qty}</td>
+                      <td className={`px-6 py-4 text-sm font-bold ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+                        {selectedCurrency} {order.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className={`px-4 py-1.5 rounded-full text-xs font-bold inline-block
+                        ${(order.status?.toLowerCase() === 'paid' || order.status?.toLowerCase() === 'completed' || order.status?.toLowerCase() === 'delivered' || order.status?.toLowerCase() === 'approved') ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-500' :
+                            (order.status?.toLowerCase() === 'pending' || order.status?.toLowerCase() === 'received' || order.status?.toLowerCase() === 'order placed') ? 'bg-amber-100 text-amber-600 dark:bg-amber-500/10 dark:text-amber-500' :
+                              (order.status?.toLowerCase() === 'shipped' || order.status?.toLowerCase() === 'processing' || order.status?.toLowerCase() === 'confirmed') ? 'bg-blue-100 text-blue-600 dark:bg-blue-500/10 dark:text-blue-500' :
+                                'bg-rose-100 text-rose-600 dark:bg-rose-500/10 dark:text-rose-500'}
+                      `}>
+                          {order.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                  {recentOrders.length === 0 && (
+                    <tr>
+                      <td colSpan={6} className="px-6 py-12 text-center text-slate-400">
+                        No orders found
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className={`${isDark ? 'bg-slate-800/30' : 'bg-slate-50/80'} border-y ${isDark ? 'border-slate-700/50' : 'border-slate-100'}`}>
-                  <th className={`px-6 py-4 text-sm font-semibold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Product Image</th>
-                  <th className={`px-6 py-4 text-sm font-semibold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Invoice</th>
-                  <th className={`px-6 py-4 text-sm font-semibold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Items</th>
-                  <th className={`px-6 py-4 text-sm font-semibold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Qty</th>
-                  <th className={`px-6 py-4 text-sm font-semibold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Amount</th>
-                  <th className={`px-6 py-4 text-sm font-semibold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-700/50">
-                {recentOrders.map((order, idx) => (
-                  <tr key={idx} className={`transition-colors ${isDark ? 'hover:bg-slate-800/20' : 'hover:bg-slate-50/50'}`}>
-                    <td className="px-6 py-4">
-                      <div className={`w-10 h-10 rounded-[12px] flex items-center justify-center overflow-hidden border-2 transition-all ${isDark ? 'border-slate-700 bg-slate-800/40' : 'border-slate-100 bg-slate-50'}`}>
+          {/* Top Customers Card */}
+          <div className={`lg:col-span-4 rounded-[15px] border p-6 flex flex-col ${isDark ? 'bg-[#1b253b]/60 border-[#2d3a56]' : 'bg-white border-slate-100 shadow-sm'}`}>
+            <div className="flex items-center justify-between mb-8">
+              <h3 className={`text-xl font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>Top Customers</h3>
+            </div>
+
+            <div className="space-y-6 flex-1 overflow-y-auto pr-1">
+              {topCustomers.length > 0 ? topCustomers.map((customer, idx) => (
+                <div key={idx} className="flex items-center justify-between group">
+                  <div className="flex items-center gap-4">
+                    <div className={`w-12 h-12 rounded-[12px] overflow-hidden flex-shrink-0 border-2 transition-transform duration-300 group-hover:scale-105 flex items-center justify-center ${isDark ? 'border-slate-700 bg-slate-800' : 'border-slate-50 bg-slate-100'}`}>
+                      {customer.avatar ? (
                         <img
-                          src={order.productImage}
-                          alt={order.items}
+                          src={customer.avatar}
+                          alt={customer.name}
                           className="w-full h-full object-cover"
                           onError={(e) => {
                             (e.target as any).style.display = 'none';
                             (e.target as any).nextSibling.style.display = 'flex';
                           }}
                         />
-                        <div style={{ display: 'none' }} className="w-full h-full items-center justify-center">
-                          <Package className={`w-5 h-5 ${isDark ? 'text-slate-500' : 'text-slate-400'}`} />
-                        </div>
+                      ) : null}
+                      <div style={{ display: customer.avatar ? 'none' : 'flex' }} className="w-full h-full items-center justify-center">
+                        <UserIcon className={`w-6 h-6 ${isDark ? 'text-slate-500' : 'text-slate-400'}`} />
                       </div>
-                    </td>
-                    <td className={`px-6 py-4 text-sm font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>#{order.invoice}</td>
-                    <td className={`px-6 py-4 text-sm font-medium truncate max-w-[150px] ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>{order.items}</td>
-                    <td className={`px-6 py-4 text-sm font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{order.qty}</td>
-                    <td className={`px-6 py-4 text-sm font-bold ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
-                      {selectedCurrency} {order.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={`px-4 py-1.5 rounded-full text-xs font-bold inline-block
-                        ${(order.status?.toLowerCase() === 'paid' || order.status?.toLowerCase() === 'completed' || order.status?.toLowerCase() === 'delivered' || order.status?.toLowerCase() === 'approved') ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-500' :
-                          (order.status?.toLowerCase() === 'pending' || order.status?.toLowerCase() === 'received' || order.status?.toLowerCase() === 'order placed') ? 'bg-amber-100 text-amber-600 dark:bg-amber-500/10 dark:text-amber-500' :
-                            (order.status?.toLowerCase() === 'shipped' || order.status?.toLowerCase() === 'processing' || order.status?.toLowerCase() === 'confirmed') ? 'bg-blue-100 text-blue-600 dark:bg-blue-500/10 dark:text-blue-500' :
-                              'bg-rose-100 text-rose-600 dark:bg-rose-500/10 dark:text-rose-500'}
-                      `}>
-                        {order.status}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-                {recentOrders.length === 0 && (
-                  <tr>
-                    <td colSpan={6} className="px-6 py-12 text-center text-slate-400">
-                      No orders found
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* Top Customers Card */}
-        <div className={`lg:col-span-4 rounded-[15px] border p-6 flex flex-col ${isDark ? 'bg-[#1b253b]/60 border-[#2d3a56]' : 'bg-white border-slate-100 shadow-sm'}`}>
-          <div className="flex items-center justify-between mb-8">
-            <h3 className={`text-xl font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>Top Customers</h3>
-          </div>
-
-          <div className="space-y-6 flex-1 overflow-y-auto pr-1">
-            {topCustomers.length > 0 ? topCustomers.map((customer, idx) => (
-              <div key={idx} className="flex items-center justify-between group">
-                <div className="flex items-center gap-4">
-                  <div className={`w-12 h-12 rounded-[12px] overflow-hidden flex-shrink-0 border-2 transition-transform duration-300 group-hover:scale-105 flex items-center justify-center ${isDark ? 'border-slate-700 bg-slate-800' : 'border-slate-50 bg-slate-100'}`}>
-                    {customer.avatar ? (
-                      <img
-                        src={customer.avatar}
-                        alt={customer.name}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          (e.target as any).style.display = 'none';
-                          (e.target as any).nextSibling.style.display = 'flex';
-                        }}
-                      />
-                    ) : null}
-                    <div style={{ display: customer.avatar ? 'none' : 'flex' }} className="w-full h-full items-center justify-center">
-                      <UserIcon className={`w-6 h-6 ${isDark ? 'text-slate-500' : 'text-slate-400'}`} />
+                    </div>
+                    <div className="flex flex-col">
+                      <span className={`text-base font-bold truncate max-w-[120px] ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>{customer.name}</span>
+                      <span className={`text-xs font-medium ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>{customer.phone}</span>
                     </div>
                   </div>
-                  <div className="flex flex-col">
-                    <span className={`text-base font-bold truncate max-w-[120px] ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>{customer.name}</span>
-                    <span className={`text-xs font-medium ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>{customer.phone}</span>
+                  <div className="text-right">
+                    <span className={`text-sm font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Orders: </span>
+                    <span className={`text-lg font-black ${isDark ? 'text-white' : 'text-slate-900'}`}>{customer.orders}</span>
                   </div>
                 </div>
-                <div className="text-right">
-                  <span className={`text-sm font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Orders: </span>
-                  <span className={`text-lg font-black ${isDark ? 'text-white' : 'text-slate-900'}`}>{customer.orders}</span>
+              )) : (
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <Users className={`w-12 h-12 mb-4 ${isDark ? 'text-slate-700' : 'text-slate-200'}`} />
+                  <p className={`text-sm ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>No customers found</p>
                 </div>
-              </div>
-            )) : (
-              <div className="flex flex-col items-center justify-center py-12 text-center">
-                <Users className={`w-12 h-12 mb-4 ${isDark ? 'text-slate-700' : 'text-slate-200'}`} />
-                <p className={`text-sm ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>No customers found</p>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Recent Purchase Plan Section - Admin Only */}
       {(user.role === UserRole.ADMIN || user.role === UserRole.OWNER) && (
         <div className={`rounded-[15px] border overflow-hidden mt-6 ${isDark ? 'bg-[#1b253b]/60 border-[#2d3a56]' : 'bg-white border-slate-100 shadow-sm'}`}>
           <div className="p-6 flex items-center justify-between">
             <h2 className={`text-xl font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>Recent Purchase Plan</h2>
-            <button className="text-blue-500 text-sm font-bold hover:underline">
+            <button onClick={() => navigate('/subscriptions')} className="text-blue-500 text-sm font-bold hover:underline">
               View All &gt;
             </button>
           </div>
