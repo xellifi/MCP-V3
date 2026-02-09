@@ -62,8 +62,13 @@ app.all('/api/messenger/send-tracking', wrapVercelHandler('./api/messenger/send-
 // Sheets
 app.all('/api/sheets/sync', wrapVercelHandler('./api/sheets/sync'));
 
-// Cron (for scheduled tasks)
-app.all('/api/cron', wrapVercelHandler('./api/cron'));
+// Cron (for scheduled tasks) - Modular structure
+app.all('/api/cron', wrapVercelHandler('./api/cron/index'));
+// Direct routes for individual cron jobs (faster cold starts)
+app.all('/api/cron/form-followup', wrapVercelHandler('./api/cron/form-followup'));
+app.all('/api/cron/scheduler', wrapVercelHandler('./api/cron/scheduler'));
+app.all('/api/cron/subscription', wrapVercelHandler('./api/cron/subscription'));
+app.all('/api/cron/execute-step', wrapVercelHandler('./api/cron/execute-step'));
 
 // Video thumbnail
 app.all('/api/video-thumbnail', wrapVercelHandler('./api/video-thumbnail'));
