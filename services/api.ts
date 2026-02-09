@@ -588,7 +588,54 @@ export const api = {
         }
       });
 
-      if (signUpError) {
+      // Handle "User already registered" - fallback to sign in
+      if (signUpError && (signUpError.message.includes('already registered') || signUpError.message.includes('already exists'))) {
+        console.log('User already exists in auth, attempting sign in...');
+
+        // Try to sign in with the FB password
+        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+          email,
+          password: fbPassword
+        });
+
+        if (signInError) {
+          // User exists with different password - they registered with email/password
+          // Look up their profile and return it
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('email', email)
+            .maybeSingle();
+
+          if (profile) {
+            // Update profile with Facebook data
+            await supabase
+              .from('profiles')
+              .update({
+                facebook_id: facebookUser.id,
+                facebook_access_token: accessToken,
+                avatar_url: facebookUser.picture?.data?.url || profile.avatar_url
+              })
+              .eq('id', profile.id);
+
+            return mapProfile(profile);
+          }
+          throw new Error('Account exists with different credentials. Please login with your email and password.');
+        }
+
+        // Signed in successfully
+        if (signInData?.user) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', signInData.user.id)
+            .maybeSingle();
+
+          if (profile) {
+            return mapProfile(profile);
+          }
+        }
+      } else if (signUpError) {
         throw new Error(signUpError.message);
       }
 
