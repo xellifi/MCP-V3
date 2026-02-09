@@ -520,6 +520,8 @@ export const api = {
     },
 
     // Facebook SDK login (Facebook Login for Business with Config ID)
+    // NOTE: When coming from /api/auth/facebook-callback, the user is ALREADY created
+    // by the server-side callback using admin.createUser(). So we should TRY SIGN IN FIRST.
     loginWithFacebookSDK: async (facebookUser: {
       id: string;
       name: string;
@@ -527,8 +529,83 @@ export const api = {
       picture?: { data: { url: string } };
     }, accessToken: string): Promise<User> => {
       const email = facebookUser.email || `fb_${facebookUser.id}@facebook.placeholder`;
+      const fbPassword = `FB_AUTH_${facebookUser.id}_SECURE`;
 
-      // Check if user already exists by Facebook ID or email
+      console.log('[Facebook Login] Starting for:', email);
+
+      // STEP 1: Try to sign in first (user may already exist from API callback)
+      console.log('[Facebook Login] Attempting sign in first...');
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password: fbPassword
+      });
+
+      if (signInData?.user && !signInError) {
+        console.log('[Facebook Login] Sign in successful, fetching profile...');
+
+        // User signed in successfully - get their profile
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', signInData.user.id)
+          .maybeSingle();
+
+        if (profile) {
+          // Update profile with latest Facebook data
+          await supabase
+            .from('profiles')
+            .update({
+              facebook_id: facebookUser.id,
+              facebook_access_token: accessToken,
+              avatar_url: facebookUser.picture?.data?.url || profile.avatar_url,
+              email_verified: true
+            })
+            .eq('id', profile.id);
+
+          return mapProfile(profile);
+        }
+
+        // Profile not found but auth user exists - wait and retry
+        console.log('[Facebook Login] Profile not found, waiting for trigger...');
+        await delay(1000);
+
+        const { data: retryProfile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', signInData.user.id)
+          .maybeSingle();
+
+        if (retryProfile) {
+          return mapProfile(retryProfile);
+        }
+
+        // Still no profile - create a basic one
+        console.log('[Facebook Login] Creating profile manually...');
+        const newProfileData = {
+          id: signInData.user.id,
+          email: email,
+          name: facebookUser.name,
+          facebook_id: facebookUser.id,
+          facebook_access_token: accessToken,
+          avatar_url: facebookUser.picture?.data?.url || `https://ui-avatars.com/api/?name=${encodeURIComponent(facebookUser.name)}&background=random`,
+          email_verified: true,
+          role: 'user'
+        };
+
+        const { error: insertError } = await supabase
+          .from('profiles')
+          .insert(newProfileData);
+
+        if (insertError) {
+          console.error('[Facebook Login] Failed to insert profile:', insertError);
+        }
+
+        return mapProfile(newProfileData as any);
+      }
+
+      console.log('[Facebook Login] Sign in failed:', signInError?.message);
+
+      // STEP 2: Check if profile exists by facebook_id or email
       const { data: existingProfile } = await supabase
         .from('profiles')
         .select('*')
@@ -536,46 +613,26 @@ export const api = {
         .maybeSingle();
 
       if (existingProfile) {
-        // User exists - update Facebook data and sign them in
-        const { error: updateError } = await supabase
+        console.log('[Facebook Login] Profile found, but sign-in failed. User may have different password.');
+
+        // Update profile with Facebook data
+        await supabase
           .from('profiles')
           .update({
             facebook_id: facebookUser.id,
             facebook_access_token: accessToken,
             avatar_url: facebookUser.picture?.data?.url || existingProfile.avatar_url,
-            email_verified: true // Facebook verifies emails
+            email_verified: true
           })
           .eq('id', existingProfile.id);
 
-        if (updateError) {
-          console.error('Failed to update Facebook profile:', updateError);
-        }
-
-        // Use consistent password pattern for Facebook users
-        // This allows session to persist across reloads
-        const fbPassword = `FB_AUTH_${facebookUser.id}_SECURE`;
-
-        // Try to sign in with Facebook password
-        let { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-          email: existingProfile.email,
-          password: fbPassword
-        });
-
-        // If sign-in fails, try to update the user's password to the FB pattern
-        if (signInError) {
-          console.log('Existing user sign-in failed, user may have different auth method');
-          // For users who registered with email/password, we can't change their password
-          // They're still authenticated via Facebook OAuth, but session won't persist
-          // In production, you might want to use a magic link or show a message
-        }
-
+        // Return profile even without session - user will need to re-authenticate
         return mapProfile(existingProfile);
       }
 
-      // New user - create account with consistent password
-      const fbPassword = `FB_AUTH_${facebookUser.id}_SECURE`;
+      // STEP 3: Truly new user - create with signUp
+      console.log('[Facebook Login] No existing user found, creating new account...');
 
-      // Create Supabase auth user
       const { data: authData, error: signUpError } = await supabase.auth.signUp({
         email,
         password: fbPassword,
@@ -588,54 +645,14 @@ export const api = {
         }
       });
 
-      // Handle "User already registered" - fallback to sign in
-      if (signUpError && (signUpError.message.includes('already registered') || signUpError.message.includes('already exists'))) {
-        console.log('User already exists in auth, attempting sign in...');
+      if (signUpError) {
+        console.error('[Facebook Login] SignUp error:', signUpError.message);
 
-        // Try to sign in with the FB password
-        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-          email,
-          password: fbPassword
-        });
-
-        if (signInError) {
-          // User exists with different password - they registered with email/password
-          // Look up their profile and return it
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('email', email)
-            .maybeSingle();
-
-          if (profile) {
-            // Update profile with Facebook data
-            await supabase
-              .from('profiles')
-              .update({
-                facebook_id: facebookUser.id,
-                facebook_access_token: accessToken,
-                avatar_url: facebookUser.picture?.data?.url || profile.avatar_url
-              })
-              .eq('id', profile.id);
-
-            return mapProfile(profile);
-          }
-          throw new Error('Account exists with different credentials. Please login with your email and password.');
+        // If "already registered", the auth user exists but profile doesn't
+        // This shouldn't happen normally, but handle it gracefully
+        if (signUpError.message.includes('already registered') || signUpError.message.includes('already exists')) {
+          throw new Error('Your account already exists. Please try logging in again or contact support.');
         }
-
-        // Signed in successfully
-        if (signInData?.user) {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', signInData.user.id)
-            .maybeSingle();
-
-          if (profile) {
-            return mapProfile(profile);
-          }
-        }
-      } else if (signUpError) {
         throw new Error(signUpError.message);
       }
 
@@ -643,57 +660,44 @@ export const api = {
         throw new Error('Failed to create user account');
       }
 
-      // Explicitly sign in to establish persistent session
-      // signUp doesn't always create a persistent session
-      const { error: signInError } = await supabase.auth.signInWithPassword({
+      console.log('[Facebook Login] SignUp successful, signing in...');
+
+      // Sign in to establish session
+      await supabase.auth.signInWithPassword({
         email,
         password: fbPassword
       });
-
-      if (signInError) {
-        console.error('Sign-in after signup failed:', signInError);
-        // Continue anyway - signUp may have created session
-      }
 
       // Wait for trigger to create profile
       await delay(500);
 
       // Update profile with Facebook data
-      const { error: profileUpdateError } = await supabase
+      await supabase
         .from('profiles')
         .update({
           facebook_id: facebookUser.id,
           facebook_access_token: accessToken,
           avatar_url: facebookUser.picture?.data?.url || `https://ui-avatars.com/api/?name=${encodeURIComponent(facebookUser.name)}&background=random`,
-          email_verified: true
+          email_verified: true,
+          name: facebookUser.name
         })
         .eq('id', authData.user.id);
 
-      if (profileUpdateError) {
-        console.error('Failed to update profile with Facebook data:', profileUpdateError);
-      }
-
-      // Create Free subscription for new user
+      // Create Free subscription
       try {
-        const { error: subError } = await supabase
-          .rpc('ensure_user_free_subscription', {
-            p_user_id: authData.user.id
-          });
-        if (subError) console.error('Failed to create subscription:', subError);
+        await supabase.rpc('ensure_user_free_subscription', { p_user_id: authData.user.id });
       } catch (e) {
-        console.error('Subscription error:', e);
+        console.error('[Facebook Login] Subscription error:', e);
       }
 
       // Create default workspace
       try {
-        const { error: wsError } = await supabase
-          .rpc('ensure_user_workspace', {
-            p_user_id: authData.user.id,
-            p_user_name: facebookUser.name
-          });
-        if (wsError) console.error('Failed to create workspace:', wsError);
+        await supabase.rpc('ensure_user_workspace', {
+          p_user_id: authData.user.id,
+          p_user_name: facebookUser.name
+        });
       } catch (e) {
-        console.error('Workspace error:', e);
+        console.error('[Facebook Login] Workspace error:', e);
       }
 
       // Fetch the created profile
