@@ -4,10 +4,9 @@
 import express from 'express';
 import path from 'path';
 import cors from 'cors';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { createRequire } from 'module';
-
-// Note: dotenv not needed - Coolify injects environment variables directly
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -23,7 +22,7 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// Health check endpoint
+// Health check endpoint - MUST respond for Coolify healthcheck
 app.get('/health', (req, res) => {
     res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });
@@ -32,13 +31,16 @@ app.get('/health', (req, res) => {
 // API Routes (dynamically imported)
 // ============================================
 
-// Startup validation - check required env vars
-const requiredEnvVars = ['VITE_SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY'];
+// Startup validation - just log, don't prevent startup
+const requiredEnvVars = ['VITE_SUPABASE_URL'];
 const missingEnvVars = requiredEnvVars.filter(v => !process.env[v]);
 if (missingEnvVars.length > 0) {
-    console.error('❌ MISSING REQUIRED ENVIRONMENT VARIABLES:', missingEnvVars.join(', '));
-} else {
-    console.log('✅ All required environment variables are set');
+    console.warn('⚠️ Missing environment variables:', missingEnvVars.join(', '));
+}
+
+// Check for service role key (needed for webhooks)
+if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    console.warn('⚠️ SUPABASE_SERVICE_ROLE_KEY not set - webhook verification may fail');
 }
 
 // Debug endpoint to check configuration
@@ -56,12 +58,19 @@ app.get('/api/debug', (req, res) => {
     });
 });
 
-// Helper to convert Vercel handler to Express handler
-function wrapVercelHandler(handlerPath) {
-    return async (req, res) => {
+// Helper to safely register a route with error handling
+function safeRegisterRoute(routePath, handlerPath) {
+    const fullPath = path.join(__dirname, handlerPath);
+
+    // Check if file exists
+    if (!fs.existsSync(fullPath)) {
+        console.warn(`⚠️ Handler file not found: ${handlerPath} - skipping route ${routePath}`);
+        return;
+    }
+
+    app.all(routePath, async (req, res) => {
         try {
-            // Dynamic require for transpiled CJS files
-            const handler = require(handlerPath);
+            const handler = require(fullPath);
             const handlerFn = handler.default || handler;
 
             if (typeof handlerFn !== 'function') {
@@ -78,47 +87,53 @@ function wrapVercelHandler(handlerPath) {
                 path: handlerPath
             });
         }
-    };
+    });
+
+    console.log(`✓ Registered route: ${routePath}`);
 }
 
+// Register all API routes with safe error handling
+console.log('📦 Registering API routes...');
+
 // Admin API
-app.all('/api/admin', wrapVercelHandler('./api/admin.js'));
+safeRegisterRoute('/api/admin', './api/admin.js');
 
 // Webhooks
-app.all('/api/webhooks/meta', wrapVercelHandler('./api/webhooks/meta.js'));
+safeRegisterRoute('/api/webhooks/meta', './api/webhooks/meta.js');
 
 // Forms
-app.all('/api/forms/handler', wrapVercelHandler('./api/forms/handler.js'));
-app.all('/api/forms/continue-flow', wrapVercelHandler('./api/forms/continue-flow.js'));
+safeRegisterRoute('/api/forms/handler', './api/forms/handler.js');
+safeRegisterRoute('/api/forms/continue-flow', './api/forms/continue-flow.js');
 
 // Webview
-app.all('/api/webview', wrapVercelHandler('./api/webview.js'));
+safeRegisterRoute('/api/webview', './api/webview.js');
 
 // Views
-app.all('/api/views/handler', wrapVercelHandler('./api/views/handler.js'));
+safeRegisterRoute('/api/views/handler', './api/views/handler.js');
 
 // Messenger
-app.all('/api/messenger/send-tracking', wrapVercelHandler('./api/messenger/send-tracking.js'));
+safeRegisterRoute('/api/messenger/send-tracking', './api/messenger/send-tracking.js');
 
 // Sheets
-app.all('/api/sheets/sync', wrapVercelHandler('./api/sheets/sync.js'));
+safeRegisterRoute('/api/sheets/sync', './api/sheets/sync.js');
 
-// Cron (for scheduled tasks) - Modular structure
-app.all('/api/cron', wrapVercelHandler('./api/cron/index.js'));
-// Direct routes for individual cron jobs (faster cold starts)
-app.all('/api/cron/form-followup', wrapVercelHandler('./api/cron/form-followup.js'));
-app.all('/api/cron/scheduler', wrapVercelHandler('./api/cron/scheduler.js'));
-app.all('/api/cron/subscription', wrapVercelHandler('./api/cron/subscription.js'));
-app.all('/api/cron/execute-step', wrapVercelHandler('./api/cron/execute-step.js'));
+// Cron
+safeRegisterRoute('/api/cron', './api/cron/index.js');
+safeRegisterRoute('/api/cron/form-followup', './api/cron/form-followup.js');
+safeRegisterRoute('/api/cron/scheduler', './api/cron/scheduler.js');
+safeRegisterRoute('/api/cron/subscription', './api/cron/subscription.js');
+safeRegisterRoute('/api/cron/execute-step', './api/cron/execute-step.js');
 
 // Video thumbnail
-app.all('/api/video-thumbnail', wrapVercelHandler('./api/video-thumbnail.js'));
+safeRegisterRoute('/api/video-thumbnail', './api/video-thumbnail.js');
 
 // Node analytics
-app.all('/api/flows/node-analytics', wrapVercelHandler('./api/flows/node-analytics.js'));
+safeRegisterRoute('/api/flows/node-analytics', './api/flows/node-analytics.js');
 
 // Auth
-app.all('/api/auth/facebook-callback', wrapVercelHandler('./api/auth/facebook-callback.js'));
+safeRegisterRoute('/api/auth/facebook-callback', './api/auth/facebook-callback.js');
+
+console.log('✅ API routes registration complete');
 
 // ============================================
 // Static Files & SPA Fallback
@@ -129,7 +144,6 @@ app.use(express.static(path.join(__dirname, 'dist')));
 
 // SPA fallback - serve index.html for all non-API routes
 app.get('*', (req, res) => {
-    // Don't serve index.html for API routes
     if (req.path.startsWith('/api/')) {
         return res.status(404).json({ error: 'API endpoint not found' });
     }
