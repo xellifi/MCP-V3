@@ -1,0 +1,8 @@
+# Nixpacks configuration for Coolify
+# This tells Nixpacks how to build and run the application
+
+[phases.build]
+cmds = ["npm run build"]
+
+[start]
+cmd = "node server.cjs"
