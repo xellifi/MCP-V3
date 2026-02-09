@@ -17,6 +17,9 @@ COPY . .
 # Build the frontend
 RUN npm run build
 
+# Build the API TypeScript files to JavaScript
+RUN npm run build:api
+
 # ============================================
 # Production image
 # ============================================
@@ -29,13 +32,13 @@ COPY package*.json ./
 RUN npm ci --only=production
 
 # Install additional production dependencies for the server
-RUN npm install express cors dotenv
+RUN npm install express cors dotenv @supabase/supabase-js
 
 # Copy built frontend from builder
 COPY --from=builder /app/dist ./dist
 
-# Copy API routes (these will be served by Express)
-COPY --from=builder /app/api ./api
+# Copy built API routes (JavaScript, not TypeScript)
+COPY --from=builder /app/dist-api ./api
 
 # Copy the server file
 COPY server.js ./

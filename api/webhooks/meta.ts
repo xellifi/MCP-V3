@@ -549,24 +549,53 @@ async function handleVerification(query: any, res: VercelResponse) {
     const challenge = query['hub.challenge'] as string;
 
     console.log('📋 Webhook verification request');
+    console.log('   Mode:', mode);
+    console.log('   Token received:', token ? `${token.substring(0, 8)}...` : 'MISSING');
+    console.log('   Challenge:', challenge ? 'present' : 'MISSING');
 
     if (mode === 'subscribe') {
-        const { data } = await supabase
-            .from('admin_settings')
-            .select('facebook_verify_token')
-            .eq('id', 1)
-            .single();
+        try {
+            const { data, error } = await supabase
+                .from('admin_settings')
+                .select('facebook_verify_token')
+                .eq('id', 1)
+                .single();
 
-        if (data && token === data.facebook_verify_token) {
-            console.log('✓ Verification successful');
-            return res.status(200).send(challenge);
+            if (error) {
+                console.error('✗ Database error fetching verify token:', error.message);
+                return res.status(500).json({ error: 'Database error', details: error.message });
+            }
+
+            if (!data) {
+                console.error('✗ No admin_settings record found');
+                return res.status(500).json({ error: 'No settings found' });
+            }
+
+            const storedToken = data.facebook_verify_token?.trim() || '';
+            const receivedToken = token?.trim() || '';
+
+            console.log('   Stored token:', storedToken ? `${storedToken.substring(0, 8)}...` : 'EMPTY');
+            console.log('   Tokens match:', storedToken === receivedToken);
+
+            if (storedToken && receivedToken && storedToken === receivedToken) {
+                console.log('✓ Verification successful - returning challenge');
+                // Return challenge as plain text, not JSON
+                res.setHeader('Content-Type', 'text/plain');
+                return res.status(200).send(challenge);
+            }
+
+            console.log('✗ Verification token mismatch');
+            console.log('   Expected:', storedToken || '(empty)');
+            console.log('   Received:', receivedToken || '(empty)');
+            return res.status(403).json({ error: 'Verification failed - token mismatch' });
+        } catch (err: any) {
+            console.error('✗ Exception during verification:', err.message);
+            return res.status(500).json({ error: 'Server error', details: err.message });
         }
-
-        console.log('✗ Verification token mismatch');
-        return res.status(403).json({ error: 'Verification failed' });
     }
 
-    return res.status(400).json({ error: 'Invalid verification request' });
+    console.log('✗ Invalid mode:', mode);
+    return res.status(400).json({ error: 'Invalid verification request - mode must be "subscribe"' });
 }
 
 // Handle incoming webhook events
