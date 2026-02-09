@@ -238,16 +238,7 @@ const SystemSettings: React.FC<SystemSettingsProps> = ({ user }) => {
       if (!data.defaultCurrency) data.defaultCurrency = 'USD';
 
       // Auto-generate Facebook verify token if missing
-      if (!data.facebookVerifyToken || data.facebookVerifyToken.trim() === '') {
-        data.facebookVerifyToken = generateSecureToken(32);
-        // Auto-save the generated token
-        try {
-          await api.admin.saveSettings(data);
-          toast.success('Auto-generated Facebook verify token');
-        } catch (err) {
-          console.error('Failed to save auto-generated token:', err);
-        }
-      }
+      // Don't auto-generate token on load - user can click "Generate New" if needed
 
       setSettings(data);
     } catch (err) {
@@ -618,17 +609,17 @@ const SystemSettings: React.FC<SystemSettingsProps> = ({ user }) => {
             <label className={labelClasses}>
               <span className="flex items-center gap-2">
                 <Key className="w-4 h-4" />
-                Webhook Verify Token (Auto-Generated)
+                Webhook Verify Token
               </span>
             </label>
             <div className="flex gap-3">
               <div className="relative flex-1">
                 <input
                   type="text"
-                  value={settings.facebookVerifyToken}
-                  readOnly
-                  className={`${inputClasses} border-green-500/30 bg-green-500/10 text-green-700 dark:text-green-300 font-mono text-sm cursor-default select-all pr-12`}
-                  placeholder="Generating..."
+                  value={settings.facebookVerifyToken || ''}
+                  onChange={e => setSettings({ ...settings, facebookVerifyToken: e.target.value })}
+                  className={`${inputClasses} border-green-500/30 font-mono text-sm pr-12`}
+                  placeholder="Enter or generate a verify token..."
                 />
                 <CopyButton text={settings.facebookVerifyToken} label="Verify Token" />
               </div>
@@ -654,7 +645,7 @@ const SystemSettings: React.FC<SystemSettingsProps> = ({ user }) => {
             </div>
             <p className="mt-2 text-xs text-slate-600 dark:text-slate-400 flex items-center gap-1">
               <ShieldAlert className="w-3 h-3 text-amber-500" />
-              This token is auto-generated for security. <strong className="text-slate-900 dark:text-white">Copy and paste</strong> it into Facebook Developer Portal.
+              Enter your own token or click <strong className="text-slate-900 dark:text-white">Generate New</strong> to create one. <strong className="text-slate-900 dark:text-white">Copy and paste</strong> it into Facebook Developer Portal.
             </p>
           </div>
 
