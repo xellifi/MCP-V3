@@ -2403,6 +2403,8 @@ export const api = {
     },
 
     createPackage: async (data: Package): Promise<void> => {
+      console.log('[createPackage] Creating package with data:', data);
+
       const insertData = {
         id: data.id,
         name: data.name,
@@ -2422,14 +2424,19 @@ export const api = {
         allowed_routes: data.allowedRoutes || []
       };
 
-      const { error } = await supabase
+      console.log('[createPackage] Insert data:', insertData);
+
+      const { data: result, error } = await supabase
         .from('packages')
-        .insert(insertData);
+        .insert(insertData)
+        .select();
 
       if (error) {
-        console.error('Error creating package:', error);
-        throw new Error('Failed to create package');
+        console.error('[createPackage] Error:', error);
+        throw new Error(error.message || 'Failed to create package');
       }
+
+      console.log('[createPackage] Success:', result);
     },
 
     deletePackage: async (id: string): Promise<void> => {
