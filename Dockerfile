@@ -3,10 +3,6 @@
 
 FROM node:20-alpine AS builder
 
-# IMPORTANT: Set NODE_ENV=development to ensure devDependencies are installed
-# Coolify sets NODE_ENV=production which causes npm to skip typescript, vite, etc.
-ENV NODE_ENV=development
-
 WORKDIR /app
 
 # Copy package files
@@ -21,9 +17,6 @@ COPY . .
 # Build the frontend
 RUN npm run build
 
-# Build the API TypeScript files to JavaScript
-RUN npm run build:api
-
 # ============================================
 # Production image
 # ============================================
@@ -36,13 +29,13 @@ COPY package*.json ./
 RUN npm ci --only=production
 
 # Install additional production dependencies for the server
-RUN npm install express cors dotenv @supabase/supabase-js
+RUN npm install express cors dotenv
 
 # Copy built frontend from builder
 COPY --from=builder /app/dist ./dist
 
-# Copy built API routes (JavaScript, not TypeScript)
-COPY --from=builder /app/dist-api ./api
+# Copy API routes (these will be served by Express)
+COPY --from=builder /app/api ./api
 
 # Copy the server file
 COPY server.js ./

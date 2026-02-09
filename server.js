@@ -1,18 +1,12 @@
-// Express Server for Coolify Deployment (ES Module version)
+// Express Server for Coolify Deployment
 // This replaces Vercel's serverless functions with a unified Express server
 
-import express from 'express';
-import path from 'path';
-import cors from 'cors';
-import fs from 'fs';
-import { fileURLToPath } from 'url';
-import { createRequire } from 'module';
+const express = require('express');
+const path = require('path');
+const cors = require('cors');
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// Create require function for loading CJS modules
-const require = createRequire(import.meta.url);
+// Load environment variables
+require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -22,7 +16,7 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// Health check endpoint - MUST respond for Coolify healthcheck
+// Health check endpoint
 app.get('/health', (req, res) => {
     res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });
@@ -31,109 +25,59 @@ app.get('/health', (req, res) => {
 // API Routes (dynamically imported)
 // ============================================
 
-// Startup validation - just log, don't prevent startup
-const requiredEnvVars = ['VITE_SUPABASE_URL'];
-const missingEnvVars = requiredEnvVars.filter(v => !process.env[v]);
-if (missingEnvVars.length > 0) {
-    console.warn('⚠️ Missing environment variables:', missingEnvVars.join(', '));
-}
-
-// Check for service role key (needed for webhooks)
-if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    console.warn('⚠️ SUPABASE_SERVICE_ROLE_KEY not set - webhook verification may fail');
-}
-
-// Debug endpoint to check configuration
-app.get('/api/debug', (req, res) => {
-    res.json({
-        status: 'ok',
-        timestamp: new Date().toISOString(),
-        env: {
-            VITE_SUPABASE_URL: process.env.VITE_SUPABASE_URL ? 'SET' : 'MISSING',
-            SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY ? 'SET' : 'MISSING',
-            VITE_SUPABASE_ANON_KEY: process.env.VITE_SUPABASE_ANON_KEY ? 'SET' : 'MISSING',
-            NODE_ENV: process.env.NODE_ENV || 'not set',
-            PORT: process.env.PORT || '3000'
-        }
-    });
-});
-
-// Helper to safely register a route with error handling
-function safeRegisterRoute(routePath, handlerPath) {
-    const fullPath = path.join(__dirname, handlerPath);
-
-    // Check if file exists
-    if (!fs.existsSync(fullPath)) {
-        console.warn(`⚠️ Handler file not found: ${handlerPath} - skipping route ${routePath}`);
-        return;
-    }
-
-    app.all(routePath, async (req, res) => {
+// Helper to convert Vercel handler to Express handler
+function wrapVercelHandler(handlerPath) {
+    return async (req, res) => {
         try {
-            const handler = require(fullPath);
+            // Dynamic import for ES modules
+            const handler = require(handlerPath);
             const handlerFn = handler.default || handler;
-
-            if (typeof handlerFn !== 'function') {
-                console.error(`Handler at ${handlerPath} is not a function:`, typeof handlerFn);
-                return res.status(500).json({ error: 'Handler not found', path: handlerPath });
-            }
-
             await handlerFn(req, res);
         } catch (error) {
             console.error(`Error in ${handlerPath}:`, error);
-            res.status(500).json({
-                error: 'Internal server error',
-                message: error.message,
-                path: handlerPath
-            });
+            res.status(500).json({ error: 'Internal server error' });
         }
-    });
-
-    console.log(`✓ Registered route: ${routePath}`);
+    };
 }
 
-// Register all API routes with safe error handling
-console.log('📦 Registering API routes...');
-
 // Admin API
-safeRegisterRoute('/api/admin', './api/admin.js');
+app.all('/api/admin', wrapVercelHandler('./api/admin'));
 
 // Webhooks
-safeRegisterRoute('/api/webhooks/meta', './api/webhooks/meta.js');
+app.all('/api/webhooks/meta', wrapVercelHandler('./api/webhooks/meta'));
 
 // Forms
-safeRegisterRoute('/api/forms/handler', './api/forms/handler.js');
-safeRegisterRoute('/api/forms/continue-flow', './api/forms/continue-flow.js');
+app.all('/api/forms/handler', wrapVercelHandler('./api/forms/handler'));
+app.all('/api/forms/continue-flow', wrapVercelHandler('./api/forms/continue-flow'));
 
 // Webview
-safeRegisterRoute('/api/webview', './api/webview.js');
+app.all('/api/webview', wrapVercelHandler('./api/webview'));
 
 // Views
-safeRegisterRoute('/api/views/handler', './api/views/handler.js');
+app.all('/api/views/handler', wrapVercelHandler('./api/views/handler'));
 
 // Messenger
-safeRegisterRoute('/api/messenger/send-tracking', './api/messenger/send-tracking.js');
+app.all('/api/messenger/send-tracking', wrapVercelHandler('./api/messenger/send-tracking'));
 
 // Sheets
-safeRegisterRoute('/api/sheets/sync', './api/sheets/sync.js');
+app.all('/api/sheets/sync', wrapVercelHandler('./api/sheets/sync'));
 
-// Cron
-safeRegisterRoute('/api/cron', './api/cron/index.js');
-safeRegisterRoute('/api/cron/form-followup', './api/cron/form-followup.js');
-safeRegisterRoute('/api/cron/scheduler', './api/cron/scheduler.js');
-safeRegisterRoute('/api/cron/subscription', './api/cron/subscription.js');
-safeRegisterRoute('/api/cron/execute-step', './api/cron/execute-step.js');
+// Cron (for scheduled tasks) - Modular structure
+app.all('/api/cron', wrapVercelHandler('./api/cron/index'));
+// Direct routes for individual cron jobs (faster cold starts)
+app.all('/api/cron/form-followup', wrapVercelHandler('./api/cron/form-followup'));
+app.all('/api/cron/scheduler', wrapVercelHandler('./api/cron/scheduler'));
+app.all('/api/cron/subscription', wrapVercelHandler('./api/cron/subscription'));
+app.all('/api/cron/execute-step', wrapVercelHandler('./api/cron/execute-step'));
 
 // Video thumbnail
-safeRegisterRoute('/api/video-thumbnail', './api/video-thumbnail.js');
+app.all('/api/video-thumbnail', wrapVercelHandler('./api/video-thumbnail'));
 
 // Node analytics
-safeRegisterRoute('/api/flows/node-analytics', './api/flows/node-analytics.js');
+app.all('/api/flows/node-analytics', wrapVercelHandler('./api/flows/node-analytics'));
 
 // Auth
-safeRegisterRoute('/api/auth/facebook-callback', './api/auth/facebook-callback.js');
-
-console.log('✅ API routes registration complete');
+app.all('/api/auth/facebook-callback', wrapVercelHandler('./api/auth/facebook-callback'));
 
 // ============================================
 // Static Files & SPA Fallback
@@ -144,6 +88,7 @@ app.use(express.static(path.join(__dirname, 'dist')));
 
 // SPA fallback - serve index.html for all non-API routes
 app.get('*', (req, res) => {
+    // Don't serve index.html for API routes
     if (req.path.startsWith('/api/')) {
         return res.status(404).json({ error: 'API endpoint not found' });
     }
