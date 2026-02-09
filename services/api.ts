@@ -2331,6 +2331,8 @@ export const api = {
     },
 
     updateSettings: async (settings: AdminSettings): Promise<void> => {
+      await ensureSession();
+
       const dbPayload = {
         id: 1,
         facebook_app_id: settings.facebookAppId,
@@ -2358,6 +2360,7 @@ export const api = {
         .upsert(dbPayload);
 
       if (error) {
+        console.error('[Admin] Failed to save settings:', error);
         throw new Error(error.message);
       }
     },
