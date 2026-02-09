@@ -1,0 +1,1044 @@
+var __defProp = Object.defineProperty;
+var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+var __getOwnPropNames = Object.getOwnPropertyNames;
+var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __export = (target, all) => {
+  for (var name in all)
+    __defProp(target, name, { get: all[name], enumerable: true });
+};
+var __copyProps = (to, from, except, desc) => {
+  if (from && typeof from === "object" || typeof from === "function") {
+    for (let key of __getOwnPropNames(from))
+      if (!__hasOwnProp.call(to, key) && key !== except)
+        __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
+  }
+  return to;
+};
+var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
+
+// api/cron.ts
+var cron_exports = {};
+__export(cron_exports, {
+  default: () => handler
+});
+module.exports = __toCommonJS(cron_exports);
+var import_supabase_js = require("@supabase/supabase-js");
+var supabaseUrl = process.env.VITE_SUPABASE_URL;
+var supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+var supabase = (0, import_supabase_js.createClient)(supabaseUrl, supabaseKey);
+async function handler(req, res) {
+  const job = req.query.job;
+  const execute = req.query.execute;
+  const step = req.query.step;
+  if (execute === "true" && step) {
+    return handleExecuteStep(req, res, step);
+  }
+  console.log(`[Cron] Running job: ${job}`);
+  switch (job) {
+    case "form-followup":
+      return handleFormFollowup(req, res);
+    case "scheduler":
+      return handleSchedulerExecute(req, res);
+    case "subscription-expiry":
+      return handleSubscriptionExpiry(req, res);
+    default:
+      return res.status(400).json({
+        error: "Invalid job parameter",
+        validJobs: ["form-followup", "scheduler", "subscription-expiry"],
+        usage: "/api/cron?job=form-followup or /api/cron?job=scheduler or /api/cron?job=subscription-expiry"
+      });
+  }
+}
+async function handleExecuteStep(req, res, step) {
+  console.log(`[Execute Step] Starting step: ${step}`);
+  if (step === "full") {
+    return handleExecuteFullWorkflow(req, res);
+  }
+  try {
+    const body = typeof req.body === "string" ? JSON.parse(req.body) : req.body;
+    const { workspaceId, configurations, previousResults } = body;
+    const { data: settings } = await supabase.from("workspace_settings").select("openai_api_key, gemini_api_key").eq("workspace_id", workspaceId).single();
+    const openaiKey = settings?.openai_api_key;
+    const geminiKey = settings?.gemini_api_key;
+    if (!openaiKey && !geminiKey) {
+      return res.status(400).json({ error: "No API keys configured" });
+    }
+    const provider = openaiKey ? "openai" : "gemini";
+    const apiKey = openaiKey || geminiKey;
+    switch (step) {
+      case "topic-1": {
+        const topicConfig = configurations?.["topic-1"] || {};
+        const topic = await generateTopic(topicConfig, apiKey, provider, []);
+        console.log(`[Execute Step] Generated topic: ${topic}`);
+        return res.json({ success: true, step, result: { topic } });
+      }
+      case "image-1": {
+        const imageConfig = configurations?.["image-1"] || {};
+        const topic = previousResults?.["topic-1"]?.result?.topic || "Social media post";
+        const imageUrl = await generateImage(topic, imageConfig, openaiKey || "");
+        console.log(`[Execute Step] Generated image`);
+        return res.json({ success: true, step, result: { imageUrl } });
+      }
+      case "caption-1": {
+        const captionConfig = configurations?.["caption-1"] || {};
+        const topic = previousResults?.["topic-1"]?.result?.topic || "Social media post";
+        const caption = await generateCaption(topic, captionConfig, apiKey, provider);
+        console.log(`[Execute Step] Generated caption`);
+        return res.json({ success: true, step, result: { caption } });
+      }
+      case "facebook-1": {
+        const fbConfig = configurations?.["facebook-1"] || {};
+        const caption = previousResults?.["caption-1"]?.result?.caption || "";
+        const imageUrl = previousResults?.["image-1"]?.result?.imageUrl || "";
+        const topic = previousResults?.["topic-1"]?.result?.topic || "";
+        let page = null;
+        if (fbConfig.pageId) {
+          const { data: configuredPage } = await supabase.from("connected_pages").select("page_id, page_access_token").eq("page_id", fbConfig.pageId).single();
+          if (configuredPage)
+            page = configuredPage;
+        }
+        if (!page) {
+          const { data: automatedPages } = await supabase.from("connected_pages").select("page_id, page_access_token").eq("workspace_id", workspaceId).eq("automation_enabled", true).limit(1);
+          if (automatedPages?.length)
+            page = automatedPages[0];
+        }
+        if (!page) {
+          const { data: anyPages } = await supabase.from("connected_pages").select("page_id, page_access_token").eq("workspace_id", workspaceId).limit(1);
+          if (anyPages?.length)
+            page = anyPages[0];
+        }
+        if (!page) {
+          return res.status(400).json({ error: "No connected Facebook pages. Please connect a page first." });
+        }
+        console.log(`[Execute Step] Posting to page: ${page.page_id}`);
+        const postId = await postToFacebook(page.page_access_token, page.page_id, caption, imageUrl);
+        console.log(`[Execute Step] Posted to Facebook: ${postId}`);
+        return res.json({ success: true, step, result: { postId, topic, imageUrl, caption } });
+      }
+      default:
+        return res.status(400).json({ error: `Unknown step: ${step}` });
+    }
+  } catch (error) {
+    console.error(`[Execute Step] Error:`, error.message);
+    return res.status(500).json({ error: error.message });
+  }
+}
+async function handleExecuteFullWorkflow(req, res) {
+  console.log(`[Execute Full] Starting full workflow execution`);
+  try {
+    const body = typeof req.body === "string" ? JSON.parse(req.body) : req.body;
+    const { workspaceId, configurations } = body;
+    console.log(`[Execute Full] WorkspaceId: ${workspaceId}`);
+    console.log(`[Execute Full] Configurations keys:`, Object.keys(configurations || {}));
+    const { data: settings } = await supabase.from("workspace_settings").select("openai_api_key, gemini_api_key").eq("workspace_id", workspaceId).single();
+    const openaiKey = settings?.openai_api_key;
+    const geminiKey = settings?.gemini_api_key;
+    if (!openaiKey && !geminiKey) {
+      return res.status(400).json({
+        error: "No API keys configured",
+        failedStep: "topic-1"
+      });
+    }
+    const topicConfig = configurations?.["topic-1"] || configurations?.["topicGenerator-1"] || {};
+    const imageConfig = configurations?.["image-1"] || configurations?.["imageGenerator-1"] || {};
+    const captionConfig = configurations?.["caption-1"] || configurations?.["captionWriter-1"] || {};
+    const facebookConfig = configurations?.["facebook-1"] || configurations?.["facebookPost-1"] || {};
+    console.log(`[Execute Full] topicConfig:`, JSON.stringify(topicConfig));
+    console.log(`[Execute Full] imageConfig:`, JSON.stringify(imageConfig));
+    console.log(`[Execute Full] captionConfig:`, JSON.stringify(captionConfig));
+    console.log(`[Execute Full] facebookConfig:`, JSON.stringify(facebookConfig));
+    const results = {};
+    console.log(`[Execute Full] Step 1: Generating topic...`);
+    const provider = topicConfig?.provider || (openaiKey ? "openai" : "gemini");
+    const apiKey = provider === "openai" ? openaiKey : geminiKey;
+    if (!apiKey) {
+      return res.status(400).json({
+        error: `${provider} API key not configured`,
+        failedStep: "topic-1"
+      });
+    }
+    let topic = "";
+    try {
+      topic = await generateTopic(topicConfig || {}, apiKey, provider, []);
+      console.log(`[Execute Full] Generated topic: "${topic}"`);
+      results["topic-1"] = { success: true, result: { topic } };
+    } catch (err) {
+      console.error(`[Execute Full] Topic generation failed:`, err.message);
+      return res.status(400).json({
+        error: `Topic generation failed: ${err.message}`,
+        failedStep: "topic-1",
+        results
+      });
+    }
+    console.log(`[Execute Full] Step 2: Generating image...`);
+    let imageUrl = "";
+    if (openaiKey) {
+      try {
+        imageUrl = await generateImage(topic, imageConfig || {}, openaiKey);
+        console.log(`[Execute Full] Generated image URL: ${imageUrl?.substring(0, 60)}...`);
+        results["image-1"] = { success: true, result: { imageUrl } };
+      } catch (err) {
+        console.error(`[Execute Full] Image generation failed:`, err.message);
+        return res.status(400).json({
+          error: `Image generation failed: ${err.message}`,
+          failedStep: "image-1",
+          results
+        });
+      }
+    } else {
+      console.log(`[Execute Full] Skipping image - no OpenAI key`);
+      results["image-1"] = { success: true, result: { imageUrl: "" }, skipped: true };
+    }
+    console.log(`[Execute Full] Step 3: Generating caption...`);
+    let caption = "";
+    try {
+      const captionProvider = captionConfig?.provider || provider;
+      const captionApiKey = captionProvider === "openai" ? openaiKey : geminiKey;
+      if (!captionApiKey) {
+        throw new Error(`${captionProvider} API key not available for caption`);
+      }
+      caption = await generateCaption(topic, captionConfig || {}, captionApiKey, captionProvider);
+      console.log(`[Execute Full] Generated caption (${caption.length} chars): "${caption.substring(0, 100)}..."`);
+      results["caption-1"] = { success: true, result: { caption } };
+    } catch (err) {
+      console.error(`[Execute Full] Caption generation failed:`, err.message);
+      return res.status(400).json({
+        error: `Caption generation failed: ${err.message}`,
+        failedStep: "caption-1",
+        results
+      });
+    }
+    console.log(`[Execute Full] Step 4: Posting to Facebook...`);
+    if (!caption) {
+      return res.status(400).json({
+        error: "Cannot post to Facebook - no caption generated",
+        failedStep: "facebook-1",
+        results
+      });
+    }
+    let page = null;
+    if (facebookConfig?.pageId) {
+      const { data: configuredPage } = await supabase.from("connected_pages").select("page_id, page_access_token").eq("page_id", facebookConfig.pageId).single();
+      if (configuredPage)
+        page = configuredPage;
+    }
+    if (!page) {
+      const { data: workspacePages } = await supabase.from("connected_pages").select("page_id, page_access_token").eq("workspace_id", workspaceId).eq("automation_enabled", true).limit(1);
+      if (workspacePages?.length)
+        page = workspacePages[0];
+    }
+    if (!page) {
+      const { data: anyPages } = await supabase.from("connected_pages").select("page_id, page_access_token").eq("workspace_id", workspaceId).limit(1);
+      if (anyPages?.length)
+        page = anyPages[0];
+    }
+    if (!page?.page_access_token) {
+      return res.status(400).json({
+        error: "No connected Facebook pages found. Please connect a page first.",
+        failedStep: "facebook-1",
+        results
+      });
+    }
+    try {
+      console.log(`[Execute Full] Posting to page: ${page.page_id}`);
+      const postId = await postToFacebook(page.page_access_token, page.page_id, caption, imageUrl);
+      console.log(`[Execute Full] Posted to Facebook! Post ID: ${postId}`);
+      results["facebook-1"] = { success: true, result: { postId, topic, imageUrl, caption } };
+    } catch (err) {
+      console.error(`[Execute Full] Facebook posting failed:`, err.message);
+      return res.status(400).json({
+        error: `Facebook posting failed: ${err.message}`,
+        failedStep: "facebook-1",
+        results
+      });
+    }
+    console.log(`[Execute Full] Workflow completed successfully!`);
+    return res.json({
+      success: true,
+      results,
+      summary: {
+        topic,
+        imageUrl,
+        caption,
+        postId: results["facebook-1"]?.result?.postId
+      }
+    });
+  } catch (error) {
+    console.error(`[Execute Full] Unexpected error:`, error.message);
+    return res.status(500).json({ error: error.message });
+  }
+}
+var MAX_WINDOW_DAYS = 7;
+async function handleFormFollowup(req, res) {
+  console.log("[Form Followup Cron] Starting...");
+  console.log("[Form Followup Cron] Time:", (/* @__PURE__ */ new Date()).toISOString());
+  try {
+    const now = /* @__PURE__ */ new Date();
+    const minOpenTime = new Date(now.getTime() - MAX_WINDOW_DAYS * 24 * 60 * 60 * 1e3);
+    const { data: pendingFollowups, error: fetchError } = await supabase.from("form_opens").select("*").is("submitted_at", null).gt("opened_at", minOpenTime.toISOString()).order("opened_at", { ascending: true }).limit(50);
+    if (fetchError) {
+      console.error("[Form Followup Cron] Error fetching form_opens:", fetchError.message);
+    }
+    console.log("[Form Followup Cron] Found", pendingFollowups?.length || 0, "potential follow-ups");
+    let processedCount = 0;
+    let sentCount = 0;
+    for (const formOpen of pendingFollowups || []) {
+      processedCount++;
+      const { data: flow } = await supabase.from("flows").select("*").eq("id", formOpen.flow_id).single();
+      if (!flow)
+        continue;
+      const nodes = flow.nodes || [];
+      const configurations = flow.configurations || {};
+      const followupNode = nodes.find((n) => n.type === "followupNode");
+      if (!followupNode)
+        continue;
+      const config = configurations[followupNode.id] || {};
+      const scheduledFollowups = config.scheduledFollowups || [];
+      if (scheduledFollowups.length === 0) {
+        const legacyMessage = config.followupMessage;
+        if (legacyMessage) {
+          scheduledFollowups.push({
+            id: "legacy_0",
+            type: "delay",
+            delayMinutes: config.firstDelayMinutes || 30,
+            scheduledTime: "09:00",
+            scheduledDays: 0,
+            messageTag: "",
+            message: legacyMessage,
+            enabled: true
+          });
+        }
+      }
+      if (scheduledFollowups.length === 0)
+        continue;
+      const sentFollowupIds = formOpen.sent_followup_ids || [];
+      const openedAt = new Date(formOpen.opened_at);
+      const minutesSinceOpen = (now.getTime() - openedAt.getTime()) / (60 * 1e3);
+      for (const followup of scheduledFollowups) {
+        if (!followup.enabled)
+          continue;
+        if (sentFollowupIds.includes(followup.id))
+          continue;
+        let shouldSend = false;
+        let isOutside24hr = false;
+        if (followup.type === "delay") {
+          const tolerance = 0.5;
+          shouldSend = minutesSinceOpen >= followup.delayMinutes - tolerance;
+          isOutside24hr = followup.delayMinutes > 1380;
+        } else {
+          const targetDate = new Date(openedAt);
+          targetDate.setDate(targetDate.getDate() + followup.scheduledDays);
+          const [hours, minutes] = followup.scheduledTime.split(":").map(Number);
+          targetDate.setHours(hours, minutes, 0, 0);
+          shouldSend = now >= targetDate;
+          isOutside24hr = followup.scheduledDays >= 1;
+        }
+        if (!shouldSend)
+          continue;
+        if (isOutside24hr && !followup.messageTag)
+          continue;
+        const { data: page } = await supabase.from("connected_pages").select("page_access_token").eq("page_id", formOpen.page_id).single();
+        if (!page?.page_access_token)
+          continue;
+        let message = followup.message || "";
+        message = message.replace(/{commenter_name}/g, formOpen.subscriber_name || "Friend");
+        message = message.replace(/{followup_number}/g, String(sentFollowupIds.length + 1));
+        if (!message.trim())
+          continue;
+        let buttonUrl = "";
+        if (followup.buttonEnabled !== false && formOpen.form_id) {
+          const vercelUrl = process.env.VERCEL_URL;
+          const appUrl = process.env.APP_URL || process.env.VITE_APP_URL;
+          const baseUrl = appUrl || (vercelUrl ? `https://${vercelUrl}` : "");
+          if (baseUrl) {
+            const params = new URLSearchParams({
+              sid: formOpen.subscriber_id || "",
+              sname: formOpen.subscriber_name || "",
+              flowId: formOpen.flow_id || "",
+              nodeId: formOpen.node_id || "",
+              pageId: formOpen.page_id || ""
+            });
+            buttonUrl = `${baseUrl}/forms/${formOpen.form_id}?${params.toString()}`;
+          }
+        }
+        const success = await sendFollowupMessage(
+          formOpen.subscriber_id,
+          message,
+          page.page_access_token,
+          isOutside24hr ? followup.messageTag : void 0,
+          followup.buttonEnabled !== false ? {
+            text: followup.buttonText || "Complete Order \u{1F6D2}",
+            url: buttonUrl
+          } : void 0
+        );
+        if (success) {
+          const updatedIds = [...sentFollowupIds, followup.id];
+          await supabase.from("form_opens").update({
+            sent_followup_ids: updatedIds,
+            followup_count: updatedIds.length,
+            last_followup_at: (/* @__PURE__ */ new Date()).toISOString()
+          }).eq("id", formOpen.id);
+          sentFollowupIds.push(followup.id);
+          sentCount++;
+          console.log(`[Form Followup Cron] \u2713 Sent ${followup.id} to ${formOpen.subscriber_id}`);
+        }
+      }
+    }
+    let webviewProcessed = 0;
+    let webviewSent = 0;
+    try {
+      const { data: pendingSessions, error: webviewError } = await supabase.from("webview_sessions").select("*").eq("status", "pending").eq("followup_enabled", true).order("shown_at", { ascending: true }).limit(50);
+      if (!webviewError) {
+        for (const session of pendingSessions || []) {
+          webviewProcessed++;
+          const shownAt = new Date(session.shown_at);
+          const minutesSinceShown = (now.getTime() - shownAt.getTime()) / (60 * 1e3);
+          const timeoutMinutes = session.followup_timeout_minutes || 5;
+          if (minutesSinceShown < timeoutMinutes)
+            continue;
+          const { data: page } = await supabase.from("connected_pages").select("page_access_token").eq("page_id", session.page_id).single();
+          if (!page?.page_access_token) {
+            await supabase.from("webview_sessions").update({ status: "expired", updated_at: now.toISOString() }).eq("id", session.id);
+            continue;
+          }
+          const followupMessage = "Hey! \u{1F44B} We noticed you were interested in our product. Still thinking about it?";
+          const success = await sendFollowupMessage(
+            session.psid,
+            followupMessage,
+            page.page_access_token
+          );
+          if (success) {
+            await supabase.from("webview_sessions").update({
+              status: "followup_sent",
+              followup_sent_at: now.toISOString(),
+              updated_at: now.toISOString()
+            }).eq("id", session.id);
+            webviewSent++;
+          } else {
+            await supabase.from("webview_sessions").update({ status: "expired", updated_at: now.toISOString() }).eq("id", session.id);
+          }
+        }
+      }
+    } catch (webviewErr) {
+      console.error("[Webview Followup] Exception:", webviewErr.message);
+    }
+    console.log(`\u{1F4CA} [Summary] Order Form - ${processedCount} found (${sentCount} sent) : Webview - ${webviewProcessed} found (${webviewSent} sent)`);
+    return res.status(200).json({
+      success: true,
+      summary: `Order Form - ${processedCount} : Webview - ${webviewProcessed}`,
+      form: { processed: processedCount, sent: sentCount },
+      webview: { processed: webviewProcessed, sent: webviewSent }
+    });
+  } catch (error) {
+    console.error("[Form Followup Cron] Exception:", error.message);
+    return res.status(500).json({ error: error.message });
+  }
+}
+async function sendFollowupMessage(userId, text, pageAccessToken, messageTag, button) {
+  try {
+    let messagePayload = { text };
+    if (button && button.url && button.url.includes("http")) {
+      messagePayload = {
+        attachment: {
+          type: "template",
+          payload: {
+            template_type: "button",
+            text,
+            buttons: [
+              {
+                type: "web_url",
+                url: button.url,
+                title: button.text,
+                webview_height_ratio: "full"
+              }
+            ]
+          }
+        }
+      };
+    }
+    const body = {
+      recipient: { id: userId },
+      message: messagePayload,
+      access_token: pageAccessToken
+    };
+    if (messageTag) {
+      body.messaging_type = "MESSAGE_TAG";
+      body.tag = messageTag;
+    }
+    const response = await fetch(
+      `https://graph.facebook.com/v21.0/me/messages`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      }
+    );
+    const result = await response.json();
+    if (result.error) {
+      console.error("[Form Followup Cron] Message error:", result.error.message);
+      return false;
+    }
+    return true;
+  } catch (error) {
+    console.error("[Form Followup Cron] Send exception:", error.message);
+    return false;
+  }
+}
+async function handleSchedulerExecute(req, res) {
+  console.log("[Scheduler Cron] Starting...");
+  console.log("[Scheduler Cron] Time:", (/* @__PURE__ */ new Date()).toISOString());
+  let processedCount = 0;
+  let executedCount = 0;
+  let errorCount = 0;
+  try {
+    const now = /* @__PURE__ */ new Date();
+    const { data: dueWorkflows, error: fetchError } = await supabase.from("scheduler_workflows").select("*").eq("status", "active").lte("next_run_at", now.toISOString()).order("next_run_at", { ascending: true }).limit(10);
+    if (fetchError) {
+      console.error("[Scheduler Cron] Error fetching workflows:", fetchError.message);
+      return res.status(500).json({ error: fetchError.message });
+    }
+    console.log("[Scheduler Cron] Found", dueWorkflows?.length || 0, "due workflows");
+    for (const workflow of dueWorkflows || []) {
+      processedCount++;
+      console.log(`[Scheduler Cron] Processing workflow: ${workflow.name} (${workflow.id})`);
+      if (workflow.last_run_at) {
+        const lastRunTime = new Date(workflow.last_run_at);
+        const timeSinceLastRun = (now.getTime() - lastRunTime.getTime()) / (60 * 1e3);
+        if (timeSinceLastRun < 5) {
+          console.log(`[Scheduler Cron] Skipping ${workflow.name} - already ran ${timeSinceLastRun.toFixed(1)} minutes ago`);
+          continue;
+        }
+      }
+      const { data: execution, error: execError } = await supabase.from("scheduler_executions").insert({
+        workflow_id: workflow.id,
+        status: "running"
+      }).select().single();
+      if (execError) {
+        console.error(`[Scheduler Cron] Failed to create execution for ${workflow.id}:`, execError.message);
+        errorCount++;
+        continue;
+      }
+      try {
+        const result = await executeWorkflow(workflow);
+        await supabase.from("scheduler_executions").update({
+          status: result.success ? "completed" : "failed",
+          completed_at: (/* @__PURE__ */ new Date()).toISOString(),
+          result,
+          error: result.error || null,
+          generated_topic: result.topic || null,
+          generated_image_url: result.imageUrl || null,
+          generated_caption: result.caption || null,
+          facebook_post_id: result.postId || null
+        }).eq("id", execution.id);
+        const nextRunAt = calculateNextRun(workflow);
+        await supabase.from("scheduler_workflows").update({
+          last_run_at: now.toISOString(),
+          next_run_at: nextRunAt?.toISOString() || null
+        }).eq("id", workflow.id);
+        if (result.success) {
+          executedCount++;
+          console.log(`[Scheduler Cron] \u2713 Workflow ${workflow.name} executed successfully`);
+        } else {
+          errorCount++;
+          console.log(`[Scheduler Cron] \u2717 Workflow ${workflow.name} failed: ${result.error}`);
+        }
+      } catch (execErr) {
+        console.error(`[Scheduler Cron] Execution error for ${workflow.id}:`, execErr.message);
+        await supabase.from("scheduler_executions").update({
+          status: "failed",
+          completed_at: (/* @__PURE__ */ new Date()).toISOString(),
+          error: execErr.message
+        }).eq("id", execution.id);
+        errorCount++;
+      }
+    }
+    console.log(`[Scheduler Cron] Complete. Processed: ${processedCount}, Executed: ${executedCount}, Errors: ${errorCount}`);
+    return res.status(200).json({
+      success: true,
+      summary: `Processed: ${processedCount}, Executed: ${executedCount}, Errors: ${errorCount}`,
+      processed: processedCount,
+      executed: executedCount,
+      errors: errorCount
+    });
+  } catch (error) {
+    console.error("[Scheduler Cron] Exception:", error.message);
+    return res.status(500).json({ error: error.message });
+  }
+}
+async function handleSubscriptionExpiry(req, res) {
+  console.log("[Subscription Expiry Cron] Starting...");
+  console.log("[Subscription Expiry Cron] Time:", (/* @__PURE__ */ new Date()).toISOString());
+  let expiredCount = 0;
+  let checkedCount = 0;
+  try {
+    const now = /* @__PURE__ */ new Date();
+    const { data: expiredSubs, error: fetchError } = await supabase.from("user_subscriptions").select("id, user_id, package_id, billing_cycle, next_billing_date").eq("status", "Active").neq("billing_cycle", "Lifetime").not("next_billing_date", "is", null).lt("next_billing_date", now.toISOString());
+    if (fetchError) {
+      console.error("[Subscription Expiry Cron] Error fetching subscriptions:", fetchError.message);
+      return res.status(500).json({ error: fetchError.message });
+    }
+    checkedCount = expiredSubs?.length || 0;
+    console.log(`[Subscription Expiry Cron] Found ${checkedCount} expired subscriptions`);
+    for (const sub of expiredSubs || []) {
+      try {
+        const { error: updateError } = await supabase.from("user_subscriptions").update({
+          status: "expired",
+          updated_at: now.toISOString()
+        }).eq("id", sub.id);
+        if (updateError) {
+          console.error(`[Subscription Expiry Cron] Failed to update ${sub.id}:`, updateError.message);
+          continue;
+        }
+        expiredCount++;
+        console.log(`[Subscription Expiry Cron] \u2713 Expired subscription ${sub.id} for user ${sub.user_id}`);
+      } catch (err) {
+        console.error(`[Subscription Expiry Cron] Error updating ${sub.id}:`, err.message);
+      }
+    }
+    console.log(`[Subscription Expiry Cron] Complete. Checked: ${checkedCount}, Expired: ${expiredCount}`);
+    return res.status(200).json({
+      success: true,
+      summary: `Checked: ${checkedCount}, Expired: ${expiredCount}`,
+      checked: checkedCount,
+      expired: expiredCount
+    });
+  } catch (error) {
+    console.error("[Subscription Expiry Cron] Exception:", error.message);
+    return res.status(500).json({ error: error.message });
+  }
+}
+async function executeWorkflow(workflow) {
+  const configurations = workflow.configurations || {};
+  const { data: settings } = await supabase.from("workspace_settings").select("*").eq("workspace_id", workflow.workspace_id).single();
+  const openaiKey = settings?.openai_api_key;
+  const geminiKey = settings?.gemini_api_key;
+  if (!openaiKey && !geminiKey) {
+    return {
+      success: false,
+      error: "No AI API keys configured. Please add OpenAI or Gemini API key in Settings."
+    };
+  }
+  let topicConfig = null;
+  let imageConfig = null;
+  let captionConfig = null;
+  let facebookConfig = null;
+  for (const [nodeId, config] of Object.entries(configurations)) {
+    const node = workflow.nodes?.find((n) => n.id === nodeId);
+    if (!node)
+      continue;
+    switch (node.type) {
+      case "topicGenerator":
+        topicConfig = config;
+        break;
+      case "imageGenerator":
+        imageConfig = config;
+        break;
+      case "captionWriter":
+        captionConfig = config;
+        break;
+      case "facebookPost":
+        facebookConfig = config;
+        break;
+    }
+  }
+  const { data: topicHistory } = await supabase.from("scheduler_topic_history").select("topic").eq("workflow_id", workflow.id).order("created_at", { ascending: false }).limit(50);
+  const usedTopics = topicHistory?.map((t) => t.topic) || [];
+  let topic = "";
+  if (topicConfig) {
+    const provider = topicConfig.provider || (openaiKey ? "openai" : "gemini");
+    const apiKey = provider === "openai" ? openaiKey : geminiKey;
+    if (!apiKey) {
+      return { success: false, error: `${provider} API key not configured` };
+    }
+    try {
+      topic = await generateTopic(topicConfig, apiKey, provider, usedTopics);
+      console.log("[Scheduler Cron] Generated topic:", topic);
+    } catch (err) {
+      return { success: false, error: `Topic generation failed: ${err.message}` };
+    }
+  }
+  let imageUrl = "";
+  if (imageConfig && openaiKey) {
+    try {
+      imageUrl = await generateImage(topic, imageConfig, openaiKey);
+      console.log("[Scheduler Cron] Generated image URL:", imageUrl);
+    } catch (err) {
+      console.error("[Scheduler Cron] Image generation failed:", err.message);
+    }
+  }
+  let caption = "";
+  if (captionConfig) {
+    const provider = captionConfig.provider || (openaiKey ? "openai" : "gemini");
+    const apiKey = provider === "openai" ? openaiKey : geminiKey;
+    if (apiKey) {
+      try {
+        caption = await generateCaption(topic, captionConfig, apiKey, provider);
+        console.log("[Scheduler Cron] Generated caption:", caption.substring(0, 100) + "...");
+      } catch (err) {
+        caption = `${topic}
+
+#content #daily`;
+        console.error("[Scheduler Cron] Caption generation failed, using fallback:", err.message);
+      }
+    }
+  }
+  let postId = "";
+  if (facebookConfig?.pageId) {
+    const { data: page } = await supabase.from("connected_pages").select("page_access_token").eq("page_id", facebookConfig.pageId).single();
+    if (!page?.page_access_token) {
+      return { success: false, error: "Page access token not found" };
+    }
+    try {
+      postId = await postToFacebook(page.page_access_token, facebookConfig.pageId, caption, imageUrl);
+      console.log("[Scheduler Cron] Posted to Facebook, post ID:", postId);
+    } catch (err) {
+      return { success: false, error: `Facebook posting failed: ${err.message}` };
+    }
+  }
+  if (topic) {
+    await supabase.from("scheduler_topic_history").insert({ workflow_id: workflow.id, topic });
+  }
+  return {
+    success: true,
+    topic,
+    imageUrl,
+    caption,
+    postId
+  };
+}
+async function generateTopic(config, apiKey, provider, usedTopics) {
+  const seedTopics = config.seedTopics || ["general interest", "trending topics"];
+  const tone = config.tone || "professional";
+  const niche = config.niche || "general";
+  const prompt = `You are a social media content strategist. Generate ONE unique, engaging topic idea for a Facebook post.
+
+Industry/Niche: ${niche}
+Tone: ${tone}
+Seed topic ideas to draw inspiration from: ${seedTopics.join(", ")}
+
+${usedTopics.length > 0 ? `
+AVOID these previously used topics:
+${usedTopics.slice(0, 20).join("\n")}` : ""}
+
+Requirements:
+- Make it specific and actionable
+- Should be engaging for social media
+- Return ONLY the topic, no explanations or additional text
+- Keep it under 100 characters`;
+  if (provider === "openai") {
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        messages: [{ role: "user", content: prompt }],
+        max_tokens: 100,
+        temperature: 0.9
+      })
+    });
+    const data = await response.json();
+    if (data.error)
+      throw new Error(data.error.message);
+    return data.choices[0]?.message?.content?.trim() || "Engaging content for today";
+  } else {
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { maxOutputTokens: 100, temperature: 0.9 }
+        })
+      }
+    );
+    const data = await response.json();
+    if (data.error)
+      throw new Error(data.error.message);
+    return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "Engaging content for today";
+  }
+}
+async function generateImage(topic, config, openaiKey) {
+  const style = config.style || "realistic";
+  const size = config.size || "1024x1024";
+  const sizeMap = {
+    "1080x1080": "1024x1024",
+    "1200x628": "1792x1024",
+    "1080x1920": "1024x1792",
+    "1024x1024": "1024x1024"
+  };
+  const dalleSize = sizeMap[size] || "1024x1024";
+  const prompt = `Create a ${style} image for a social media post about: ${topic}. 
+The image should be eye-catching, professional, and suitable for Facebook.
+Style: ${style}
+No text or watermarks in the image.`;
+  const response = await fetch("https://api.openai.com/v1/images/generations", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${openaiKey}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      model: "dall-e-3",
+      prompt,
+      n: 1,
+      size: dalleSize,
+      quality: "standard"
+    })
+  });
+  const data = await response.json();
+  if (data.error)
+    throw new Error(data.error.message);
+  return data.data?.[0]?.url || "";
+}
+async function generateCaption(topic, config, apiKey, provider) {
+  const tone = config.tone || "friendly";
+  const includeHashtags = config.includeHashtags !== false;
+  const includeEmojis = config.includeEmojis !== false;
+  const includeCta = config.includeCta !== false;
+  const ctaType = config.ctaType || "engage";
+  const maxLength = config.maxLength || 300;
+  const prompt = `Write a beautifully formatted Facebook post caption about: ${topic}
+
+FORMATTING RULES (VERY IMPORTANT):
+- Use proper line breaks for readability
+- Structure the caption in clear paragraphs separated by blank lines
+- Follow this exact layout format:
+
+[Opening hook with emoji] First sentence that grabs attention.
+Second sentence expanding on the hook.
+
+[Body paragraph] Main message or story.
+Keep this engaging and relatable.
+
+[Call to action or closing thought] ${includeCta ? `Type: ${ctaType}` : "End with an inspiring thought"}
+
+${includeHashtags ? "[Hashtags on their own line] #Hashtag1 #Hashtag2 #Hashtag3 #Hashtag4 #Hashtag5" : ""}
+
+STYLE REQUIREMENTS:
+- Tone: ${tone}
+- Maximum length: ${maxLength} characters
+${includeEmojis ? "- Start key sentences with relevant emojis (\u{1F3B6}\u2728\u{1F31F}\u{1F3A4}\u{1F4A1}\u2764\uFE0F\u{1F525}\u{1F4AA}\u{1F64C} etc.)" : "- No emojis"}
+${includeHashtags ? "- Include 3-5 relevant hashtags as the LAST line, all on one line" : "- No hashtags"}
+${includeCta ? `- Include a compelling call-to-action (${ctaType === "engage" ? "ask a question or invite comments" : ctaType === "share" ? "encourage sharing" : ctaType === "visit" ? "direct to take action" : "encourage engagement"})` : ""}
+
+EXAMPLE FORMAT:
+\u{1F3B6}\u2728 Music has a unique way of bringing us together!
+Share your favorite live concert memory in the comments below
+and tag the band that made it unforgettable.
+
+Let's relive those magical moments! \u{1F31F}\u{1F3A4}
+
+#ConcertMemories #LiveMusic #MusicLovers #UnforgettableMoments #ShareYourStory
+
+Return ONLY the formatted caption text, ready to post. Make sure there are proper line breaks between paragraphs.`;
+  if (provider === "openai") {
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        messages: [{ role: "user", content: prompt }],
+        max_tokens: 500,
+        temperature: 0.8
+      })
+    });
+    const data = await response.json();
+    if (data.error)
+      throw new Error(data.error.message);
+    return data.choices[0]?.message?.content?.trim() || topic;
+  } else {
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { maxOutputTokens: 500, temperature: 0.8 }
+        })
+      }
+    );
+    const data = await response.json();
+    if (data.error)
+      throw new Error(data.error.message);
+    return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || topic;
+  }
+}
+async function postToFacebook(pageAccessToken, pageId, caption, imageUrl) {
+  let postId = "";
+  if (imageUrl) {
+    const photoResponse = await fetch(
+      `https://graph.facebook.com/v21.0/${pageId}/photos`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          url: imageUrl,
+          caption,
+          access_token: pageAccessToken
+        })
+      }
+    );
+    const photoData = await photoResponse.json();
+    if (photoData.error) {
+      throw new Error(photoData.error.message);
+    }
+    postId = photoData.post_id || photoData.id;
+  } else {
+    const postResponse = await fetch(
+      `https://graph.facebook.com/v21.0/${pageId}/feed`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: caption,
+          access_token: pageAccessToken
+        })
+      }
+    );
+    const postData = await postResponse.json();
+    if (postData.error) {
+      throw new Error(postData.error.message);
+    }
+    postId = postData.id;
+  }
+  return postId;
+}
+function calculateNextRun(workflow) {
+  const now = /* @__PURE__ */ new Date();
+  const scheduleType = workflow.schedule_type || "daily";
+  const scheduleTime = workflow.schedule_time || "09:00";
+  const scheduleDays = workflow.schedule_days || [];
+  const scheduleTimezone = workflow.schedule_timezone || "Asia/Manila";
+  let times = workflow.schedule_times && workflow.schedule_times.length > 0 ? workflow.schedule_times : [scheduleTime];
+  const timezoneOffsets = {
+    "Asia/Manila": 8,
+    "Asia/Singapore": 8,
+    "Asia/Tokyo": 9,
+    "America/New_York": -5,
+    // EST (or -4 for EDT)
+    "America/Los_Angeles": -8,
+    // PST (or -7 for PDT)
+    "Europe/London": 0,
+    "Europe/Paris": 1,
+    "Australia/Sydney": 11,
+    "UTC": 0
+  };
+  const tzOffset = timezoneOffsets[scheduleTimezone] ?? 8;
+  console.log(`[Scheduler] calculateNextRun for "${workflow.name}" - type: ${scheduleType}, times: [${times.join(", ")}], timezone: ${scheduleTimezone} (offset: +${tzOffset})`);
+  switch (scheduleType) {
+    case "daily": {
+      const currentTime = /* @__PURE__ */ new Date();
+      currentTime.setSeconds(currentTime.getSeconds() + 60);
+      const currentUtcHours = currentTime.getUTCHours();
+      const currentUtcMinutes = currentTime.getUTCMinutes();
+      const currentLocalHours = currentUtcHours + tzOffset;
+      let localDateOffset = 0;
+      let adjustedLocalHours = currentLocalHours;
+      if (currentLocalHours >= 24) {
+        localDateOffset = 1;
+        adjustedLocalHours = currentLocalHours - 24;
+      } else if (currentLocalHours < 0) {
+        localDateOffset = -1;
+        adjustedLocalHours = currentLocalHours + 24;
+      }
+      const localDate = new Date(currentTime);
+      localDate.setUTCDate(localDate.getUTCDate() + localDateOffset);
+      const localDateStr = localDate.toISOString().split("T")[0];
+      console.log(`[Scheduler] Current UTC: ${currentTime.toISOString()}`);
+      console.log(`[Scheduler] Current LOCAL (${scheduleTimezone}): ${localDateStr} ${String(adjustedLocalHours).padStart(2, "0")}:${String(currentUtcMinutes).padStart(2, "0")}`);
+      const candidates = [];
+      for (const timeStr of times) {
+        const [schedHours, schedMinutes] = timeStr.split(":").map(Number);
+        if (isNaN(schedHours) || isNaN(schedMinutes)) {
+          console.log(`[Scheduler] Skipping invalid time: ${timeStr}`);
+          continue;
+        }
+        const schedTimeInMinutes = schedHours * 60 + schedMinutes;
+        const currentTimeInMinutes = adjustedLocalHours * 60 + currentUtcMinutes;
+        const isInFuture = schedTimeInMinutes > currentTimeInMinutes;
+        let targetUtcHours = schedHours - tzOffset;
+        let targetDayOffset = localDateOffset;
+        if (targetUtcHours < 0) {
+          targetUtcHours += 24;
+          targetDayOffset -= 1;
+        } else if (targetUtcHours >= 24) {
+          targetUtcHours -= 24;
+          targetDayOffset += 1;
+        }
+        const runTime = new Date(currentTime);
+        runTime.setUTCDate(currentTime.getUTCDate());
+        runTime.setUTCDate(runTime.getUTCDate() + targetDayOffset);
+        runTime.setUTCHours(targetUtcHours, schedMinutes, 0, 0);
+        console.log(`[Scheduler] Time ${timeStr} -> UTC: ${runTime.toISOString()}, localFuture: ${isInFuture}, actualFuture: ${runTime > currentTime}`);
+        if (runTime > currentTime) {
+          candidates.push(runTime);
+          console.log(`[Scheduler] Added today candidate: ${runTime.toISOString()} for local time ${timeStr} ${scheduleTimezone}`);
+        } else {
+          const tomorrowRun = new Date(runTime);
+          tomorrowRun.setUTCDate(tomorrowRun.getUTCDate() + 1);
+          candidates.push(tomorrowRun);
+          console.log(`[Scheduler] Added tomorrow candidate: ${tomorrowRun.toISOString()} for local time ${timeStr} ${scheduleTimezone} (today's time passed)`);
+        }
+      }
+      if (candidates.length === 0) {
+        console.log(`[Scheduler] No candidates found!`);
+        return null;
+      }
+      const futureCandidates = candidates.filter((c) => c > currentTime);
+      if (futureCandidates.length === 0) {
+        console.log(`[Scheduler] No future candidates after filtering!`);
+        return null;
+      }
+      futureCandidates.sort((a, b) => a.getTime() - b.getTime());
+      const nextRun = futureCandidates[0];
+      console.log(`[Scheduler] Daily candidates (sorted):`, futureCandidates.slice(0, 5).map((d) => d.toISOString()));
+      console.log(`[Scheduler] Next run selected:`, nextRun.toISOString());
+      return nextRun;
+    }
+    case "weekly": {
+      const targetDays = scheduleDays.map(Number);
+      if (targetDays.length === 0)
+        return null;
+      const candidates = [];
+      for (const timeStr of times) {
+        const [hours, minutes] = timeStr.split(":").map(Number);
+        for (let i = 0; i < 8; i++) {
+          const checkDate = new Date(now);
+          checkDate.setDate(checkDate.getDate() + i);
+          checkDate.setHours(hours, minutes, 0, 0);
+          if (targetDays.includes(checkDate.getDay()) && checkDate > now) {
+            candidates.push(checkDate);
+            break;
+          }
+        }
+      }
+      candidates.sort((a, b) => a.getTime() - b.getTime());
+      return candidates[0] || null;
+    }
+    case "monthly": {
+      const dayOfMonth = scheduleDays[0] || 1;
+      const candidates = [];
+      for (const timeStr of times) {
+        const [hours, minutes] = timeStr.split(":").map(Number);
+        const thisMonth = new Date(now.getFullYear(), now.getMonth(), dayOfMonth, hours, minutes, 0, 0);
+        if (thisMonth > now) {
+          candidates.push(thisMonth);
+        }
+        const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, dayOfMonth, hours, minutes, 0, 0);
+        candidates.push(nextMonth);
+      }
+      candidates.sort((a, b) => a.getTime() - b.getTime());
+      return candidates[0] || null;
+    }
+    default:
+      return null;
+  }
+}

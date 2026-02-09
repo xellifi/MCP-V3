@@ -2,14 +2,11 @@
   "name": "mychat-pilot",
   "private": true,
   "version": "1.0.0",
-  "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
-    "build:api": "node build-api.js",
-    "build:all": "npm run build && npm run build:api",
+    "build": "tsc && vite build && node build-api.cjs",
     "preview": "vite preview",
-    "start": "node server.js"
+    "start": "node server.cjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
