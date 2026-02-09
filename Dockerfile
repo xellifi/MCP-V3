@@ -3,6 +3,10 @@
 
 FROM node:20-alpine AS builder
 
+# IMPORTANT: Set NODE_ENV=development to ensure devDependencies are installed
+# Coolify sets NODE_ENV=production which causes npm to skip typescript, vite, etc.
+ENV NODE_ENV=development
+
 WORKDIR /app
 
 # Copy package files
