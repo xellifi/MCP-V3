@@ -531,7 +531,7 @@ async function handleContinue(req: VercelRequest, res: VercelResponse) {
 
         try {
             // Call the continue-flow API to execute subsequent nodes
-            const baseUrl = process.env.VITE_APP_URL || 'https://mcp-v16.vercel.app';
+            const baseUrl = process.env.VITE_APP_URL || process.env.APP_URL || '';
             const continueResponse = await fetch(`${baseUrl}/api/forms/continue-flow`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },

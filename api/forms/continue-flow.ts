@@ -657,7 +657,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
                 if (finalInvoiceId) {
                     console.log('[Continue Flow] Using invoice ID:', finalInvoiceId, '(type:', finalInvoiceId.startsWith('ORD-') ? 'order' : 'submission', ')');
-                    const baseUrl = process.env.VITE_APP_URL || 'https://mcp-v16.vercel.app';
+                    const baseUrl = process.env.VITE_APP_URL || process.env.APP_URL || '';
 
                     // Use server-side rendered invoice endpoint (works in Messenger's in-app browser)
                     const params = new URLSearchParams();
@@ -1165,7 +1165,7 @@ async function sendUpsellOffer(
             console.log('[Continue Flow] workspaceId:', workspaceId, 'userId:', userId);
 
             // Create webview session
-            const baseUrl = process.env.VITE_APP_URL || 'https://mcp-v16.vercel.app';
+            const baseUrl = process.env.VITE_APP_URL || process.env.APP_URL || '';
 
             const { data: session, error: sessionError } = await supabase
                 .from('webview_sessions')
@@ -1348,7 +1348,7 @@ async function sendDownsellOffer(
             console.log('[Continue Flow] Creating webview session for downsell...');
             console.log('[Continue Flow] workspaceId:', workspaceId, 'userId:', userId);
 
-            const baseUrl = process.env.VITE_APP_URL || 'https://mcp-v16.vercel.app';
+            const baseUrl = process.env.VITE_APP_URL || process.env.APP_URL || '';
 
             const { data: session, error: sessionError } = await supabase
                 .from('webview_sessions')
@@ -1538,7 +1538,7 @@ async function sendProductWebviewOffer(
             console.log('[Continue Flow] workspaceId:', workspaceId, 'userId:', userId);
 
             // Create webview session
-            const baseUrl = process.env.VITE_APP_URL || 'https://mcp-v16.vercel.app';
+            const baseUrl = process.env.VITE_APP_URL || process.env.APP_URL || '';
 
             const { data: session, error: sessionError } = await supabase
                 .from('webview_sessions')
@@ -1741,7 +1741,7 @@ async function sendCheckoutOffer(
             console.log('[Continue Flow] → Final cart:', cart.length, 'items');
             console.log('[Continue Flow] → Final total:', cartTotal);
 
-            const baseUrl = process.env.VITE_APP_URL || 'https://mcp-v16.vercel.app';
+            const baseUrl = process.env.VITE_APP_URL || process.env.APP_URL || '';
 
             const { data: session, error: sessionError } = await supabase
                 .from('webview_sessions')

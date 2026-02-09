@@ -1,0 +1,45 @@
+# Dependencies
+node_modules/
+
+# Build output (rebuilt in Docker)
+dist/
+
+# Development files
+*.log
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+
+# Git
+.git/
+.gitignore
+
+# Documentation
+*.md
+LICENSE
+
+# Temporary files
+*.tmp
+*.swp
+.DS_Store
+Thumbs.db
+
+# Test files
+*.test.*
+*.spec.*
+__tests__/
+coverage/
+
+# Vercel (not needed for Coolify)
+.vercel/
+vercel.json
+
+# Temp files that may have encoding issues
+temp_working_cron.ts
+temp-mcp-reset/
+*.tmp.ts
+coolify.env

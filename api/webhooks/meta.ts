@@ -268,9 +268,7 @@ async function createWebviewSession(
     cart?: any[]
 ): Promise<string | null> {
     try {
-        const baseUrl = process.env.VITE_APP_URL || process.env.VERCEL_URL
-            ? `https://${process.env.VERCEL_URL}`
-            : 'http://localhost:5173';
+        const baseUrl = process.env.VITE_APP_URL || process.env.APP_URL || 'http://localhost:5173';
 
         const expiresAt = new Date();
         expiresAt.setHours(expiresAt.getHours() + 1); // 1 hour expiration
@@ -4335,7 +4333,7 @@ async function executeAction(
 
             if (storeSlug) {
                 // Use VITE_APP_URL from environment variable (set in Vercel)
-                const baseUrl = process.env.VITE_APP_URL || 'https://mcp-v16.vercel.app';
+                const baseUrl = process.env.VITE_APP_URL || process.env.APP_URL || '';
                 // Include product ID in URL if available for direct product view
                 buyNowUrl = productId
                     ? `${baseUrl}/store/${storeSlug}?product=${productId}`
@@ -5278,7 +5276,7 @@ async function executeAction(
 
             // Build receipt elements for Facebook Receipt Template
             // Get app URL for converting relative URLs to absolute
-            const appUrl = process.env.VITE_APP_URL || 'https://mcp-v16.vercel.app';
+            const appUrl = process.env.VITE_APP_URL || process.env.APP_URL || '';
 
             const receiptElements = cart.map((item: any) => {
                 const qty = parseInt(item.quantity) || 1;
@@ -5473,7 +5471,7 @@ async function executeAction(
 
             // Build receipt items for Facebook Receipt Template
             // Get app URL for converting relative URLs to absolute
-            const appUrl2 = process.env.VITE_APP_URL || 'https://mcp-v16.vercel.app';
+            const appUrl2 = process.env.VITE_APP_URL || process.env.APP_URL || '';
 
             const receiptElements = cart.map((item: any) => {
                 const qty = parseInt(item.quantity) || 1;
