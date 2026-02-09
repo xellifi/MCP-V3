@@ -536,6 +536,19 @@ const Layout: React.FC<LayoutProps> = ({
                     ? accessPackages.allowed_routes
                     : FREE_PLAN_ROUTES; // Free plan routes if no access routes
 
+                  // DEBUG: Log route access info for first menu item
+                  if (path === '/') {
+                    console.log('[Layout Route Debug]', {
+                      path,
+                      hasSubscription: !!currentSubscription,
+                      subscriptionPackages: currentSubscription?.packages,
+                      accessPackages,
+                      allowedRoutes_fromDB: accessPackages?.allowed_routes,
+                      allowedRoutes_used: allowedRoutes,
+                      usingFallback: !accessPackages?.allowed_routes?.length
+                    });
+                  }
+
                   // Check if path is allowed
                   const pathIsAllowed = allowedRoutes.includes(path) || allowedRoutes.includes(renderPath);
                   if (!pathIsAllowed) {
