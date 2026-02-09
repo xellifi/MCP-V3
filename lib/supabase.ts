@@ -17,6 +17,24 @@ export const supabase = createClient(
       detectSessionInUrl: true,
       storage: window.localStorage,
       storageKey: 'supabase.auth.token',
+      // Reduce the default token refresh threshold for more frequent refreshes
+      flowType: 'pkce',
+    },
+    global: {
+      // Add a global fetch timeout to prevent requests from hanging indefinitely
+      fetch: (url, options) => {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+
+        return fetch(url, {
+          ...options,
+          signal: controller.signal,
+        }).finally(() => clearTimeout(timeoutId));
+      },
+    },
+    realtime: {
+      // Reduce realtime connection timeout
+      timeout: 10000,
     },
   }
 );

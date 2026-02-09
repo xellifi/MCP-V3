@@ -1,7 +1,7 @@
 import React, { useEffect, useState, lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/Layout';
-import { api } from './services/api';
+import { api, invalidateSessionCache } from './services/api';
 import { supabase } from './lib/supabase';
 import { User, Workspace, UserRole } from './types';
 import { MOCK_WORKSPACES } from './constants';
@@ -269,22 +269,28 @@ const App: React.FC = () => {
       if (document.visibilityState === 'visible') {
         const timeSinceActive = Date.now() - lastActiveTime;
 
-        // If user was away for more than 1 minute, refresh the session
-        if (timeSinceActive > 60000) {
-          console.log('User returned after', Math.round(timeSinceActive / 1000), 'seconds - refreshing session');
+        // If user was away for more than 30 seconds, refresh the session
+        // Reduced from 60s for more proactive session management
+        if (timeSinceActive > 30000) {
+          console.log('[App] User returned after', Math.round(timeSinceActive / 1000), 's - refreshing session');
+
+          // CRITICAL: Invalidate the cached session in api.ts first
+          invalidateSessionCache();
+
           try {
             const { data: { session }, error } = await supabase.auth.refreshSession();
             if (error) {
-              console.warn('Session refresh failed:', error.message);
+              console.warn('[App] Session refresh failed:', error.message);
               // If session refresh fails completely, the user may need to re-login
               if (error.message.includes('refresh_token') || error.message.includes('invalid')) {
-                console.log('Session invalid, user may need to re-login');
+                console.log('[App] Session invalid, redirecting to login...');
+                // Don't force logout immediately - let them try their action first
               }
             } else if (session) {
-              console.log('Session refreshed successfully');
+              console.log('[App] Session refreshed successfully');
             }
           } catch (err) {
-            console.warn('Error refreshing session:', err);
+            console.warn('[App] Error refreshing session:', err);
           }
         }
       } else {

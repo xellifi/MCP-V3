@@ -9,12 +9,27 @@ const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 // This prevents API calls from hanging when the session isn't fully established yet
 let sessionReadyPromise: Promise<boolean> | null = null;
 let lastSessionCheck = 0;
+let sessionVersion = 0; // Incremented when session is manually refreshed
 
-export const ensureSession = async (): Promise<boolean> => {
+// Call this to force the next ensureSession call to re-check
+export const invalidateSessionCache = (): void => {
+  sessionReadyPromise = null;
+  lastSessionCheck = 0;
+  sessionVersion++;
+  console.log('[Session] Cache invalidated, version:', sessionVersion);
+};
+
+export const ensureSession = async (forceRefresh = false): Promise<boolean> => {
   const now = Date.now();
+  const currentVersion = sessionVersion;
 
-  // If we checked recently (within 30 seconds), skip the check
-  if (sessionReadyPromise && (now - lastSessionCheck) < 30000) {
+  // If force refresh requested, invalidate cache
+  if (forceRefresh) {
+    invalidateSessionCache();
+  }
+
+  // Use cached result if within 10 seconds (reduced from 30s for faster response)
+  if (sessionReadyPromise && (now - lastSessionCheck) < 10000) {
     return sessionReadyPromise;
   }
 
@@ -22,53 +37,58 @@ export const ensureSession = async (): Promise<boolean> => {
 
   sessionReadyPromise = (async () => {
     try {
-      // First, try to get the current session
+      // Get the current session
       const { data: { session } } = await supabase.auth.getSession();
 
       if (session) {
-        // Check if token expires within the next 5 minutes
+        // Check if token expires within the next 2 minutes (reduced from 5min for proactive refresh)
         const expiresAt = session.expires_at ? session.expires_at * 1000 : 0;
         const timeUntilExpiry = expiresAt - Date.now();
 
-        if (timeUntilExpiry < 300000) { // 5 minutes
-          console.log('Session token expiring soon, refreshing...');
+        if (timeUntilExpiry < 120000) { // 2 minutes
+          console.log('[Session] Token expiring soon, refreshing...');
           const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
           if (refreshError) {
-            console.warn('Session refresh failed:', refreshError.message);
+            console.warn('[Session] Refresh failed:', refreshError.message);
+            // If refresh fails, session might be invalid - return false to trigger re-auth
+            if (refreshError.message.includes('invalid') || refreshError.message.includes('expired')) {
+              return false;
+            }
           } else if (refreshData.session) {
-            console.log('Session refreshed successfully');
+            console.log('[Session] Refreshed successfully');
           }
         }
         return true;
       }
 
-      // No session found, try refreshing (in case there's a valid refresh token)
-      console.log('No session found, attempting refresh...');
+      // No session found, try refreshing once (don't retry to avoid hanging)
+      console.log('[Session] No session found, attempting refresh...');
       const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
 
       if (!refreshError && refreshData.session) {
-        console.log('Session restored via refresh');
+        console.log('[Session] Restored via refresh');
         return true;
       }
 
-      // If refresh fails, try getting session a couple more times
-      for (let i = 0; i < 2; i++) {
-        await delay(500);
-        const { data: { session: retrySession } } = await supabase.auth.getSession();
-        if (retrySession) {
-          return true;
-        }
+      // One more quick attempt
+      await delay(300);
+      const { data: { session: retrySession } } = await supabase.auth.getSession();
+      if (retrySession) {
+        return true;
       }
 
       return false;
     } catch (error) {
-      console.warn('Session check failed:', error);
+      console.warn('[Session] Check failed:', error);
       return false;
     } finally {
-      // Reset the promise after 30 seconds so subsequent calls can retry
+      // Reset the promise after 10 seconds (reduced from 30s)
       setTimeout(() => {
-        sessionReadyPromise = null;
-      }, 30000);
+        // Only reset if version hasn't changed (no manual invalidation occurred)
+        if (sessionVersion === currentVersion) {
+          sessionReadyPromise = null;
+        }
+      }, 10000);
     }
   })();
 
