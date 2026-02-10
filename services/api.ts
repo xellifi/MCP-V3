@@ -444,18 +444,6 @@ export const api = {
     updateProfile: async (userId: string, updates: { name?: string; avatarUrl?: string; email?: string; password?: string; role?: string }): Promise<void> => {
       console.log('[updateProfile] START - userId:', userId, 'updates:', JSON.stringify(updates));
 
-      // Quick session check (don't use ensureSession to avoid potential stuck promise)
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        console.log('[updateProfile] Session check:', session ? 'VALID' : 'NO SESSION');
-        if (!session) {
-          throw new Error('No active session. Please log in again.');
-        }
-      } catch (sessionErr: any) {
-        console.error('[updateProfile] Session check failed:', sessionErr);
-        throw new Error('Session error: ' + (sessionErr.message || 'Please log in again.'));
-      }
-
       // 1. Update Auth (Email/Password) if provided
       if (updates.email || updates.password) {
         console.log('[updateProfile] Updating auth (email/password)...');
@@ -468,8 +456,6 @@ export const api = {
           throw new Error(error.message);
         }
         console.log('[updateProfile] Auth updated successfully');
-      } else {
-        console.log('[updateProfile] No auth updates needed');
       }
 
       // 2. Update Profile Data (Name, Avatar)
@@ -480,30 +466,24 @@ export const api = {
       if (updates.email !== undefined) profileUpdates.email = updates.email;
       if (updates.role !== undefined) profileUpdates.role = updates.role;
 
-      console.log('[updateProfile] Profile updates to send:', JSON.stringify(profileUpdates));
-
       if (Object.keys(profileUpdates).length > 0) {
-        console.log('[updateProfile] Sending profile update to Supabase...');
-        const { error, data, count, status, statusText } = await supabase
+        console.log('[updateProfile] Sending update:', JSON.stringify(profileUpdates));
+        const { error, data, status } = await supabase
           .from('profiles')
           .update(profileUpdates)
           .eq('id', userId)
           .select();
 
-        console.log('[updateProfile] Supabase response:', { error, data, count, status, statusText });
+        console.log('[updateProfile] Response:', { error, data, status });
 
         if (error) {
-          console.error('[updateProfile] Profile update error:', error);
+          console.error('[updateProfile] Update error:', error);
           throw new Error(error.message);
         }
 
         if (!data || data.length === 0) {
-          console.warn('[updateProfile] WARNING: Update returned no rows - RLS may be blocking the update');
+          console.warn('[updateProfile] No rows updated - possible RLS issue');
         }
-
-        console.log('[updateProfile] Profile updated successfully');
-      } else {
-        console.log('[updateProfile] No profile fields to update');
       }
 
       console.log('[updateProfile] DONE');

@@ -1,4 +1,3 @@
-// Transpiled from TypeScript by esbuild
 var __defProp = Object.defineProperty;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames = Object.getOwnPropertyNames;
