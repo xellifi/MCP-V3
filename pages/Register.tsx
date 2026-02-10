@@ -33,7 +33,7 @@ const Register: React.FC<RegisterProps> = ({ onLogin }) => {
       await onLogin(user);  // Wait for workspaces to load
 
       // Show clear message about email verification
-      toast.success(`Welcome, ${user.name}! 📧 Please check your email to verify your account before accessing all features.`);
+      toast.success(`Welcome, ${user.name}! Please check your email to verify your account before accessing all features.`);
 
       // Navigate to dashboard where verification modal will block if not verified
       try {

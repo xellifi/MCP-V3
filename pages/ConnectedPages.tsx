@@ -110,7 +110,7 @@ const ConnectedPages: React.FC<ConnectedPagesProps> = ({ workspace }) => {
       const subscribeResult = await subscribeResponse.json();
 
       if (subscribeResult.success) {
-        toast.success(`✓ ${page.name} is now subscribed to webhooks! Automations will work.`);
+        toast.success(`${page.name} is now subscribed to webhooks! Automations will work.`);
       } else {
         console.error('Subscribe error:', subscribeResult);
         toast.error(`Failed to subscribe: ${subscribeResult.error?.message || 'Unknown error'}`);
@@ -202,8 +202,8 @@ const ConnectedPages: React.FC<ConnectedPagesProps> = ({ workspace }) => {
       {/* Connection Tip Banner */}
       {hasConnection === false && (
         <div className={`flex items-center gap-3 px-4 py-3 rounded-xl border ${isDark
-            ? 'bg-amber-500/10 border-amber-500/20 text-amber-400'
-            : 'bg-amber-50 border-amber-200 text-amber-700'
+          ? 'bg-amber-500/10 border-amber-500/20 text-amber-400'
+          : 'bg-amber-50 border-amber-200 text-amber-700'
           }`}>
           <Info className="w-5 h-5 flex-shrink-0" />
           <p className="text-sm">

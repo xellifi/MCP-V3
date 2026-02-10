@@ -1139,6 +1139,16 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace, user }) => {
     try {
       console.log('Saving flow:', { flowId, flowName, nodesCount: nodes.length, edgesCount: edges.length });
 
+      // Helper: wrap a promise with a timeout to prevent infinite loading
+      const withTimeout = <T,>(promise: Promise<T>, ms: number, label: string): Promise<T> => {
+        return Promise.race([
+          promise,
+          new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error(`${label} timed out after ${ms / 1000}s. Please try again.`)), ms)
+          )
+        ]);
+      };
+
       // Prepare flow data
       const flowData = {
         name: flowName || 'Untitled Flow',
@@ -1168,11 +1178,19 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace, user }) => {
       if (flowId.startsWith('new')) {
         // Create new flow
         console.log('Creating new flow...');
-        const newFlow = await api.workspace.createFlow(workspace.id, flowData.name);
+        const newFlow = await withTimeout(
+          api.workspace.createFlow(workspace.id, flowData.name),
+          30000,
+          'Creating flow'
+        );
         console.log('New flow created:', newFlow);
         savedFlowId = newFlow.id;
 
-        await api.workspace.updateFlow(newFlow.id, flowData);
+        await withTimeout(
+          api.workspace.updateFlow(newFlow.id, flowData),
+          30000,
+          'Saving flow data'
+        );
         console.log('Flow updated with data');
 
         // Update current flow name and status
@@ -1185,7 +1203,11 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace, user }) => {
       } else {
         // Update existing flow
         console.log('Updating existing flow:', flowId);
-        await api.workspace.updateFlow(flowId, flowData);
+        await withTimeout(
+          api.workspace.updateFlow(flowId, flowData),
+          30000,
+          'Updating flow'
+        );
         console.log('Flow updated successfully');
 
         // Update current flow name and status
@@ -1785,7 +1807,7 @@ const FlowBuilder: React.FC<FlowBuilderProps> = ({ workspace, user }) => {
 
       // All nodes validated successfully!
       setValidatingNodeIds(new Set());
-      toast.success('✅ All nodes validated successfully!');
+      toast.success('All nodes validated successfully!');
 
       // Wait 3 seconds then show template save modal
       await new Promise(resolve => setTimeout(resolve, 3000));
