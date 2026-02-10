@@ -152,12 +152,20 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, user, onUp
             // Only send email if it was actually changed
             const emailChanged = formData.email !== user.email;
 
-            await api.auth.updateProfile(user.id, {
-                name: formData.name,
-                email: emailChanged ? formData.email : undefined,
-                avatarUrl: formData.avatarUrl,
-                password: formData.password || undefined
-            });
+            // Wrap in timeout to prevent infinite loading
+            const timeoutPromise = new Promise<never>((_, reject) =>
+                setTimeout(() => reject(new Error('Save timed out. Please check your connection and try again.')), 20000)
+            );
+
+            await Promise.race([
+                api.auth.updateProfile(user.id, {
+                    name: formData.name,
+                    email: emailChanged ? formData.email : undefined,
+                    avatarUrl: formData.avatarUrl,
+                    password: formData.password || undefined
+                }),
+                timeoutPromise
+            ]);
 
             toast.success('Profile updated successfully');
 

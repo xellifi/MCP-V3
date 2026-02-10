@@ -442,6 +442,8 @@ export const api = {
     },
 
     updateProfile: async (userId: string, updates: { name?: string; avatarUrl?: string; email?: string; password?: string; role?: string }): Promise<void> => {
+      await ensureSession();
+
       // 1. Update Auth (Email/Password) if provided
       if (updates.email || updates.password) {
         const { error } = await supabase.auth.updateUser({
