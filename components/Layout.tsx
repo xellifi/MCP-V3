@@ -268,8 +268,7 @@ const Layout: React.FC<LayoutProps> = ({
     return () => document.removeEventListener('click', handleClickOutside);
   }, [profileDropdownOpen]);
 
-  // Default allowed routes for Free plan (no subscription or Pending subscription)
-  // This should match the routes configured in the Free package in admin settings
+  // Default allowed routes for Free plan (fallback if allowed_routes is empty in DB)
   const FREE_PLAN_ROUTES = ['/', '/dashboard', '/connected-pages', '/flows', '/settings', '/academy', '/orders', '/packages'];
 
   // Routes allowed for EXPIRED subscriptions - only packages page to renew
@@ -282,6 +281,7 @@ const Layout: React.FC<LayoutProps> = ({
       setSidebarOpen(false);
       return;
     }
+
 
     // Check if subscription is EXPIRED - only allow /packages
     const isExpired = (currentSubscription as any)?.isExpired === true;
@@ -541,6 +541,7 @@ const Layout: React.FC<LayoutProps> = ({
                     console.log('[Layout Route Debug]', {
                       path,
                       hasSubscription: !!currentSubscription,
+                      subscriptionStatus: currentSubscription?.status,
                       subscriptionPackages: currentSubscription?.packages,
                       accessPackages,
                       allowedRoutes_fromDB: accessPackages?.allowed_routes,
