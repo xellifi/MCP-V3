@@ -505,12 +505,16 @@ export const api = {
 
     // Update email verified status (admin function)
     updateEmailVerified: async (userId: string, verified: boolean): Promise<void> => {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ email_verified: verified })
-        .eq('id', userId);
+      const response = await fetch('/api/admin?action=verify-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, verified })
+      });
 
-      if (error) throw new Error(error.message);
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to update verification status');
+      }
     },
 
     // Facebook OAuth login (Supabase OAuth - kept for reference)

@@ -52,11 +52,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             }
             return handleGetGlobalStats(req, res);
 
+        case 'verify-user':
+            if (req.method !== 'POST') {
+                return res.status(405).json({ error: 'Method not allowed' });
+            }
+            return handleVerifyUser(req, res);
+
         default:
             return res.status(400).json({
                 error: 'Invalid action parameter',
-                validActions: ['create-user', 'delete-user', 'impersonate', 'global-stats'],
-                usage: '/api/admin?action=create-user (POST) | /api/admin?action=delete-user (DELETE) | /api/admin?action=impersonate (POST) | /api/admin?action=global-stats (GET)'
+                validActions: ['create-user', 'delete-user', 'impersonate', 'global-stats', 'verify-user'],
+                usage: '/api/admin?action=create-user (POST) | /api/admin?action=delete-user (DELETE) | /api/admin?action=impersonate (POST) | /api/admin?action=global-stats (GET) | /api/admin?action=verify-user (POST)'
             });
     }
 }
@@ -188,6 +194,44 @@ async function handleDeleteUser(req: VercelRequest, res: VercelResponse) {
 
         console.log('[Delete User] Starting deletion for user:', userId);
 
+        // STEP 1: Delete from dependent tables FIRST (foreign key order)
+        // Delete user_subscriptions
+        const { error: subError } = await supabaseAdmin
+            .from('user_subscriptions')
+            .delete()
+            .eq('user_id', userId);
+
+        if (subError) {
+            console.error('[Delete User] Subscription deletion error:', subError);
+        } else {
+            console.log('[Delete User] ✓ Deleted from user_subscriptions');
+        }
+
+        // Delete workspaces owned by user
+        const { error: wsError } = await supabaseAdmin
+            .from('workspaces')
+            .delete()
+            .eq('owner_id', userId);
+
+        if (wsError) {
+            console.error('[Delete User] Workspace deletion error:', wsError);
+        } else {
+            console.log('[Delete User] ✓ Deleted from workspaces');
+        }
+
+        // STEP 2: Delete profile
+        const { error: profileError } = await supabaseAdmin
+            .from('profiles')
+            .delete()
+            .eq('id', userId);
+
+        if (profileError) {
+            console.error('[Delete User] Profile deletion error:', profileError);
+        } else {
+            console.log('[Delete User] ✓ Deleted from profiles');
+        }
+
+        // STEP 3: Delete from auth.users LAST
         const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(userId as string);
 
         if (authError) {
@@ -200,21 +244,9 @@ async function handleDeleteUser(req: VercelRequest, res: VercelResponse) {
 
         console.log('[Delete User] ✓ Deleted from auth.users');
 
-        const { error: profileError } = await supabaseAdmin
-            .from('profiles')
-            .delete()
-            .eq('id', userId);
-
-        if (profileError) {
-            console.error('[Delete User] Profile deletion error:', profileError);
-            console.log('[Delete User] ⚠ Profile deletion failed but auth user is deleted');
-        } else {
-            console.log('[Delete User] ✓ Deleted from profiles');
-        }
-
         return res.status(200).json({
             success: true,
-            message: 'User deleted successfully from both authentication and database'
+            message: 'User deleted successfully from all tables'
         });
 
     } catch (error: any) {
@@ -394,5 +426,53 @@ async function handleGetGlobalStats(req: VercelRequest, res: VercelResponse) {
     } catch (error: any) {
         console.error('[Global Stats] Error:', error);
         return res.status(500).json({ error: error.message || 'Failed to fetch global stats' });
+    }
+}
+
+// ============================================
+// VERIFY/UNVERIFY USER EMAIL
+// ============================================
+async function handleVerifyUser(req: VercelRequest, res: VercelResponse) {
+    try {
+        const { userId, verified } = req.body;
+
+        if (!userId || typeof verified !== 'boolean') {
+            return res.status(400).json({ error: 'userId and verified (boolean) are required' });
+        }
+
+        console.log(`[Verify User] Setting verified=${verified} for user:`, userId);
+
+        // Update profiles table using service role (bypasses RLS)
+        const { error: profileError } = await supabaseAdmin
+            .from('profiles')
+            .update({ email_verified: verified })
+            .eq('id', userId);
+
+        if (profileError) {
+            console.error('[Verify User] Profile update error:', profileError);
+            return res.status(500).json({ error: 'Failed to update verification status' });
+        }
+
+        // Also update auth.users email_confirmed_at if verifying
+        if (verified) {
+            const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(userId, {
+                email_confirm: true
+            });
+            if (authError) {
+                console.error('[Verify User] Auth update error:', authError);
+                // Don't fail - profile is already updated
+            }
+        }
+
+        console.log(`[Verify User] ✓ User ${verified ? 'verified' : 'unverified'}`);
+
+        return res.status(200).json({
+            success: true,
+            message: `User ${verified ? 'verified' : 'unverified'} successfully`
+        });
+
+    } catch (error: any) {
+        console.error('[Verify User] Server error:', error);
+        return res.status(500).json({ error: error.message || 'Internal server error' });
     }
 }
