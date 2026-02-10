@@ -322,7 +322,10 @@ export const api = {
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
-        options: { data: { name } }
+        options: {
+          data: { name },
+          emailRedirectTo: `${window.location.origin}/dashboard`
+        }
       });
 
       if (error) {
@@ -491,7 +494,10 @@ export const api = {
 
       const { error } = await supabase.auth.resend({
         type: 'signup',
-        email: user.email
+        email: user.email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/dashboard`
+        }
       });
 
       if (error) throw new Error(error.message);
