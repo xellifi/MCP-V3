@@ -18,7 +18,7 @@ export const supabase = createClient(
       storage: window.localStorage,
       storageKey: 'supabase.auth.token',
       // Reduce the default token refresh threshold for more frequent refreshes
-      flowType: 'pkce',
+      flowType: 'implicit',
     },
     global: {
       // Add a global fetch timeout to prevent requests from hanging indefinitely

@@ -488,13 +488,20 @@ export const api = {
     },
 
     // Resend verification email
-    resendVerificationEmail: async (): Promise<void> => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user?.email) throw new Error('No user logged in');
+    resendVerificationEmail: async (email?: string): Promise<void> => {
+      let userEmail = email;
+
+      // If no email provided, try to get it from session
+      if (!userEmail) {
+        const { data: { user } } = await supabase.auth.getUser();
+        userEmail = user?.email;
+      }
+
+      if (!userEmail) throw new Error('No email address available. Please try logging in again.');
 
       const { error } = await supabase.auth.resend({
         type: 'signup',
-        email: user.email,
+        email: userEmail,
         options: {
           emailRedirectTo: `${window.location.origin}/dashboard`
         }

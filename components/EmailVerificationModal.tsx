@@ -26,7 +26,7 @@ const EmailVerificationModal: React.FC<EmailVerificationModalProps> = ({
         setIsResending(true);
         setResendSuccess(false);
         try {
-            await api.auth.resendVerificationEmail();
+            await api.auth.resendVerificationEmail(userEmail);
             setResendSuccess(true);
             toast.success('Verification email sent! Please check your inbox.');
         } catch (error: any) {
