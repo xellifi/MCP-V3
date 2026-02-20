@@ -1,4 +1,4 @@
-# Dockerfile for Coolify Deployment
+# Dockerfile for VPS Deployment
 # This builds the Vite frontend and runs an Express server for API routes
 
 FROM node:20-alpine AS builder
@@ -38,9 +38,9 @@ COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/api ./api
 
 # Copy the server file
-COPY server.js ./
+COPY server.cjs ./
 
-# Expose port (Coolify will map this)
+# Expose port (Nginx will reverse proxy this)
 EXPOSE 3000
 
 # Health check
@@ -48,4 +48,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD wget -q --spider http://localhost:3000/health || exit 1
 
 # Start the Express server
-CMD ["node", "server.js"]
+CMD ["node", "server.cjs"]
