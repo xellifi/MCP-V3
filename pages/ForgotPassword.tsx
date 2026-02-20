@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { KeyRound, ArrowRight, ArrowLeft, Mail, Loader2 } from 'lucide-react';
+import { KeyRound, ArrowLeft, Mail, Loader2 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
 
 const ForgotPassword: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -26,13 +25,14 @@ const ForgotPassword: React.FC = () => {
     setError(null);
 
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
+      const res = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
       });
 
-      if (error) {
-        throw error;
-      }
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to send reset email');
 
       setSubmitted(true);
     } catch (err: any) {
@@ -86,14 +86,7 @@ const ForgotPassword: React.FC = () => {
               disabled={loading}
               className="w-full bg-slate-900 dark:bg-slate-700 hover:bg-slate-800 dark:hover:bg-slate-600 text-white font-bold py-4 rounded-xl shadow-lg shadow-slate-900/10 dark:shadow-none transition-all flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? (
-                <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  Sending...
-                </>
-              ) : (
-                'Send Reset Link'
-              )}
+              {loading ? <><Loader2 className="w-5 h-5 animate-spin" />Sending...</> : 'Send Reset Link'}
             </button>
 
             <div className="text-center pt-2">
@@ -110,16 +103,13 @@ const ForgotPassword: React.FC = () => {
             <div className="p-4 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 rounded-xl text-sm border border-amber-100 dark:border-amber-900/30">
               <strong>Important:</strong> Please close this tab before clicking the reset link in your email.
             </div>
-            <p className="text-slate-500 dark:text-slate-400 text-sm">
-              Redirecting to login in a few seconds...
-            </p>
-            <Link to="/login" className="inline-flex items-center text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 font-bold hover:underline transition-colors">
+            <p className="text-slate-500 dark:text-slate-400 text-sm">Redirecting to login in a few seconds...</p>
+            <Link to="/login" className="inline-flex items-center text-indigo-600 dark:text-indigo-400 font-bold hover:underline transition-colors">
               Return to Login Now
             </Link>
           </div>
         )}
       </div>
-
       <p className="mt-8 text-slate-400 text-sm">&copy; {new Date().getFullYear()} Mychat Pilot. All rights reserved.</p>
     </div>
   );
